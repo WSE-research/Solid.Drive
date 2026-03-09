@@ -1,0 +1,69 @@
+name: User Story
+description: Create a structured user story
+title: "[User Story]: "
+labels: ["user-story"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## User Story
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the user story in the format below.
+      placeholder: |
+        As a [role]
+        I want to [feature / goal]
+        So that [benefit / reason].
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_information
+    attributes:
+      label: Additional Information
+      description: Add screenshots, links, dependencies, or open questions.
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List clear, testable requirements.
+      placeholder: |
+        - [ ] Requirement 1
+        - [ ] Requirement 2
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: definition_of_ready
+    attributes:
+      label: Definition of Ready (DoR)
+      options:
+        - label: Independent
+        - label: Negotiable
+        - label: Valuable
+        - label: Estimable
+        - label: Small
+        - label: Testable
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: definition_of_done
+    attributes:
+      label: Definition of Done (DoD)
+      options:
+        - label: Acceptance criteria are met
+        - label: Meaningful tests are implemented
+        - label: CI pipeline passes successfully
+        - label: Documentation updated 
+        - label: Code review completed
+    validations:
+      required: true
