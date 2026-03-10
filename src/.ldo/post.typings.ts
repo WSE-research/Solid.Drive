@@ -2,30 +2,40 @@ import type { LdoJsonldContext, LdSet } from "@ldo/ldo";
 
 /**
  * =============================================================================
- * Typescript Typings for solidProfile
+ * Typescript Typings for post
  * =============================================================================
  */
 
 /**
- * SolidProfile Type
+ * PostSh Type
  */
-export interface SolidProfile {
+export interface PostSh {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<
     | {
-        "@id": "Person";
+        "@id": "DigitalDocument";
       }
     | {
-        "@id": "Person2";
+        "@id": "CreativeWork";
+      }
+    | {
+        "@id": "Thing";
       }
   >;
-  fn?: string;
   name?: string;
-  inbox: {
+  description?: string;
+  encodingFormat?: string;
+  contentSize?: string;
+  uploadDate: string;
+  dateModified?: string;
+  isPartOf?: {
     "@id": string;
   };
-  storage?: LdSet<{
+  sharedWith?: LdSet<{
     "@id": string;
   }>;
+  publisher: {
+    "@id": string;
+  };
 }
