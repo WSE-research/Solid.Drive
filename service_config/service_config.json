@@ -1,0 +1,10 @@
+{
+  "services": [
+    {
+      "mode": "dockerfile",
+      "port": "3000:80",
+      "image": "wseresearch/solid-hello-world-frontend-react",
+      "tag": "latest"
+    }
+  ]
+}
