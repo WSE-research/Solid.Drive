@@ -1,0 +1,14 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX schema: <http://schema.org/>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ldp: <http://www.w3.org/ns/ldp#>
+PREFIX sp: <http://www.w3.org/ns/pim/space#>
+
+<SolidProfileShape> EXTRA a {
+  a [ schema:Person foaf:Person ] ;
+  vcard:fn xsd:string ? ;
+  foaf:name xsd:string ? ;
+  ldp:inbox IRI ;
+  sp:storage IRI * ;
+}
