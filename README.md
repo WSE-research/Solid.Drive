@@ -1,139 +1,134 @@
 # solid.drive
 
-A file manager built on the [Solid Protocol](https://solidproject.org/). Every file is stored directly in the user's own Solid Pod — the server never holds a copy.
+A personal file drive built on the [Solid Protocol](https://solidproject.org/). Users authenticate with their own Solid Pod and store files directly in it, no central server, no database, no account on this app.
+
+## Architecture
 
 <details>
-<summary>Architecture diagram</summary>
+<summary>View architecture diagram</summary>
 
 ![Architecture diagram](docs/architecture.svg)
+
+<details>
 
 Regenerate with:
 ```bash
 java -jar plantuml.jar -tsvg docs/architecture.puml
 ```
+</details>
 
 </details>
 
-## How it works
+## Tech Stack
 
-### Pod layout
-
-Each uploaded file gets a dedicated container on the Pod. A DCAT catalog at the storage root keeps a queryable index of all files:
-
-```
-Pod storage root/
-├── catalog.ttl                  ← DCAT catalog: one entry per file
-└── my-solid-app/
-    └── photo-2024-01-01/        ← one container per uploaded file
-        ├── photo.jpg            ← the binary
-        └── index.ttl            ← schema.org metadata (type, name, date, publisher)
-```
-
-The user's WebID profile gets a `dcat:catalog` triple pointing to `catalog.ttl` on first upload so other Solid apps can discover the catalog automatically.
-
-### Upload sequence
-
-```
-pick file
-  → validate metadata against SHACL shapes (tbox.ttl) — block if required fields missing
-    → resolve schema.org class from MIME type
-      → create container (my-solid-app/photo-2024-01-01/)
-        → upload binary (photo.jpg)
-          → write index.ttl (schema.org metadata as Linked Data)
-            → append dcat:Dataset entry to catalog.ttl
-              → link catalog to WebID profile (first upload only)
-```
-
-If any step after the binary upload fails, the whole container is deleted — no half-written resources are left on the Pod.
-
-### Semantic classification
-
-MIME types are mapped to [schema.org](https://schema.org/) classes so files are typed in a vocabulary any Solid app can understand:
-
-| MIME | schema.org class |
-|------|-----------------|
-| `image/*` | `schema:ImageObject` |
-| `video/*` | `schema:VideoObject` |
-| `audio/*` | `schema:AudioObject` |
-| `text/*`, `application/pdf`, Word | `schema:TextDigitalDocument` |
-| CSV, Excel | `schema:SpreadsheetDigitalDocument` |
-| anything else | `schema:DigitalDocument` |
+| Layer | Technology |
+|---|---|
+| Framework | React 19 + TypeScript |
+| Build tool | Vite |
+| Solid integration | [@ldo/solid](https://github.com/o-development/ldo), [@ldo/solid-react](https://github.com/o-development/ldo) |
+| Data shapes | ShEx (via `@ldo/cli`) |
+| Linting | ESLint + typescript-eslint |
+| Container | Docker (port 3000 → 80) |
 
 ## Features
 
-- **Authentication** — OIDC login via `solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a custom provider; registration links per provider
-- **Pod navigation** — browse the full Pod directory tree with breadcrumb navigation and a refresh button
-- **TBox-driven validation** — SHACL shapes are loaded from `public/tbox.ttl` (auto-generated from datashapes.org) at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before the upload button is enabled; missing fields are surfaced inline
-- **File upload** — accepts any file type with optional title and description; stores binary and `index.ttl` inside a dedicated container
-- **Inline preview** — images (`<img>`), videos (`<video>`), audio (`<audio>`), PDFs and text (`<iframe>`) rendered from a local blob URL
-- **File info panel** — type, title, description, MIME, size, upload date, last modified date, and publisher name resolved from the publisher's Solid profile
-- **Profile-first catalog** — reads `dcat:catalog` from the WebID profile first, falling back to `${storageRoot}catalog.ttl`; users who bring their own catalog from another app have it recognized automatically
-- **Catalog management** — `catalog.ttl` updated on every upload and delete via SPARQL PATCH; the full file list is always queryable without scanning Pod containers
-- **Delete** — removes catalog entry, binary, `index.ttl`, and container in the correct order; no orphaned resources
-- **File adoption** — containers without `index.ttl` (pre-existing Pod files) render a fallback card with folder name and download button
-
-## Known Issues
-
-- **`inrupt.net` blocks localhost redirects** — the inrupt.net identity provider rejects OIDC redirect URIs pointing to `localhost`. Use `solidcommunity.net` or `solidweb.org` when testing locally.
-
-## Tech Stack
-
-| Layer | Technologies |
-|---|---|
-| Frontend | React 19 · TypeScript · Vite |
-| Solid / Linked Data | [@ldo/solid](https://github.com/o-development/ldo) · @ldo/solid-react · ShEx · schema.org · DCAT · SHACL |
-| Testing | Vitest · @testing-library/react · jsdom |
-| Deployment | Docker · nginx |
+- **Pod login**: authenticate with any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or custom)
+- **Create a Pod**: link to registration for users who don't have a Pod yet
+- **Full pod browser**: navigate your entire Pod with breadcrumb navigation
+- **File upload**: upload any file with a custom title and optional description
+- **File cards**: view uploaded files with type, size, upload date, preview (images), download, and delete
+- **No central account**: your Pod is your identity and storage; nothing is stored on this app's server
 
 ## Getting Started
 
-**Prerequisites:** Node.js ≥ 18
+### Prerequisites
+
+- Node.js ≥ 18
+- npm
+
+### Install
 
 ```bash
-npm install       # install dependencies
-npm run dev       # start dev server
-npm run build     # production build
-npm test          # run tests
+npm install
 ```
 
+### Develop
+
 ```bash
-docker run -p 3000:80 solid-hello-world-frontend-react
+npm run dev
 ```
+
+### Build
+
+```bash
+npm run build
+```
+
+### Preview production build
+
+```bash
+npm run preview
+```
+
+## Docker
+
+```bash
+docker run -p 3000:80 wseresearch/solid-hello-world-frontend-react:latest
+```
+
+App is then available at `http://localhost:3000`.
 
 ## Project Structure
 
 ```
-solid.drive/
-├── src/
-│   ├── .shapes/          # ShEx shape definitions (edit these)
-│   ├── .ldo/             # LDO TypeScript bindings (auto-generated, never edit)
-│   ├── App.tsx           # Root component, Solid provider setup
-│   ├── Header.tsx        # Auth bar with provider dropdown
-│   ├── FileExplorer.tsx  # Navigation, breadcrumbs, file listing
-│   ├── FileUpload.tsx    # Upload form with TBox validation and Pod write sequence
-│   ├── FileCard.tsx      # File display, inline preview, info panel, delete
-│   ├── FolderEntry.tsx   # Navigable row for non-app Pod containers
-│   ├── pod.ts            # LDO type guards and byte-format helper
-│   ├── podCatalog.ts     # Catalog CRUD via SPARQL (append, remove, parse, link)
-│   ├── useCatalogUri.ts  # Resolve catalog URI (profile-first, fallback)
-│   ├── tboxValidator.ts  # Load tbox.ttl, parse SHACL shapes, validate metadata
-│   └── generateShape.ts  # Discover RDF shapes from Turtle data
-├── public/
-│   └── tbox.ttl          # SHACL TBox (auto-generated by scripts/extract-tbox.mjs)
-├── scripts/
-│   ├── extract-tbox.mjs  # Fetch datashapes.org, reduce to app shapes, write public/tbox.ttl
-│   └── tbox-cardinality.ttl  # App-specific minCount overrides (which fields are required)
-├── tests/
-│   ├── components/       # Component tests (Header, FolderEntry)
-│   ├── unit/             # Unit tests (catalog-api, catalog-parse, pod, generateShape, useCatalogUri, tboxValidator)
-│   └── setup.ts          # Vitest + jsdom setup
-├── docs/
-│   ├── architecture.puml # PlantUML diagram source
-│   └── architecture.svg  # Generated SVG
-├── Dockerfile
-├── nginx.conf
-└── vite.config.ts
+src/
+├── .shapes/                    # ShEx shape definitions (source of truth for data models)
+│   ├── post.shex               File/upload schema (schema.org vocabulary)
+│   └── solidProfile.shex       Solid WebID profile schema
+├── .ldo/                       # Auto-generated LDO bindings (do not edit manually)
+├── App.tsx                     # Root component  
+BrowserSolidLdoProvider
+├── Header.tsx                  # Auth bar — provider select, login/logout, create-a-pod link
+├── FileExplorer.tsx            # Pod browser — navigates containers, renders cards or folder rows
+├── FileUpload.tsx              # Upload form — file picker, title, description, submit
+├── FileCard.tsx                # Uploaded file card — metadata, preview, download, delete
+├── FolderEntry.tsx             # Clickable folder row used when browsing outside app folder
+└── pod.ts                      # Type guards and utilities for LDO/Solid resource capabilities
 ```
 
-See [src/README.md](src/README.md) for component and module details.
-See [src/.shapes/README.md](src/.shapes/README.md) for shape definitions.
+## Data Model
+
+Each uploaded file gets its own container in the Pod:
+
+```
+{pod-storage}/my-solid-app/{file-slug}/
+├── index.ttl       ← metadata (Turtle)
+└── original-file   ← binary file
+```
+
+The metadata shape uses the `schema.org` vocabulary:
+
+| Field | Predicate | Type | Required |
+|---|---|---|---|
+| Display title | `schema:name` | string | no (defaults to filename) |
+| Description | `schema:description` | string | no |
+| MIME type | `schema:encodingFormat` | string | no |
+| File size | `schema:contentSize` | string (bytes) | no |
+| Upload date | `schema:uploadDate` | date | yes |
+| Uploader | `schema:publisher` | IRI (WebID) | yes |
+
+## Regenerating LDO Types
+
+If you modify the `.shex` shape files, regenerate the LDO bindings with:
+
+```bash
+npm run build:ldo
+```
+
+This runs `ldo build` and then applies a post-processing fix ([fix-ldo-types.mjs](fix-ldo-types.mjs)) to correct type compatibility issues in the generated output.
+
+## Linting
+
+```bash
+npm run lint
+```
