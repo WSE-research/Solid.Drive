@@ -6,16 +6,13 @@ import { isLoadable } from "./pod";
 
 const KNOWN_PROVIDERS = [
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
-  { label: "inrupt.net", value: "https://inrupt.net", registerUrl: "https://signup.pod.inrupt.com/" }, // Note: inrupt.net registration is currently closed, but we'll keep the link here for when it reopens
+  { label: "inrupt.net", value: "https://inrupt.net", registerUrl: "https://signup.pod.inrupt.com/" },
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },
   { label: "Custom…", value: "custom", registerUrl: undefined },
 ];
 
 const CUSTOM_PROVIDER_VALUE = "custom";
 
-/**
- * Renders the site header and handles Solid authentication state
- */
 export const Header: FunctionComponent = () => {
   const { session, login, logout } = useSolidAuth();
   const [selectedProvider, setSelectedProvider] = useState("");
@@ -25,11 +22,11 @@ export const Header: FunctionComponent = () => {
   const profile = useSubject(SolidProfileShapeType, session.webId);
 
   const displayName = isLoadable(webIdResource) && webIdResource.isLoading()
-    ? "Loading…"
+    ? "Loading..."
     : profile?.fn || profile?.name || session.webId;
 
   const issuerUrl = selectedProvider === CUSTOM_PROVIDER_VALUE ? customIssuerUrl : selectedProvider;
-  const registerUrl = KNOWN_PROVIDERS.find((provider) => provider.value === selectedProvider)?.registerUrl;
+  const registerUrl = KNOWN_PROVIDERS.find((p) => p.value === selectedProvider)?.registerUrl;
 
   return (
     <header className="site-header">
@@ -42,7 +39,7 @@ export const Header: FunctionComponent = () => {
           <p className="auth-webid">
             Logged in as <strong>{displayName}</strong>
           </p>
-          <button className="btn btn--ghost" onClick={logout}>
+          <button className="btn btn-ghost" onClick={logout}>
             Log Out
           </button>
         </div>
@@ -51,10 +48,10 @@ export const Header: FunctionComponent = () => {
           <div className="auth-input-row">
             <div className="auth-field">
               <label className="auth-provider-label">Provider</label>
-              <div className="auth-provider-row">
+              <div style={{ display: "flex", gap: 8 }}>
                 <select
                   value={selectedProvider}
-                  onChange={(event) => setSelectedProvider(event.target.value)}
+                  onChange={(error) => setSelectedProvider(error.target.value)}
                 >
                   <option value="" disabled>Select a provider</option>
                   {KNOWN_PROVIDERS.map((provider) => (
@@ -65,14 +62,14 @@ export const Header: FunctionComponent = () => {
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(event) => setCustomIssuerUrl(event.target.value)}
+                    onChange={(e) => setCustomIssuerUrl(e.target.value)}
                     placeholder="https://your-provider.example"
                   />
                 )}
               </div>
             </div>
             <button
-              className="btn btn--primary"
+              className="btn btn-primary"
               onClick={() => login(issuerUrl)}
               disabled={!issuerUrl}
             >
