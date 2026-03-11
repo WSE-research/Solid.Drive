@@ -105,7 +105,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
           <div className="file-upload__divider" />
           <div className="file-upload__footer">
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {pendingFile.type || "unknown type"} · {(pendingFile.size / 1024).toFixed(1)} KB
+              {pendingFile.type || "unknown datatype"} · {(pendingFile.size / 1024).toFixed(1)} KB
             </span>
             <button className="btn btn-primary" type="submit" disabled={isUploading}>
               {isUploading ? "Uploading…" : "Upload"}

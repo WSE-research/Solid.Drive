@@ -22,11 +22,11 @@ export const Header: FunctionComponent = () => {
   const profile = useSubject(SolidProfileShapeType, session.webId);
 
   const displayName = isLoadable(webIdResource) && webIdResource.isLoading()
-    ? "Loading..."
+    ? "Loading…"
     : profile?.fn || profile?.name || session.webId;
 
   const issuerUrl = selectedProvider === CUSTOM_PROVIDER_VALUE ? customIssuerUrl : selectedProvider;
-  const registerUrl = KNOWN_PROVIDERS.find((p) => p.value === selectedProvider)?.registerUrl;
+  const registerUrl = KNOWN_PROVIDERS.find((provider) => provider.value === selectedProvider)?.registerUrl;
 
   return (
     <header className="site-header">
@@ -62,7 +62,7 @@ export const Header: FunctionComponent = () => {
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(e) => setCustomIssuerUrl(e.target.value)}
+                    onChange={(error) => setCustomIssuerUrl(error.target.value)}
                     placeholder="https://your-provider.example"
                   />
                 )}
