@@ -39,7 +39,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
   const isImageFile = fileMeta?.encodingFormat?.startsWith("image/") ?? false;
 
   const handleDelete = useCallback(async () => {
-    if (!confirm("Delete this file?")) return;
+    if (!confirm("Are you sure you want to delete this file?")) return;
     const container = getResource(containerUri);
     if (isDeletable(container)) {
       await container.delete();

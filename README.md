@@ -1,6 +1,6 @@
 # solid.drive
 
-A personal file drive built on the [Solid Protocol](https://solidproject.org/). Users authenticate with their own Solid Pod and store files directly in it — no central server, no database, no account required.
+Your files, your Pod. solid.drive is a file manager built on the [Solid Protocol](https://solidproject.org/) that stores everything directly in your own Solid Pod, nothing passes through a central server.
 
 ## Architecture
 
@@ -22,13 +22,11 @@ java -jar plantuml.jar -tsvg docs/architecture.puml
 - Browse your entire Pod with breadcrumb navigation
 - Upload files with a custom title and optional description
 - View uploaded files with metadata, image preview, download, and delete
-- Your Pod is your identity and storage, nothing is held on this app's server
-
 ## Tech Stack
 
 - **Frontend** — React 19 · TypeScript · Vite
-- **Solid / Linked Data** — [@ldo/solid](https://github.com/o-development/ldo) · @ldo/solid-react · ShEx
-- **Deployment** — Docker
+- **Solid / Linked Data**: [@ldo/solid](https://github.com/o-development/ldo) · @ldo/solid-react · ShEx
+- **Deployment**: Docker
 
 ## Getting Started
 
@@ -65,7 +63,7 @@ docker run -p 40184:80 solid-hello-world-frontend-react
 
 ```
 solid.drive/
-├── src/                         # Application source — see src/README.md
+├── src/                         # Application source
 │   ├── .shapes/                 # ShEx shape definitions
 │   ├── .ldo/                    # Auto-generated LDO bindings
 │   └── ...

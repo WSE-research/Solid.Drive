@@ -90,7 +90,7 @@ export const FileExplorer: FunctionComponent = () => {
     ? currentContainer.children()
     : [];
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
-  const leafEntries = entries.filter((e) => !isSolidContainer(e)) as SolidLeaf[];
+  const leafEntries = entries.filter((error) => !isSolidContainer(error)) as SolidLeaf[];
 
   return (
     <main>
@@ -100,13 +100,13 @@ export const FileExplorer: FunctionComponent = () => {
 
       {breadcrumbs.length > 1 && (
         <nav className="breadcrumb">
-          {breadcrumbs.map((crumb, i) => (
+          {breadcrumbs.map((crumb, index) => (
             <Fragment key={crumb.uri}>
-              {i > 0 && <span className="breadcrumb__sep">/</span>}
+              {index > 0 && <span className="breadcrumb__sep">/</span>}
               <button
-                className={`breadcrumb__item${i === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
-                onClick={() => handleBreadcrumbClick(i, crumb.uri)}
-                disabled={i === breadcrumbs.length - 1}
+                className={`breadcrumb__item${index === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
+                onClick={() => handleBreadcrumbClick(index, crumb.uri)}
+                disabled={index === breadcrumbs.length - 1}
               >
                 {crumb.label}
               </button>
@@ -146,7 +146,7 @@ export const FileExplorer: FunctionComponent = () => {
       {entries.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state__icon">◌</div>
-          <p>{isInAppFolder ? "No files yet. Upload your first one above." : "This folder is empty."}</p>
+          <p>{isInAppFolder ? "You pod is currently empty. Please upload your first one above." : "This folder is empty."}</p>
         </div>
       ) : (
         <>
