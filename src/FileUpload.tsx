@@ -93,7 +93,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
             type="text"
             placeholder="Add a title…"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(error) => setTitle(error.target.value)}
           />
           <textarea
             className="file-upload__body"
