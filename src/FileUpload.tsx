@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useSolidAuth } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { PostShShapeType } from "./.ldo/post.shapeTypes";
 import { isSolidLeaf } from "./pod";
 import type { ContainerCreationResult } from "./pod";
@@ -11,6 +12,7 @@ type FileUploadProps = {
 };
 
 export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }) => {
+  const [translate] = useTranslation();
   const { session } = useSolidAuth();
   const { createData, commitData } = useLdo();
   const [title, setTitle] = useState("");
@@ -72,7 +74,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Choose file
+          {translate("fileUpload.chooseFile")}
         </label>
         <input
           id="file-upload-input"
@@ -91,13 +93,13 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
           <input
             className="file-upload__title"
             type="text"
-            placeholder="Add a title…"
+            placeholder={translate("fileUpload.titlePlaceholder")}
             value={title}
             onChange={(error) => setTitle(error.target.value)}
           />
           <textarea
             className="file-upload__body"
-            placeholder="Add a description (optional)"
+            placeholder={translate("fileUpload.descriptionPlaceholder")}
             value={description}
             onChange={(error) => setDescription(error.target.value)}
             rows={2}
@@ -105,10 +107,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
           <div className="file-upload__divider" />
           <div className="file-upload__footer">
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {pendingFile.type || "unknown datatype"} · {(pendingFile.size / 1024).toFixed(1)} KB
+              {pendingFile.type || translate("fileUpload.unknownType")} · {(pendingFile.size / 1024).toFixed(1)} KB
             </span>
             <button className="btn btn-primary" type="submit" disabled={isUploading}>
-              {isUploading ? "Uploading…" : "Upload"}
+              {isUploading ? translate("fileUpload.uploading") : translate("fileUpload.upload")}
             </button>
           </div>
         </>

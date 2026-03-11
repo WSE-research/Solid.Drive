@@ -1,0 +1,43 @@
+{
+  "header": {
+    "brand": "solid.drive",
+    "loggedInAs": "Logged in as",
+    "logOut": "Log Out",
+    "provider": "Provider",
+    "selectProvider": "Select a provider",
+    "customProviderPlaceholder": "https://your-provider.example",
+    "logIn": "Log In",
+    "podDescription": "A Pod is your personal data store on the web.",
+    "learnMore": "Learn more.",
+    "createPod": "Create a Pod"
+  },
+  "fileExplorer": {
+    "loginPrompt": "Please log in to access your drive.",
+    "connecting": "Connecting to your Pod\u2026",
+    "myPod": "My Pod",
+    "yourFiles": "Your Files",
+    "podContents": "Pod Contents",
+    "reloading": "Reloading\u2026",
+    "refresh": "Refresh",
+    "noFilesYet": "You pod is currently empty. Please upload your first one above.",
+    "emptyFolder": "This folder is empty.",
+    "download": "Download"
+  },
+  "fileCard": {
+    "loading": "Loading\u2026",
+    "deleteConfirm": "Are you sure you want to delete this file?",
+    "download": "Download",
+    "delete": "Delete"
+  },
+  "fileUpload": {
+    "chooseFile": "Choose file",
+    "titlePlaceholder": "Add a title\u2026",
+    "descriptionPlaceholder": "Add a description (optional)",
+    "unknownType": "unknown DataType",
+    "uploading": "Uploading\u2026",
+    "upload": "Upload"
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  }
+}

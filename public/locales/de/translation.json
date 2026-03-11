@@ -1,0 +1,43 @@
+{
+  "header": {
+    "brand": "solid.drive",
+    "loggedInAs": "Angemeldet als",
+    "logOut": "Abmelden",
+    "provider": "Anbieter",
+    "selectProvider": "Anbieter auswählen",
+    "customProviderPlaceholder": "https://ihr-anbieter.beispiel",
+    "logIn": "Anmelden",
+    "podDescription": "Ein Pod ist Ihr persönlicher Datenspeicher im Web.",
+    "learnMore": "Mehr erfahren.",
+    "createPod": "Pod erstellen"
+  },
+  "fileExplorer": {
+    "loginPrompt": "Bitte melden Sie sich an, um auf Ihr Laufwerk zuzugreifen.",
+    "connecting": "Verbindung mit Ihrem Pod\u2026",
+    "myPod": "Mein Pod",
+    "yourFiles": "Ihre Dateien",
+    "podContents": "Pod-Inhalt",
+    "reloading": "Wird neu geladen\u2026",
+    "refresh": "Aktualisieren",
+    "noFilesYet": "Ihr Pod ist derzeit leer. Laden Sie oben Ihre erste Datei hoch.",
+    "emptyFolder": "Dieser Ordner ist leer.",
+    "download": "Herunterladen"
+  },
+  "fileCard": {
+    "loading": "Wird geladen\u2026",
+    "deleteConfirm": "Möchten Sie diese Datei wirklich löschen?",
+    "download": "Herunterladen",
+    "delete": "Löschen"
+  },
+  "fileUpload": {
+    "chooseFile": "Datei auswählen",
+    "titlePlaceholder": "Titel hinzufügen\u2026",
+    "descriptionPlaceholder": "Beschreibung hinzufügen (optional)",
+    "unknownType": "Unbekannter Dateityp",
+    "uploading": "Wird hochgeladen\u2026",
+    "upload": "Hochladen"
+  },
+  "languageSwitcher": {
+    "label": "Sprache"
+  }
+}

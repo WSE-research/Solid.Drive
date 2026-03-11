@@ -4,6 +4,7 @@ import { FileUpload } from "./FileUpload";
 import { FileCard } from "./FileCard";
 import { FolderEntry } from "./FolderEntry";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "./pod";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
@@ -14,6 +15,7 @@ type Breadcrumb = { label: string; uri: SolidContainerUri };
 const APP_CONTAINER_PATH = "my-solid-app/";
 
 export const FileExplorer: FunctionComponent = () => {
+  const [translate] = useTranslation();
   const { session } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const { getResource } = useLdo();
@@ -34,14 +36,14 @@ export const FileExplorer: FunctionComponent = () => {
 
     setCurrentUri(storageRoot);
     setAppContainerUri(appUri);
-    setBreadcrumbs([{ label: "My Pod", uri: storageRoot }]);
+    setBreadcrumbs([{ label: translate("fileExplorer.myPod"), uri: storageRoot }]);
     initialized.current = true;
 
     const appContainer = getResource(appUri);
     if ("createIfAbsent" in appContainer) {
       (appContainer as SolidContainer).createIfAbsent();
     }
-  }, [profile, getResource]);
+  }, [profile, getResource, translate]);
 
   const currentContainer = useResource(currentUri);
   const appContainer = useResource(appContainerUri);
@@ -71,7 +73,7 @@ export const FileExplorer: FunctionComponent = () => {
     return (
       <div className="drive-gate">
         <div className="empty-state__icon">✦</div>
-        <p>Please log in to access your drive.</p>
+        <p>{translate("fileExplorer.loginPrompt")}</p>
       </div>
     );
   }
@@ -80,7 +82,7 @@ export const FileExplorer: FunctionComponent = () => {
     return (
       <div className="drive-loading">
         <div className="spinner" />
-        <span>Connecting to your Pod…</span>
+        <span>{translate("fileExplorer.connecting")}</span>
       </div>
     );
   }
@@ -117,7 +119,7 @@ export const FileExplorer: FunctionComponent = () => {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <p className="files-section-label" style={{ marginBottom: 0 }}>
-          {isInAppFolder ? "Your Files" : "Pod Contents"}
+          {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
         </p>
         <button
           className="btn btn-ghost"
@@ -128,7 +130,7 @@ export const FileExplorer: FunctionComponent = () => {
           {isReloading ? (
             <>
               <div className="spinner" style={{ width: 12, height: 12 }} />
-              Reloading…
+              {translate("fileExplorer.reloading")}
             </>
           ) : (
             <>
@@ -137,7 +139,7 @@ export const FileExplorer: FunctionComponent = () => {
                 <polyline points="1 20 1 14 7 14" />
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
               </svg>
-              Refresh
+              {translate("fileExplorer.refresh")}
             </>
           )}
         </button>
@@ -146,7 +148,7 @@ export const FileExplorer: FunctionComponent = () => {
       {entries.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state__icon">◌</div>
-          <p>{isInAppFolder ? "You pod is currently empty. Please upload your first one above." : "This folder is empty."}</p>
+          <p>{isInAppFolder ? translate("fileExplorer.noFilesYet") : translate("fileExplorer.emptyFolder")}</p>
         </div>
       ) : (
         <>
@@ -171,7 +173,7 @@ export const FileExplorer: FunctionComponent = () => {
                   className="btn btn-ghost"
                   style={{ fontSize: 12, padding: "6px 12px" }}
                 >
-                  Download
+                  {translate("fileExplorer.download")}
                 </a>
               </div>
             );

@@ -34,6 +34,10 @@ package "Browser" {
     +logout()
   }
 
+  class LanguageSwitcher <<component>> {
+    +changeLanguage(code: string)
+  }
+
   class FileExplorer <<component>> {
     +navigate(uri: string)
     +breadcrumbClick(index: int, uri: string)
@@ -52,11 +56,22 @@ package "Browser" {
     +navigate(uri: string)
   }
 
+  class i18n <<module>> {
+    +supportedLngs: string[]
+    +fallbackLng: string
+    +detection: localStorage|navigator
+    +backend: /locales/{{lng}}/{{ns}}.json
+  }
+
   App --> Header
   App --> FileExplorer
+  Header --> LanguageSwitcher
   FileExplorer --> FileUpload
   FileExplorer --> FileCard
   FileExplorer --> FolderEntry
+  App ..> i18n : uses
+  Header ..> i18n : uses
+  LanguageSwitcher ..> i18n : uses
 }
 
 package "Solid Pod (user-owned)" {

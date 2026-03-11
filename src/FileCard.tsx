@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useResource, useSubject } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { PostShShapeType } from "./.ldo/post.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
@@ -10,6 +11,7 @@ type FileCardProps = {
 };
 
 export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => {
+  const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
 
   const metadataResource = useResource(metadataUri);
@@ -39,18 +41,18 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
   const isImageFile = fileMeta?.encodingFormat?.startsWith("image/") ?? false;
 
   const handleDelete = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete this file?")) return;
+    if (!confirm(translate("fileCard.deleteConfirm"))) return;
     const container = getResource(containerUri);
     if (isDeletable(container)) {
       await container.delete();
     }
-  }, [containerUri, getResource]);
+  }, [containerUri, getResource, translate]);
 
   if (isReadable(metadataResource) && metadataResource.isReading()) {
     return (
       <div className="file-card" style={{ display: "flex", gap: 8, alignItems: "center", color: "var(--text-muted)", fontSize: 13 }}>
         <div className="spinner" style={{ width: 14, height: 14 }} />
-        Loading…
+        {translate("fileCard.loading")}
       </div>
     );
   }
@@ -95,10 +97,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
               download={binaryUri.split("/").pop()}
               style={{ fontSize: 12, padding: "6px 12px" }}
             >
-              Download
+              {translate("fileCard.download")}
             </a>
           )}
-          <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+          <button className="btn btn-danger" onClick={handleDelete}>{translate("fileCard.delete")}</button>
         </div>
       </div>
     </div>

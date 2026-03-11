@@ -22,10 +22,13 @@ java -jar plantuml.jar -tsvg docs/architecture.puml
 - Browse your entire Pod with breadcrumb navigation
 - Upload files with a custom title and optional description
 - View uploaded files with metadata, image preview, download, and delete
+- Switch the UI language at runtime
+
 ## Tech Stack
 
 - **Frontend** — React 19 · TypeScript · Vite
 - **Solid / Linked Data**: [@ldo/solid](https://github.com/o-development/ldo) · @ldo/solid-react · ShEx
+- **Internationalisation**: i18next · i18next-browser-languagedetector · i18next-http-backend
 - **Deployment**: Docker
 
 ## Getting Started
@@ -69,6 +72,7 @@ solid.drive/
 │   └── ...
 ├── docs/                        # Architecture diagrams
 ├── public/
+│   └── locales/                 # i18n translation files
 ├── .github/                     # CI/CD workflows and issue templates
 ├── Dockerfile
 ├── nginx.conf
