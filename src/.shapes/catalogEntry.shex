@@ -1,9 +1,11 @@
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX ex: <https://example.com/>
+PREFIX app: <https://example.com/app#>
 PREFIX schema: <http://schema.org/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
 
-ex:PostSh {
-  a [schema:DigitalDocument schema:CreativeWork schema:Thing] ;
+ex:CatalogEntrySh {
+  a [schema:DigitalDocument app:ImageFile app:VideoFile app:AudioFile app:TextDocument] ;
   schema:name xsd:string? ;
   schema:description xsd:string? ;
   schema:encodingFormat xsd:string? ;
@@ -13,4 +15,5 @@ ex:PostSh {
   schema:isPartOf IRI? ;
   schema:sharedWith IRI* ;
   schema:publisher IRI ;
+  dcterms:conformsTo IRI? ;
 }
