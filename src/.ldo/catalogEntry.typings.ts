@@ -2,14 +2,14 @@ import type { LdoJsonldContext, LdSet } from "@ldo/ldo";
 
 /**
  * =============================================================================
- * Typescript Typings for post
+ * Typescript Typings for catalogEntry
  * =============================================================================
  */
 
 /**
- * PostSh Type
+ * CatalogEntrySh Type
  */
-export interface PostSh {
+export interface CatalogEntrySh {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<
@@ -17,10 +17,16 @@ export interface PostSh {
         "@id": "DigitalDocument";
       }
     | {
-        "@id": "CreativeWork";
+        "@id": "ImageFile";
       }
     | {
-        "@id": "Thing";
+        "@id": "VideoFile";
+      }
+    | {
+        "@id": "AudioFile";
+      }
+    | {
+        "@id": "TextDocument";
       }
   >;
   name?: string;
@@ -36,6 +42,9 @@ export interface PostSh {
     "@id": string;
   }>;
   publisher: {
+    "@id": string;
+  };
+  conformsTo?: {
     "@id": string;
   };
 }
