@@ -1,18 +1,19 @@
-PREFIX schema: <http://schema.org/>
-PREFIX sd: <https://w3id.org/solid-drive#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ex: <https://example.com/>
+PREFIX app: <https://example.com/app#>
+PREFIX schema: <http://schema.org/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-<https://w3id.org/solid-drive#CatalogEntrySh> {
-	a [schema:DigitalDocument sd:ImageFile sd:VideoFile sd:AudioFile sd:TextDocument sd:SpreadsheetDocument] ;
-	schema:name xsd:string ? ;
-	schema:description xsd:string ? ;
-	schema:encodingFormat xsd:string ? ;
-	schema:contentSize xsd:string ? ;
-	schema:uploadDate xsd:dateTime ;
-	schema:publisher IRI ;
-	dcterms:conformsTo IRI ? ;
-	schema:dateModified xsd:dateTime ? ;
-	schema:isPartOf IRI ? ;
-	schema:sharedWith IRI * ;
+ex:CatalogEntrySh {
+  a [schema:DigitalDocument app:ImageFile app:VideoFile app:AudioFile app:TextDocument] ;
+  schema:name xsd:string? ;
+  schema:description xsd:string? ;
+  schema:encodingFormat xsd:string? ;
+  schema:contentSize xsd:string? ;
+  schema:uploadDate xsd:dateTime ;
+  schema:dateModified xsd:dateTime? ;
+  schema:isPartOf IRI? ;
+  schema:sharedWith IRI* ;
+  schema:publisher IRI ;
+  dcterms:conformsTo IRI? ;
 }

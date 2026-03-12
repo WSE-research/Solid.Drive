@@ -9,7 +9,7 @@ export const catalogEntrySchema: Schema = {
   type: "Schema",
   shapes: [
     {
-      id: "https://w3id.org/solid-drive#CatalogEntrySh",
+      id: "https://example.com/CatalogEntrySh",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -21,7 +21,13 @@ export const catalogEntrySchema: Schema = {
               predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
               valueExpr: {
                 type: "NodeConstraint",
-                nodeKind: "iri",
+                values: [
+                  "http://schema.org/DigitalDocument",
+                  "https://example.com/app#ImageFile",
+                  "https://example.com/app#VideoFile",
+                  "https://example.com/app#AudioFile",
+                  "https://example.com/app#TextDocument",
+                ],
               },
             },
             {
@@ -74,24 +80,6 @@ export const catalogEntrySchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://schema.org/publisher",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate: "http://purl.org/dc/terms/conformsTo",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
-              min: 0,
-              max: 1,
-            },
-            {
-              type: "TripleConstraint",
               predicate: "http://schema.org/dateModified",
               valueExpr: {
                 type: "NodeConstraint",
@@ -119,6 +107,24 @@ export const catalogEntrySchema: Schema = {
               },
               min: 0,
               max: -1,
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://schema.org/publisher",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://purl.org/dc/terms/conformsTo",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
             },
           ],
         },

@@ -14,6 +14,6 @@ import type { CatalogEntrySh } from "./catalogEntry.typings";
  */
 export const CatalogEntryShShapeType: ShapeType<CatalogEntrySh> = {
   schema: catalogEntrySchema,
-  shape: "https://w3id.org/solid-drive#CatalogEntrySh",
+  shape: "https://example.com/CatalogEntrySh",
   context: catalogEntryContext,
 };
