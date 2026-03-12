@@ -2,14 +2,14 @@ import type { Schema } from "shexj";
 
 /**
  * =============================================================================
- * postSchema: ShexJ Schema for post
+ * catalogEntrySchema: ShexJ Schema for catalogEntry
  * =============================================================================
  */
-export const postSchema: Schema = {
+export const catalogEntrySchema: Schema = {
   type: "Schema",
   shapes: [
     {
-      id: "https://example.com/PostSh",
+      id: "https://example.com/CatalogEntrySh",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -23,8 +23,10 @@ export const postSchema: Schema = {
                 type: "NodeConstraint",
                 values: [
                   "http://schema.org/DigitalDocument",
-                  "http://schema.org/CreativeWork",
-                  "http://schema.org/Thing",
+                  "https://example.com/app#ImageFile",
+                  "https://example.com/app#VideoFile",
+                  "https://example.com/app#AudioFile",
+                  "https://example.com/app#TextDocument",
                 ],
               },
             },
@@ -113,6 +115,16 @@ export const postSchema: Schema = {
                 type: "NodeConstraint",
                 nodeKind: "iri",
               },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://purl.org/dc/terms/conformsTo",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
             },
           ],
         },
