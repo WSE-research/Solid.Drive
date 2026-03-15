@@ -1,7 +1,5 @@
 import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
-//  Resource capability interfaces and related type guards
-
 export interface LoadableResource {
   isLoading: () => boolean;
 }
@@ -22,8 +20,6 @@ export interface DeletableResource {
 export interface ReloadableResource {
   reload: () => Promise<void>;
 }
-
-// Upload API response shapes and related types
 
 export interface UploadResult {
   isError: boolean;

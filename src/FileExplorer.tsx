@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isLoadable, isReloadable } from "./pod";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
+import { DataCatalog } from "./DataCatalog";
 
 type DriveEntry = SolidContainer | SolidLeaf;
 type Breadcrumb = { label: string; uri: SolidContainerUri };
@@ -30,10 +31,12 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   const initialized = useRef(false);
   const [appContainerUri, setAppContainerUri] = useState<SolidContainerUri>();
+  const [storageRootUri, setStorageRootUri] = useState<string>("");
   const [currentUri, setCurrentUri] = useState<SolidContainerUri>();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [isReloading, setIsReloading] = useState(false);
   const [noStorageDetected, setNoStorageDetected] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
 
   /**
    * Sets up the user's storage root, app folder, and initial navigation state on first load.
@@ -56,6 +59,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
     setCurrentUri(storageRoot);
     setAppContainerUri(appUri);
+    setStorageRootUri(storageRoot);
     setBreadcrumbs([{ label: translate("fileExplorer.myPod"), uri: storageRoot }]);
     initialized.current = true;
 
@@ -147,12 +151,12 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   // Split entries into folders and files so they can be rendered differently.
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
-  const leafEntries = entries.filter((error) => !isSolidContainer(error)) as SolidLeaf[];
+  const leafEntries = entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[];
 
   return (
     <main>
-      {isSolidContainer(appContainer) && (
-        <FileUpload mainContainer={appContainer} />
+      {isSolidContainer(appContainer) && storageRootUri && (
+        <FileUpload mainContainer={appContainer} storageRoot={storageRootUri} />
       )}
 
       {breadcrumbs.length > 1 && (
@@ -209,7 +213,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
           {isInAppFolder
             ? folderEntries.map((entry) => (
                 <Fragment key={entry.uri}>
-                  <FileCard containerUri={entry.uri} />
+                  <FileCard containerUri={entry.uri} storageRoot={storageRootUri} />
                 </Fragment>
               ))
             : folderEntries.map((entry) => (
@@ -232,6 +236,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             );
           })}
         </>
+      )}
+      {showCatalog && storageRootUri && (
+        <DataCatalog storageRoot={storageRootUri} onClose={() => setShowCatalog(false)} />
       )}
     </main>
   );
