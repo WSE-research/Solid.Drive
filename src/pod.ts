@@ -1,7 +1,5 @@
 import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
-//  Resource capability interfaces and related type guards
-
 export interface LoadableResource {
   isLoading: () => boolean;
 }
@@ -23,8 +21,6 @@ export interface ReloadableResource {
   reload: () => Promise<void>;
 }
 
-// Upload API response shapes and related types
-
 export interface UploadResult {
   isError: boolean;
   message: string;
@@ -45,8 +41,6 @@ export interface ContainerCreationResult {
   message: string;
   resource: FileContainerResource;
 }
-
-// Type guards for resource capabilities
 
 export function isLoadable(result: unknown): result is LoadableResource {
   return typeof result === "object" && result !== null && "isLoading" in result;
@@ -85,8 +79,6 @@ export function isSolidLeaf(result: unknown): result is SolidLeaf {
     (result as SolidLeaf).type === "SolidLeaf"
   );
 }
-
-//  Utilities 
 
 export function formatBytes(bytes: string | undefined): string {
   const byteCount = parseInt(bytes ?? "0", 10);
