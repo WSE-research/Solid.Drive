@@ -68,8 +68,12 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       metadata.publisher = { "@id": session.webId };
       if (description.trim()) metadata.description = description.trim();
 
+      if (!metadata.uploadDate) return alert("Upload failed: upload date is missing.");
+      if (!metadata.publisher?.["@id"]) return alert("Upload failed: your WebID is missing. Please log in again.");
+      if (!metadata.type || metadata.type.toArray().length === 0) return alert("Upload failed: file type could not be determined.");
+
       const commitResult = await commitData(metadata);
-      if (commitResult.isError) return alert(commitResult.message);
+      if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
       try {
         await appendToCatalog(storageRoot, indexResource.uri, classUri, solidFetch);
