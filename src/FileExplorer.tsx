@@ -7,6 +7,7 @@ import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react"
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "./pod";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
+import { DataCatalog } from "./DataCatalog";
 
 type DriveEntry = SolidContainer | SolidLeaf;
 type Breadcrumb = { label: string; uri: SolidContainerUri };
@@ -20,9 +21,11 @@ export const FileExplorer: FunctionComponent = () => {
 
   const initialized = useRef(false);
   const [appContainerUri, setAppContainerUri] = useState<SolidContainerUri>();
+  const [storageRootUri, setStorageRootUri] = useState<string>("");
   const [currentUri, setCurrentUri] = useState<SolidContainerUri>();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [isReloading, setIsReloading] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -34,6 +37,7 @@ export const FileExplorer: FunctionComponent = () => {
 
     setCurrentUri(storageRoot);
     setAppContainerUri(appUri);
+    setStorageRootUri(storageRoot);
     setBreadcrumbs([{ label: "My Pod", uri: storageRoot }]);
     initialized.current = true;
 
@@ -90,12 +94,12 @@ export const FileExplorer: FunctionComponent = () => {
     ? currentContainer.children()
     : [];
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
-  const leafEntries = entries.filter((error) => !isSolidContainer(error)) as SolidLeaf[];
+  const leafEntries = entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[];
 
   return (
     <main>
-      {isSolidContainer(appContainer) && (
-        <FileUpload mainContainer={appContainer} />
+      {isSolidContainer(appContainer) && storageRootUri && (
+        <FileUpload mainContainer={appContainer} storageRoot={storageRootUri} />
       )}
 
       {breadcrumbs.length > 1 && (
@@ -119,28 +123,30 @@ export const FileExplorer: FunctionComponent = () => {
         <p className="files-section-label" style={{ marginBottom: 0 }}>
           {isInAppFolder ? "Your Files" : "Pod Contents"}
         </p>
-        <button
-          className="btn btn-ghost"
-          onClick={handleReload}
-          disabled={isReloading}
-          style={{ fontSize: 12, padding: "6px 12px", opacity: isReloading ? 0.5 : 1 }}
-        >
-          {isReloading ? (
-            <>
-              <div className="spinner" style={{ width: 12, height: 12 }} />
-              Reloading…
-            </>
-          ) : (
-            <>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="23 4 23 10 17 10" />
-                <polyline points="1 20 1 14 7 14" />
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-              </svg>
-              Refresh
-            </>
-          )}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="btn btn-ghost"
+            onClick={handleReload}
+            disabled={isReloading}
+            style={{ fontSize: 12, padding: "6px 12px", opacity: isReloading ? 0.5 : 1 }}
+          >
+            {isReloading ? (
+              <>
+                <div className="spinner" style={{ width: 12, height: 12 }} />
+                Reloading…
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="23 4 23 10 17 10" />
+                  <polyline points="1 20 1 14 7 14" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                Refresh
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {entries.length === 0 ? (
@@ -153,7 +159,7 @@ export const FileExplorer: FunctionComponent = () => {
           {isInAppFolder
             ? folderEntries.map((entry) => (
                 <Fragment key={entry.uri}>
-                  <FileCard containerUri={entry.uri} />
+                  <FileCard containerUri={entry.uri} storageRoot={storageRootUri} />
                 </Fragment>
               ))
             : folderEntries.map((entry) => (
@@ -177,6 +183,9 @@ export const FileExplorer: FunctionComponent = () => {
             );
           })}
         </>
+      )}
+      {showCatalog && storageRootUri && (
+        <DataCatalog storageRoot={storageRootUri} onClose={() => setShowCatalog(false)} />
       )}
     </main>
   );
