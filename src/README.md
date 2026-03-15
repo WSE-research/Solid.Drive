@@ -4,32 +4,58 @@
 
 ### `App.tsx`
 
-Wraps everything in `BrowserSolidLdoProvider` so all components below can access the Solid session and LDO hooks.
+Wraps the tree in `BrowserSolidLdoProvider`. Required — without it no component can access the Solid session or LDO hooks.
 
 ### `Header.tsx`
 
-Top-level authentication bar for login and logout. The provider dropdown lets users choose their identity provider, since Solid uses decentralized Pods instead of a single identity server.
+Login / logout bar. Exposes a provider dropdown because Solid is decentralised — the app must know which identity server to authenticate against.
 
 ### `FileExplorer.tsx`
 
-Handles navigation state (URI and breadcrumbs). On first load it resolves the Pod storage root and creates `my-solid-app/` if it doesn't exist yet. Renders `FileCard` inside the app folder, raw `FolderEntry` rows everywhere else.
+Owns navigation state (current URI + breadcrumbs). Resolves the Pod storage root on first render and creates `my-solid-app/` if absent. Renders `FileCard` inside the app folder, `FolderEntry` everywhere else.
 
 ### `FileUpload.tsx`
 
-Each upload creates a container (folder) that holds the binary file and an `index.ttl` for metadata, following the Solid standard for storing data in a Pod.
+Runs the upload sequence: 
+
+```
+ensure `tbox.ttl` exists → resolve TBox class from MIME type → create container → upload binary → write `index.ttl` → append to `catalog.ttl`. 
+```
+Any failure after the binary is written triggers a full rollback so no orphaned resources remain on the Pod.
 
 ### `FileCard.tsx`
 
-Reads metadata from `index.ttl` and resolves the binary URI by inspecting the container's children. Image previews are created in memory from the blob — no public URL needed.
+Reads `index.ttl` and renders the binary inline (image, video, audio, or PDF) from a blob URL. The Info toggle shows all fields from `index.ttl`. Delete cleans up `catalog.ttl` before removing the container.
 
 ### `FolderEntry.tsx`
 
-Simple navigable row for Pod containers outside the app folder. Kept separate from `FileCard` because it makes no assumptions about structure or metadata.
+Navigable row for Pod containers outside the app folder. Kept separate from `FileCard` because it makes no assumptions about `index.ttl` being present.
+
+### `DataCatalog.tsx`
+
+Loads `catalog.ttl` and renders all ABox instances without scanning Pod containers. Composed of `TBoxView` and `ABoxView`.
+
+### `TBoxView.tsx`
+
+Renders the static TBox class table from `FILE_TYPE_DEFS` in `catalog.ts`.
+
+### `ABoxView.tsx`
+
+Renders one ABox instance from its `index.ttl`. Falls back to inferring the file class from `encodingFormat` for files uploaded before the TBox feature existed.
+
+## `catalog.ts`
+
+All TBox and ABox catalog logic in one file. The TBox Turtle, the class map, and the SPARQL functions are kept together because changing a class requires updating all three at once.
+
+- `ensureTBox` — writes `tbox.ttl` if absent; throws on failure to block the upload
+- `resolveClass` — maps a MIME type to the correct TBox class URI
+- `appendToCatalog` — PATCHes `catalog.ttl` with `INSERT WHERE NOT EXISTS` to prevent duplicates on retry
+- `removeFromCatalog` — PATCHes `catalog.ttl` with `DELETE WHERE` on file delete
 
 ## `pod.ts`
 
-Type guards (`isSolidContainer`, `isBinary`, `isDeletable`, etc.) to safely narrow LDO resource objects before calling methods on them. Also exports `formatBytes` used across multiple components.
+Type guards for LDO resource union types (`isSolidContainer`, `isBinary`, `isDeletable`, etc.) and `formatBytes`. Guards are necessary because LDO does not guarantee which methods are available until the resource type is narrowed.
 
 ## Data Shapes
 
-`.shapes/` defines the data contract for what gets written to and read from the Pod. `.ldo/` is auto-generated from those shapes — never edit it directly. Run `npm run build:ldo` to regenerate.
+`.shapes/` defines what a valid Pod resource looks like. `.ldo/` is auto-generated from it — never edit directly. Run `npm run build:ldo` after any shape change.
