@@ -1,23 +1,55 @@
 # ShEx Shapes
 
-These are the source of truth for every data model in this app. Think of them as a contract, they describe exactly what a valid resource looks like on the Pod before any component is allowed to use it.
+Each `.shex` file in this folder defines a data contract for one type of resource stored on the Pod. The contract specifies which RDF properties a resource must have (`rdf:type`, required fields) and which are optional, along with the exact datatype for each.
 
-Each `.shex` file here generates the four files in [`src/.ldo/`](../.ldo/). 
+LDO reads these files and generates TypeScript interfaces, validators, and shape type objects in `src/.ldo/`. Those generated files are what the React components import to read and write Pod data in a type-safe way.
 
-**Edit here, never there.**
+**Edit `.shex` files here. Never edit `src/.ldo/` directly.** Run `npm run build:ldo` to regenerate after any change.
+
+### `catalogEntry.shex`
+
+Defines the structure of an ABox instance — the metadata document (`index.ttl`) written inside each uploaded file's container.
+
+**Required fields** — the upload is rejected if either is missing:
+
+| Field | Type | Reason required |
+|---|---|---|
+| `schema:uploadDate` | `xsd:dateTime` | Every file must have a creation timestamp so the catalog can be sorted and audited |
+| `schema:publisher` | IRI (WebID) | Every file must be traceable to the Pod owner who uploaded it |
+
+**`rdf:type`** must be exactly one of:
+
+| Value | Meaning |
+|---|---|
+| `schema:DigitalDocument` | Base class — used when the MIME type does not match any more specific class |
+| `app:ImageFile` | MIME type starts with `image/` |
+| `app:VideoFile` | MIME type starts with `video/` |
+| `app:AudioFile` | MIME type starts with `audio/` |
+| `app:TextDocument` | MIME type is `text/*`, `application/pdf`, or `application/msword` |
+
+These classes are defined in `tbox.ttl` on the Pod (written by `ensureTBox` in `catalog.ts`).
+
+**Optional fields:**
+
+| Field | Type |
+|---|---|
+| `schema:name` | `xsd:string` |
+| `schema:description` | `xsd:string` |
+| `schema:encodingFormat` | `xsd:string` |
+| `schema:contentSize` | `xsd:string` |
+| `schema:dateModified` | `xsd:dateTime` |
+| `schema:isPartOf` | IRI |
+| `schema:sharedWith` | IRI |
+| `dcterms:conformsTo` | IRI |
 
 ---
 
-**`post.shex`**: a file (document, image, or any digital asset) using the `schema.org` vocabulary.
+### `solidProfile.shex`
 
-- `uploadDate` and `publisher` (the owner's WebID) are required
-- `name`, `description`, `encodingFormat` (MIME type), `contentSize`, `dateModified`, `isPartOf` (parent folder), and `sharedWith` are optional
+Defines the minimum fields the app reads from a user's WebID profile document.
 
-**`solidProfile.shex`**: the minimum the app needs from a user's WebID profile.
+| Field | Purpose |
+|---|---|
+| `sp:storage` | The root URI of the user's Pod — used to construct the path for `tbox.ttl`, `catalog.ttl`, and `my-solid-app/` |
 
-- `EXTRA a` means it accepts any profile type, as long as the required fields are there
-- `sp:storage` is how the app finds where to write posts on the Pod
-
----
-
-After editing a shape, run `npm run build:ldo` to regenerate [`src/.ldo/`](../.ldo/).
+`EXTRA a` is set so the shape accepts any profile `rdf:type`, not just a specific one. This is necessary because different Solid servers use different type URIs for profile documents, and the app only cares about the storage location, not the profile type.
