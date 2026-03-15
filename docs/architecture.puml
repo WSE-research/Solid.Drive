@@ -1,9 +1,12 @@
-@startuml solid.drive Architecture
+@startuml architecture
+title solid.drive Architecture
+
 !theme plain
 skinparam defaultFontName sans-serif
 skinparam defaultFontSize 13
-skinparam linetype ortho
 skinparam classAttributeIconSize 0
+skinparam backgroundColor White
+skinparam linetype ortho
 
 skinparam class {
   BackgroundColor White
@@ -19,15 +22,11 @@ skinparam package {
   FontStyle Bold
 }
 
-skinparam note {
-  BackgroundColor #FFFFF0
-  BorderColor #AAAAAA
-}
+left to right direction
 
 package "Browser" {
 
-  class App <<component>> {
-  }
+  class App <<component>>
 
   class Header <<component>> {
     +login(issuer: string)
@@ -40,21 +39,25 @@ package "Browser" {
 
   class FileExplorer <<component>> {
     +navigate(uri: string)
-    +breadcrumbClick(index: int, uri: string)
     +reload()
   }
 
   class FileUpload <<component>> {
-    +submit(file: File, title: string, description: string)
+    +submit(file, title, description)
   }
 
   class FileCard <<component>> {
+    +download()
     +delete()
   }
 
   class FolderEntry <<component>> {
     +navigate(uri: string)
   }
+
+  class DataCatalog <<component>>
+  class TBoxView <<component>>
+  class ABoxView <<component>>
 
   class i18n <<module>> {
     +supportedLngs: string[]
@@ -69,6 +72,9 @@ package "Browser" {
   FileExplorer --> FileUpload
   FileExplorer --> FileCard
   FileExplorer --> FolderEntry
+  FileExplorer --> DataCatalog
+  DataCatalog --> TBoxView
+  DataCatalog --> ABoxView
   App ..> i18n : uses
   Header ..> i18n : uses
   LanguageSwitcher ..> i18n : uses
@@ -76,39 +82,45 @@ package "Browser" {
 
 package "Solid Pod (user-owned)" {
 
-  class PodStorage <<container>> {
-    +uri: string
+  class TBoxTTL <<tbox.ttl>> {
+    app:ImageFile
+    app:VideoFile
+    app:AudioFile
+    app:TextDocument
+    rdfs:subClassOf schema:DigitalDocument
   }
 
-  class AppContainer <<container>> {
-    +path: my-solid-app/
+  class CatalogTTL <<catalog.ttl>> {
+    instanceUri a dcat:Dataset
+    dcterms:conformsTo classUri
   }
 
-  class FileContainer <<container>> {
-    +path: slug/
+  class AppContainer <<my-solid-app/>>
+
+  class FileContainer <<file-slug/>>
+
+  class IndexTTL <<index.ttl>> {
+    rdf:type
+    schema:name
+    schema:encodingFormat
+    schema:contentSize
+    schema:uploadDate
+    schema:publisher
   }
 
-  class IndexTTL <<resource>> {
-    +name: string
-    +description: string
-    +encodingFormat: string
-    +contentSize: string
-    +uploadDate: date
-    +publisher: IRI
-  }
+  class BinaryFile <<file.ext>>
 
-  class BinaryFile <<resource>> {
-    +path: original-file.ext
-  }
-
-  PodStorage --> AppContainer
-  AppContainer --> "1..*" FileContainer
-  FileContainer --> IndexTTL
-  FileContainer --> BinaryFile
+  AppContainer -- "1..*" FileContainer
+  FileContainer -- IndexTTL
+  FileContainer -- BinaryFile
 }
 
-FileExplorer ..> PodStorage : browses
-FileUpload ..> AppContainer : uploads to
-FileCard ..> FileContainer : reads
+FileUpload .. TBoxTTL    : ensures
+FileUpload .. CatalogTTL : appends
+FileUpload .. AppContainer : uploads to
+FileCard .. FileContainer  : reads
+FileCard .. CatalogTTL    : removes on delete
+DataCatalog .. CatalogTTL : reads
+FileExplorer .. AppContainer : browses
 
 @enduml
