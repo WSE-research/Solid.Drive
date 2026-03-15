@@ -5,6 +5,7 @@ export type FetchFn = (url: RequestInfo, init?: RequestInit) => Promise<Response
 const TBOX_TURTLE = `
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
 @prefix schema: <http://schema.org/> .
 @prefix app:    <https://example.com/app#> .
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
@@ -33,6 +34,8 @@ app:TextDocument a rdfs:Class ;
 
 # ── Properties ────────────────────────────────────────────────────────────────
 
+# ── Properties (optional) ─────────────────────────────────────────────────────
+
 schema:name a rdf:Property ;
   rdfs:domain schema:DigitalDocument ; rdfs:range xsd:string .
 
@@ -45,17 +48,31 @@ schema:encodingFormat a rdf:Property ;
 schema:contentSize a rdf:Property ;
   rdfs:domain schema:DigitalDocument ; rdfs:range xsd:string .
 
+schema:dateModified a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:dateTime .
+
+schema:sharedWith a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range rdfs:Resource .
+
+# ── Required property constraints ───────────────────────────
+
 schema:uploadDate a rdf:Property ;
   rdfs:domain schema:DigitalDocument ; rdfs:range xsd:dateTime .
 
-schema:dateModified a rdf:Property ;
-  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:dateTime .
+schema:DigitalDocument rdfs:subClassOf [
+  a owl:Restriction ;
+  owl:onProperty schema:uploadDate ;
+  owl:minCardinality 1
+] .
 
 schema:publisher a rdf:Property ;
   rdfs:domain schema:DigitalDocument ; rdfs:range rdfs:Resource .
 
-schema:sharedWith a rdf:Property ;
-  rdfs:domain schema:DigitalDocument ; rdfs:range rdfs:Resource .
+schema:DigitalDocument rdfs:subClassOf [
+  a owl:Restriction ;
+  owl:onProperty schema:publisher ;
+  owl:minCardinality 1
+] .
 `.trim();
 
 
