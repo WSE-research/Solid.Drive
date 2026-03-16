@@ -1,4 +1,4 @@
-// ─── TBox UI: displays the class hierarchy ────────────────────────────────────
+// TBox UI: displays the class hierarchy
 
 import type { FunctionComponent } from "react";
 import { FILE_TYPE_DEFS } from "./catalog";
