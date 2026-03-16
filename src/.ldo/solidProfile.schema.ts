@@ -65,6 +65,26 @@ export const solidProfileSchema: Schema = {
               min: 0,
               max: -1,
             },
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/ns/solid/terms#publicTypeIndex",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/ns/solid/terms#privateTypeIndex",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
+            },
           ],
         },
         extra: ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"],
