@@ -3,6 +3,8 @@ import type { FunctionComponent } from "react";
 import { useSolidAuth } from "@ldo/solid-react";
 import { TBoxSection } from "./TBoxView";
 import { ABoxEntry } from "./ABoxView";
+import { parseCatalog } from "./catalog";
+import type { CatalogEntry } from "./catalog";
 
 type DataCatalogProps = {
   storageRoot: string;
@@ -11,7 +13,7 @@ type DataCatalogProps = {
 
 export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, onClose }) => {
   const { fetch: solidFetch } = useSolidAuth();
-  const [instanceUris, setInstanceUris] = useState<string[]>([]);
+  const [catalogEntries, setCatalogEntries] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
 
@@ -22,18 +24,18 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
       setLoading(true);
       setError(undefined);
       try {
-        const root = storageRoot.endsWith("/") ? storageRoot : `${storageRoot}/`;
-        const response = await solidFetch(`${root}catalog.ttl`);
+        const catalogRoot = storageRoot.endsWith("/") ? storageRoot : `${storageRoot}/`;
+        const response = await solidFetch(`${catalogRoot}catalog.ttl`);
         if (!response.ok) {
           if (response.status === 404) {
-            if (!cancelled) { setInstanceUris([]); setLoading(false); }
+            if (!cancelled) { setCatalogEntries([]); setLoading(false); }
             return;
           }
           throw new Error(`${response.status} ${response.statusText}`);
         }
-        const text = await response.text();
-        const matches = [...text.matchAll(/<([^>]+)>\s+a\s+dcat:Dataset/g)];
-        if (!cancelled) setInstanceUris(matches.map((regexMatch) => regexMatch[1]));
+        const turtleText = await response.text();
+        const entries = parseCatalog(turtleText);
+        if (!cancelled) setCatalogEntries(entries);
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
       } finally {
@@ -63,7 +65,7 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
               Uploaded files
               {!loading && !error && (
                 <span className="catalog-section__count">
-                  {instanceUris.length} {instanceUris.length === 1 ? "file" : "files"}
+                  {catalogEntries.length} {catalogEntries.length === 1 ? "file" : "files"}
                 </span>
               )}
             </h3>
@@ -79,15 +81,15 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
               <div className="catalog-error">Could not load catalog: {error}</div>
             )}
 
-            {!loading && !error && instanceUris.length === 0 && (
+            {!loading && !error && catalogEntries.length === 0 && (
               <div className="empty-state" style={{ padding: "24px 0" }}>
                 <div className="empty-state__icon">◌</div>
                 <p>No files yet. Upload a file to see it here.</p>
               </div>
             )}
 
-            {!loading && !error && instanceUris.map((uri) => (
-              <ABoxEntry key={uri} uri={uri} />
+            {!loading && !error && catalogEntries.map((entry) => (
+              <ABoxEntry key={entry.uri} entry={entry} />
             ))}
           </section>
 
