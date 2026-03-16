@@ -4,6 +4,7 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX ldp: <http://www.w3.org/ns/ldp#>
 PREFIX sp: <http://www.w3.org/ns/pim/space#>
+PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 
 <SolidProfileShape> EXTRA a {
   a [ schema:Person foaf:Person ] ;
@@ -11,4 +12,6 @@ PREFIX sp: <http://www.w3.org/ns/pim/space#>
   foaf:name xsd:string ? ;
   ldp:inbox IRI ;
   sp:storage IRI * ;
+  solid:publicTypeIndex IRI ? ;
+  solid:privateTypeIndex IRI ? ;
 }
