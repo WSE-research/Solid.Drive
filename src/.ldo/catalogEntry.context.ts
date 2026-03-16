@@ -61,7 +61,7 @@ export const catalogEntryContext: LdoJsonldContext = {
     },
   },
   ImageFile: {
-    "@id": "https://example.com/app#ImageFile",
+    "@id": "https://w3id.org/solid-drive#ImageFile",
     "@context": {
       type: {
         "@id": "@type",
@@ -111,7 +111,7 @@ export const catalogEntryContext: LdoJsonldContext = {
     },
   },
   VideoFile: {
-    "@id": "https://example.com/app#VideoFile",
+    "@id": "https://w3id.org/solid-drive#VideoFile",
     "@context": {
       type: {
         "@id": "@type",
@@ -161,7 +161,7 @@ export const catalogEntryContext: LdoJsonldContext = {
     },
   },
   AudioFile: {
-    "@id": "https://example.com/app#AudioFile",
+    "@id": "https://w3id.org/solid-drive#AudioFile",
     "@context": {
       type: {
         "@id": "@type",
@@ -211,7 +211,7 @@ export const catalogEntryContext: LdoJsonldContext = {
     },
   },
   TextDocument: {
-    "@id": "https://example.com/app#TextDocument",
+    "@id": "https://w3id.org/solid-drive#TextDocument",
     "@context": {
       type: {
         "@id": "@type",

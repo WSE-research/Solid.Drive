@@ -4,7 +4,7 @@ import { useLdo, useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { isSolidLeaf } from "./pod";
-import { ensureTBox, resolveClass, appendToCatalog } from "./catalog";
+import { ensureTBox, resolveClass, appendToCatalog, linkCatalogToProfile } from "./catalog";
 import type { ContainerCreationResult } from "./pod";
 import type { SolidContainer, SolidContainerUri } from "@ldo/connected-solid";
 
@@ -82,17 +82,31 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const commitResult = await commitData(metadata);
       if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
+      const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
+
       try {
-        await appendToCatalog(storageRoot, indexResource.uri, classUri, solidFetch);
+        await appendToCatalog(
+          storageRoot,
+          indexResource.uri,
+          binaryUri,
+          classUri,
+          pendingFile.type,
+          pendingFile.size,
+          title.trim() || pendingFile.name,
+          description,
+          new Date().toISOString(),
+          session.webId!,
+          solidFetch
+        );
       } catch (catalogErr) {
-       
-        const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
         await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
         await solidFetch(indexResource.uri, { method: "DELETE" }).catch(() => {});
         await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
         alert(`Upload failed: catalog could not be updated. ${(catalogErr as Error).message}`);
         return;
       }
+
+      await linkCatalogToProfile(storageRoot, session.webId!, solidFetch).catch(() => {});
 
       setTitle("");
       setDescription("");

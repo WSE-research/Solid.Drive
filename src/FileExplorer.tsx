@@ -19,12 +19,13 @@ interface FileExplorerProps {
 
 const APP_CONTAINER_PATH = "my-solid-app/";
 const DEFAULT_STORAGE_RETRY_DELAY_MS = 10_000;
+const SYSTEM_FILES = new Set(["tbox.ttl", "catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
 
 export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   storageRetryDelayMs = DEFAULT_STORAGE_RETRY_DELAY_MS,
 }) => {
   const [translate] = useTranslation();
-  const { session } = useSolidAuth();
+  const { session, fetch: solidFetch } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const webIdResource = useResource(session.webId);
   const { getResource } = useLdo();
@@ -151,7 +152,11 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   // Split entries into folders and files so they can be rendered differently.
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
-  const leafEntries = entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[];
+  const leafEntries = (entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[])
+    .filter((entry) => {
+      const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? "");
+      return !SYSTEM_FILES.has(fileName);
+    });
 
   return (
     <main>
@@ -225,13 +230,21 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             return (
               <div key={entry.uri} className="file-entry">
                 <span className="file-entry__name">{fileName}</span>
-                <a
-                  href={entry.uri}
-                  download={fileName}
+                <button
                   className="btn btn--ghost btn--small"
+                  onClick={async () => {
+                    const response = await solidFetch(entry.uri);
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const anchor = document.createElement("a");
+                    anchor.href = blobUrl;
+                    anchor.download = fileName;
+                    anchor.click();
+                    URL.revokeObjectURL(blobUrl);
+                  }}
                 >
                   {translate("fileExplorer.download")}
-                </a>
+                </button>
               </div>
             );
           })}

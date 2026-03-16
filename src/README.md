@@ -53,8 +53,11 @@ All TBox and ABox catalog logic in one file. The TBox Turtle, the class map, and
 
 - `ensureTBox` — writes `tbox.ttl` if absent; throws on failure to block the upload
 - `resolveClass` — maps a MIME type to the correct TBox class URI
-- `appendToCatalog` — PATCHes `catalog.ttl` with `INSERT WHERE NOT EXISTS` to prevent duplicates on retry
+- `appendToCatalog` — PATCHes `catalog.ttl` with `INSERT DATA` to add a `dcat:Dataset` and its `dcat:Distribution`
 - `removeFromCatalog` — PATCHes `catalog.ttl` with `DELETE WHERE` on file delete
+- `linkCatalogToProfile` — adds a `dcat:catalog` link to the user's WebID profile so the catalog can be discovered by others
+- `parseCatalog` — reads a `catalog.ttl` Turtle document and converts it into `CatalogEntry` objects used by the UI
+- `friendlyLabel` — converts a TBox class URI into a readable class label (e.g., ImageFile → Image File)
 
 ## `i18n.ts`
 

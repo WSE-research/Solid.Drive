@@ -9,7 +9,7 @@ export const catalogEntrySchema: Schema = {
   type: "Schema",
   shapes: [
     {
-      id: "https://example.com/CatalogEntrySh",
+      id: "https://w3id.org/solid-drive#CatalogEntrySh",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -23,10 +23,10 @@ export const catalogEntrySchema: Schema = {
                 type: "NodeConstraint",
                 values: [
                   "http://schema.org/DigitalDocument",
-                  "https://example.com/app#ImageFile",
-                  "https://example.com/app#VideoFile",
-                  "https://example.com/app#AudioFile",
-                  "https://example.com/app#TextDocument",
+                  "https://w3id.org/solid-drive#ImageFile",
+                  "https://w3id.org/solid-drive#VideoFile",
+                  "https://w3id.org/solid-drive#AudioFile",
+                  "https://w3id.org/solid-drive#TextDocument",
                 ],
               },
             },
