@@ -53,6 +53,7 @@ export async function ensureProfileDocType(webId: string, fetchFn: FetchFn): Pro
   solid:inserts {
     <> a foaf:PersonalProfileDocument .
     <> foaf:primaryTopic <#me> .
+    <#me> a foaf:Person .
   } .`;
 
   const response = await fetchFn(profileDocUri, {
