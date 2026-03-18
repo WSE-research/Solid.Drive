@@ -5,6 +5,9 @@ import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { FILE_TYPE_DEFS, removeFromCatalog } from "./catalog";
+import { SharePanel } from "./SharePanel";
+import { discoverAclUri, readAclAgents } from "./fileAccess";
+import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 
 const FILE_TYPES = Object.fromEntries(FILE_TYPE_DEFS.map((contentType) => [contentType.id, { label: contentType.label, description: contentType.description }]));
 
@@ -20,8 +23,16 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
   const containerResource = useResource(containerUri);
   const fileMeta = useSubject(CatalogEntryShShapeType, metadataUri);
   const { getResource } = useLdo();
-  const { fetch: solidFetch } = useSolidAuth();
+  const { session, fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+
+  const ownerProfile = useSubject(SolidProfileShapeType, session.webId);
+  const contacts = useMemo(
+    () => ownerProfile?.knows?.toArray().map((knownContact: { "@id": string }) => knownContact["@id"]) ?? [],
+    [ownerProfile]
+  );
 
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
@@ -38,22 +49,34 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
-    const url = URL.createObjectURL(binaryResource.getBlob());
-    const id = setTimeout(() => setPreviewUrl(url), 0);
+    const blobUrl = URL.createObjectURL(binaryResource.getBlob());
+    const previewTimeoutId = setTimeout(() => setPreviewUrl(blobUrl), 0);
     return () => {
-      clearTimeout(id);
-      URL.revokeObjectURL(url);
+      clearTimeout(previewTimeoutId);
+      URL.revokeObjectURL(blobUrl);
       setPreviewUrl(undefined);
     };
   }, [binaryResource]);
+
+  useEffect(() => {
+    if (!containerResource) return;
+    let cancelled = false;
+    discoverAclUri(containerUri, solidFetch)
+      .then((aclUri) => readAclAgents(aclUri, solidFetch))
+      .then((sharedAgents) => { if (!cancelled) setIsShared(sharedAgents.length > 0); })
+      .catch((err) => {
+        console.warn("[FileCard] ACL discovery failed for", containerUri, err);
+      });
+    return () => { cancelled = true; };
+  }, [containerUri, solidFetch, containerResource]);
 
   const handleDelete = useCallback(async () => {
     if (!confirm("Are you sure you want to delete this file?")) return;
     try {
       await removeFromCatalog(storageRoot, metadataUri, solidFetch).catch(() => {});
-      const container = getResource(containerUri);
-      if (isDeletable(container)) {
-        await container.delete();
+      const resourceToDelete = getResource(containerUri);
+      if (isDeletable(resourceToDelete)) {
+        await resourceToDelete.delete();
       }
     } catch (err) {
       alert(`Delete failed: ${(err as Error).message}`);
@@ -86,8 +109,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
     : "";
 
   const typeId = (() => {
-    const fromType = fileMeta.type?.toArray().map((typeObj: { "@id": string }) => typeObj["@id"]).find((typeId: string) => typeId in FILE_TYPES);
-    if (fromType) return fromType;
+    const matchedTypeId = fileMeta.type?.toArray().map((typeIriObj: { "@id": string }) => typeIriObj["@id"]).find((typeId: string) => typeId in FILE_TYPES);
+    if (matchedTypeId) return matchedTypeId;
     const mimeType = fileMeta.encodingFormat ?? "";
     if (mimeType.startsWith("image/")) return "ImageFile";
     if (mimeType.startsWith("video/")) return "VideoFile";
@@ -99,7 +122,19 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
 
   return (
     <div className="file-card">
-      {fileMeta.name && <p className="file-card__name">{fileMeta.name}</p>}
+      {fileMeta.name && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <p className="file-card__name" style={{ margin: 0 }}>{fileMeta.name}</p>
+          {isShared && (
+            <span title="Shared" style={{ color: "var(--accent)", flexShrink: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </span>
+          )}
+        </div>
+      )}
 
       {previewUrl && (() => {
         const mimeType = fileMeta.encodingFormat ?? "";
@@ -137,6 +172,13 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
           >
             {showInfo ? "Hide Info" : "Info"}
           </button>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setShowShare((isVisible) => !isVisible)}
+            style={{ fontSize: 12, padding: "6px 12px" }}
+          >
+            {showShare ? "Hide Share" : "Share"}
+          </button>
           {(previewUrl ?? binaryUri) && (
             <a
               className="btn btn-ghost"
@@ -150,6 +192,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
           <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
         </div>
       </div>
+
+      {showShare && (
+        <SharePanel containerUri={containerUri} contacts={contacts} />
+      )}
 
       {showInfo && (
         <div className="file-card__schema">
