@@ -18,7 +18,7 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    let cancelled = false;
+    let isCancelled = false;
 
     async function load() {
       setLoading(true);
@@ -28,7 +28,7 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
         const response = await solidFetch(`${catalogRoot}catalog.ttl`);
         if (!response.ok) {
           if (response.status === 404) {
-            if (!cancelled) { setCatalogEntries([]); setLoading(false); }
+            if (!isCancelled) { setCatalogEntries([]); setLoading(false); }
             return;
           }
           throw new Error(`${response.status} ${response.statusText}`);
@@ -38,21 +38,21 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
         const entries = parseCatalog(turtleText, catalogUrl)
           .sort((firstEntry, secondEntry) => (secondEntry.modified ?? "").localeCompare(firstEntry.modified ?? ""))
           .slice(0, 2);
-        if (!cancelled) setCatalogEntries(entries);
-      } catch (err) {
-        if (!cancelled) setError((err as Error).message);
+        if (!isCancelled) setCatalogEntries(entries);
+      } catch (error) {
+        if (!isCancelled) setError((error as Error).message);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!isCancelled) setLoading(false);
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => { isCancelled = true; };
   }, [storageRoot, solidFetch]);
 
   return (
     <div className="catalog-overlay" onClick={onClose}>
-      <div className="catalog-modal" onClick={(clickEvent) => clickEvent.stopPropagation()}>
+      <div className="catalog-modal" onClick={(event) => event.stopPropagation()}>
 
         <div className="catalog-modal__header">
           <span className="catalog-modal__title">File Catalog</span>
