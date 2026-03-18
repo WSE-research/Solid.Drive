@@ -6,7 +6,7 @@ import { isLoadable } from "./pod";
 
 const KNOWN_PROVIDERS = [
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
-  { label: "inrupt.net", value: "https://inrupt.net", registerUrl: "https://signup.pod.inrupt.com/" },
+  { label: "inrupt.net", value: "https://inrupt.net", registerUrl: "https://signup.pod.inrupt.com/" }, // Note: inrupt.net registration is currently closed, but we'll keep the link here for when it reopens
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },
   { label: "Custom…", value: "custom", registerUrl: undefined },
 ];

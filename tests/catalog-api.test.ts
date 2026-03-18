@@ -22,7 +22,7 @@ function capturingMock(
   const calls: FetchCall[] = [];
   let callIndex = 0;
 
-  const fetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+  const mockFetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
     const headers = init?.headers as Record<string, string> | undefined;
     calls.push({
       url: String(url),
@@ -30,15 +30,15 @@ function capturingMock(
       body: typeof init?.body === "string" ? init.body : undefined,
       contentType: headers?.["Content-Type"],
     });
-    const res = responses[callIndex++] ?? { status: 200, ok: true };
+    const mockedResponse = responses[callIndex++] ?? { status: 200, ok: true };
     return {
-      ok: res.ok ?? res.status < 400,
-      status: res.status,
-      statusText: res.statusText ?? (res.status < 400 ? "OK" : "Error"),
+      ok: mockedResponse.ok ?? mockedResponse.status < 400,
+      status: mockedResponse.status,
+      statusText: mockedResponse.statusText ?? (mockedResponse.status < 400 ? "OK" : "Error"),
     } as Response;
   });
 
-  return { fetch, calls };
+  return { fetch: mockFetch, calls };
 }
 
 // Verifies that MIME types are mapped to the expected semantic file classes.
