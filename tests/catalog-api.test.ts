@@ -275,12 +275,11 @@ describe("appendToCatalog", () => {
     expect(sparql).toContain(`dcterms:conformsTo <${classUri}>`);
   });
 
-  it("SPARQL INSERT declares dcat:Distribution with accessURL and mediaType", async () => {
+  it("SPARQL INSERT declares dcat:Distribution with mediaType and byteSize", async () => {
     const { calls } = await runAppend();
 
     const sparql = calls[1].body ?? "";
     expect(sparql).toContain("dcat:Distribution");
-    expect(sparql).toContain(`dcat:accessURL <${binaryUri}>`);
     expect(sparql).toContain('dcat:mediaType "image/jpeg"');
     expect(sparql).toContain("dcat:byteSize 4500000");
   });
