@@ -52,6 +52,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   }, [session.webId]);
 
   useEffect(() => {
+    initialized.current = false;
+    setAppContainerUri(undefined);
+    setStorageRootUri("");
+    setCurrentUri(undefined);
+    setBreadcrumbs([]);
+  }, [session.webId]);
+
+  useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
 
@@ -273,8 +281,28 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
               <div key={entry.uri} className="file-entry">
                 <span className="file-entry__name">{fileName}</span>
                 <button
+<<<<<<< HEAD
                   className="btn btn--ghost btn--small"
                   onClick={() => handleDownload(entry, fileName)}
+=======
+                  className="btn btn-ghost"
+                  style={{ fontSize: 12, padding: "6px 12px" }}
+                  onClick={async () => {
+                    try {
+                      const response = await solidFetch(entry.uri);
+                      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const anchor = document.createElement("a");
+                      anchor.href = blobUrl;
+                      anchor.download = fileName;
+                      anchor.click();
+                      URL.revokeObjectURL(blobUrl);
+                    } catch (error) {
+                      alert(`Download failed: ${(error as Error).message}`);
+                    }
+                  }}
+>>>>>>> 4f52342 (refactor: rename unclear variables)
                 >
                   Download
                 </button>
