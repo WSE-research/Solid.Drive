@@ -174,8 +174,8 @@ export async function appendToCatalog(
     }
   }
 
-  const escape = (s: string) =>
-    s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+  const escape = (text: string) =>
+    text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 
   const descriptionTriple = description.trim()
     ? `\n    dcterms:description "${escape(description)}" ;`
@@ -233,7 +233,7 @@ DELETE WHERE { <${instanceUri}#dist> ?p ?v . }
 }
 
 export function parseCatalog(turtleText: string, baseUrl?: string): CatalogEntry[] {
-  const abs = (uri: string) =>
+  const toAbsolute = (uri: string) =>
     baseUrl && uri && !uri.startsWith("http://") && !uri.startsWith("https://")
       ? new URL(uri, baseUrl).href
       : uri;
@@ -260,20 +260,24 @@ export function parseCatalog(turtleText: string, baseUrl?: string): CatalogEntry
     const datasetBlock = blockFor(datasetUri);
     const distBlock = blockFor(`${datasetUri}#dist`);
 
+    const unescape = (text: string) =>
+      text.replace(/\\"/g, '"').replace(/\\\\/g, "\\").replace(/\\n/g, "\n");
     const iri = (predicate: string, block: string) =>
       block.match(new RegExp(`${predicate}\\s+<([^>]+)>`))?.[1] ?? "";
-    const str = (predicate: string, block: string) =>
-      block.match(new RegExp(`${predicate}\\s+"((?:[^"\\\\]|\\\\.)*)`))?.[1] ?? "";
+    const str = (predicate: string, block: string) => {
+      const raw = block.match(new RegExp(`${predicate}\\s+"((?:[^"\\\\]|\\\\.)*)`))?.[1] ?? "";
+      return unescape(raw);
+    };
     const int = (predicate: string, block: string) =>
       parseInt(block.match(new RegExp(`${predicate}\\s+(\\d+)`))?.[1] ?? "0", 10);
 
     return {
-      uri: abs(datasetUri),
-      conformsTo: abs(iri("dcterms:conformsTo", datasetBlock)),
+      uri: toAbsolute(datasetUri),
+      conformsTo: toAbsolute(iri("dcterms:conformsTo", datasetBlock)),
       title: str("dcterms:title", datasetBlock),
       description: str("dcterms:description", datasetBlock),
       modified: str("dcterms:modified", datasetBlock),
-      publisher: abs(iri("dcterms:publisher", datasetBlock)),
+      publisher: toAbsolute(iri("dcterms:publisher", datasetBlock)),
       mediaType: str("dcat:mediaType", distBlock),
       byteSize: int("dcat:byteSize", distBlock),
     };
@@ -288,16 +292,16 @@ export async function linkCatalogToProfile(
   const catalogUri = `${storageRoot}catalog.ttl`;
   const profileDocUri = webId.split("#")[0];
 
-  const sparqlUpdate = `PREFIX dcat: <http://www.w3.org/ns/dcat#>
+  const n3Patch = `@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix solid: <http://www.w3.org/ns/solid/terms#> .
 
-INSERT DATA {
-  <${profileDocUri}> dcat:catalog <${catalogUri}> .
-}`.trim();
+<> a solid:InsertDeletePatch;
+  solid:inserts { <${profileDocUri}> dcat:catalog <${catalogUri}> . } .`;
 
   const response = await fetch(profileDocUri, {
     method: "PATCH",
-    headers: { "Content-Type": "application/sparql-update" },
-    body: sparqlUpdate,
+    headers: { "Content-Type": "text/n3" },
+    body: n3Patch,
   });
   if (!response.ok) {
     throw new Error(`Failed to link catalog to profile: ${response.status} ${response.statusText}`);

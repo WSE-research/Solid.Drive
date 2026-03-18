@@ -2,6 +2,12 @@ type FetchFn = (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
 export type ProfileFields = { name: string; imgUrl: string };
 
+function assertSafeIri(iri: string, label: string): void {
+  if (!/^https?:\/\/[^\s<>"{}|\\^`[\]]*$/.test(iri)) {
+    throw new Error(`Invalid ${label}: must be a valid http(s):// URL without special characters`);
+  }
+}
+
 export async function saveProfileFields(
   webId: string,
   original: ProfileFields,
@@ -13,14 +19,18 @@ export async function saveProfileFields(
   const deleteTriples: string[] = [];
   if (original.name.trim())
     deleteTriples.push(`<#me> foaf:name "${original.name.trim()}" .`);
-  if (original.imgUrl.trim())
+  if (original.imgUrl.trim()) {
+    assertSafeIri(original.imgUrl.trim(), "original image URL");
     deleteTriples.push(`<#me> foaf:img <${original.imgUrl.trim()}> .`);
+  }
 
   const insertTriples: string[] = [];
   if (fields.name.trim())
     insertTriples.push(`<#me> foaf:name "${fields.name.trim()}" .`);
-  if (fields.imgUrl.trim())
+  if (fields.imgUrl.trim()) {
+    assertSafeIri(fields.imgUrl.trim(), "image URL");
     insertTriples.push(`<#me> foaf:img <${fields.imgUrl.trim()}> .`);
+  }
 
   if (deleteTriples.length === 0 && insertTriples.length === 0) return;
 
