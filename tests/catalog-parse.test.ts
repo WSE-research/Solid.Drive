@@ -218,7 +218,7 @@ describe("parseCatalog", () => {
     `.trim();
 
     const entries = parseCatalog(turtle);
-    expect(entries[0].title).toBe('Q1 Report \\"Draft\\"');
+    expect(entries[0].title).toBe('Q1 Report "Draft"');
   });
 
   it("returns zero byteSize and empty strings gracefully for missing properties", () => {

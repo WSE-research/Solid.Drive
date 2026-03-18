@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
@@ -46,19 +46,28 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-  const previewUrl = useMemo(() => {
-    if (isBinary(binaryResource) && binaryResource.isBinary()) {
-      return URL.createObjectURL(binaryResource.getBlob());
-    }
-    return undefined;
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
+    const url = URL.createObjectURL(binaryResource.getBlob());
+    const id = setTimeout(() => setPreviewUrl(url), 0);
+    return () => {
+      clearTimeout(id);
+      URL.revokeObjectURL(url);
+      setPreviewUrl(undefined);
+    };
   }, [binaryResource]);
 
   const handleDelete = useCallback(async () => {
     if (!confirm("Are you sure you want to delete this file?")) return;
-    await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
-    const container = getResource(containerUri);
-    if (isDeletable(container)) {
-      await container.delete();
+    try {
+      await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
+      const container = getResource(containerUri);
+      if (isDeletable(container)) {
+        await container.delete();
+      }
+    } catch (err) {
+      alert(`Delete failed: ${(err as Error).message}`);
     }
   }, [containerUri, metadataUri, catalogUri, solidFetch, getResource]);
 
@@ -108,7 +117,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     : "";
 
   const typeId = (() => {
-    const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find((rawTypeId: string) => rawTypeId in FILE_TYPES);
+    const fromType = fileMeta.type?.toArray().map((typeObj: { "@id": string }) => typeObj["@id"]).find((typeId: string) => typeId in FILE_TYPES);
     if (fromType) return fromType;
     const mimeType = fileMeta.encodingFormat ?? "";
     if (mimeType.startsWith("image/")) return "ImageObject";
@@ -155,7 +164,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         <div style={{ display: "flex", gap: 8 }}>
           <button
             className="btn btn-ghost"
-            onClick={() => setShowInfo((currentValue) => !currentValue)}
+            onClick={() => setShowInfo((isCurrentlyShown) => !isCurrentlyShown)}
             style={{ fontSize: 12, padding: "6px 12px" }}
           >
             {showInfo ? "Hide Info" : "Info"}
