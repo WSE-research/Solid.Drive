@@ -44,6 +44,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 // On first load, resolve the Pod root, app container, and initial breadcrumb state.
 // Re-runs via retryTick when the profile loads after the first render.
   useEffect(() => {
+    initialized.current = false;
+    setAppContainerUri(undefined);
+    setStorageRootUri("");
+    setCurrentUri(undefined);
+    setBreadcrumbs([]);
+  }, [session.webId]);
+
+  useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
 

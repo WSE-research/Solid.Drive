@@ -103,7 +103,6 @@ describe("appendToCatalog", () => {
     await appendToCatalog(
       catalogUri,
       instanceUri,
-      binaryUri,
       classUri,
       "image/jpeg",
       4_500_000,
@@ -360,31 +359,33 @@ describe("linkCatalogToProfile", () => {
     expect(calls[0].url).toBe("https://pod.example/profile/card");
   });
 
-  it("PATCH uses application/sparql-update content type", async () => {
+  it("PATCH uses text/n3 content type", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
 
-    expect(calls[0].contentType).toBe("application/sparql-update");
+    expect(calls[0].contentType).toBe("text/n3");
   });
 
-  it("INSERT body contains dcat:catalog pointing to catalog.ttl", async () => {
+  it("patch body contains dcat:catalog pointing to catalog.ttl", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
 
-    const sparql = calls[0].body ?? "";
-    expect(sparql).toContain("dcat:catalog");
-    expect(sparql).toContain("https://pod.example/catalog.ttl");
+    const body = calls[0].body ?? "";
+    expect(body).toContain("dcat:catalog");
+    expect(body).toContain("https://pod.example/catalog.ttl");
   });
 
-  it("INSERT uses INSERT DATA (not DELETE)", async () => {
+  it("patch uses solid:InsertDeletePatch with solid:inserts (no deletes)", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
 
-    expect(calls[0].body).toContain("INSERT DATA");
-    expect(calls[0].body).not.toContain("DELETE");
+    const body = calls[0].body ?? "";
+    expect(body).toContain("solid:InsertDeletePatch");
+    expect(body).toContain("solid:inserts");
+    expect(body).not.toContain("solid:deletes");
   });
 
   it("throws when PATCH fails", async () => {
