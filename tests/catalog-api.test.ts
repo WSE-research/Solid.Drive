@@ -173,7 +173,6 @@ describe("appendToCatalog", () => {
   const storageRoot = "https://pod.example/";
   const catalogUri = "https://pod.example/catalog.ttl";
   const instanceUri = "https://pod.example/my-app/photo/index.ttl";
-  const binaryUri = "https://pod.example/my-app/photo/photo.jpg";
   const classUri = "https://w3id.org/solid-drive#ImageFile";
   const publisherWebId = "https://pod.example/profile/card#me";
   const modified = "2026-03-16T00:00:00.000Z";
@@ -192,7 +191,6 @@ describe("appendToCatalog", () => {
     await appendToCatalog(
       storageRoot,
       instanceUri,
-      binaryUri,
       classUri,
       "image/jpeg",
       4_500_000,
@@ -213,7 +211,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      storageRoot, instanceUri, classUri,
       "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch
     );
 
@@ -231,7 +229,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      storageRoot, instanceUri, classUri,
       "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch
     );
 
@@ -310,7 +308,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await expect(
-      appendToCatalog(storageRoot, instanceUri, binaryUri, classUri,
+      appendToCatalog(storageRoot, instanceUri, classUri,
         "image/jpeg", 100, "x", "", modified, publisherWebId, fetch)
     ).rejects.toThrow("Failed to create catalog.ttl");
   });
@@ -322,7 +320,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await expect(
-      appendToCatalog(storageRoot, instanceUri, binaryUri, classUri,
+      appendToCatalog(storageRoot, instanceUri, classUri,
         "image/jpeg", 100, "x", "", modified, publisherWebId, fetch)
     ).rejects.toThrow("Failed to update catalog.ttl");
   });
@@ -334,7 +332,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      storageRoot, instanceUri, classUri,
       "image/jpeg", 100, 'Q1 "Draft"', "", modified, publisherWebId, fetch
     );
 
@@ -349,7 +347,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      storageRoot, instanceUri, classUri,
       "image/jpeg", 100, "Photo", "Path: C:\\Users\\me", modified, publisherWebId, fetch
     );
 
@@ -364,7 +362,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      storageRoot, instanceUri, classUri,
       "image/jpeg", 100, "Photo", "line one\nline two", modified, publisherWebId, fetch
     );
 
@@ -440,31 +438,33 @@ describe("linkCatalogToProfile", () => {
     expect(calls[0].url).toBe("https://pod.example/profile/card");
   });
 
-  it("PATCH uses application/sparql-update content type", async () => {
+  it("PATCH uses text/n3 content type", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(storageRoot, webId, fetch);
 
-    expect(calls[0].contentType).toBe("application/sparql-update");
+    expect(calls[0].contentType).toBe("text/n3");
   });
 
-  it("INSERT body contains dcat:catalog pointing to catalog.ttl", async () => {
+  it("patch body contains dcat:catalog pointing to catalog.ttl", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(storageRoot, webId, fetch);
 
-    const sparql = calls[0].body ?? "";
-    expect(sparql).toContain("dcat:catalog");
-    expect(sparql).toContain("https://pod.example/catalog.ttl");
+    const body = calls[0].body ?? "";
+    expect(body).toContain("dcat:catalog");
+    expect(body).toContain("https://pod.example/catalog.ttl");
   });
 
-  it("INSERT uses INSERT DATA (not DELETE)", async () => {
+  it("patch uses solid:InsertDeletePatch with solid:inserts (no deletes)", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(storageRoot, webId, fetch);
 
-    expect(calls[0].body).toContain("INSERT DATA");
-    expect(calls[0].body).not.toContain("DELETE");
+    const body = calls[0].body ?? "";
+    expect(body).toContain("solid:InsertDeletePatch");
+    expect(body).toContain("solid:inserts");
+    expect(body).not.toContain("solid:deletes");
   });
 
   it("throws when PATCH fails", async () => {

@@ -34,7 +34,7 @@ export const ABoxEntry: FunctionComponent<{ entry: CatalogEntry }> = ({ entry })
       )}
       {entry.publisher && (
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
-          by {entry.publisher.split("/").filter(Boolean).find(s => !s.startsWith("http") && s !== "profile" && s !== "card") ?? entry.publisher}
+          by {entry.publisher.split("/").filter(Boolean).find(segment => !segment.startsWith("http") && segment !== "profile" && segment !== "card") ?? entry.publisher}
         </div>
       )}
     </div>

@@ -35,9 +35,9 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const classUri = resolveClass(pendingFile.type);
 
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
-      const ext = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
-      const safeFileName = ext
-        ? `${containerSlug.replace(/\.[^.]+$/, "")}.${ext}`
+      const fileExtension = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
+      const safeFileName = fileExtension
+        ? `${containerSlug.replace(/\.[^.]+$/, "")}.${fileExtension}`
         : containerSlug;
       const containerUri = `${containerSlug}/` as SolidContainerUri;
 
@@ -78,7 +78,13 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       if (!metadata.type || metadata.type.toArray().length === 0) return alert("Upload failed: file type could not be determined.");
 
       const commitResult = await commitData(metadata);
-      if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
+      if (commitResult.isError) {
+        const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
+        await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
+        await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
+        alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
+        return;
+      }
 
       const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
 

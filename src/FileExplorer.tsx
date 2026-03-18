@@ -30,6 +30,14 @@ export const FileExplorer: FunctionComponent = () => {
   const [showCatalog, setShowCatalog] = useState(false);
 
   useEffect(() => {
+    initialized.current = false;
+    setAppContainerUri(undefined);
+    setStorageRootUri("");
+    setCurrentUri(undefined);
+    setBreadcrumbs([]);
+  }, [session.webId]);
+
+  useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
     if (!storageRootId) return;
@@ -190,14 +198,19 @@ export const FileExplorer: FunctionComponent = () => {
                   className="btn btn-ghost"
                   style={{ fontSize: 12, padding: "6px 12px" }}
                   onClick={async () => {
-                    const response = await solidFetch(entry.uri);
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    const anchor = document.createElement("a");
-                    anchor.href = blobUrl;
-                    anchor.download = fileName;
-                    anchor.click();
-                    URL.revokeObjectURL(blobUrl);
+                    try {
+                      const response = await solidFetch(entry.uri);
+                      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const anchor = document.createElement("a");
+                      anchor.href = blobUrl;
+                      anchor.download = fileName;
+                      anchor.click();
+                      URL.revokeObjectURL(blobUrl);
+                    } catch (error) {
+                      alert(`Download failed: ${(error as Error).message}`);
+                    }
                   }}
                 >
                   Download

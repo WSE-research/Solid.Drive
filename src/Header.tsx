@@ -51,7 +51,7 @@ export const Header: FunctionComponent = () => {
               <div style={{ display: "flex", gap: 8 }}>
                 <select
                   value={selectedProvider}
-                  onChange={(error) => setSelectedProvider(error.target.value)}
+                  onChange={(event) => setSelectedProvider(event.target.value)}
                 >
                   <option value="" disabled>Select a provider</option>
                   {KNOWN_PROVIDERS.map((provider) => (
@@ -62,7 +62,7 @@ export const Header: FunctionComponent = () => {
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(error) => setCustomIssuerUrl(error.target.value)}
+                    onChange={(event) => setCustomIssuerUrl(event.target.value)}
                     placeholder="https://your-provider.example"
                   />
                 )}
