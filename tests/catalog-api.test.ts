@@ -5,7 +5,7 @@ import {
   appendToCatalog,
   removeFromCatalog,
   linkCatalogToProfile,
-} from "../src/catalog";
+} from "../src/podCatalog";
 
 // Test helpers
 type FetchCall = {

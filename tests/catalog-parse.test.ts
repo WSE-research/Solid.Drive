@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCatalog, friendlyLabel } from "../src/catalog";
+import { parseCatalog, friendlyLabel } from "../src/podCatalog";
 
 
 describe("parseCatalog", () => {
