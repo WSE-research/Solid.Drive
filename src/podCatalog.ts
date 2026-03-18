@@ -75,7 +75,7 @@ schema:DigitalDocument rdfs:subClassOf [
 
 // ─── Class map ────────────────────────────────────────────────────────────────
 
-export const FILE_TYPE_DEFS = [
+const FILE_TYPE_DEFS = [
   { uri: "http://schema.org/DigitalDocument", id: "DigitalDocument", label: "File", description: "Any general file" },
   { uri: "https://w3id.org/solid-drive#ImageFile", id: "ImageFile", label: "Photo/Image", description: "Pictures/graphics" },
   { uri: "https://w3id.org/solid-drive#VideoFile", id: "VideoFile", label: "Video", description: "Videos/movie clips" },
@@ -241,7 +241,7 @@ export function parseCatalog(turtleText: string): CatalogEntry[] {
   );
 
   return datasetUris.map((datasetUri) => {
-   
+
     const blockFor = (uri: string) => {
       const escaped = uri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       return turtleText.match(
