@@ -23,11 +23,17 @@ generateShape.ts  inspect unknown Turtle data and infer RDF shapes
 
 ### `App.tsx`
 
-Root component. Wraps the tree in `BrowserSolidLdoProvider`, which manages the Solid session and exposes LDO hooks to every child. Nothing below this can authenticate or read Pod data without it.
+Wraps the tree in `BrowserSolidLdoProvider`. Required — without it no component can access the Solid session or LDO hooks. When logged in, renders `ProfileSidebar` on the left alongside the main `FileExplorer`.
 
 ### `Header.tsx`
 
 Login/logout bar. Presents a provider dropdown (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, custom URL) with registration links per provider. When logged in, resolves and displays the user's name from their Solid profile (`vcard:fn` → `foaf:name` → WebID fallback).
+
+### `ProfileSidebar.tsx`
+
+Social identity on Solid is more than a display name, it includes a live contact graph (`foaf:knows`) that links one WebID to others across different pods. `ProfileSidebar` is where the app exposes that: it reads the logged-in user's WebID profile document via LDO and lets them edit their name, avatar, and contacts without leaving the app.
+
+Every write goes through N3 Patch (`solid:InsertDeletePatch`), not SPARQL UPDATE, because NSS does not support SPARQL UPDATE on profile documents. Contact profiles are fetched per-row by `ContactRow`; it strips the `#fragment` from the WebID before requesting the document because the document lives at the base IRI, the fragment identifies the person within it, not a separate resource.
 
 ### `FileExplorer.tsx`
 
@@ -46,6 +52,7 @@ Executes the upload sequence (see root README for the full flow). Key implementa
 
 - **TBox validation** — `loadTBox()` is called on mount; the resulting shapes are used by `validateMetadata()` on every form change. The submit button stays disabled until all required fields (`name`, `uploadDate`, `publisher`) are present. `name` maps to the visible title input; `uploadDate` and `publisher` are auto-populated and surface as non-actionable violations if missing.
 - `resolveClass(mimeType)` from `podCatalog.ts` converts the MIME type to a schema.org class URI before the container is created
+- Filenames are sanitized to lowercase alphanumeric + hyphens before upload (`safeFileName`) so NSS does not reject PUT requests for filenames with special characters
 - `profileHasCatalog` (passed from `FileExplorer`) prevents adding a duplicate `dcat:catalog` triple when the user already has one from another app
 - Rollback on failure: if any step after the binary upload throws, the container is deleted via raw `fetch` calls before surfacing the error
 
@@ -63,6 +70,12 @@ A navigable row for Pod containers that are not managed by this app. Kept separa
 
 ---
 
+### `DataCatalog.tsx`
+
+Opens as a modal, fetches `catalog.ttl` fresh on each open, and shows the 2 most recent uploads sorted by `dcterms:modified`. Composed of `TBoxView` and `ABoxView`.
+
+---
+
 ## `useCatalogUri.ts`
 
 - **`resolveCatalogUri(profile, storageRoot)`** — returns the catalog URI. Checks `profile.catalog["@id"]` first; falls back to `${storageRoot}catalog.ttl`.
@@ -72,6 +85,12 @@ A navigable row for Pod containers that are not managed by this app. Kept separa
 ## `podCatalog.ts`
 
 All catalog and file-type logic. No direct LDO usage — communicates with the Pod via raw `fetch`.
+
+## `foaf.ts`
+
+Isolated write layer for FOAF profile edits. Keeping patch logic here rather than inside the component means there is one place to change if the server changes or if you want to extend what the app writes to the profile.
+
+`saveProfileFields` replaces `foaf:name` and `foaf:img` in a single PATCH — combining both fields into one request avoids a window where another client could read the profile between two separate writes. `ensureProfileDocType` adds the `foaf:PersonalProfileDocument` and `foaf:primaryTopic` declarations on first edit; NSS-created profiles sometimes omit them, and some Solid clients require these types to recognise the document as a profile.
 
 - **`resolveClass(mimeType)`** — maps a MIME type to a schema.org class URI. Spreadsheet types are matched before the generic `text/*` wildcard to avoid misclassification.
 
@@ -84,6 +103,8 @@ All catalog and file-type logic. No direct LDO usage — communicates with the P
 - **`linkCatalogToProfile(catalogUri, webId, fetch)`** — adds a `dcat:catalog` triple to the WebID profile document so external agents can discover the catalog. Only called on first upload (guarded by `profileHasCatalog` in `FileUpload`).
 
 - **`parseCatalog(turtleText)`** — parses a `catalog.ttl` Turtle string into `CatalogEntry` objects. Used in tests and tooling.
+
+- **`friendlyLabel(uriOrId)`** — converts a TBox class URI into a readable class label (e.g., `ImageFile` → `Photo/Image`).
 
 ---
 

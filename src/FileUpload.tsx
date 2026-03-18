@@ -110,6 +110,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       // Use a safe folder name so the container URI is predictable
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+      const ext = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
+      const safeFileName = ext
+        ? `${containerSlug.replace(/\.[^.]+$/, "")}.${ext}`
+        : containerSlug;
       const containerUri = `${containerSlug}/` as SolidContainerUri;
       // Create a container per file (binary and index.ttl live together)
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
@@ -118,7 +122,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       // Upload the file with its MIME type so it is stored and served correctly.
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
-        pendingFile.name,
+        safeFileName,
         pendingFile,
         pendingFile.type
       );
@@ -131,7 +135,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       // index.ttl must exist to store RDF metadata
       const indexResource = fileContainer.child("index.ttl");
       if (!isSolidLeaf(indexResource)) {
-        const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
+        const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
         await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
         await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
         alert("Could not create metadata resource.");
@@ -155,14 +159,12 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const commitResult = await commitData(metadata);
       if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
-      // Build final binary URI for the catalog entry and append to catalog with SPARQL PATCH
-      const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
+      const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
 
       try {
         await appendToCatalog(
           catalogUri,
           indexResource.uri,
-          binaryUri,
           classUri,
           pendingFile.type,
           pendingFile.size,
@@ -184,6 +186,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
 
+      onUploadSuccess?.();
       setTitle("");
       setDescription("");
       setPendingFile(undefined);

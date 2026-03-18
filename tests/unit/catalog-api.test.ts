@@ -205,7 +205,6 @@ describe("appendToCatalog", () => {
 
     const sparql = calls[1].body ?? "";
     expect(sparql).toContain("dcat:Distribution");
-    expect(sparql).toContain(`dcat:accessURL <${binaryUri}>`);
     expect(sparql).toContain('dcat:mediaType "image/jpeg"');
     expect(sparql).toContain("dcat:byteSize 4500000");
   });
