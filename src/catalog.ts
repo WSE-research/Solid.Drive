@@ -147,13 +147,11 @@ export interface CatalogEntry {
   publisher: string;
   mediaType: string;
   byteSize: number;
-  accessURL: string;
 }
 
 export async function appendToCatalog(
   storageRoot: string,
   instanceUri: string,
-  binaryUri: string,
   classUri: string,
   mediaType: string,
   byteSize: number,
@@ -194,7 +192,6 @@ INSERT DATA {
     dcterms:publisher <${publisherWebId}> ;
     dcat:distribution <${instanceUri}#dist> .
   <${instanceUri}#dist> a dcat:Distribution ;
-    dcat:accessURL <${binaryUri}> ;
     dcat:mediaType "${mediaType}" ;
     dcat:byteSize ${byteSize} .
 }
@@ -235,10 +232,21 @@ DELETE WHERE { <${instanceUri}#dist> ?p ?v . }
   }
 }
 
-export function parseCatalog(turtleText: string): CatalogEntry[] {
-  const datasetUris = [...turtleText.matchAll(/dcat:dataset\s+<([^>]+)>/g)].map(
-    (regexMatch) => regexMatch[1]
-  );
+export function parseCatalog(turtleText: string, baseUrl?: string): CatalogEntry[] {
+  const abs = (uri: string) =>
+    baseUrl && uri && !uri.startsWith("http://") && !uri.startsWith("https://")
+      ? new URL(uri, baseUrl).href
+      : uri;
+  const datasetUris: string[] = [];
+  for (const match of turtleText.matchAll(/dcat:dataset((?:\s*,?\s*<[^>]+>)+)/g)) {
+    for (const uriMatch of match[1].matchAll(/<([^>]+)>/g)) {
+      datasetUris.push(uriMatch[1]);
+    }
+  }
+  
+  for (const match of turtleText.matchAll(/<([^>]+)>\s+a\s+dcat:Dataset/g)) {
+    if (!datasetUris.includes(match[1])) datasetUris.push(match[1]);
+  }
 
   return datasetUris.map((datasetUri) => {
    
@@ -260,15 +268,14 @@ export function parseCatalog(turtleText: string): CatalogEntry[] {
       parseInt(block.match(new RegExp(`${predicate}\\s+(\\d+)`))?.[1] ?? "0", 10);
 
     return {
-      uri: datasetUri,
-      conformsTo: iri("dcterms:conformsTo", datasetBlock),
+      uri: abs(datasetUri),
+      conformsTo: abs(iri("dcterms:conformsTo", datasetBlock)),
       title: str("dcterms:title", datasetBlock),
       description: str("dcterms:description", datasetBlock),
       modified: str("dcterms:modified", datasetBlock),
-      publisher: iri("dcterms:publisher", datasetBlock),
+      publisher: abs(iri("dcterms:publisher", datasetBlock)),
       mediaType: str("dcat:mediaType", distBlock),
       byteSize: int("dcat:byteSize", distBlock),
-      accessURL: iri("dcat:accessURL", distBlock),
     };
   });
 }

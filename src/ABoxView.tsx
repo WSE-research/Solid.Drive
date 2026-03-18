@@ -32,6 +32,11 @@ export const ABoxEntry: FunctionComponent<{ entry: CatalogEntry }> = ({ entry })
       {entry.mediaType && (
         <div className="catalog-entry__desc" style={{ color: "var(--text-muted)", fontSize: 11 }}>{entry.mediaType}</div>
       )}
+      {entry.publisher && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
+          by {entry.publisher.split("/").filter(Boolean).find(s => !s.startsWith("http") && s !== "profile" && s !== "card") ?? entry.publisher}
+        </div>
+      )}
     </div>
   );
 };

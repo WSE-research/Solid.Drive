@@ -10,6 +10,8 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   a [ schema:Person foaf:Person ] ;
   vcard:fn xsd:string ? ;
   foaf:name xsd:string ? ;
+  foaf:img IRI ? ;
+  foaf:knows IRI * ;
   ldp:inbox IRI ;
   sp:storage IRI * ;
   solid:publicTypeIndex IRI ? ;

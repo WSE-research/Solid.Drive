@@ -33,8 +33,11 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
           }
           throw new Error(`${response.status} ${response.statusText}`);
         }
+        const catalogUrl = `${catalogRoot}catalog.ttl`;
         const turtleText = await response.text();
-        const entries = parseCatalog(turtleText);
+        const entries = parseCatalog(turtleText, catalogUrl)
+          .sort((firstEntry, secondEntry) => (secondEntry.modified ?? "").localeCompare(firstEntry.modified ?? ""))
+          .slice(0, 2);
         if (!cancelled) setCatalogEntries(entries);
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
@@ -62,12 +65,7 @@ export const DataCatalog: FunctionComponent<DataCatalogProps> = ({ storageRoot, 
 
           <section className="catalog-section">
             <h3 className="catalog-section__heading">
-              Uploaded files
-              {!loading && !error && (
-                <span className="catalog-section__count">
-                  {catalogEntries.length} {catalogEntries.length === 1 ? "file" : "files"}
-                </span>
-              )}
+              Recent uploads
             </h3>
 
             {loading && (

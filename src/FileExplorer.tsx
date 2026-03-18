@@ -105,7 +105,7 @@ export const FileExplorer: FunctionComponent = () => {
   return (
     <main>
       {isSolidContainer(appContainer) && storageRootUri && (
-        <FileUpload mainContainer={appContainer} storageRoot={storageRootUri} />
+        <FileUpload mainContainer={appContainer} storageRoot={storageRootUri} onUploadSuccess={handleReload} />
       )}
 
       {breadcrumbs.length > 1 && (
@@ -130,6 +130,15 @@ export const FileExplorer: FunctionComponent = () => {
           {isInAppFolder ? "Your Files" : "Pod Contents"}
         </p>
         <div style={{ display: "flex", gap: 8 }}>
+          {storageRootUri && (
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 12, padding: "6px 12px" }}
+              onClick={() => setShowCatalog(true)}
+            >
+              File Catalog
+            </button>
+          )}
           <button
             className="btn btn-ghost"
             onClick={handleReload}
