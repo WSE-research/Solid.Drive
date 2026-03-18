@@ -6,6 +6,8 @@ import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { removeFromCatalog, friendlyTypeInfo, resolveClass, isKnownType } from "./podCatalog";
+import { SharePanel } from "./SharePanel";
+import { discoverAclUri, readAclAgents } from "./fileAccess";
 
 type FileCardProps = {
   containerUri: string;
@@ -27,8 +29,16 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const publisherProfile = useSubject(SolidProfileShapeType, publisherWebId);
   const publisherName = publisherProfile?.fn ?? publisherProfile?.name ?? publisherWebId;
   const { getResource } = useLdo();
-  const { fetch: solidFetch } = useSolidAuth();
+  const { session, fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+
+  const ownerProfile = useSubject(SolidProfileShapeType, session.webId);
+  const contacts = useMemo(
+    () => ownerProfile?.knows?.toArray().map((knownContact: { "@id": string }) => knownContact["@id"]) ?? [],
+    [ownerProfile]
+  );
 
   // Determine the file's binary URI from container contents or metadata, excluding index.ttl.
   const binaryUri = useMemo(() => {
@@ -56,6 +66,17 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     };
   }, [binaryResource]);
 
+  useEffect(() => {
+    if (!containerResource) return;
+    let cancelled = false;
+    discoverAclUri(containerUri, solidFetch)
+      .then((aclUri) => readAclAgents(aclUri, solidFetch))
+      .then((sharedAgents) => { if (!cancelled) setIsShared(sharedAgents.length > 0); })
+      .catch((err) => {
+        console.warn("[FileCard] ACL discovery failed for", containerUri, err);
+      });
+    return () => { cancelled = true; };
+  }, [containerUri, solidFetch, containerResource]);
 
   // Delete the file by removing its catalog entry, then deleting the container to avoid stale references.
   const handleDelete = useCallback(async () => {
@@ -122,7 +143,19 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   return (
     <div className="file-card">
-      {fileMeta.name && <p className="file-card__name">{fileMeta.name}</p>}
+      {fileMeta.name && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <p className="file-card__name" style={{ margin: 0 }}>{fileMeta.name}</p>
+          {isShared && (
+            <span title="Shared" style={{ color: "var(--accent)", flexShrink: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </span>
+          )}
+        </div>
+      )}
 
       {previewUrl && (() => {
         const mimeType = fileMeta.encodingFormat ?? "";
@@ -159,6 +192,13 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
           >
             {showInfo ? "Hide Info" : "Info"}
           </button>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setShowShare((isVisible) => !isVisible)}
+            style={{ fontSize: 12, padding: "6px 12px" }}
+          >
+            {showShare ? "Hide Share" : "Share"}
+          </button>
           {(previewUrl ?? binaryUri) && (
             <a
               className="btn btn--ghost btn--small"
@@ -171,6 +211,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
           <button className="btn btn--delete" onClick={handleDelete}>Delete</button>
         </div>
       </div>
+
+      {showShare && (
+        <SharePanel containerUri={containerUri} contacts={contacts} />
+      )}
 
       {showInfo && (
         <div className="file-card__schema">

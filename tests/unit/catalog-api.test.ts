@@ -14,7 +14,7 @@ function capturingMock(
   const calls: FetchCall[] = [];
   let callIndex = 0;
 
-  const fetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+  const mockFetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
     const headers = init?.headers as Record<string, string> | undefined;
     calls.push({
       url: String(url),
@@ -30,7 +30,7 @@ function capturingMock(
     } as Response;
   });
 
-  return { fetch, calls };
+  return { fetch: mockFetch, calls };
 }
 
 describe("resolveClass", () => {
