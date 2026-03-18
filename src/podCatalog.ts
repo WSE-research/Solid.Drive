@@ -1,77 +1,139 @@
-import { Parser as N3Parser, Store as N3Store } from "n3";
-
 export type FetchFn = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 
-// Reject any URI that would break out of an angle-bracket IRI token in SPARQL/Turtle
-function assertSafeUri(uri: string): void {
-  if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
-}
+// ─── TBox ─────────────────────────────────────────────────────────────────────
 
-// Central file type mapping used to connect schema.org classes to UI labels
+const TBOX_TURTLE = `
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd:     <https://w3id.org/solid-drive#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Classes ───────────────────────────────────────────────────────────────────
+
+sd:ImageFile a rdfs:Class ;
+  rdfs:subClassOf schema:DigitalDocument ;
+  rdfs:label "Image File" ;
+  rdfs:comment "A digital image such as a photo, illustration, or graphic." .
+
+sd:VideoFile a rdfs:Class ;
+  rdfs:subClassOf schema:DigitalDocument ;
+  rdfs:label "Video File" ;
+  rdfs:comment "A video recording such as a movie, clip, or screen capture." .
+
+sd:AudioFile a rdfs:Class ;
+  rdfs:subClassOf schema:DigitalDocument ;
+  rdfs:label "Audio File" ;
+  rdfs:comment "An audio recording such as music, a podcast, or a voice note." .
+
+sd:TextDocument a rdfs:Class ;
+  rdfs:subClassOf schema:DigitalDocument ;
+  rdfs:label "Text Document" ;
+  rdfs:comment "A text-based document such as a PDF, Word file, or plain text." .
+
+# ── Properties ────────────────────────────────────────────────────────────────
+
+schema:name a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:string .
+
+schema:description a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:string .
+
+schema:encodingFormat a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:string .
+
+schema:contentSize a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:string .
+
+schema:dateModified a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:dateTime .
+
+schema:sharedWith a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range rdfs:Resource .
+
+# ── Required property constraints ───────────────────────────
+
+schema:uploadDate a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range xsd:dateTime .
+
+schema:DigitalDocument rdfs:subClassOf [
+  a owl:Restriction ;
+  owl:onProperty schema:uploadDate ;
+  owl:minCardinality 1
+] .
+
+schema:publisher a rdf:Property ;
+  rdfs:domain schema:DigitalDocument ; rdfs:range rdfs:Resource .
+
+schema:DigitalDocument rdfs:subClassOf [
+  a owl:Restriction ;
+  owl:onProperty schema:publisher ;
+  owl:minCardinality 1
+] .
+`.trim();
+
+// ─── Class map ────────────────────────────────────────────────────────────────
+
 const FILE_TYPE_DEFS = [
   { uri: "http://schema.org/DigitalDocument", id: "DigitalDocument", label: "File", description: "Any general file" },
-  { uri: "http://schema.org/ImageObject", id: "ImageObject", label: "Photo/Image", description: "Pictures/graphics" },
-  { uri: "http://schema.org/VideoObject", id: "VideoObject", label: "Video", description: "Videos/movie clips" },
-  { uri: "http://schema.org/AudioObject", id: "AudioObject", label: "Audio", description: "Music, podcasts, recordings" },
-  { uri: "http://schema.org/TextDigitalDocument", id: "TextDigitalDocument", label: "Document", description: "PDFs, text, Word files" },
-  { uri: "http://schema.org/SpreadsheetDigitalDocument", id: "SpreadsheetDigitalDocument", label: "Spreadsheet", description: "Excel, CSV, etc." },
+  { uri: "https://w3id.org/solid-drive#ImageFile", id: "ImageFile", label: "Photo/Image", description: "Pictures/graphics" },
+  { uri: "https://w3id.org/solid-drive#VideoFile", id: "VideoFile", label: "Video", description: "Videos/movie clips" },
+  { uri: "https://w3id.org/solid-drive#AudioFile", id: "AudioFile", label: "Audio", description: "Music, podcasts, recordings" },
+  { uri: "https://w3id.org/solid-drive#TextDocument", id: "TextDocument", label: "Document", description: "PDFs/text/Word files" },
 ];
 
-// Returns whether the given type is one the app recognizes
-export function isKnownType(uriOrId: string): boolean {
-  return FILE_TYPE_DEFS.some(
-    (entry) => entry.uri === uriOrId || entry.id === uriOrId || entry.uri.endsWith(`#${uriOrId}`)
-  );
-}
-
-// Returns the UI label for a supported file type
 export function friendlyLabel(uriOrId: string): string {
-  return friendlyTypeInfo(uriOrId).label;
-}
-
-// Returns the UI label and description for a file type
-export function friendlyTypeInfo(uriOrId: string): { label: string; description: string } {
   const typeDef = FILE_TYPE_DEFS.find(
     (entry) => entry.uri === uriOrId || entry.id === uriOrId || entry.uri.endsWith(`#${uriOrId}`)
   );
-  if (typeDef) return { label: typeDef.label, description: typeDef.description };
-  const fallback = uriOrId.split(/[#/]/).pop() ?? uriOrId;
-  return { label: fallback, description: "" };
+  if (typeDef) return typeDef.label;
+  return uriOrId.split(/[#/]/).pop() ?? uriOrId;
 }
 
-// Map MIME types to the closest schema.org class we support
+export async function ensureTBox(storageRoot: string, fetch: FetchFn): Promise<void> {
+  const tboxUri = `${storageRoot}tbox.ttl`;
+  const headResponse = await fetch(tboxUri, { method: "HEAD" });
+  if (headResponse.ok) return;
+  const putResponse = await fetch(tboxUri, {
+    method: "PUT",
+    headers: { "Content-Type": "text/turtle" },
+    body: TBOX_TURTLE,
+  });
+  if (!putResponse.ok) {
+    throw new Error(`Failed to write tbox.ttl: ${putResponse.status} ${putResponse.statusText}`);
+  }
+}
+
+const APP_NAMESPACE = "https://w3id.org/solid-drive#";
+
 export function resolveClass(contentType: string): string {
-  if (contentType.startsWith("image/")) return "http://schema.org/ImageObject";
-  if (contentType.startsWith("video/")) return "http://schema.org/VideoObject";
-  if (contentType.startsWith("audio/")) return "http://schema.org/AudioObject";
-  if (
-    contentType === "text/csv" ||
-    contentType === "application/vnd.ms-excel" ||
-    contentType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  ) return "http://schema.org/SpreadsheetDigitalDocument";
+  if (contentType.startsWith("image/")) return `${APP_NAMESPACE}ImageFile`;
+  if (contentType.startsWith("video/")) return `${APP_NAMESPACE}VideoFile`;
+  if (contentType.startsWith("audio/")) return `${APP_NAMESPACE}AudioFile`;
   if (
     contentType.startsWith("text/") ||
     contentType === "application/pdf" ||
     contentType === "application/msword" ||
-    contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-    contentType === "application/rtf"
-  ) return "http://schema.org/TextDigitalDocument";
+    contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return `${APP_NAMESPACE}TextDocument`;
+  }
   return "http://schema.org/DigitalDocument";
 }
 
-// ── DCAT catalog management ────────────────────────────────────────────
+// ─── DCAT 3 Catalog ───────────────────────────────────────────────────────────
 
 const CATALOG_SPARQL_PREFIXES = `
-PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dcat:    <http://www.w3.org/ns/dcat#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX xsd:     <http://www.w3.org/2001/XMLSchema#>
 `.trim();
 
-// Minimal starting catalog for first-time setup
 const EMPTY_CATALOG_TURTLE = `
-@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcat:    <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 
 <> a dcat:Catalog .
 `.trim();
@@ -88,13 +150,8 @@ export interface CatalogEntry {
   accessURL: string;
 }
 
-/**
- * Add a dataset entry and matching distribution to the catalog
- * Uses SPARQL PATCH so updates do not replace the full document
- * Creates the catalog first if it does not exist yet
- */
 export async function appendToCatalog(
-  catalogUri: string,
+  storageRoot: string,
   instanceUri: string,
   binaryUri: string,
   classUri: string,
@@ -106,12 +163,7 @@ export async function appendToCatalog(
   publisherWebId: string,
   fetch: FetchFn
 ): Promise<void> {
-  assertSafeUri(catalogUri);
-  assertSafeUri(instanceUri);
-  assertSafeUri(binaryUri);
-  assertSafeUri(classUri);
-  assertSafeUri(publisherWebId);
-  // Create the catalog only if it does not exist yet
+  const catalogUri = `${storageRoot}catalog.ttl`;
   const headResponse = await fetch(catalogUri, { method: "HEAD" });
   if (!headResponse.ok) {
     const putResponse = await fetch(catalogUri, {
@@ -124,30 +176,28 @@ export async function appendToCatalog(
     }
   }
 
-  // Escape user text before inserting it into Turtle literals
-  const escapeTurtleLiteral = (s: string) =>
+  const escape = (s: string) =>
     s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 
-  // Only include description when one was provided
   const descriptionTriple = description.trim()
-    ? `\n    dcterms:description "${escapeTurtleLiteral(description)}" ;`
+    ? `\n    dcterms:description "${escape(description)}" ;`
     : "";
 
   const sparqlUpdate = `${CATALOG_SPARQL_PREFIXES}
 
-  INSERT DATA {
-    <${catalogUri}> dcat:dataset <${instanceUri}> .
-    <${instanceUri}> a dcat:Dataset ;
-      dcterms:conformsTo <${classUri}> ;
-      dcterms:title "${escapeTurtleLiteral(title)}" ;${descriptionTriple}
-      dcterms:modified "${modified}"^^xsd:dateTime ;
-      dcterms:publisher <${publisherWebId}> ;
-      dcat:distribution <${instanceUri}#dist> .
-    <${instanceUri}#dist> a dcat:Distribution ;
-      dcat:accessURL <${binaryUri}> ;
-      dcat:mediaType "${escapeTurtleLiteral(mediaType)}" ;
-      dcat:byteSize ${byteSize} .
-  }
+INSERT DATA {
+  <${catalogUri}> dcat:dataset <${instanceUri}> .
+  <${instanceUri}> a dcat:Dataset ;
+    dcterms:conformsTo <${classUri}> ;
+    dcterms:title "${escape(title)}" ;${descriptionTriple}
+    dcterms:modified "${modified}"^^xsd:dateTime ;
+    dcterms:publisher <${publisherWebId}> ;
+    dcat:distribution <${instanceUri}#dist> .
+  <${instanceUri}#dist> a dcat:Distribution ;
+    dcat:accessURL <${binaryUri}> ;
+    dcat:mediaType "${mediaType}" ;
+    dcat:byteSize ${byteSize} .
+}
 `.trim();
 
   const patchResponse = await fetch(catalogUri, {
@@ -160,25 +210,19 @@ export async function appendToCatalog(
   }
 }
 
-/**
- * Removes a dataset and its distribution from the catalog in a single SPARQL
- * DELETE WHERE PATCH, preventing orphaned #dist resources.  Silently returns
- * if the catalog doesn't exist — nothing to remove.
- */
 export async function removeFromCatalog(
-  catalogUri: string,
+  storageRoot: string,
   instanceUri: string,
   fetch: FetchFn
 ): Promise<void> {
-  assertSafeUri(catalogUri);
-  assertSafeUri(instanceUri);
+  const catalogUri = `${storageRoot}catalog.ttl`;
   const headResponse = await fetch(catalogUri, { method: "HEAD" });
   if (!headResponse.ok) return;
 
   const sparqlUpdate = `${CATALOG_SPARQL_PREFIXES}
 
-  DELETE WHERE { <${catalogUri}> dcat:dataset <${instanceUri}> . <${instanceUri}> ?p ?v . } ;
-  DELETE WHERE { <${instanceUri}#dist> ?p ?v . }
+DELETE WHERE { <${catalogUri}> dcat:dataset <${instanceUri}> . <${instanceUri}> ?p ?v . } ;
+DELETE WHERE { <${instanceUri}#dist> ?p ?v . }
 `.trim();
 
   const patchResponse = await fetch(catalogUri, {
@@ -191,52 +235,50 @@ export async function removeFromCatalog(
   }
 }
 
-// Parse catalog entries from Turtle text using N3 so URIs with dots or
-// multi-line literals don't cause premature block termination.
 export function parseCatalog(turtleText: string): CatalogEntry[] {
-  let quads;
-  try {
-    quads = new N3Parser().parse(turtleText);
-  } catch {
-    return [];
-  }
-
-  const store = new N3Store(quads);
-  const DCAT = "http://www.w3.org/ns/dcat#";
-  const DCTERMS = "http://purl.org/dc/terms/";
-
-  const datasetUris = store.getObjects(null, `${DCAT}dataset`, null).map((t) => t.value);
-
-  const val = (subject: string, predicate: string) =>
-    store.getObjects(subject, predicate, null)[0]?.value ?? "";
+  const datasetUris = [...turtleText.matchAll(/dcat:dataset\s+<([^>]+)>/g)].map(
+    (regexMatch) => regexMatch[1]
+  );
 
   return datasetUris.map((datasetUri) => {
-    const distUri = val(datasetUri, `${DCAT}distribution`);
+
+    const blockFor = (uri: string) => {
+      const escaped = uri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return turtleText.match(
+        new RegExp(`^[ \\t]*<${escaped}>\\s[\\s\\S]*?\\.(?=[ \\t]*(?:\\n|$))`, "m")
+      )?.[0] ?? "";
+    };
+
+    const datasetBlock = blockFor(datasetUri);
+    const distBlock = blockFor(`${datasetUri}#dist`);
+
+    const iri = (predicate: string, block: string) =>
+      block.match(new RegExp(`${predicate}\\s+<([^>]+)>`))?.[1] ?? "";
+    const str = (predicate: string, block: string) =>
+      block.match(new RegExp(`${predicate}\\s+"((?:[^"\\\\]|\\\\.)*)`))?.[1] ?? "";
+    const int = (predicate: string, block: string) =>
+      parseInt(block.match(new RegExp(`${predicate}\\s+(\\d+)`))?.[1] ?? "0", 10);
+
     return {
       uri: datasetUri,
-      conformsTo: val(datasetUri, `${DCTERMS}conformsTo`),
-      title: val(datasetUri, `${DCTERMS}title`),
-      description: val(datasetUri, `${DCTERMS}description`),
-      modified: val(datasetUri, `${DCTERMS}modified`),
-      publisher: val(datasetUri, `${DCTERMS}publisher`),
-      mediaType: val(distUri, `${DCAT}mediaType`),
-      byteSize: parseInt(val(distUri, `${DCAT}byteSize`) || "0", 10),
-      accessURL: val(distUri, `${DCAT}accessURL`),
+      conformsTo: iri("dcterms:conformsTo", datasetBlock),
+      title: str("dcterms:title", datasetBlock),
+      description: str("dcterms:description", datasetBlock),
+      modified: str("dcterms:modified", datasetBlock),
+      publisher: iri("dcterms:publisher", datasetBlock),
+      mediaType: str("dcat:mediaType", distBlock),
+      byteSize: int("dcat:byteSize", distBlock),
+      accessURL: iri("dcat:accessURL", distBlock),
     };
   });
 }
 
-/**
- * Add a dcat:catalog link from the user's profile to the catalog document
- * Uses the profile document URI, not the WebID fragment
- */
 export async function linkCatalogToProfile(
-  catalogUri: string,
+  storageRoot: string,
   webId: string,
   fetch: FetchFn
 ): Promise<void> {
-  assertSafeUri(catalogUri);
-  // Strip the fragment (#me, #this, etc.) to get the patchable document URI
+  const catalogUri = `${storageRoot}catalog.ttl`;
   const profileDocUri = webId.split("#")[0];
 
   const sparqlUpdate = `PREFIX dcat: <http://www.w3.org/ns/dcat#>
