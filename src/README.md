@@ -4,11 +4,17 @@
 
 ### `App.tsx`
 
-Entry point. Wraps the component tree in `BrowserSolidLdoProvider`, which manages the Solid session and exposes LDO hooks to every child component. Nothing below this can authenticate or read Pod data without it.
+Wraps the tree in `BrowserSolidLdoProvider`. Required — without it no component can access the Solid session or LDO hooks. When logged in, renders `ProfileSidebar` on the left alongside the main `FileExplorer`.
 
 ### `Header.tsx`
 
 Login/logout bar. Includes a provider dropdown so the user can specify their identity server — necessary because Solid is decentralised and there is no single login endpoint.
+
+### `ProfileSidebar.tsx`
+
+Social identity on Solid is more than a display name, it includes a live contact graph (`foaf:knows`) that links one WebID to others across different pods. `ProfileSidebar` is where the app exposes that: it reads the logged-in user's WebID profile document via LDO and lets them edit their name, avatar, and contacts without leaving the app.
+
+Every write goes through N3 Patch (`solid:InsertDeletePatch`), not SPARQL UPDATE, because NSS does not support SPARQL UPDATE on profile documents. Contact profiles are fetched per-row by `ContactRow`; it strips the `#fragment` from the WebID before requesting the document because the document lives at the base IRI, the fragment identifies the person within it, not a separate resource.
 
 ### `FileExplorer.tsx`
 
@@ -20,14 +26,15 @@ Handles the full upload sequence in order:
 
 ```
 resolve schema.org class from MIME type
-  → create container (e.g. my-solid-app/photo-001/)
-    → upload binary (photo.jpg)
-      → write index.ttl (file metadata as Linked Data)
-        → append entry to catalog.ttl
-          → link catalog to profile (only on first upload)
+  → sanitize filename
+    → create container (e.g. my-solid-app/photo-001/)
+      → upload binary (photo.jpg)
+        → write index.ttl (file metadata as Linked Data)
+          → append entry to catalog.ttl
+            → link catalog to profile (only on first upload)
 ```
 
-If any step after the binary upload fails, the entire container is deleted so no half-written resources are left on the Pod. The `profileHasCatalog` prop prevents overwriting a user's custom catalog pointer with a second `dcat:catalog` triple.
+Filenames are sanitized to lowercase alphanumeric + hyphens before upload (`safeFileName`) so that NSS does not reject PUT requests for filenames with special characters. If any step after the binary upload fails, the entire container is deleted so no half-written resources are left on the Pod. The `profileHasCatalog` prop prevents overwriting a user's custom catalog pointer with a second `dcat:catalog` triple.
 
 ### `FileCard.tsx`
 
@@ -48,6 +55,12 @@ Helper to resolve the catalog URI from user context:
 - **`resolveCatalogUri(profile, storageRoot)`**: checks the user's WebID profile for a `dcat:catalog` triple first. If found, returns that URI. If not, falls back to `${storageRoot}catalog.ttl`. This enables users to bring their own catalog from another Solid app and have it recognized automatically.
 
 ---
+
+## `foaf.ts`
+
+Isolated write layer for FOAF profile edits. Keeping patch logic here rather than inside the component means there is one place to change if the server changes or if you want to extend what the app writes to the profile.
+
+`saveProfileFields` replaces `foaf:name` and `foaf:img` in a single PATCH — combining both fields into one request avoids a window where another client could read the profile between two separate writes. `ensureProfileDocType` adds the `foaf:PersonalProfileDocument` and `foaf:primaryTopic` declarations on first edit; NSS-created profiles sometimes omit them, and some Solid clients require these types to recognise the document as a profile.
 
 ## `podCatalog.ts`
 

@@ -29,10 +29,15 @@ body {
 }
 
 .App {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px 80px;
 }
+
+/* APP LAYOUT */
+.app-layout { display: flex; gap: 32px; align-items: flex-start; }
+.profile-sidebar { width: 280px; flex-shrink: 0; position: sticky; top: 24px; max-height: calc(100vh - 120px); overflow-y: auto; }
+.app-main { flex: 1; min-width: 0; }
 
 /* HEADER */
 .site-header {
@@ -192,7 +197,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
 .catalog-entry__name { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
 .catalog-entry__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .catalog-entry__desc { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
-
 .catalog-loading { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 14px; padding: 16px 0; }
 .catalog-error { color: var(--danger); font-size: 13px; padding: 12px 0; }
 

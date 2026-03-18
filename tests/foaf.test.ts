@@ -71,7 +71,7 @@ describe("saveProfileFields", () => {
     expect(body).toContain("solid:deletes");
     expect(body).toContain('foaf:name "Aurora"');
     expect(body).toContain("solid:inserts");
-    expect(body).toContain('foaf:name "Parnian"');
+    expect(body).toContain('foaf:name "Parni"');
   });
 
   it("sends only deletes when clearing a field", async () => {

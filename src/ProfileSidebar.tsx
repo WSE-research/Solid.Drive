@@ -10,7 +10,7 @@ import { ensureProfileDocType, saveProfileFields, type ProfileFields } from "./f
 const ProfileInput: FunctionComponent<{
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (v: string) => void;
   disabled?: boolean;
   placeholder?: string;
 }> = ({ label, value, onChange, disabled, placeholder }) => (
@@ -71,8 +71,8 @@ const ProfileCard: FunctionComponent = () => {
       });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       setImgUrl(avatarUri);
-    } catch (error) {
-      alert(`Avatar upload failed: ${(error as Error).message}`);
+    } catch (err) {
+      alert(`Avatar upload failed: ${(err as Error).message}`);
     } finally {
       setUploadingAvatar(false);
     }
@@ -91,8 +91,8 @@ const ProfileCard: FunctionComponent = () => {
       await ensureProfileDocType(session.webId, solidFetch).catch(() => {});
       if (isReloadable(webIdResource)) await webIdResource.reload();
       setEditing(false);
-    } catch (error) {
-      alert(`Save failed: ${(error as Error).message}`);
+    } catch (err) {
+      alert(`Save failed: ${(err as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -109,7 +109,7 @@ const ProfileCard: FunctionComponent = () => {
               accept="image/*"
               style={{ display: "none" }}
               disabled={saving || uploadingAvatar}
-              onChange={(event) => { const selectedFile = event.target.files?.[0]; if (selectedFile) handleAvatarUpload(selectedFile); }}
+              onChange={(event) => { const f = event.target.files?.[0]; if (f) handleAvatarUpload(f); }}
             />
             {avatarUrl ? (
               <img src={avatarUrl} alt={displayName || "avatar"} width={48} height={48} style={{ borderRadius: "50%", objectFit: "cover", display: "block" }} />
@@ -189,7 +189,7 @@ const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = (
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
 
-  const username = webId.replace(/#.*$/, "").split("/").filter(Boolean).find(segment => segment !== "profile" && segment !== "card" && !segment.startsWith("http")) ?? webId;
+  const username = webId.replace(/#.*$/, "").split("/").filter(Boolean).find(s => s !== "profile" && s !== "card" && !s.startsWith("http")) ?? webId;
   const displayName = contact?.name ?? contact?.fn ?? username;
   const avatarUrl = contact?.img?.["@id"];
   const firstLetter = displayName.slice(0, 1).toUpperCase() || "?";
@@ -225,14 +225,14 @@ const ContactsList: FunctionComponent = () => {
 
   useEffect(() => {
     if (!profile) return;
-    const knows = profile.knows?.toArray().map((contactEntry: { "@id": string }) => contactEntry["@id"]) ?? [];
+    const knows = profile.knows?.toArray().map((k: { "@id": string }) => k["@id"]) ?? [];
     setContacts(knows);
   }, [profile]);
 
   const handleAdd = async () => {
     const trimmed = newWebId.trim();
-    if (!/^https?:\/\/[^\s<>"{}|\\^`[\]]*$/.test(trimmed)) {
-      alert("WebID must be a valid http(s):// URL without special characters");
+    if (!trimmed.match(/^https?:\/\//)) {
+      alert("WebID must start with http:// or https://");
       return;
     }
     if (!session.webId) return;
@@ -242,7 +242,7 @@ const ContactsList: FunctionComponent = () => {
     }
     setIsAdding(true);
     try {
-      const addResponse = await solidFetch(session.webId.split("#")[0], {
+      const res = await solidFetch(session.webId.split("#")[0], {
         method: "PATCH",
         headers: { "Content-Type": "text/n3" },
         body: `@prefix foaf: <http://xmlns.com/foaf/0.1/> .
@@ -250,12 +250,12 @@ const ContactsList: FunctionComponent = () => {
 <> a solid:InsertDeletePatch;
   solid:inserts { <#me> foaf:knows <${trimmed}> . } .`,
       });
-      if (!addResponse.ok) throw new Error(`${addResponse.status} ${addResponse.statusText}`);
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       setContacts(prev => [...prev, trimmed]);
       setNewWebId("");
       if (isReloadable(webIdResource)) webIdResource.reload();
-    } catch (error) {
-      alert(`Failed to add contact: ${(error as Error).message}`);
+    } catch (err) {
+      alert(`Failed to add contact: ${(err as Error).message}`);
     } finally {
       setIsAdding(false);
     }
@@ -264,7 +264,7 @@ const ContactsList: FunctionComponent = () => {
   const handleRemove = async (contactWebId: string) => {
     if (!session.webId) return;
     try {
-      const removeResponse = await solidFetch(session.webId.split("#")[0], {
+      const res = await solidFetch(session.webId.split("#")[0], {
         method: "PATCH",
         headers: { "Content-Type": "text/n3" },
         body: `@prefix foaf: <http://xmlns.com/foaf/0.1/> .
@@ -272,11 +272,11 @@ const ContactsList: FunctionComponent = () => {
 <> a solid:InsertDeletePatch;
   solid:deletes { <#me> foaf:knows <${contactWebId}> . } .`,
       });
-      if (!removeResponse.ok) throw new Error(`${removeResponse.status} ${removeResponse.statusText}`);
-      setContacts(prev => prev.filter(existingContact => existingContact !== contactWebId));
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      setContacts(prev => prev.filter(c => c !== contactWebId));
       if (isReloadable(webIdResource)) webIdResource.reload();
-    } catch (error) {
-      alert(`Failed to remove contact: ${(error as Error).message}`);
+    } catch (err) {
+      alert(`Failed to remove contact: ${(err as Error).message}`);
     }
   };
 

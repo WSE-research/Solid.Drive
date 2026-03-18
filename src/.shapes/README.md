@@ -48,11 +48,16 @@ These are standard schema.org classes, no custom vocabulary file is needed on th
 
 ### `solidProfile.shex`
 
-Defines the minimum fields the app reads from a user's WebID profile document.
+A WebID profile document is an open-world RDF graph — any Solid client can write triples to it, and different servers declare the profile type differently. This shape does not try to validate the whole document; it declares only the fields the app needs to read and lets everything else pass through. `EXTRA a` is what enables that: without it, the shape would reject profiles whose `rdf:type` URI differs from what the shape expects, which breaks across server implementations.
 
-| Field | Purpose |
+To read additional profile fields in a fork (e.g. `foaf:workplaceHomepage`), add them here and run `npm run build:ldo` to regenerate the TypeScript types.
+
+| Field | Why the app needs it |
 |---|---|
 | `sp:storage` | The root URI of the user's Pod — used to construct the path for `catalog.ttl` and `my-solid-app/` |
 | `dcat:catalog` | (Optional) If present, points to the user's custom catalog from another app. Used by `resolveCatalogUri` to enable catalog portability across Solid applications |
+| `foaf:name` | Display name — shown in `ProfileSidebar` and editable in-app |
+| `foaf:img` | Avatar IRI — rendered as a profile photo and replaceable without leaving the app |
+| `foaf:knows` | Contact WebIDs — the social graph the app exposes through `ProfileSidebar` |
 
 `EXTRA a` is set so the shape accepts any profile `rdf:type`, not just a specific one. This is necessary because different Solid servers use different type URIs for profile documents, and the app only cares about the storage location and optional catalog pointer, not the profile type.

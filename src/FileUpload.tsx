@@ -33,6 +33,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const classUri = resolveClass(pendingFile.type);
 
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+      const ext = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
+      const safeFileName = ext
+        ? `${containerSlug.replace(/\.[^.]+$/, "")}.${ext}`
+        : containerSlug;
       const containerUri = `${containerSlug}/` as SolidContainerUri;
 
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
@@ -40,7 +44,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const fileContainer = containerResult.resource;
 
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
-        pendingFile.name,
+        safeFileName,
         pendingFile,
         pendingFile.type
       );
@@ -49,7 +53,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       const indexResource = fileContainer.child("index.ttl");
       if (!isSolidLeaf(indexResource)) {
-        const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
+        const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
         await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
         await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
         alert("Could not create metadata resource.");
@@ -74,13 +78,12 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const commitResult = await commitData(metadata);
       if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
-      const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
+      const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
 
       try {
         await appendToCatalog(
           catalogUri,
           indexResource.uri,
-          binaryUri,
           classUri,
           pendingFile.type,
           pendingFile.size,
@@ -102,6 +105,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
 
+      onUploadSuccess?.();
       setTitle("");
       setDescription("");
       setPendingFile(undefined);
