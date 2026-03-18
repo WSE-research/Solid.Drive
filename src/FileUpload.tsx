@@ -111,9 +111,15 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       // Use a safe folder name so the container URI is predictable
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+<<<<<<< HEAD
       const fileExtension = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
       const safeFileName = fileExtension
         ? `${containerSlug.replace(/\.[^.]+$/, "")}.${fileExtension}`
+=======
+      const ext = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
+      const safeFileName = ext
+        ? `${containerSlug.replace(/\.[^.]+$/, "")}.${ext}`
+>>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
         : containerSlug;
       const containerUri = `${containerSlug}/` as SolidContainerUri;
       // Create a container per file (binary and index.ttl live together)
@@ -172,7 +178,6 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         await appendToCatalog(
           catalogUri,
           indexResource.uri,
-          binaryUri,
           classUri,
           pendingFile.type,
           pendingFile.size,

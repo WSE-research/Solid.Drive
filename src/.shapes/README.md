@@ -12,6 +12,7 @@ npm run build:ldo   # regenerate after any change
 
 ## `catalogEntry.shex`
 
+<<<<<<< HEAD
 Defines the structure of `index.ttl` — the metadata document written inside each uploaded file's container.
 
 ### Vocabulary note
@@ -57,10 +58,15 @@ Defines the structure of `index.ttl` — the metadata document written inside ea
 
 A WebID profile document is an open-world RDF graph — any Solid client can write triples to it, and different servers declare the profile type differently. This shape does not try to validate the whole document; it declares only the fields the app needs to read and lets everything else pass through. `EXTRA a` is what enables that: without it, the shape would reject profiles whose `rdf:type` URI differs from what the shape expects, which breaks across server implementations.
 
+=======
+A WebID profile document is an open-world RDF graph — any Solid client can write triples to it, and different servers declare the profile type differently. This shape does not try to validate the whole document; it declares only the fields the app needs to read and lets everything else pass through. `EXTRA a` is what enables that: without it, the shape would reject profiles whose `rdf:type` URI differs from what the shape expects, which breaks across server implementations.
+
+>>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
 To read additional profile fields in a fork (e.g. `foaf:workplaceHomepage`), add them here and run `npm run build:ldo` to regenerate the TypeScript types.
 
 | Field | Why the app needs it |
 |---|---|
+<<<<<<< HEAD
 | `vcard:fn` | Display name (preferred) |
 | `foaf:name` | Display name — shown in `ProfileSidebar` and editable in-app |
 | `foaf:img` | Avatar IRI — rendered as a profile photo and replaceable without leaving the app |
@@ -70,5 +76,12 @@ To read additional profile fields in a fork (e.g. `foaf:workplaceHomepage`), add
 | `solid:publicTypeIndex` | Public type index |
 | `solid:privateTypeIndex` | Private type index |
 | `dcat:catalog` | (Optional) Pointer to the user's catalog. Read by `resolveCatalogUri` to enable catalog portability across Solid apps |
+=======
+| `sp:storage` | The root URI of the user's Pod — used to construct the path for `catalog.ttl` and `my-solid-app/` |
+| `dcat:catalog` | (Optional) If present, points to the user's custom catalog from another app. Used by `resolveCatalogUri` to enable catalog portability across Solid applications |
+| `foaf:name` | Display name — shown in `ProfileSidebar` and editable in-app |
+| `foaf:img` | Avatar IRI — rendered as a profile photo and replaceable without leaving the app |
+| `foaf:knows` | Contact WebIDs — the social graph the app exposes through `ProfileSidebar` |
+>>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
 
 `EXTRA a` is set so the shape accepts any profile `rdf:type`. Different Solid servers use different type URIs for profile documents; the app only needs the storage location and optional catalog pointer.

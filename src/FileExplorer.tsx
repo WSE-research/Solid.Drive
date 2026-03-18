@@ -212,7 +212,20 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
         <p className="files-section-label">
           {isInAppFolder ? "Your Files" : "Pod Contents"}
         </p>
+<<<<<<< HEAD
         <div>
+=======
+        <div style={{ display: "flex", gap: 8 }}>
+          {storageRootUri && (
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 12, padding: "6px 12px" }}
+              onClick={() => setShowCatalog(true)}
+            >
+              File Catalog
+            </button>
+          )}
+>>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
           <button
             className="btn btn--ghost btn--small"
             onClick={handleReload}

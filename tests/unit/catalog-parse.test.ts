@@ -47,7 +47,6 @@ describe("parseCatalog", () => {
       publisher: "https://pod.example/profile/card#me",
       mediaType: "image/jpeg",
       byteSize: 4500000,
-      accessURL: binaryUri,
     });
   });
 
@@ -238,7 +237,6 @@ describe("parseCatalog", () => {
     expect(entries[0].mediaType).toBe("");
     expect(entries[0].conformsTo).toBe("");
     expect(entries[0].description).toBe("");
-    expect(entries[0].accessURL).toBe("");
   });
 });
 
