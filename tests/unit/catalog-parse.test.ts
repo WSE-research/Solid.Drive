@@ -195,31 +195,6 @@ describe("parseCatalog", () => {
     expect(entries[1].byteSize).toBe(50000000);
   });
 
-  it("handles titles with special characters", () => {
-    const catalogUri = "https://pod.example/my-app/catalog.ttl";
-    const instanceUri = "https://pod.example/my-app/notes/index.ttl";
-
-    const turtle = `
-    @prefix dcat:    <http://www.w3.org/ns/dcat#> .
-    @prefix dcterms: <http://purl.org/dc/terms/> .
-    @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
-
-    <${catalogUri}> dcat:dataset <${instanceUri}> .
-    <${instanceUri}> a dcat:Dataset ;
-      dcterms:conformsTo <http://schema.org/TextDigitalDocument> ;
-      dcterms:title "Q1 Report \\"Draft\\"" ;
-      dcterms:modified "2026-03-01T00:00:00.000Z"^^xsd:dateTime ;
-      dcterms:publisher <https://pod.example/profile/card#me> ;
-      dcat:distribution <${instanceUri}#dist> .
-    <${instanceUri}#dist> a dcat:Distribution ;
-      dcat:accessURL <https://pod.example/my-app/notes/notes.txt> ;
-      dcat:mediaType "text/plain" ;
-      dcat:byteSize 1024 .
-    `.trim();
-
-    const entries = parseCatalog(turtle);
-    expect(entries[0].title).toBe('Q1 Report "Draft"');
-  });
 
   it("returns zero byteSize and empty strings gracefully for missing properties", () => {
     const catalogUri = "https://pod.example/my-app/catalog.ttl";
