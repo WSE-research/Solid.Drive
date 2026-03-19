@@ -90,6 +90,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         await appendToCatalog(
           catalogUri,
           indexResource.uri,
+          binaryUri,
           classUri,
           pendingFile.type,
           pendingFile.size,
@@ -111,7 +112,6 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
 
-      onUploadSuccess?.();
       setTitle("");
       setDescription("");
       setPendingFile(undefined);
