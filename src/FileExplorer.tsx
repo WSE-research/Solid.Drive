@@ -224,6 +224,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
         <div>
 =======
         <div style={{ display: "flex", gap: 8 }}>
+<<<<<<< HEAD
           {storageRootUri && (
             <button
               className="btn btn-ghost"
@@ -234,6 +235,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             </button>
           )}
 >>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
+=======
+>>>>>>> 7d296de (fix: remove file catalog button)
           <button
             className="btn btn--ghost btn--small"
             onClick={handleReload}
