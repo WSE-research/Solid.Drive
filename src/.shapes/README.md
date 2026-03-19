@@ -8,12 +8,13 @@ LDO reads these files and generates TypeScript interfaces, validators, and shape
 
 ### `catalogEntry.shex`
 
-Defines the structure of an ABox instance — the metadata document (`index.ttl`) written inside each uploaded file's container.
+Defines the structure of the metadata document (`index.ttl`) written inside each uploaded file's container.
 
-**Required fields** — the upload is rejected if either is missing:
+**Required fields**: the upload is rejected if any is missing:
 
 | Field | Type | Reason required |
 |---|---|---|
+| `rdf:type` | schema.org class IRI | Every file must be classified for discoverability by external apps |
 | `schema:uploadDate` | `xsd:dateTime` | Every file must have a creation timestamp so the catalog can be sorted and audited |
 | `schema:publisher` | IRI (WebID) | Every file must be traceable to the Pod owner who uploaded it |
 
@@ -21,13 +22,14 @@ Defines the structure of an ABox instance — the metadata document (`index.ttl`
 
 | Value | Meaning |
 |---|---|
-| `schema:DigitalDocument` | Base class — used when the MIME type does not match any more specific class |
-| `app:ImageFile` | MIME type starts with `image/` |
-| `app:VideoFile` | MIME type starts with `video/` |
-| `app:AudioFile` | MIME type starts with `audio/` |
-| `app:TextDocument` | MIME type is `text/*`, `application/pdf`, or `application/msword` |
+| `schema:DigitalDocument` | Base class — used when no more specific class matches |
+| `schema:ImageObject` | MIME type starts with `image/` |
+| `schema:VideoObject` | MIME type starts with `video/` |
+| `schema:AudioObject` | MIME type starts with `audio/` |
+| `schema:TextDigitalDocument` | `text/*`, `application/pdf`, Word documents |
+| `schema:SpreadsheetDigitalDocument` | Excel, CSV |
 
-These classes are defined in `tbox.ttl` on the Pod (written by `ensureTBox` in `catalog.ts`).
+These are standard schema.org classes, no custom vocabulary file is needed on the Pod.
 
 **Optional fields:**
 
@@ -50,6 +52,7 @@ Defines the minimum fields the app reads from a user's WebID profile document.
 
 | Field | Purpose |
 |---|---|
-| `sp:storage` | The root URI of the user's Pod — used to construct the path for `tbox.ttl`, `catalog.ttl`, and `my-solid-app/` |
+| `sp:storage` | The root URI of the user's Pod — used to construct the path for `catalog.ttl` and `my-solid-app/` |
+| `dcat:catalog` | (Optional) If present, points to the user's custom catalog from another app. Used by `resolveCatalogUri` to enable catalog portability across Solid applications |
 
-`EXTRA a` is set so the shape accepts any profile `rdf:type`, not just a specific one. This is necessary because different Solid servers use different type URIs for profile documents, and the app only cares about the storage location, not the profile type.
+`EXTRA a` is set so the shape accepts any profile `rdf:type`, not just a specific one. This is necessary because different Solid servers use different type URIs for profile documents, and the app only cares about the storage location and optional catalog pointer, not the profile type.
