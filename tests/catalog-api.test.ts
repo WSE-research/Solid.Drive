@@ -1,13 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-  resolveClass,
-  ensureTBox,
-  appendToCatalog,
-  removeFromCatalog,
-  linkCatalogToProfile,
-} from "../src/podCatalog";
+import { resolveClass, appendToCatalog, removeFromCatalog, linkCatalogToProfile, } from "../src/podCatalog";
 
-// Test helpers
 type FetchCall = {
   url: string;
   method: string;
@@ -15,7 +8,6 @@ type FetchCall = {
   contentType?: string;
 };
 
-// Builds a mock fetch function that records every request.
 function capturingMock(
   responses: Array<{ status: number; ok?: boolean; statusText?: string }>
 ) {
@@ -30,46 +22,55 @@ function capturingMock(
       body: typeof init?.body === "string" ? init.body : undefined,
       contentType: headers?.["Content-Type"],
     });
-    const res = responses[callIndex++] ?? { status: 200, ok: true };
+    const response = responses[callIndex++] ?? { status: 200, ok: true };
     return {
-      ok: res.ok ?? res.status < 400,
-      status: res.status,
-      statusText: res.statusText ?? (res.status < 400 ? "OK" : "Error"),
+      ok: response.ok ?? response.status < 400,
+      status: response.status,
+      statusText: response.statusText ?? (response.status < 400 ? "OK" : "Error"),
     } as Response;
   });
 
   return { fetch, calls };
 }
 
-// Verifies that MIME types are mapped to the expected semantic file classes.
 describe("resolveClass", () => {
-  it("maps image MIME types to ImageFile", () => {
-    expect(resolveClass("image/jpeg")).toBe("https://w3id.org/solid-drive#ImageFile");
-    expect(resolveClass("image/png")).toBe("https://w3id.org/solid-drive#ImageFile");
-    expect(resolveClass("image/gif")).toBe("https://w3id.org/solid-drive#ImageFile");
+  it("maps image MIME types to schema:ImageObject", () => {
+    expect(resolveClass("image/jpeg")).toBe("http://schema.org/ImageObject");
+    expect(resolveClass("image/png")).toBe("http://schema.org/ImageObject");
+    expect(resolveClass("image/gif")).toBe("http://schema.org/ImageObject");
+    expect(resolveClass("image/webp")).toBe("http://schema.org/ImageObject");
   });
 
-  it("maps video MIME types to VideoFile", () => {
-    expect(resolveClass("video/mp4")).toBe("https://w3id.org/solid-drive#VideoFile");
-    expect(resolveClass("video/webm")).toBe("https://w3id.org/solid-drive#VideoFile");
+  it("maps video MIME types to schema:VideoObject", () => {
+    expect(resolveClass("video/mp4")).toBe("http://schema.org/VideoObject");
+    expect(resolveClass("video/webm")).toBe("http://schema.org/VideoObject");
+    expect(resolveClass("video/ogg")).toBe("http://schema.org/VideoObject");
   });
 
-  it("maps audio MIME types to AudioFile", () => {
-    expect(resolveClass("audio/mpeg")).toBe("https://w3id.org/solid-drive#AudioFile");
-    expect(resolveClass("audio/wav")).toBe("https://w3id.org/solid-drive#AudioFile");
+  it("maps audio MIME types to schema:AudioObject", () => {
+    expect(resolveClass("audio/mpeg")).toBe("http://schema.org/AudioObject");
+    expect(resolveClass("audio/wav")).toBe("http://schema.org/AudioObject");
+    expect(resolveClass("audio/ogg")).toBe("http://schema.org/AudioObject");
   });
 
-  it("maps text/* MIME types to TextDocument", () => {
-    expect(resolveClass("text/plain")).toBe("https://w3id.org/solid-drive#TextDocument");
-    expect(resolveClass("text/html")).toBe("https://w3id.org/solid-drive#TextDocument");
-    expect(resolveClass("text/csv")).toBe("https://w3id.org/solid-drive#TextDocument");
+  it("maps text/* MIME types to schema:TextDigitalDocument", () => {
+    expect(resolveClass("text/plain")).toBe("http://schema.org/TextDigitalDocument");
+    expect(resolveClass("text/html")).toBe("http://schema.org/TextDigitalDocument");
   });
 
-  it("maps office document MIME types to TextDocument", () => {
-    expect(resolveClass("application/pdf")).toBe("https://w3id.org/solid-drive#TextDocument");
-    expect(resolveClass("application/msword")).toBe("https://w3id.org/solid-drive#TextDocument");
+  it("maps PDF and Word document MIME types to schema:TextDigitalDocument", () => {
+    expect(resolveClass("application/pdf")).toBe("http://schema.org/TextDigitalDocument");
+    expect(resolveClass("application/msword")).toBe("http://schema.org/TextDigitalDocument");
     expect(resolveClass("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
-      .toBe("https://w3id.org/solid-drive#TextDocument");
+      .toBe("http://schema.org/TextDigitalDocument");
+    expect(resolveClass("application/rtf")).toBe("http://schema.org/TextDigitalDocument");
+  });
+
+  it("maps spreadsheet MIME types to schema:SpreadsheetDigitalDocument", () => {
+    expect(resolveClass("text/csv")).toBe("http://schema.org/SpreadsheetDigitalDocument");
+    expect(resolveClass("application/vnd.ms-excel")).toBe("http://schema.org/SpreadsheetDigitalDocument");
+    expect(resolveClass("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+      .toBe("http://schema.org/SpreadsheetDigitalDocument");
   });
 
   it("falls back to schema:DigitalDocument for unknown MIME types", () => {
@@ -79,102 +80,12 @@ describe("resolveClass", () => {
   });
 });
 
-/*
- * Verifies that the ontology file is created only when missing, and that the
- * generated Turtle contains the expected classes, properties, and constraints.
- */
 
-describe("ensureTBox", () => {
-  it("does not PUT when tbox.ttl already exists (HEAD 200)", async () => {
-    const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-
-    await ensureTBox("https://pod.example/", fetch);
-
-    expect(calls).toHaveLength(1);
-    expect(calls[0].method).toBe("HEAD");
-    expect(calls[0].url).toBe("https://pod.example/tbox.ttl");
-  });
-
-  it("PUTs tbox.ttl with Content-Type text/turtle when it does not exist", async () => {
-    const { fetch, calls } = capturingMock([
-      { status: 404, ok: false },
-      { status: 201, ok: true },
-    ]);
-
-    await ensureTBox("https://pod.example/", fetch);
-
-    expect(calls).toHaveLength(2);
-    expect(calls[1].method).toBe("PUT");
-    expect(calls[1].url).toBe("https://pod.example/tbox.ttl");
-    expect(calls[1].contentType).toBe("text/turtle");
-  });
-
-  it("PUT body contains rdfs:Class definitions for all file type subclasses", async () => {
-    const { fetch, calls } = capturingMock([
-      { status: 404, ok: false },
-      { status: 201, ok: true },
-    ]);
-
-    await ensureTBox("https://pod.example/", fetch);
-
-    const body = calls[1].body ?? "";
-    expect(body).toContain("rdfs:Class");
-    expect(body).toContain("rdfs:subClassOf");
-    expect(body).toContain("sd:ImageFile");
-    expect(body).toContain("sd:VideoFile");
-    expect(body).toContain("sd:AudioFile");
-    expect(body).toContain("sd:TextDocument");
-  });
-
-  it("PUT body declares properties with rdfs:domain and rdfs:range", async () => {
-    const { fetch, calls } = capturingMock([
-      { status: 404, ok: false },
-      { status: 201, ok: true },
-    ]);
-
-    await ensureTBox("https://pod.example/", fetch);
-
-    const body = calls[1].body ?? "";
-    expect(body).toContain("rdfs:domain");
-    expect(body).toContain("rdfs:range");
-    expect(body).toContain("schema:name");
-    expect(body).toContain("schema:uploadDate");
-    expect(body).toContain("schema:publisher");
-  });
-
-  it("PUT body includes owl:Restriction cardinality constraints on required properties", async () => {
-    const { fetch, calls } = capturingMock([
-      { status: 404, ok: false },
-      { status: 201, ok: true },
-    ]);
-
-    await ensureTBox("https://pod.example/", fetch);
-
-    const body = calls[1].body ?? "";
-    expect(body).toContain("owl:Restriction");
-    expect(body).toContain("owl:minCardinality");
-    expect(body).toContain("owl:onProperty");
-  });
-
-  it("throws when PUT fails", async () => {
-    const { fetch } = capturingMock([
-      { status: 404, ok: false },
-      { status: 500, ok: false, statusText: "Internal Server Error" },
-    ]);
-
-    await expect(ensureTBox("https://pod.example/", fetch)).rejects.toThrow(
-      "Failed to write tbox.ttl"
-    );
-  });
-});
-
-// Verifies catalog creation and dataset insertion logic for uploaded resources.
 describe("appendToCatalog", () => {
-  const storageRoot = "https://pod.example/";
   const catalogUri = "https://pod.example/catalog.ttl";
   const instanceUri = "https://pod.example/my-app/photo/index.ttl";
   const binaryUri = "https://pod.example/my-app/photo/photo.jpg";
-  const classUri = "https://w3id.org/solid-drive#ImageFile";
+  const classUri = "http://schema.org/ImageObject";
   const publisherWebId = "https://pod.example/profile/card#me";
   const modified = "2026-03-16T00:00:00.000Z";
 
@@ -185,12 +96,12 @@ describe("appendToCatalog", () => {
     }> = {}
   ) {
     const responses = overrides.responses ?? [
-      { status: 200, ok: true }, // HEAD
-      { status: 200, ok: true }, // PATCH
+      { status: 200, ok: true },
+      { status: 200, ok: true },
     ];
     const { fetch, calls } = capturingMock(responses);
     await appendToCatalog(
-      storageRoot,
+      catalogUri,
       instanceUri,
       binaryUri,
       classUri,
@@ -207,13 +118,13 @@ describe("appendToCatalog", () => {
 
   it("creates catalog.ttl via PUT when it does not exist, then PATCHes", async () => {
     const { fetch, calls } = capturingMock([
-      { status: 404, ok: false }, 
-      { status: 201, ok: true },  
-      { status: 200, ok: true },  
+      { status: 404, ok: false },
+      { status: 201, ok: true },
+      { status: 200, ok: true },
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      catalogUri, instanceUri, binaryUri, classUri,
       "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch
     );
 
@@ -231,7 +142,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      catalogUri, instanceUri, binaryUri, classUri,
       "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch
     );
 
@@ -256,8 +167,7 @@ describe("appendToCatalog", () => {
   it("SPARQL INSERT links dataset URI to catalog resource", async () => {
     const { calls } = await runAppend();
 
-    const sparql = calls[1].body ?? "";
-    expect(sparql).toContain(`dcat:dataset <${instanceUri}>`);
+    expect(calls[1].body).toContain(`dcat:dataset <${instanceUri}>`);
   });
 
   it("SPARQL INSERT types the entry as dcat:Dataset", async () => {
@@ -275,6 +185,21 @@ describe("appendToCatalog", () => {
     expect(sparql).toContain(`dcterms:conformsTo <${classUri}>`);
   });
 
+  it("dcterms:conformsTo references the schema.org class URI resolved from MIME type", async () => {
+    const { fetch, calls } = capturingMock([
+      { status: 200, ok: true },
+      { status: 200, ok: true },
+    ]);
+
+    await appendToCatalog(
+      catalogUri, instanceUri, binaryUri,
+      "http://schema.org/TextDigitalDocument",
+      "application/pdf", 512000, "Report", "", modified, publisherWebId, fetch
+    );
+
+    expect(calls[1].body).toContain("dcterms:conformsTo <http://schema.org/TextDigitalDocument>");
+  });
+
   it("SPARQL INSERT declares dcat:Distribution with accessURL and mediaType", async () => {
     const { calls } = await runAppend();
 
@@ -288,8 +213,7 @@ describe("appendToCatalog", () => {
   it("distribution is linked from the dataset via dcat:distribution", async () => {
     const { calls } = await runAppend();
 
-    const sparql = calls[1].body ?? "";
-    expect(sparql).toContain(`dcat:distribution <${instanceUri}#dist>`);
+    expect(calls[1].body).toContain(`dcat:distribution <${instanceUri}#dist>`);
   });
 
   it("includes dcterms:description when description is provided", async () => {
@@ -311,7 +235,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await expect(
-      appendToCatalog(storageRoot, instanceUri, binaryUri, classUri,
+      appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
         "image/jpeg", 100, "x", "", modified, publisherWebId, fetch)
     ).rejects.toThrow("Failed to create catalog.ttl");
   });
@@ -323,7 +247,7 @@ describe("appendToCatalog", () => {
     ]);
 
     await expect(
-      appendToCatalog(storageRoot, instanceUri, binaryUri, classUri,
+      appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
         "image/jpeg", 100, "x", "", modified, publisherWebId, fetch)
     ).rejects.toThrow("Failed to update catalog.ttl");
   });
@@ -335,12 +259,11 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      catalogUri, instanceUri, binaryUri, classUri,
       "image/jpeg", 100, 'Q1 "Draft"', "", modified, publisherWebId, fetch
     );
 
-    const sparql = calls[1].body ?? "";
-    expect(sparql).toContain('dcterms:title "Q1 \\"Draft\\""');
+    expect(calls[1].body).toContain('dcterms:title "Q1 \\"Draft\\""');
   });
 
   it("escapes backslashes in description so the SPARQL is not malformed", async () => {
@@ -350,12 +273,11 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      catalogUri, instanceUri, binaryUri, classUri,
       "image/jpeg", 100, "Photo", "Path: C:\\Users\\me", modified, publisherWebId, fetch
     );
 
-    const sparql = calls[1].body ?? "";
-    expect(sparql).toContain('dcterms:description "Path: C:\\\\Users\\\\me"');
+    expect(calls[1].body).toContain('dcterms:description "Path: C:\\\\Users\\\\me"');
   });
 
   it("escapes newlines in description so the SPARQL is not malformed", async () => {
@@ -365,24 +287,22 @@ describe("appendToCatalog", () => {
     ]);
 
     await appendToCatalog(
-      storageRoot, instanceUri, binaryUri, classUri,
+      catalogUri, instanceUri, binaryUri, classUri,
       "image/jpeg", 100, "Photo", "line one\nline two", modified, publisherWebId, fetch
     );
 
-    const sparql = calls[1].body ?? "";
-    expect(sparql).toContain('dcterms:description "line one\\nline two"');
+    expect(calls[1].body).toContain('dcterms:description "line one\\nline two"');
   });
 });
 
-// Verifies that the catalog rolls back cleanly (no orphaned resource)
 describe("removeFromCatalog", () => {
-  const storageRoot = "https://pod.example/";
+  const catalogUri = "https://pod.example/catalog.ttl";
   const instanceUri = "https://pod.example/my-app/photo/index.ttl";
 
   it("does nothing when catalog.ttl does not exist", async () => {
     const { fetch, calls } = capturingMock([{ status: 404, ok: false }]);
 
-    await removeFromCatalog(storageRoot, instanceUri, fetch);
+    await removeFromCatalog(catalogUri, instanceUri, fetch);
 
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe("HEAD");
@@ -390,11 +310,11 @@ describe("removeFromCatalog", () => {
 
   it("sends PATCH with DELETE WHERE when catalog exists", async () => {
     const { fetch, calls } = capturingMock([
-      { status: 200, ok: true }, 
-      { status: 200, ok: true }, 
+      { status: 200, ok: true },
+      { status: 200, ok: true },
     ]);
 
-    await removeFromCatalog(storageRoot, instanceUri, fetch);
+    await removeFromCatalog(catalogUri, instanceUri, fetch);
 
     expect(calls[1].method).toBe("PATCH");
     expect(calls[1].url).toBe("https://pod.example/catalog.ttl");
@@ -407,7 +327,7 @@ describe("removeFromCatalog", () => {
       { status: 200, ok: true },
     ]);
 
-    await removeFromCatalog(storageRoot, instanceUri, fetch);
+    await removeFromCatalog(catalogUri, instanceUri, fetch);
 
     const sparql = calls[1].body ?? "";
     expect(sparql).toContain("DELETE WHERE");
@@ -421,21 +341,21 @@ describe("removeFromCatalog", () => {
       { status: 500, ok: false, statusText: "Internal Server Error" },
     ]);
 
-    await expect(removeFromCatalog(storageRoot, instanceUri, fetch)).rejects.toThrow(
+    await expect(removeFromCatalog(catalogUri, instanceUri, fetch)).rejects.toThrow(
       "Failed to remove entry from catalog.ttl"
     );
   });
 });
 
-// Verifies that the catalog is linked from user's WebID profile for external discoverability
+
 describe("linkCatalogToProfile", () => {
-  const storageRoot = "https://pod.example/";
+  const catalogUri = "https://pod.example/catalog.ttl";
   const webId = "https://pod.example/profile/card#me";
 
   it("PATCHes the profile document (fragment stripped from WebID)", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
-    await linkCatalogToProfile(storageRoot, webId, fetch);
+    await linkCatalogToProfile(catalogUri, webId, fetch);
 
     expect(calls[0].method).toBe("PATCH");
     expect(calls[0].url).toBe("https://pod.example/profile/card");
@@ -444,7 +364,7 @@ describe("linkCatalogToProfile", () => {
   it("PATCH uses application/sparql-update content type", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
-    await linkCatalogToProfile(storageRoot, webId, fetch);
+    await linkCatalogToProfile(catalogUri, webId, fetch);
 
     expect(calls[0].contentType).toBe("application/sparql-update");
   });
@@ -452,7 +372,7 @@ describe("linkCatalogToProfile", () => {
   it("INSERT body contains dcat:catalog pointing to catalog.ttl", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
-    await linkCatalogToProfile(storageRoot, webId, fetch);
+    await linkCatalogToProfile(catalogUri, webId, fetch);
 
     const sparql = calls[0].body ?? "";
     expect(sparql).toContain("dcat:catalog");
@@ -462,7 +382,7 @@ describe("linkCatalogToProfile", () => {
   it("INSERT uses INSERT DATA (not DELETE)", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
-    await linkCatalogToProfile(storageRoot, webId, fetch);
+    await linkCatalogToProfile(catalogUri, webId, fetch);
 
     expect(calls[0].body).toContain("INSERT DATA");
     expect(calls[0].body).not.toContain("DELETE");
@@ -471,7 +391,7 @@ describe("linkCatalogToProfile", () => {
   it("throws when PATCH fails", async () => {
     const { fetch } = capturingMock([{ status: 403, ok: false, statusText: "Forbidden" }]);
 
-    await expect(linkCatalogToProfile(storageRoot, webId, fetch)).rejects.toThrow(
+    await expect(linkCatalogToProfile(catalogUri, webId, fetch)).rejects.toThrow(
       "Failed to link catalog to profile"
     );
   });

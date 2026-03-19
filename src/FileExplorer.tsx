@@ -1,20 +1,20 @@
 import { useEffect, useState, Fragment, useCallback, useRef } from "react";
 import type { FunctionComponent } from "react";
 import { FileUpload } from "./FileUpload";
-import { FileCard } from "./FileCard";
 import { FolderEntry } from "./FolderEntry";
+import { FileCard } from "./FileCard";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "./pod";
+import { resolveCatalogUri } from "./useCatalogUri";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
-import { DataCatalog } from "./DataCatalog";
 
 type DriveEntry = SolidContainer | SolidLeaf;
 type Breadcrumb = { label: string; uri: SolidContainerUri };
 
 const APP_CONTAINER_PATH = "my-solid-app/";
 
-const SYSTEM_FILES = new Set(["tbox.ttl", "catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
+const SYSTEM_FILES = new Set(["catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
 
 export const FileExplorer: FunctionComponent = () => {
   const { session, fetch: solidFetch } = useSolidAuth();
@@ -27,7 +27,6 @@ export const FileExplorer: FunctionComponent = () => {
   const [currentUri, setCurrentUri] = useState<SolidContainerUri>();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [isReloading, setIsReloading] = useState(false);
-  const [showCatalog, setShowCatalog] = useState(false);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -47,7 +46,8 @@ export const FileExplorer: FunctionComponent = () => {
     if ("createIfAbsent" in appContainer) {
       (appContainer as SolidContainer).createIfAbsent();
     }
-  }, [profile, getResource]);
+
+  }, [profile, getResource, solidFetch]);
 
   const currentContainer = useResource(currentUri);
   const appContainer = useResource(appContainerUri);
@@ -91,6 +91,8 @@ export const FileExplorer: FunctionComponent = () => {
     );
   }
 
+  const catalogUri = resolveCatalogUri(profile, storageRootUri);
+
   const isInAppFolder = currentUri === appContainerUri;
   const entries: DriveEntry[] = isSolidContainer(currentContainer)
     ? currentContainer.children()
@@ -104,8 +106,8 @@ export const FileExplorer: FunctionComponent = () => {
 
   return (
     <main>
-      {isSolidContainer(appContainer) && storageRootUri && (
-        <FileUpload mainContainer={appContainer} storageRoot={storageRootUri} />
+      {isSolidContainer(appContainer) && catalogUri && (
+        <FileUpload mainContainer={appContainer} catalogUri={catalogUri} profileHasCatalog={!!profile?.catalog?.["@id"]} />
       )}
 
       {breadcrumbs.length > 1 && (
@@ -165,7 +167,7 @@ export const FileExplorer: FunctionComponent = () => {
           {isInAppFolder
             ? folderEntries.map((entry) => (
                 <Fragment key={entry.uri}>
-                  <FileCard containerUri={entry.uri} storageRoot={storageRootUri} />
+                  <FileCard containerUri={entry.uri} catalogUri={catalogUri ?? ""} />
                 </Fragment>
               ))
             : folderEntries.map((entry) => (
@@ -197,9 +199,6 @@ export const FileExplorer: FunctionComponent = () => {
             );
           })}
         </>
-      )}
-      {showCatalog && storageRootUri && (
-        <DataCatalog storageRoot={storageRootUri} onClose={() => setShowCatalog(false)} />
       )}
     </main>
   );

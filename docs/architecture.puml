@@ -51,33 +51,23 @@ package "Browser" {
     +navigate(uri: string)
   }
 
-  class DataCatalog <<component>>
-  class TBoxView <<component>>
-  class ABoxView <<component>>
-
   App -- Header
   App -- FileExplorer
   FileExplorer -- FileUpload
   FileExplorer -- FileCard
   FileExplorer -- FolderEntry
-  FileExplorer -- DataCatalog
-  DataCatalog -- TBoxView
-  DataCatalog -- ABoxView
 }
 
 package "Solid Pod (user-owned)" {
 
-  class TBoxTTL <<tbox.ttl>> {
-    app:ImageFile
-    app:VideoFile
-    app:AudioFile
-    app:TextDocument
-    rdfs:subClassOf schema:DigitalDocument
-  }
-
   class CatalogTTL <<catalog.ttl>> {
     instanceUri a dcat:Dataset
-    dcterms:conformsTo classUri
+    dcterms:conformsTo schema:ImageObject
+    dcterms:conformsTo schema:VideoObject
+    dcterms:conformsTo schema:AudioObject
+    dcterms:conformsTo schema:TextDigitalDocument
+    dcterms:conformsTo schema:SpreadsheetDigitalDocument
+    dcterms:conformsTo schema:DigitalDocument
   }
 
   class AppContainer <<my-solid-app/>>
@@ -85,7 +75,7 @@ package "Solid Pod (user-owned)" {
   class FileContainer <<file-slug/>>
 
   class IndexTTL <<index.ttl>> {
-    rdf:type
+    rdf:type (schema.org class)
     schema:name
     schema:encodingFormat
     schema:contentSize
@@ -95,17 +85,25 @@ package "Solid Pod (user-owned)" {
 
   class BinaryFile <<file.ext>>
 
+  class WebIDProfile <<profile/card>> {
+    vcard:fn
+    foaf:name
+    dcat:catalog (optional)
+  }
+
   AppContainer -- "1..*" FileContainer
   FileContainer -- IndexTTL
   FileContainer -- BinaryFile
+  WebIDProfile -- CatalogTTL : dcat:catalog (optional pointer)
 }
 
-FileUpload .. TBoxTTL    : ensures
-FileUpload .. CatalogTTL : appends
+FileUpload .. CatalogTTL   : appends
 FileUpload .. AppContainer : uploads to
+FileUpload .. WebIDProfile : links catalog (first upload only)
 FileCard .. FileContainer  : reads
-FileCard .. CatalogTTL    : removes on delete
-DataCatalog .. CatalogTTL : reads
+FileCard .. CatalogTTL     : removes on delete
+FileCard .. WebIDProfile   : resolves publisher name
 FileExplorer .. AppContainer : browses
+FileExplorer .. WebIDProfile : resolves catalog URI (profile-first)
 
 @enduml
