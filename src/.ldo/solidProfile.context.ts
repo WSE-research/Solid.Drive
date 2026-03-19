@@ -42,6 +42,10 @@ export const solidProfileContext: LdoJsonldContext = {
         "@id": "http://www.w3.org/ns/solid/terms#privateTypeIndex",
         "@type": "@id",
       },
+      catalog: {
+        "@id": "http://www.w3.org/ns/dcat#catalog",
+        "@type": "@id",
+      },
     },
   },
   Person2: {
@@ -76,6 +80,10 @@ export const solidProfileContext: LdoJsonldContext = {
         "@id": "http://www.w3.org/ns/solid/terms#privateTypeIndex",
         "@type": "@id",
       },
+      catalog: {
+        "@id": "http://www.w3.org/ns/dcat#catalog",
+        "@type": "@id",
+      },
     },
   },
   fn: {
@@ -101,6 +109,10 @@ export const solidProfileContext: LdoJsonldContext = {
   },
   privateTypeIndex: {
     "@id": "http://www.w3.org/ns/solid/terms#privateTypeIndex",
+    "@type": "@id",
+  },
+  catalog: {
+    "@id": "http://www.w3.org/ns/dcat#catalog",
     "@type": "@id",
   },
 };

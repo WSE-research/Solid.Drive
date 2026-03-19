@@ -5,6 +5,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX ldp: <http://www.w3.org/ns/ldp#>
 PREFIX sp: <http://www.w3.org/ns/pim/space#>
 PREFIX solid: <http://www.w3.org/ns/solid/terms#>
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
 
 <SolidProfileShape> EXTRA a {
   a [ schema:Person foaf:Person ] ;
@@ -14,4 +15,5 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   sp:storage IRI * ;
   solid:publicTypeIndex IRI ? ;
   solid:privateTypeIndex IRI ? ;
+  dcat:catalog IRI ? ;
 }

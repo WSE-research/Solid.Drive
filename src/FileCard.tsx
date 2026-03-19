@@ -3,24 +3,35 @@ import type { FunctionComponent } from "react";
 import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
+import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
-import { FILE_TYPE_DEFS, removeFromCatalog } from "./catalog";
+import { removeFromCatalog } from "./podCatalog";
 
-const FILE_TYPES = Object.fromEntries(FILE_TYPE_DEFS.map((contentType) => [contentType.id, { label: contentType.label, description: contentType.description }]));
+const FILE_TYPES: Record<string, { label: string; description: string }> = {
+  DigitalDocument: { label: "File", description: "Any general file" },
+  ImageObject: { label: "Photo/Image", description: "Pictures/graphics" },
+  VideoObject: { label: "Video", description: "Videos/movie clips" },
+  AudioObject: { label: "Audio", description: "Music, podcasts, recordings" },
+  TextDigitalDocument: { label: "Document", description: "PDFs, text, Word files" },
+  SpreadsheetDigitalDocument: { label: "Spreadsheet", description: "Excel, CSV, etc." },
+};
 
 type FileCardProps = {
   containerUri: string;
-  storageRoot: string;
+  catalogUri: string;
 };
 
-export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, storageRoot }) => {
+export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri }) => {
   const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
 
   const metadataResource = useResource(metadataUri);
   const containerResource = useResource(containerUri);
   const fileMeta = useSubject(CatalogEntryShShapeType, metadataUri);
+  const publisherWebId = fileMeta?.publisher?.["@id"];
+  const publisherProfile = useSubject(SolidProfileShapeType, publisherWebId);
+  const publisherName = publisherProfile?.fn ?? publisherProfile?.name ?? publisherWebId;
   const { getResource } = useLdo();
   const { fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
@@ -55,12 +66,12 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
   /** Asks the user to confirm, then deletes the entire file container from the pod. */
   const handleDelete = useCallback(async () => {
     if (!confirm(translate("fileCard.deleteConfirm"))) return;
-    await removeFromCatalog(storageRoot, metadataUri, solidFetch).catch(() => {});
+    await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
     const container = getResource(containerUri);
     if (isDeletable(container)) {
       await container.delete();
     }
-  }, [containerUri, metadataUri, storageRoot, solidFetch, getResource, translate]);
+  }, [containerUri, metadataUri, catalogUri, solidFetch, getResource, translate]);
 
   if (isReadable(metadataResource) && metadataResource.isReading()) {
     return (
@@ -71,7 +82,27 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
     );
   }
 
-  if (!fileMeta) return null;
+  if (!fileMeta) {
+    const folderName = decodeURIComponent(containerUri.replace(/\/$/, "").split("/").pop() ?? containerUri);
+    return (
+      <div className="file-card">
+        <p className="file-card__name">{folderName}</p>
+        {binaryUri && (
+          <div className="file-card__meta">
+            <span className="file-card__date" style={{ color: "var(--text-muted)", fontSize: 12 }}>No metadata</span>
+            <a
+              className="btn btn-ghost"
+              href={binaryUri}
+              download={binaryUri.split("/").pop()}
+              style={{ fontSize: 12, padding: "6px 12px" }}
+            >
+              Download
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const uploadedAt = fileMeta.uploadDate
     ? new Date(fileMeta.uploadDate).toLocaleDateString("en-US", {
@@ -91,10 +122,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
     const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find((rawTypeId: string) => rawTypeId in FILE_TYPES);
     if (fromType) return fromType;
     const mimeType = fileMeta.encodingFormat ?? "";
-    if (mimeType.startsWith("image/")) return "ImageFile";
-    if (mimeType.startsWith("video/")) return "VideoFile";
-    if (mimeType.startsWith("audio/")) return "AudioFile";
-    if (mimeType.startsWith("text/") || mimeType === "application/pdf") return "TextDocument";
+    if (mimeType.startsWith("image/")) return "ImageObject";
+    if (mimeType.startsWith("video/")) return "VideoObject";
+    if (mimeType.startsWith("audio/")) return "AudioObject";
+    if (mimeType.startsWith("text/") || mimeType === "application/pdf" || mimeType === "application/msword" || mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "TextDigitalDocument";
+    if (mimeType === "application/vnd.ms-excel" || mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || mimeType === "text/csv") return "SpreadsheetDigitalDocument";
     return "DigitalDocument";
   })();
   const fileType = FILE_TYPES[typeId] ?? { label: typeId, description: "" };
@@ -156,8 +188,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
           <div className="file-card__schema-row">
             <span className="file-card__schema-label">File type</span>
             <span className="file-card__schema-value">
-              <span className="file-card__tbox-badge">{fileType.label}</span>
-              {fileType.description && <span className="file-card__tbox-note">{fileType.description}</span>}
+              <span className="file-card__type-badge">{fileType.label}</span>
+              {fileType.description && <span className="file-card__type-note">{fileType.description}</span>}
             </span>
           </div>
 
@@ -197,10 +229,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, stora
               <span className="file-card__schema-value">{dateModified}</span>
             </div>
           )}
-          {fileMeta.publisher?.["@id"] && (
+          {publisherWebId && (
             <div className="file-card__schema-row">
               <span className="file-card__schema-label">Uploaded by</span>
-              <span className="file-card__schema-value file-card__schema-value--uri">{fileMeta.publisher["@id"]}</span>
+              <span className="file-card__schema-value">{publisherName}</span>
             </div>
           )}
           {fileMeta.isPartOf?.["@id"] && (

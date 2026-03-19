@@ -1,14 +1,14 @@
 import { useEffect, useState, Fragment, useCallback, useRef } from "react";
 import type { FunctionComponent } from "react";
 import { FileUpload } from "./FileUpload";
-import { FileCard } from "./FileCard";
 import { FolderEntry } from "./FolderEntry";
+import { FileCard } from "./FileCard";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isLoadable, isReloadable } from "./pod";
+import { resolveCatalogUri } from "./useCatalogUri";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
-import { DataCatalog } from "./DataCatalog";
 
 type DriveEntry = SolidContainer | SolidLeaf;
 type Breadcrumb = { label: string; uri: SolidContainerUri };
@@ -19,7 +19,7 @@ interface FileExplorerProps {
 
 const APP_CONTAINER_PATH = "my-solid-app/";
 const DEFAULT_STORAGE_RETRY_DELAY_MS = 10_000;
-const SYSTEM_FILES = new Set(["tbox.ttl", "catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
+const SYSTEM_FILES = new Set(["catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
 
 export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   storageRetryDelayMs = DEFAULT_STORAGE_RETRY_DELAY_MS,
@@ -37,7 +37,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [isReloading, setIsReloading] = useState(false);
   const [noStorageDetected, setNoStorageDetected] = useState(false);
-  const [showCatalog, setShowCatalog] = useState(false);
 
   /**
    * Sets up the user's storage root, app folder, and initial navigation state on first load.
@@ -144,6 +143,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
+  const catalogUri = resolveCatalogUri(profile, storageRootUri);
+
   // True when browsing the app's own folder; false when at the pod root or a generic subfolder.
   const isInAppFolder = currentUri === appContainerUri;
   const entries: DriveEntry[] = isSolidContainer(currentContainer)
@@ -160,8 +161,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   return (
     <main>
-      {isSolidContainer(appContainer) && storageRootUri && (
-        <FileUpload mainContainer={appContainer} storageRoot={storageRootUri} />
+      {isSolidContainer(appContainer) && catalogUri && (
+        <FileUpload mainContainer={appContainer} catalogUri={catalogUri} profileHasCatalog={!!profile?.catalog?.["@id"]} />
       )}
 
       {breadcrumbs.length > 1 && (
@@ -218,7 +219,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
           {isInAppFolder
             ? folderEntries.map((entry) => (
                 <Fragment key={entry.uri}>
-                  <FileCard containerUri={entry.uri} storageRoot={storageRootUri} />
+                  <FileCard containerUri={entry.uri} catalogUri={catalogUri ?? ""} />
                 </Fragment>
               ))
             : folderEntries.map((entry) => (
@@ -249,9 +250,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             );
           })}
         </>
-      )}
-      {showCatalog && storageRootUri && (
-        <DataCatalog storageRoot={storageRootUri} onClose={() => setShowCatalog(false)} />
       )}
     </main>
   );
