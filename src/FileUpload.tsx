@@ -3,16 +3,17 @@ import type { FunctionComponent } from "react";
 import { useLdo, useSolidAuth } from "@ldo/solid-react";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { isSolidLeaf } from "./pod";
-import { ensureTBox, resolveClass, appendToCatalog, linkCatalogToProfile } from "./catalog";
+import { resolveClass, appendToCatalog, linkCatalogToProfile } from "./podCatalog";
 import type { ContainerCreationResult } from "./pod";
 import type { SolidContainer, SolidContainerUri } from "@ldo/connected-solid";
 
 type FileUploadProps = {
   mainContainer: SolidContainer;
-  storageRoot: string;
+  catalogUri: string;
+  profileHasCatalog: boolean;
 };
 
-export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, storageRoot }) => {
+export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog }) => {
   const { session, fetch: solidFetch } = useSolidAuth();
   const { createData, commitData } = useLdo();
   const [title, setTitle] = useState("");
@@ -29,8 +30,6 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     let containerSlug: string | undefined;
 
     try {
-      await ensureTBox(storageRoot, solidFetch);
-
       const classUri = resolveClass(pendingFile.type);
 
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
@@ -59,7 +58,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
       const typeLocalName = (classUri.split(/[#/]/).pop() ?? "DigitalDocument") as
-        "DigitalDocument" | "ImageFile" | "VideoFile" | "AudioFile" | "TextDocument";
+        "DigitalDocument" | "ImageObject" | "VideoObject" | "AudioObject" | "TextDigitalDocument" | "SpreadsheetDigitalDocument";
       metadata.type.add({ "@id": typeLocalName });
       metadata.name = title.trim() || pendingFile.name;
       metadata.encodingFormat = pendingFile.type || undefined;
@@ -79,7 +78,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       try {
         await appendToCatalog(
-          storageRoot,
+          catalogUri,
           indexResource.uri,
           binaryUri,
           classUri,
@@ -99,7 +98,9 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         return;
       }
 
-      await linkCatalogToProfile(storageRoot, session.webId!, solidFetch).catch(() => {});
+      if (!profileHasCatalog) {
+        await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
+      }
 
       setTitle("");
       setDescription("");
@@ -110,7 +111,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     } finally {
       setIsUploading(false);
     }
-  }, [mainContainer, storageRoot, session, solidFetch, pendingFile, title, description, createData, commitData]);
+  }, [mainContainer, catalogUri, profileHasCatalog, session, solidFetch, pendingFile, title, description, createData, commitData]);
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>

@@ -175,14 +175,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
 }
 .catalog-section__count { font-size: 11px; color: var(--text-muted); font-weight: 400; letter-spacing: 0; text-transform: none; }
 
-.catalog-tbox { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-.catalog-tbox__row {
+.catalog-schema { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.catalog-schema__row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border);
 }
-.catalog-tbox__row:last-child { border-bottom: none; }
-.catalog-tbox__label { font-weight: 500; color: var(--text-primary); font-family: monospace; }
-.catalog-tbox__note { font-size: 12px; color: var(--text-muted); }
+.catalog-schema__row:last-child { border-bottom: none; }
+.catalog-schema__label { font-weight: 500; color: var(--text-primary); font-family: monospace; }
+.catalog-schema__note { font-size: 12px; color: var(--text-muted); }
 
 .catalog-entry {
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -203,5 +203,5 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0; }
 .file-card__schema-label { font-weight: 500; color: var(--text-muted); min-width: 80px; flex-shrink: 0; }
 .file-card__schema-value { color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .file-card__schema-value--uri { font-family: monospace; font-size: 11px; word-break: break-all; color: var(--text-muted); }
-.file-card__tbox-badge { font-family: monospace; font-size: 11px; font-weight: 500; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 4px; padding: 1px 6px; }
-.file-card__tbox-note { font-size: 11px; color: var(--text-muted); }
+.file-card__type-badge { font-family: monospace; font-size: 11px; font-weight: 500; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 4px; padding: 1px 6px; }
+.file-card__type-note { font-size: 11px; color: var(--text-muted); }

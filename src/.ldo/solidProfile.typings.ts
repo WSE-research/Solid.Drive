@@ -34,4 +34,7 @@ export interface SolidProfile {
   privateTypeIndex?: {
     "@id": string;
   };
+  catalog?: {
+    "@id": string;
+  };
 }
