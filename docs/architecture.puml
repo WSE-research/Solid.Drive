@@ -1,0 +1,99 @@
+@startuml solid.drive Architecture
+!theme plain
+skinparam defaultFontName sans-serif
+skinparam defaultFontSize 13
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+skinparam class {
+  BackgroundColor White
+  BorderColor #555555
+  FontColor #111111
+  HeaderBackgroundColor #EEEEEE
+}
+
+skinparam package {
+  BackgroundColor #F8F8F8
+  BorderColor #AAAAAA
+  FontColor #333333
+  FontStyle Bold
+}
+
+skinparam note {
+  BackgroundColor #FFFFF0
+  BorderColor #AAAAAA
+}
+
+package "Browser" {
+
+  class App <<component>> {
+  }
+
+  class Header <<component>> {
+    +login(issuer: string)
+    +logout()
+  }
+
+  class FileExplorer <<component>> {
+    +navigate(uri: string)
+    +breadcrumbClick(index: int, uri: string)
+    +reload()
+  }
+
+  class FileUpload <<component>> {
+    +submit(file: File, title: string, description: string)
+  }
+
+  class FileCard <<component>> {
+    +delete()
+  }
+
+  class FolderEntry <<component>> {
+    +navigate(uri: string)
+  }
+
+  App --> Header
+  App --> FileExplorer
+  FileExplorer --> FileUpload
+  FileExplorer --> FileCard
+  FileExplorer --> FolderEntry
+}
+
+package "Solid Pod (user-owned)" {
+
+  class PodStorage <<container>> {
+    +uri: string
+  }
+
+  class AppContainer <<container>> {
+    +path: my-solid-app/
+  }
+
+  class FileContainer <<container>> {
+    +path: slug/
+  }
+
+  class IndexTTL <<resource>> {
+    +name: string
+    +description: string
+    +encodingFormat: string
+    +contentSize: string
+    +uploadDate: date
+    +publisher: IRI
+  }
+
+  class BinaryFile <<resource>> {
+    +path: original-file.ext
+  }
+
+  PodStorage --> AppContainer
+  AppContainer --> "1..*" FileContainer
+  FileContainer --> IndexTTL
+  FileContainer --> BinaryFile
+}
+
+FileExplorer ..> PodStorage : browses
+FileUpload ..> AppContainer : uploads to
+FileCard ..> FileContainer : reads
+
+@enduml
