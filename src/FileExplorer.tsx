@@ -35,6 +35,10 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [isReloading, setIsReloading] = useState(false);
   const [noStorageDetected, setNoStorageDetected] = useState(false);
 
+  /**
+   * Sets up the user's storage root, app folder, and initial navigation state on first load.
+   * Runs again if the WebID profile is reloaded and the storage location changes.
+   */
   useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
@@ -63,6 +67,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     }
   }, [profile, webIdResource, getResource, translate]);
 
+  /** Reloads the WebID profile to check again for a valid storage location. */
   const handleRetryStorage = useCallback(async () => {
     if (!isReloadable(webIdResource)) return;
     setNoStorageDetected(false);
@@ -70,6 +75,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     await webIdResource.reload();
   }, [webIdResource]);
 
+  /** Automatically retries loading storage after a delay when no pod storage is detected. */
   useEffect(() => {
     if (!noStorageDetected) return;
     const timer = setTimeout(handleRetryStorage, storageRetryDelayMs);
@@ -79,17 +85,20 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const currentContainer = useResource(currentUri);
   const appContainer = useResource(appContainerUri);
 
+  /** Navigates into a subfolder and appends it to the breadcrumb trail. */
   const handleNavigate = useCallback((uri: string) => {
     const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
     setBreadcrumbs((prev) => [...prev, { label, uri: uri as SolidContainerUri }]);
     setCurrentUri(uri as SolidContainerUri);
   }, []);
 
+  /** Navigates back to a breadcrumb at the given index and trims the trail to that point. */
   const handleBreadcrumbClick = useCallback((index: number, uri: SolidContainerUri) => {
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
     setCurrentUri(uri);
   }, []);
 
+  /** Reloads the current folder from the pod to reflect the latest contents. */
   const handleReload = useCallback(async () => {
     if (!currentContainer || !isReloadable(currentContainer)) return;
     setIsReloading(true);
@@ -130,10 +139,13 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
+  // True when browsing the app's own folder; false when at the pod root or a generic subfolder.
   const isInAppFolder = currentUri === appContainerUri;
   const entries: DriveEntry[] = isSolidContainer(currentContainer)
     ? currentContainer.children()
     : [];
+
+  // Split entries into folders and files so they can be rendered differently.
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
   const leafEntries = entries.filter((error) => !isSolidContainer(error)) as SolidLeaf[];
 

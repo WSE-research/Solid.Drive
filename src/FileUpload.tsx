@@ -21,6 +21,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Handles form submission: 
+   * creates a named container on the pod, uploads the binary file,
+   * then writes an index.ttl metadata resource with the title, description, and file info.
+   */
   const handleSubmit = useCallback(async (error: React.SyntheticEvent<HTMLFormElement>) => {
     error.preventDefault();
     if (!session.webId || !pendingFile) return;

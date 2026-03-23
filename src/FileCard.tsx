@@ -19,6 +19,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
   const fileMeta = useSubject(PostShShapeType, metadataUri);
   const { getResource } = useLdo();
 
+  /**
+   * Resolves the URI of the binary file inside the container.
+   * Prefers a live child resource, then falls back to the metadata name or image field.
+   */
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
       const leaf = containerResource.children().find(
@@ -31,6 +35,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
   const binaryResource = useResource(binaryUri);
 
+  /**
+   * Creates a local object URL for image preview if the binary resource is available.
+   * Returns undefined for non-binary or unloaded resources.
+   */
   const previewUrl = useMemo(() => {
     if (isBinary(binaryResource) && binaryResource.isBinary()) {
       return URL.createObjectURL(binaryResource.getBlob());
@@ -40,6 +48,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
   const isImageFile = fileMeta?.encodingFormat?.startsWith("image/") ?? false;
 
+  /** Asks the user to confirm, then deletes the entire file container from the pod. */
   const handleDelete = useCallback(async () => {
     if (!confirm(translate("fileCard.deleteConfirm"))) return;
     const container = getResource(containerUri);

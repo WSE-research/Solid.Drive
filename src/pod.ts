@@ -48,26 +48,32 @@ export interface ContainerCreationResult {
 
 // Type guards for resource capabilities
 
+/** Returns true if the resource exposes an `isLoading` method. */
 export function isLoadable(result: unknown): result is LoadableResource {
   return typeof result === "object" && result !== null && "isLoading" in result;
 }
 
+/** Returns true if the resource exposes an `isReading` method. */
 export function isReadable(result: unknown): result is ReadableResource {
   return typeof result === "object" && result !== null && "isReading" in result;
 }
 
+/** Returns true if the resource exposes `isBinary` and `getBlob` methods. */
 export function isBinary(result: unknown): result is BinaryResource {
   return typeof result === "object" && result !== null && "isBinary" in result && "getBlob" in result;
 }
 
+/** Returns true if the resource exposes a `delete` method. */
 export function isDeletable(result: unknown): result is DeletableResource {
   return typeof result === "object" && result !== null && "delete" in result;
 }
 
+/** Returns true if the resource exposes a `reload` method. */
 export function isReloadable(result: unknown): result is ReloadableResource {
   return typeof result === "object" && result !== null && "reload" in result;
 }
 
+/** Returns true if the resource is a Solid container (has a `children` function). */
 export function isSolidContainer(result: unknown): result is SolidContainer {
   return (
     typeof result === "object" &&
@@ -77,6 +83,7 @@ export function isSolidContainer(result: unknown): result is SolidContainer {
   );
 }
 
+/** Returns true if the resource is a Solid leaf (non-container resource). */
 export function isSolidLeaf(result: unknown): result is SolidLeaf {
   return (
     !!result &&
@@ -86,8 +93,12 @@ export function isSolidLeaf(result: unknown): result is SolidLeaf {
   );
 }
 
-//  Utilities 
+//  Utilities
 
+/**
+ * Converts a byte count (as a string) into a human-readable size string.
+ * Returns KB or MB for larger files, and an empty string for zero bytes.
+ */
 export function formatBytes(bytes: string | undefined): string {
   const byteCount = parseInt(bytes ?? "0", 10);
   if (!byteCount) return "";
