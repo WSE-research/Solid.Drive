@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { resolveCatalogUri } from "../src/useCatalogUri";
-import type { SolidProfile } from "../src/.ldo/solidProfile.typings";
+import { resolveCatalogUri } from "../../src/useCatalogUri";
+import type { SolidProfile } from "../../src/.ldo/solidProfile.typings";
 
 describe("resolveCatalogUri", () => {
   it("returns undefined when storageRoot is empty", () => {
