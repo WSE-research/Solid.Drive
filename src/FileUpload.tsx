@@ -67,7 +67,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="file-upload__row">
         <label className="file-upload__label" htmlFor="file-upload-input">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -106,7 +106,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
           />
           <div className="file-upload__divider" />
           <div className="file-upload__footer">
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            <span className="file-upload__meta">
               {pendingFile.type || translate("fileUpload.unknownType")} · {(pendingFile.size / 1024).toFixed(1)} KB
             </span>
             <button className="btn btn-primary" type="submit" disabled={isUploading}>

@@ -117,19 +117,18 @@ export const FileExplorer: FunctionComponent = () => {
         </nav>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <p className="files-section-label" style={{ marginBottom: 0 }}>
+      <div className="files-section-header">
+        <p className="files-section-label">
           {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
         </p>
         <button
-          className="btn btn-ghost"
+          className="btn btn-ghost btn--sm"
           onClick={handleReload}
           disabled={isReloading}
-          style={{ fontSize: 12, padding: "6px 12px", opacity: isReloading ? 0.5 : 1 }}
         >
           {isReloading ? (
             <>
-              <div className="spinner" style={{ width: 12, height: 12 }} />
+              <div className="spinner spinner--sm" />
               {translate("fileExplorer.reloading")}
             </>
           ) : (
@@ -170,8 +169,7 @@ export const FileExplorer: FunctionComponent = () => {
                 <a
                   href={entry.uri}
                   download={fileName}
-                  className="btn btn-ghost"
-                  style={{ fontSize: 12, padding: "6px 12px" }}
+                  className="btn btn-ghost btn--sm"
                 >
                   {translate("fileExplorer.download")}
                 </a>

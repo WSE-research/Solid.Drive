@@ -52,7 +52,7 @@ export const Header: FunctionComponent = () => {
           <div className="auth-input-row">
             <div className="auth-field">
               <label className="auth-provider-label">{translate("header.provider")}</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div className="auth-provider-row">
                 <select
                   value={selectedProvider}
                   onChange={(error) => setSelectedProvider(error.target.value)}

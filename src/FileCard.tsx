@@ -50,8 +50,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
   if (isReadable(metadataResource) && metadataResource.isReading()) {
     return (
-      <div className="file-card" style={{ display: "flex", gap: 8, alignItems: "center", color: "var(--text-muted)", fontSize: 13 }}>
-        <div className="spinner" style={{ width: 14, height: 14 }} />
+      <div className="file-card file-card--loading">
+        <div className="spinner spinner--md" />
         {translate("fileCard.loading")}
       </div>
     );
@@ -89,13 +89,12 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
       <div className="file-card__meta">
         <span className="file-card__date">{uploadedAt}</span>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="file-card__actions">
           {!isImageFile && binaryUri && (
             <a
-              className="btn btn-ghost"
+              className="btn btn-ghost btn--sm"
               href={binaryUri}
               download={binaryUri.split("/").pop()}
-              style={{ fontSize: 12, padding: "6px 12px" }}
             >
               {translate("fileCard.download")}
             </a>
