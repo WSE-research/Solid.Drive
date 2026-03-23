@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { resolveClass, appendToCatalog, removeFromCatalog, linkCatalogToProfile, } from "../src/podCatalog";
+import { resolveClass, appendToCatalog, removeFromCatalog, linkCatalogToProfile, } from "../../src/podCatalog";
 
 type FetchCall = {
   url: string;
