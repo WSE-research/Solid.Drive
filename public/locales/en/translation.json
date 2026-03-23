@@ -21,7 +21,9 @@
     "refresh": "Refresh",
     "noFilesYet": "You pod is currently empty. Please upload your first one above.",
     "emptyFolder": "This folder is empty.",
-    "download": "Download"
+    "download": "Download",
+    "noStorageFound": "No storage location found on your profile. Your Pod may not be configured correctly.",
+    "retry": "Retry"
   },
   "fileCard": {
     "loading": "Loading\u2026",

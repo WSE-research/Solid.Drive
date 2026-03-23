@@ -51,7 +51,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
   if (isReadable(metadataResource) && metadataResource.isReading()) {
     return (
       <div className="file-card file-card--loading">
-        <div className="spinner spinner--md" />
+        <div className="spinner spinner--medium" />
         {translate("fileCard.loading")}
       </div>
     );
@@ -92,14 +92,14 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
         <div className="file-card__actions">
           {!isImageFile && binaryUri && (
             <a
-              className="btn btn-ghost btn--sm"
+              className="btn btn--ghost btn--small"
               href={binaryUri}
               download={binaryUri.split("/").pop()}
             >
               {translate("fileCard.download")}
             </a>
           )}
-          <button className="btn btn-danger" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+          <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
         </div>
       </div>
     </div>

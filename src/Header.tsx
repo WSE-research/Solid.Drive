@@ -8,7 +8,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const KNOWN_PROVIDERS = [
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
-  { label: "inrupt.net", value: "https://inrupt.net", registerUrl: "https://signup.pod.inrupt.com/" },
+  { label: "inrupt.net", value: "https://inrupt.com", registerUrl: "https://start.inrupt.com/profile" },
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },
   { label: "Custom…", value: "custom", registerUrl: undefined },
 ];
@@ -43,7 +43,7 @@ export const Header: FunctionComponent = () => {
             {translate("header.loggedInAs")} <strong>{displayName}</strong>
           </p>
           <LanguageSwitcher />
-          <button className="btn btn-ghost" onClick={logout}>
+          <button className="btn btn--ghost" onClick={logout}>
             {translate("header.logOut")}
           </button>
         </div>
@@ -74,7 +74,7 @@ export const Header: FunctionComponent = () => {
             </div>
             <LanguageSwitcher />
             <button
-              className="btn btn-primary"
+              className="btn btn--primary"
               onClick={() => login(issuerUrl)}
               disabled={!issuerUrl}
             >

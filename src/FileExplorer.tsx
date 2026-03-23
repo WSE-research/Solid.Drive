@@ -6,18 +6,26 @@ import { FolderEntry } from "./FolderEntry";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
-import { isSolidContainer, isReloadable } from "./pod";
+import { isSolidContainer, isLoadable, isReloadable } from "./pod";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
 
 type DriveEntry = SolidContainer | SolidLeaf;
 type Breadcrumb = { label: string; uri: SolidContainerUri };
 
-const APP_CONTAINER_PATH = "my-solid-app/";
+interface FileExplorerProps {
+  storageRetryDelayMs?: number;
+}
 
-export const FileExplorer: FunctionComponent = () => {
+const APP_CONTAINER_PATH = "my-solid-app/";
+const DEFAULT_STORAGE_RETRY_DELAY_MS = 10_000;
+
+export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
+  storageRetryDelayMs = DEFAULT_STORAGE_RETRY_DELAY_MS,
+}) => {
   const [translate] = useTranslation();
   const { session } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
+  const webIdResource = useResource(session.webId);
   const { getResource } = useLdo();
 
   const initialized = useRef(false);
@@ -25,12 +33,20 @@ export const FileExplorer: FunctionComponent = () => {
   const [currentUri, setCurrentUri] = useState<SolidContainerUri>();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [isReloading, setIsReloading] = useState(false);
+  const [noStorageDetected, setNoStorageDetected] = useState(false);
 
   useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
-    if (!storageRootId) return;
 
+    if (!storageRootId) {
+      if (isLoadable(webIdResource) && !webIdResource.isLoading()) {
+        setNoStorageDetected(true);
+      }
+      return;
+    }
+
+    setNoStorageDetected(false);
     const storageRoot = storageRootId as SolidContainerUri;
     const appUri = `${storageRoot}${APP_CONTAINER_PATH}` as SolidContainerUri;
 
@@ -41,9 +57,24 @@ export const FileExplorer: FunctionComponent = () => {
 
     const appContainer = getResource(appUri);
     if ("createIfAbsent" in appContainer) {
-      (appContainer as SolidContainer).createIfAbsent();
+      void (async () => {
+        await (appContainer as SolidContainer).createIfAbsent();
+      })();
     }
-  }, [profile, getResource, translate]);
+  }, [profile, webIdResource, getResource, translate]);
+
+  const handleRetryStorage = useCallback(async () => {
+    if (!isReloadable(webIdResource)) return;
+    setNoStorageDetected(false);
+    initialized.current = false;
+    await webIdResource.reload();
+  }, [webIdResource]);
+
+  useEffect(() => {
+    if (!noStorageDetected) return;
+    const timer = setTimeout(handleRetryStorage, storageRetryDelayMs);
+    return () => clearTimeout(timer);
+  }, [noStorageDetected, handleRetryStorage, storageRetryDelayMs]);
 
   const currentContainer = useResource(currentUri);
   const appContainer = useResource(appContainerUri);
@@ -72,8 +103,20 @@ export const FileExplorer: FunctionComponent = () => {
   if (!session.isLoggedIn) {
     return (
       <div className="drive-gate">
-        <div className="empty-state__icon">✦</div>
+        <div className="drive-gate__icon">✦</div>
         <p>{translate("fileExplorer.loginPrompt")}</p>
+      </div>
+    );
+  }
+
+  if (noStorageDetected) {
+    return (
+      <div className="drive-error">
+        <div className="drive-error__icon">⚠</div>
+        <p>{translate("fileExplorer.noStorageFound")}</p>
+        <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
+          {translate("fileExplorer.retry")}
+        </button>
       </div>
     );
   }
@@ -122,13 +165,13 @@ export const FileExplorer: FunctionComponent = () => {
           {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
         </p>
         <button
-          className="btn btn-ghost btn--sm"
+          className="btn btn--ghost btn--small"
           onClick={handleReload}
           disabled={isReloading}
         >
           {isReloading ? (
             <>
-              <div className="spinner spinner--sm" />
+              <div className="spinner spinner--small" />
               {translate("fileExplorer.reloading")}
             </>
           ) : (
@@ -169,7 +212,7 @@ export const FileExplorer: FunctionComponent = () => {
                 <a
                   href={entry.uri}
                   download={fileName}
-                  className="btn btn-ghost btn--sm"
+                  className="btn btn--ghost btn--small"
                 >
                   {translate("fileExplorer.download")}
                 </a>
