@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Header } from '../Header';
+import {Header} from '../../src/Header';
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: vi.fn(),

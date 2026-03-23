@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { FolderEntry } from '../FolderEntry';
+import {FolderEntry} from '../../src/FolderEntry';
 
 describe('FolderEntry', () => {
   it('extracts and displays the folder name from the URI', () => {

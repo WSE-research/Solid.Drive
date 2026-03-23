@@ -8,7 +8,7 @@ import {
   isReloadable,
   isSolidContainer,
   isSolidLeaf,
-} from '../pod';
+} from '../../src/pod';
 
 // ─── formatBytes ────────────────────────────────────────────────────────────
 
