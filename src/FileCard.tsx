@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,7 @@ import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { removeFromCatalog } from "./podCatalog";
+
 
 const FILE_TYPES: Record<string, { label: string; description: string }> = {
   DigitalDocument: { label: "File", description: "Any general file" },
@@ -22,6 +23,11 @@ type FileCardProps = {
   catalogUri: string;
 };
 
+/**
+ * Displays a file based on metadata from index.ttl 
+ * Renders a preview when possible
+ * Provides options to download or delete the file
+ */
 export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri }) => {
   const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
@@ -52,15 +58,17 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-  /**
-   * Creates a local object URL for image preview if the binary resource is available.
-   * Returns undefined for non-binary or unloaded resources.
-   */
-  const previewUrl = useMemo(() => {
-    if (isBinary(binaryResource) && binaryResource.isBinary()) {
-      return URL.createObjectURL(binaryResource.getBlob());
-    }
-    return undefined;
+  /** Creates a blob URL for inline preview; revokes it on cleanup to prevent memory leaks. */
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
+  useEffect(() => {
+    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
+    const url = URL.createObjectURL(binaryResource.getBlob());
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreviewUrl(url); // legitimate: synchronizing with the browser blob URL API, not derived from React state
+    return () => {
+      URL.revokeObjectURL(url);
+      setPreviewUrl(undefined);
+    };
   }, [binaryResource]);
 
   /** Asks the user to confirm, then deletes the entire file container from the pod. */
@@ -89,12 +97,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         <p className="file-card__name">{folderName}</p>
         {binaryUri && (
           <div className="file-card__meta">
-            <span className="file-card__date" style={{ color: "var(--text-muted)", fontSize: 12 }}>No metadata</span>
+            <span className="file-card__date">No metadata</span>
             <a
-              className="btn btn-ghost"
+              className="btn btn--ghost btn--small"
               href={binaryUri}
               download={binaryUri.split("/").pop()}
-              style={{ fontSize: 12, padding: "6px 12px" }}
             >
               Download
             </a>
@@ -118,6 +125,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       })
     : "";
 
+// Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
   const typeId = (() => {
     const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find((rawTypeId: string) => rawTypeId in FILE_TYPES);
     if (fromType) return fromType;

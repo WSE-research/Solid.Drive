@@ -1,5 +1,8 @@
 import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
+// LDO exposes capabilities via method presence instead of a class hierarchy
+// These interfaces describe those shapes so we can safely narrow resources
+// without depending on internal LDO types
 export interface LoadableResource {
   isLoading: () => boolean;
 }

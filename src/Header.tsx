@@ -15,6 +15,9 @@ const KNOWN_PROVIDERS = [
 
 const CUSTOM_PROVIDER_VALUE = "custom";
 
+/**
+ * Renders the site header and handles Solid authentication state
+ */
 export const Header: FunctionComponent = () => {
   const [translate] = useTranslation();
   const { session, login, logout } = useSolidAuth();
@@ -55,7 +58,7 @@ export const Header: FunctionComponent = () => {
               <div className="auth-provider-row">
                 <select
                   value={selectedProvider}
-                  onChange={(error) => setSelectedProvider(error.target.value)}
+                  onChange={(event) => setSelectedProvider(event.target.value)}
                 >
                   <option value="" disabled>{translate("header.selectProvider")}</option>
                   {KNOWN_PROVIDERS.map((provider) => (
@@ -66,7 +69,7 @@ export const Header: FunctionComponent = () => {
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(error) => setCustomIssuerUrl(error.target.value)}
+                    onChange={(event) => setCustomIssuerUrl(event.target.value)}
                     placeholder={translate("header.customProviderPlaceholder")}
                   />
                 )}

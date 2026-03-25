@@ -21,13 +21,7 @@ export const catalogEntrySchema: Schema = {
               predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
               valueExpr: {
                 type: "NodeConstraint",
-                values: [
-                  "http://schema.org/DigitalDocument",
-                  "https://w3id.org/solid-drive#ImageFile",
-                  "https://w3id.org/solid-drive#VideoFile",
-                  "https://w3id.org/solid-drive#AudioFile",
-                  "https://w3id.org/solid-drive#TextDocument",
-                ],
+                nodeKind: "iri",
               },
             },
             {
@@ -80,6 +74,24 @@ export const catalogEntrySchema: Schema = {
             },
             {
               type: "TripleConstraint",
+              predicate: "http://schema.org/publisher",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://purl.org/dc/terms/conformsTo",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
+            },
+            {
+              type: "TripleConstraint",
               predicate: "http://schema.org/dateModified",
               valueExpr: {
                 type: "NodeConstraint",
@@ -107,24 +119,6 @@ export const catalogEntrySchema: Schema = {
               },
               min: 0,
               max: -1,
-            },
-            {
-              type: "TripleConstraint",
-              predicate: "http://schema.org/publisher",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate: "http://purl.org/dc/terms/conformsTo",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
-              min: 0,
-              max: 1,
             },
           ],
         },

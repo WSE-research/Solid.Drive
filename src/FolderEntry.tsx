@@ -5,6 +5,7 @@ type FolderEntryProps = {
   onNavigate: (uri: string) => void;
 };
 
+// Renders a folder row that navigates into the given container
 export const FolderEntry: FunctionComponent<FolderEntryProps> = ({ uri, onNavigate }) => {
   const name = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
 

@@ -14,6 +14,14 @@ type FileUploadProps = {
   profileHasCatalog: boolean;
 };
 
+/**
+ * Handles file uploads into the app container in the user's pod.
+ *
+ * The upload flow creates a dedicated container for the file, stores the binary,
+ * writes RDF metadata to index.ttl, and then adds the new item to the catalog.
+ * If a later step fails, it tries to delete any resources created earlier so the
+ * pod does not end up with half-finished upload state.
+ */
 export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog }) => {
   const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
@@ -39,21 +47,27 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     try {
       const classUri = resolveClass(pendingFile.type);
 
+      // Use a safe folder name so the container URI is predictable
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
       const containerUri = `${containerSlug}/` as SolidContainerUri;
-
+      // Create a container per file (binary and index.ttl live together)
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
       if (containerResult.isError) return alert(containerResult.message);
       const fileContainer = containerResult.resource;
-
+      
+      // Upload the file with its MIME type so it is stored and served correctly.
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
         pendingFile.name,
         pendingFile,
         pendingFile.type
       );
 
-      if (uploadResult.isError) return alert(uploadResult.message);
-
+      if (uploadResult.isError) {
+        await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
+        alert(uploadResult.message);
+        return;
+      }
+      // index.ttl must exist to store RDF metadata
       const indexResource = fileContainer.child("index.ttl");
       if (!isSolidLeaf(indexResource)) {
         const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
@@ -64,8 +78,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       }
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
+      // Extract schema type from full URI and add to metadata
       const typeLocalName = (classUri.split(/[#/]/).pop() ?? "DigitalDocument") as
         "DigitalDocument" | "ImageObject" | "VideoObject" | "AudioObject" | "TextDigitalDocument" | "SpreadsheetDigitalDocument";
+      
       metadata.type.add({ "@id": typeLocalName });
       metadata.name = title.trim() || pendingFile.name;
       metadata.encodingFormat = pendingFile.type || undefined;
@@ -73,14 +89,17 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       metadata.uploadDate = new Date().toISOString();
       metadata.publisher = { "@id": session.webId };
       if (description.trim()) metadata.description = description.trim();
-
+      
+      // Basic validation before writing RDF to the pod 
       if (!metadata.uploadDate) return alert("Upload failed: upload date is missing.");
       if (!metadata.publisher?.["@id"]) return alert("Upload failed: your WebID is missing. Please log in again.");
       if (!metadata.type || metadata.type.toArray().length === 0) return alert("Upload failed: file type could not be determined.");
-
+     
+      // Persist metadata to index.ttl
       const commitResult = await commitData(metadata);
       if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
+      // Build final binary URI for the catalog entry and append to catalog with SPARQL PATCH
       const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
 
       try {
@@ -104,7 +123,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         alert(`Upload failed: catalog could not be updated. ${(catalogErr as Error).message}`);
         return;
       }
-
+      // Link catalog once so future reads can discover it from the profile
       if (!profileHasCatalog) {
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
