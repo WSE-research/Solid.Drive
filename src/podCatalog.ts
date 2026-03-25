@@ -17,13 +17,26 @@ const FILE_TYPE_DEFS = [
   { uri: "http://schema.org/SpreadsheetDigitalDocument", id: "SpreadsheetDigitalDocument", label: "Spreadsheet", description: "Excel, CSV, etc." },
 ];
 
-// Accept full URIs or local IDs and return the display label used by the UI
+// Returns whether the given type is one the app recognizes
+export function isKnownType(uriOrId: string): boolean {
+  return FILE_TYPE_DEFS.some(
+    (entry) => entry.uri === uriOrId || entry.id === uriOrId || entry.uri.endsWith(`#${uriOrId}`)
+  );
+}
+
+// Returns the UI label for a supported file type
 export function friendlyLabel(uriOrId: string): string {
+  return friendlyTypeInfo(uriOrId).label;
+}
+
+// Returns the UI label and description for a file type
+export function friendlyTypeInfo(uriOrId: string): { label: string; description: string } {
   const typeDef = FILE_TYPE_DEFS.find(
     (entry) => entry.uri === uriOrId || entry.id === uriOrId || entry.uri.endsWith(`#${uriOrId}`)
   );
-  if (typeDef) return typeDef.label;
-  return uriOrId.split(/[#/]/).pop() ?? uriOrId;
+  if (typeDef) return { label: typeDef.label, description: typeDef.description };
+  const fallback = uriOrId.split(/[#/]/).pop() ?? uriOrId;
+  return { label: fallback, description: "" };
 }
 
 // Map MIME types to the closest schema.org class we support
@@ -132,7 +145,7 @@ export async function appendToCatalog(
       dcat:distribution <${instanceUri}#dist> .
     <${instanceUri}#dist> a dcat:Distribution ;
       dcat:accessURL <${binaryUri}> ;
-      dcat:mediaType "${mediaType}" ;
+      dcat:mediaType "${escapeTurtleLiteral(mediaType)}" ;
       dcat:byteSize ${byteSize} .
   }
 `.trim();

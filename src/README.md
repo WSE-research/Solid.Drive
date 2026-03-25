@@ -10,9 +10,10 @@ App.tsx
       ├── FileCard.tsx    file display, preview, info, delete
       └── FolderEntry.tsx navigable row for non-app folders
 
-pod.ts          LDO type guards (isSolidContainer, isBinary, …)
-podCatalog.ts   catalog CRUD via SPARQL (appendToCatalog, removeFromCatalog, …)
+pod.ts            LDO type guards (isSolidContainer, isBinary, …)
+podCatalog.ts     catalog CRUD via SPARQL (appendToCatalog, removeFromCatalog, …)
 useCatalogUri.ts  resolve catalog URI from profile or storage root
+tboxValidator.ts  load tbox.ttl, parse SHACL shapes, validate upload metadata
 generateShape.ts  inspect unknown Turtle data and infer RDF shapes
 ```
 
@@ -47,6 +48,7 @@ System files (`catalog.ttl`, `robots.txt`, `README`, `.acl`, `.meta`) are filter
 
 Executes the upload sequence (see root README for the full flow). Key implementation details:
 
+- **TBox validation** — `loadTBox()` is called on mount; the resulting shapes are used by `validateMetadata()` on every form change. The submit button stays disabled until all required fields (`name`, `uploadDate`, `publisher`) are present. `name` maps to the visible title input; `uploadDate` and `publisher` are auto-populated and surface as non-actionable violations if missing.
 - `resolveClass(mimeType)` from `podCatalog.ts` converts the MIME type to a schema.org class URI before the container is created
 - `profileHasCatalog` (passed from `FileExplorer`) prevents adding a duplicate `dcat:catalog` triple when the user already has one from another app
 - Rollback on failure: if any step after the binary upload throws, the container is deleted via raw `fetch` calls before surfacing the error
@@ -108,6 +110,24 @@ Type guards that narrow LDO resource union types. LDO exposes capabilities via m
 | `isSolidLeaf` | `type === "SolidLeaf"` property |
 
 **Helper:** `formatBytes(bytes)` — formats a byte count string into a readable size (e.g. `"1.2 MB"`).
+
+---
+
+## `tboxValidator.ts`
+
+Loads, parses, and queries the SHACL TBox served at `/tbox.ttl` (auto-generated from datashapes.org by `scripts/extract-tbox.mjs`).
+
+- **`loadTBox(tboxUri?, fetchFn?)`** — fetches `tbox.ttl`, delegates to `parseTBox`, and caches the result. Returns `{ shapes, parents }`. Subsequent calls return the cache.
+
+- **`parseTBox(turtle)`** — pure parsing function (no I/O). Reads all `sh:NodeShape` declarations and `rdfs:subClassOf` relations from the Turtle string. Returns `shapes: Map<uri, ShapeDefinition>` and `parents: Map<child, parent[]>`.
+
+- **`getShapeForType(typeUri, shapes, parents)`** — walks the `rdfs:subClassOf` chain with BFS, collects all applicable `ShapeDefinition`s, and merges their properties. Required properties always win over optional ones; first occurrence wins within each category.
+
+- **`validateMetadata(metadata, typeUri, shapes, parents)`** — calls `getShapeForType`, then checks each `requiredProperty` against the metadata object. Matches by local name (e.g. `"name"`) or full URI. Returns `{ valid, violations, shape }`.
+
+- **`resetTBoxCache()`** — clears the module-level cache so the next `loadTBox` call fetches fresh data (used in tests).
+
+Exported interfaces: `PropertyConstraint`, `ShapeDefinition`, `ValidationResult`, `PropertyViolation`.
 
 ---
 

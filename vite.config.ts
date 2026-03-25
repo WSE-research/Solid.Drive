@@ -9,6 +9,9 @@ export default defineConfig({
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
   },
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 1000, // kB — suppress advisory for large vendor bundles
+  },
   optimizeDeps: {
     force: true,
     include: [

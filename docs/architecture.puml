@@ -61,6 +61,12 @@ package "Browser" {
     +submit(file, title, description)
   }
 
+  class TBoxValidator <<module>> {
+    +loadTBox()
+    +validateMetadata()
+    +getShapeForType()
+  }
+
   class FileCard <<component>> {
     +download()
     +delete()
@@ -83,9 +89,18 @@ package "Browser" {
   FileExplorer --> FileUpload
   FileExplorer --> FileCard
   FileExplorer --> FolderEntry
+  FileUpload --> TBoxValidator
   App ..> i18n : uses
   Header ..> i18n : uses
   LanguageSwitcher ..> i18n : uses
+}
+
+package "App Assets (public/)" {
+  class TBoxTTL <<tbox.ttl>> {
+    sh:NodeShape definitions
+    rdfs:subClassOf hierarchy
+    sh:minCount constraints
+  }
 }
 
 package "Solid Pod (user-owned)" {
@@ -116,6 +131,8 @@ package "Solid Pod (user-owned)" {
   FileContainer -- IndexTTL
   FileContainer -- BinaryFile
   WebIDProfile --- CatalogTTL : dcat:catalog
+
+TBoxValidator .. TBoxTTL        : fetches
 
 FileUpload .. CatalogTTL        : appends
 FileUpload .. AppContainer      : uploads\nto
