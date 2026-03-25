@@ -5,34 +5,57 @@ import { FolderEntry } from "./FolderEntry";
 import { FileCard } from "./FileCard";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
-import { isSolidContainer, isReloadable } from "./pod";
+import { isSolidContainer, isLoadable, isReloadable } from "./pod";
 import { resolveCatalogUri } from "./useCatalogUri";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
 
 type DriveEntry = SolidContainer | SolidLeaf;
 type Breadcrumb = { label: string; uri: SolidContainerUri };
 
-const APP_CONTAINER_PATH = "my-solid-app/";
+interface FileExplorerProps {
+  storageRetryDelayMs?: number;
+}
 
+const APP_CONTAINER_PATH = "my-solid-app/";
+const DEFAULT_STORAGE_RETRY_DELAY_MS = 10_000;
+
+// System files that are filtered out of the user-facing file list
 const SYSTEM_FILES = new Set(["catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
 
-export const FileExplorer: FunctionComponent = () => {
+/**
+ * Main file explorer: manages session, navigation state, and data loading,
+ * and coordinates folder browsing, uploads, and file display
+ */
+export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
+  storageRetryDelayMs = DEFAULT_STORAGE_RETRY_DELAY_MS,
+}) => {
   const { session, fetch: solidFetch } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const { getResource } = useLdo();
-
   const initialized = useRef(false);
+  const webIdResource = useResource(session.webId);
   const [appContainerUri, setAppContainerUri] = useState<SolidContainerUri>();
-  const [storageRootUri, setStorageRootUri] = useState<string>("");
+  const [storageRootUri, setStorageRootUri] = useState<string | undefined>();
   const [currentUri, setCurrentUri] = useState<SolidContainerUri>();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [isReloading, setIsReloading] = useState(false);
+  const [noStorageDetected, setNoStorageDetected] = useState(false);
 
+// On first load, resolve the Pod root, app container, and initial breadcrumb state.
+// Re-runs via retryTick when the profile loads after the first render.
   useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
-    if (!storageRootId) return;
 
+    if (!storageRootId) {
+      // Only flag an error once the profile document has actually finished loading
+      if (isLoadable(webIdResource) && !webIdResource.isLoading()) {
+        setNoStorageDetected(true);
+      }
+      return;
+    }
+
+    setNoStorageDetected(false);
     const storageRoot = storageRootId as SolidContainerUri;
     const appUri = `${storageRoot}${APP_CONTAINER_PATH}` as SolidContainerUri;
 
@@ -42,27 +65,48 @@ export const FileExplorer: FunctionComponent = () => {
     setBreadcrumbs([{ label: "My Pod", uri: storageRoot }]);
     initialized.current = true;
 
-    const appContainer = getResource(appUri);
-    if ("createIfAbsent" in appContainer) {
-      (appContainer as SolidContainer).createIfAbsent();
-    }
-
-  }, [profile, getResource, solidFetch]);
+    void (async () => {
+      const appContainerRes = getResource(appUri);
+      if ("createIfAbsent" in appContainerRes) {
+        await (appContainerRes as SolidContainer).createIfAbsent();
+      }
+    })();
+  }, [profile, webIdResource, getResource]);
 
   const currentContainer = useResource(currentUri);
   const appContainer = useResource(appContainerUri);
 
+// Navigate into a folder and add it to breadcrumbs with a readable label
   const handleNavigate = useCallback((uri: string) => {
     const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
     setBreadcrumbs((prev) => [...prev, { label, uri: uri as SolidContainerUri }]);
     setCurrentUri(uri as SolidContainerUri);
   }, []);
 
+// Jump to a breadcrumb and trim the trail to keep navigation in sync
   const handleBreadcrumbClick = useCallback((index: number, uri: SolidContainerUri) => {
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
     setCurrentUri(uri);
   }, []);
 
+// Download a file via the session and trigger a browser save, then release the blob URL
+  const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {
+    try {
+      const response = await solidFetch(entry.uri);
+      if (!response.ok) { alert(`Download failed: ${response.status} ${response.statusText}`); return; }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert(`Download failed: ${(err as Error).message}`);
+    }
+  }, [solidFetch]);
+
+// Refresh the current folder from the pod and show a loading state while it runs
   const handleReload = useCallback(async () => {
     if (!currentContainer || !isReloadable(currentContainer)) return;
     setIsReloading(true);
@@ -73,11 +117,38 @@ export const FileExplorer: FunctionComponent = () => {
     }
   }, [currentContainer]);
 
+// Reload the WebID profile document and retry storage root discovery
+  const handleRetryStorage = useCallback(async () => {
+    if (!isReloadable(webIdResource)) return;
+    setNoStorageDetected(false);
+    initialized.current = false;
+    await webIdResource.reload();
+  }, [webIdResource]);
+
+// Automatically retry storage discovery after a delay when no storage root was found
+  useEffect(() => {
+    if (!noStorageDetected) return;
+    const timer = setTimeout(handleRetryStorage, storageRetryDelayMs);
+    return () => clearTimeout(timer);
+  }, [noStorageDetected, handleRetryStorage, storageRetryDelayMs]);
+
   if (!session.isLoggedIn) {
     return (
       <div className="drive-gate">
         <div className="empty-state__icon">✦</div>
         <p>Please log in to access your drive.</p>
+      </div>
+    );
+  }
+
+  if (noStorageDetected) {
+    return (
+      <div className="drive-loading">
+        <div className="spinner" />
+        <span>Your Pod storage could not be located. Retrying…</span>
+        <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
+          Retry now
+        </button>
       </div>
     );
   }
@@ -91,6 +162,7 @@ export const FileExplorer: FunctionComponent = () => {
     );
   }
 
+
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
   const isInAppFolder = currentUri === appContainerUri;
@@ -98,6 +170,7 @@ export const FileExplorer: FunctionComponent = () => {
     ? currentContainer.children()
     : [];
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
+// Only show normal leaf files here
   const leafEntries = (entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[])
     .filter((entry) => {
       const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? "");
@@ -127,20 +200,19 @@ export const FileExplorer: FunctionComponent = () => {
         </nav>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <p className="files-section-label" style={{ marginBottom: 0 }}>
+      <div className="files-section-header">
+        <p className="files-section-label">
           {isInAppFolder ? "Your Files" : "Pod Contents"}
         </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div>
           <button
-            className="btn btn-ghost"
+            className="btn btn--ghost btn--small"
             onClick={handleReload}
             disabled={isReloading}
-            style={{ fontSize: 12, padding: "6px 12px", opacity: isReloading ? 0.5 : 1 }}
           >
             {isReloading ? (
               <>
-                <div className="spinner" style={{ width: 12, height: 12 }} />
+                <div className="spinner spinner--small" />
                 Reloading…
               </>
             ) : (
@@ -180,18 +252,8 @@ export const FileExplorer: FunctionComponent = () => {
               <div key={entry.uri} className="file-entry">
                 <span className="file-entry__name">{fileName}</span>
                 <button
-                  className="btn btn-ghost"
-                  style={{ fontSize: 12, padding: "6px 12px" }}
-                  onClick={async () => {
-                    const response = await solidFetch(entry.uri);
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    const anchor = document.createElement("a");
-                    anchor.href = blobUrl;
-                    anchor.download = fileName;
-                    anchor.click();
-                    URL.revokeObjectURL(blobUrl);
-                  }}
+                  className="btn btn--ghost btn--small"
+                  onClick={() => handleDownload(entry, fileName)}
                 >
                   Download
                 </button>

@@ -1,22 +1,22 @@
 import { useState } from "react";
 import type { FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
-import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "./pod";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const KNOWN_PROVIDERS = [
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
-  { label: "inrupt.net", value: "https://inrupt.com", registerUrl: "https://start.inrupt.com/profile" },
+  { label: "inrupt.net", value: "https://inrupt.net", registerUrl: "https://signup.pod.inrupt.com/" },
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },
   { label: "Custom…", value: "custom", registerUrl: undefined },
 ];
 
 const CUSTOM_PROVIDER_VALUE = "custom";
 
+/**
+ * Renders the site header and handles Solid authentication state
+ */
 export const Header: FunctionComponent = () => {
-  const [translate] = useTranslation();
   const { session, login, logout } = useSolidAuth();
   const [selectedProvider, setSelectedProvider] = useState("");
   const [customIssuerUrl, setCustomIssuerUrl] = useState("");
@@ -25,7 +25,7 @@ export const Header: FunctionComponent = () => {
   const profile = useSubject(SolidProfileShapeType, session.webId);
 
   const displayName = isLoadable(webIdResource) && webIdResource.isLoading()
-    ? translate("header.loading", "Loading…")
+    ? "Loading…"
     : profile?.fn || profile?.name || session.webId;
 
   const issuerUrl = selectedProvider === CUSTOM_PROVIDER_VALUE ? customIssuerUrl : selectedProvider;
@@ -40,24 +40,23 @@ export const Header: FunctionComponent = () => {
       {session.isLoggedIn ? (
         <div className="auth-logged-in">
           <p className="auth-webid">
-            {translate("header.loggedInAs")} <strong>{displayName}</strong>
+            Logged in as <strong>{displayName}</strong>
           </p>
-          <LanguageSwitcher />
           <button className="btn btn--ghost" onClick={logout}>
-            {translate("header.logOut")}
+            Log Out
           </button>
         </div>
       ) : (
         <div className="auth-logged-out">
           <div className="auth-input-row">
             <div className="auth-field">
-              <label className="auth-provider-label">{translate("header.provider")}</label>
+              <label className="auth-provider-label">Provider</label>
               <div className="auth-provider-row">
                 <select
                   value={selectedProvider}
-                  onChange={(error) => setSelectedProvider(error.target.value)}
+                  onChange={(event) => setSelectedProvider(event.target.value)}
                 >
-                  <option value="" disabled>{translate("header.selectProvider")}</option>
+                  <option value="" disabled>Select a provider</option>
                   {KNOWN_PROVIDERS.map((provider) => (
                     <option key={provider.value} value={provider.value}>{provider.label}</option>
                   ))}
@@ -66,26 +65,25 @@ export const Header: FunctionComponent = () => {
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(error) => setCustomIssuerUrl(error.target.value)}
-                    placeholder={translate("header.customProviderPlaceholder")}
+                    onChange={(event) => setCustomIssuerUrl(event.target.value)}
+                    placeholder="https://your-provider.example"
                   />
                 )}
               </div>
             </div>
-            <LanguageSwitcher />
             <button
               className="btn btn--primary"
               onClick={() => login(issuerUrl)}
               disabled={!issuerUrl}
             >
-              {translate("header.logIn")}
+              Log In
             </button>
           </div>
           <span className="auth-signup">
             <span className="auth-signup-text">
-              {translate("header.podDescription")}{" "}
+              A Pod is your personal data store on the web.{" "}
               <a href="https://solidproject.org/about" target="_blank" rel="noopener noreferrer" className="auth-hint-link">
-                {translate("header.learnMore")}
+                Learn more.
               </a>
             </span>
             <span className="auth-signup-text">·</span>
@@ -95,7 +93,7 @@ export const Header: FunctionComponent = () => {
               rel="noopener noreferrer"
               className="auth-hint-link"
             >
-              {translate("header.createPod")}
+              Create a Pod
             </a>
           </span>
         </div>

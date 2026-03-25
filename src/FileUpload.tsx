@@ -13,6 +13,14 @@ type FileUploadProps = {
   profileHasCatalog: boolean;
 };
 
+/**
+ * Handles file uploads into the app container in the user's pod.
+ *
+ * The upload flow creates a dedicated container for the file, stores the binary,
+ * writes RDF metadata to index.ttl, and then adds the new item to the catalog.
+ * If a later step fails, it tries to delete any resources created earlier so the
+ * pod does not end up with half-finished upload state.
+ */
 export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog }) => {
   const { session, fetch: solidFetch } = useSolidAuth();
   const { createData, commitData } = useLdo();
@@ -22,6 +30,19 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Upload pipeline:
+   *   1. Resolve schema.org class from MIME type.
+   *   2. Create a container named after the file (slugified).
+   *   3. Upload the binary into that container.
+   *   4. Write LDO metadata to index.ttl.
+   *   5. Append a DCAT catalog entry via SPARQL PATCH.
+   *   6. Link the catalog to the profile on first upload.
+   *
+   * On binary upload failure (step 3) deletes the container. 
+   * On catalog failure (step 5) deletes the container, binary, and index.ttl. 
+   * Step 4 (commitData) does not roll back.
+   */
   const handleSubmit = useCallback(async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!session.webId || !pendingFile) return;
@@ -32,21 +53,27 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     try {
       const classUri = resolveClass(pendingFile.type);
 
+      // Use a safe folder name so the container URI is predictable
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
       const containerUri = `${containerSlug}/` as SolidContainerUri;
-
+      // Create a container per file (binary and index.ttl live together)
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
       if (containerResult.isError) return alert(containerResult.message);
       const fileContainer = containerResult.resource;
-
+      
+      // Upload the file with its MIME type so it is stored and served correctly.
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
         pendingFile.name,
         pendingFile,
         pendingFile.type
       );
 
-      if (uploadResult.isError) return alert(uploadResult.message);
-
+      if (uploadResult.isError) {
+        await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
+        alert(uploadResult.message);
+        return;
+      }
+      // index.ttl must exist to store RDF metadata
       const indexResource = fileContainer.child("index.ttl");
       if (!isSolidLeaf(indexResource)) {
         const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
@@ -57,8 +84,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       }
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
+      // Extract schema type from full URI and add to metadata
       const typeLocalName = (classUri.split(/[#/]/).pop() ?? "DigitalDocument") as
         "DigitalDocument" | "ImageObject" | "VideoObject" | "AudioObject" | "TextDigitalDocument" | "SpreadsheetDigitalDocument";
+      
       metadata.type.add({ "@id": typeLocalName });
       metadata.name = title.trim() || pendingFile.name;
       metadata.encodingFormat = pendingFile.type || undefined;
@@ -66,14 +95,17 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       metadata.uploadDate = new Date().toISOString();
       metadata.publisher = { "@id": session.webId };
       if (description.trim()) metadata.description = description.trim();
-
+      
+      // Basic validation before writing RDF to the pod 
       if (!metadata.uploadDate) return alert("Upload failed: upload date is missing.");
       if (!metadata.publisher?.["@id"]) return alert("Upload failed: your WebID is missing. Please log in again.");
       if (!metadata.type || metadata.type.toArray().length === 0) return alert("Upload failed: file type could not be determined.");
-
+     
+      // Persist metadata to index.ttl
       const commitResult = await commitData(metadata);
       if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
+      // Build final binary URI for the catalog entry and append to catalog with SPARQL PATCH
       const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
 
       try {
@@ -97,7 +129,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         alert(`Upload failed: catalog could not be updated. ${(catalogErr as Error).message}`);
         return;
       }
-
+      // Link catalog once so future reads can discover it from the profile
       if (!profileHasCatalog) {
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
@@ -115,7 +147,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="file-upload__row">
         <label className="file-upload__label" htmlFor="file-upload-input">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -154,10 +186,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           />
           <div className="file-upload__divider" />
           <div className="file-upload__footer">
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            <span className="file-upload__meta">
               {pendingFile.type || "unknown datatype"} · {(pendingFile.size / 1024).toFixed(1)} KB
             </span>
-            <button className="btn btn-primary" type="submit" disabled={isUploading}>
+            <button className="btn btn--primary" type="submit" disabled={isUploading}>
               {isUploading ? "Uploading…" : "Upload"}
             </button>
           </div>
