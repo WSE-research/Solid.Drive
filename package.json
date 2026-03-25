@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "tbox:extract": "node scripts/extract-tbox.mjs",
+    "dev": "node scripts/extract-tbox.mjs && vite",
+    "build": "node scripts/extract-tbox.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:ldo": "ldo build --input src/.shapes --output src/.ldo && node fix-ldo-types.mjs",

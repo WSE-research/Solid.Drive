@@ -5,17 +5,7 @@ import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
-import { removeFromCatalog } from "./podCatalog";
-
-
-const FILE_TYPES: Record<string, { label: string; description: string }> = {
-  DigitalDocument: { label: "File", description: "Any general file" },
-  ImageObject: { label: "Photo/Image", description: "Pictures/graphics" },
-  VideoObject: { label: "Video", description: "Videos/movie clips" },
-  AudioObject: { label: "Audio", description: "Music, podcasts, recordings" },
-  TextDigitalDocument: { label: "Document", description: "PDFs, text, Word files" },
-  SpreadsheetDigitalDocument: { label: "Spreadsheet", description: "Excel, CSV, etc." },
-};
+import { removeFromCatalog, friendlyTypeInfo, resolveClass, isKnownType } from "./podCatalog";
 
 type FileCardProps = {
   containerUri: string;
@@ -40,7 +30,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const { fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
 
-// Determine the file's binary URI from container contents or metadata, excluding index.ttl.
+  // Determine the file's binary URI from container contents or metadata, excluding index.ttl.
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
       const leaf = containerResource.children().find(
@@ -53,7 +43,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-// Create a blob URL for inline preview; revoke it in cleanup to prevent memory leaks.
+  // Create a blob URL for inline preview; revoke it in cleanup to prevent memory leaks.
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
   useEffect(() => {
     if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
@@ -67,7 +57,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   }, [binaryResource]);
 
 
-// Delete the file by removing its catalog entry, then deleting the container to avoid stale references.
+  // Delete the file by removing its catalog entry, then deleting the container to avoid stale references.
   const handleDelete = useCallback(async () => {
     if (!confirm("Are you sure you want to delete this file?")) return;
     await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
@@ -121,19 +111,14 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       })
     : "";
 
-// Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
+  // Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
   const typeId = (() => {
-    const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find((rawTypeId: string) => rawTypeId in FILE_TYPES);
+    const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find(isKnownType);
     if (fromType) return fromType;
     const mimeType = fileMeta.encodingFormat ?? "";
-    if (mimeType.startsWith("image/")) return "ImageObject";
-    if (mimeType.startsWith("video/")) return "VideoObject";
-    if (mimeType.startsWith("audio/")) return "AudioObject";
-    if (mimeType.startsWith("text/") || mimeType === "application/pdf" || mimeType === "application/msword" || mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "TextDigitalDocument";
-    if (mimeType === "application/vnd.ms-excel" || mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || mimeType === "text/csv") return "SpreadsheetDigitalDocument";
-    return "DigitalDocument";
+    return mimeType ? resolveClass(mimeType) : "http://schema.org/DigitalDocument";
   })();
-  const fileType = FILE_TYPES[typeId] ?? { label: typeId, description: "" };
+  const fileType = friendlyTypeInfo(typeId);
 
   return (
     <div className="file-card">
