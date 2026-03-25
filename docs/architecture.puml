@@ -22,6 +22,21 @@ skinparam package {
   FontStyle Bold
 }
 
+skinparam arrow {
+  Margin 15
+  FontSize 14
+}
+
+skinparam label {
+  BackgroundColor White
+  FontSize 14
+}
+
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam linetype ortho
+
 left to right direction
 
 package "Browser" {
@@ -61,13 +76,7 @@ package "Browser" {
 package "Solid Pod (user-owned)" {
 
   class CatalogTTL <<catalog.ttl>> {
-    instanceUri a dcat:Dataset
-    dcterms:conformsTo schema:ImageObject
-    dcterms:conformsTo schema:VideoObject
-    dcterms:conformsTo schema:AudioObject
-    dcterms:conformsTo schema:TextDigitalDocument
-    dcterms:conformsTo schema:SpreadsheetDigitalDocument
-    dcterms:conformsTo schema:DigitalDocument
+    dcat:Dataset entries
   }
 
   class AppContainer <<my-solid-app/>>
@@ -77,8 +86,6 @@ package "Solid Pod (user-owned)" {
   class IndexTTL <<index.ttl>> {
     rdf:type (schema.org class)
     schema:name
-    schema:encodingFormat
-    schema:contentSize
     schema:uploadDate
     schema:publisher
   }
@@ -86,24 +93,24 @@ package "Solid Pod (user-owned)" {
   class BinaryFile <<file.ext>>
 
   class WebIDProfile <<profile/card>> {
-    vcard:fn
-    foaf:name
+    sp:storage
     dcat:catalog (optional)
   }
-
+}
   AppContainer -- "1..*" FileContainer
   FileContainer -- IndexTTL
   FileContainer -- BinaryFile
-  WebIDProfile -- CatalogTTL : dcat:catalog (optional pointer)
-}
+  WebIDProfile --- CatalogTTL : dcat:catalog
 
-FileUpload .. CatalogTTL   : appends
-FileUpload .. AppContainer : uploads to
-FileUpload .. WebIDProfile : links catalog (first upload only)
-FileCard .. FileContainer  : reads
-FileCard .. CatalogTTL     : removes on delete
-FileCard .. WebIDProfile   : resolves publisher name
-FileExplorer .. AppContainer : browses
-FileExplorer .. WebIDProfile : resolves catalog URI (profile-first)
+FileUpload .. CatalogTTL        : appends
+FileUpload .. AppContainer      : uploads\nto
+FileUpload .. WebIDProfile      : links\ncatalog
+
+FileCard .. IndexTTL            : reads
+FileCard .. CatalogTTL          : removes
+FileCard .down. WebIDProfile   : resolves\npublisher
+
+FileExplorer .. AppContainer    : browses
+FileExplorer .down. WebIDProfile    : resolves\ncatalog URI
 
 @enduml

@@ -1,5 +1,8 @@
 import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
+// LDO exposes capabilities via method presence instead of a class hierarchy
+// These interfaces describe those shapes so we can safely narrow resources
+// without depending on internal LDO types
 export interface LoadableResource {
   isLoading: () => boolean;
 }
@@ -42,6 +45,8 @@ export interface ContainerCreationResult {
   resource: FileContainerResource;
 }
 
+// Use duck-typing to detect capabilities
+// Each guard checks for method presence and lets TypeScript narrow the type
 export function isLoadable(result: unknown): result is LoadableResource {
   return typeof result === "object" && result !== null && "isLoading" in result;
 }
@@ -80,6 +85,7 @@ export function isSolidLeaf(result: unknown): result is SolidLeaf {
   );
 }
 
+// Format a byte string into a readable size (e.g. "1.2 MB")
 export function formatBytes(bytes: string | undefined): string {
   const byteCount = parseInt(bytes ?? "0", 10);
   if (!byteCount) return "";

@@ -10,7 +10,6 @@ import {
   isSolidLeaf,
 } from '../../src/pod';
 
-// ─── formatBytes ────────────────────────────────────────────────────────────
 
 describe('formatBytes', () => {
   it('returns empty string for undefined', () => {
@@ -44,7 +43,6 @@ describe('formatBytes', () => {
   });
 });
 
-// ─── Type guards ─────────────────────────────────────────────────────────────
 
 describe('isLoadable', () => {
   it('returns true when object has isLoading method', () => {

@@ -12,28 +12,20 @@ import type { LdoJsonldContext, LdSet } from "@ldo/ldo";
 export interface CatalogEntrySh {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
-  type: LdSet<
-    | {
-        "@id": "DigitalDocument";
-      }
-    | {
-        "@id": "ImageFile";
-      }
-    | {
-        "@id": "VideoFile";
-      }
-    | {
-        "@id": "AudioFile";
-      }
-    | {
-        "@id": "TextDocument";
-      }
-  >;
+  type: LdSet<{
+    "@id": string;
+  }>;
   name?: string;
   description?: string;
   encodingFormat?: string;
   contentSize?: string;
   uploadDate: string;
+  publisher: {
+    "@id": string;
+  };
+  conformsTo?: {
+    "@id": string;
+  };
   dateModified?: string;
   isPartOf?: {
     "@id": string;
@@ -41,10 +33,4 @@ export interface CatalogEntrySh {
   sharedWith?: LdSet<{
     "@id": string;
   }>;
-  publisher: {
-    "@id": string;
-  };
-  conformsTo?: {
-    "@id": string;
-  };
 }

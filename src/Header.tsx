@@ -13,6 +13,9 @@ const KNOWN_PROVIDERS = [
 
 const CUSTOM_PROVIDER_VALUE = "custom";
 
+/**
+ * Renders the site header and handles Solid authentication state
+ */
 export const Header: FunctionComponent = () => {
   const { session, login, logout } = useSolidAuth();
   const [selectedProvider, setSelectedProvider] = useState("");
@@ -39,7 +42,7 @@ export const Header: FunctionComponent = () => {
           <p className="auth-webid">
             Logged in as <strong>{displayName}</strong>
           </p>
-          <button className="btn btn-ghost" onClick={logout}>
+          <button className="btn btn--ghost" onClick={logout}>
             Log Out
           </button>
         </div>
@@ -48,10 +51,10 @@ export const Header: FunctionComponent = () => {
           <div className="auth-input-row">
             <div className="auth-field">
               <label className="auth-provider-label">Provider</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div className="auth-provider-row">
                 <select
                   value={selectedProvider}
-                  onChange={(error) => setSelectedProvider(error.target.value)}
+                  onChange={(event) => setSelectedProvider(event.target.value)}
                 >
                   <option value="" disabled>Select a provider</option>
                   {KNOWN_PROVIDERS.map((provider) => (
@@ -62,14 +65,14 @@ export const Header: FunctionComponent = () => {
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(error) => setCustomIssuerUrl(error.target.value)}
+                    onChange={(event) => setCustomIssuerUrl(event.target.value)}
                     placeholder="https://your-provider.example"
                   />
                 )}
               </div>
             </div>
             <button
-              className="btn btn-primary"
+              className="btn btn--primary"
               onClick={() => login(issuerUrl)}
               disabled={!issuerUrl}
             >
