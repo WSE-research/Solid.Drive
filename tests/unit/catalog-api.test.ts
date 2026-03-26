@@ -103,6 +103,7 @@ describe("appendToCatalog", () => {
     await appendToCatalog(
       catalogUri,
       instanceUri,
+      binaryUri,
       classUri,
       "image/jpeg",
       4_500_000,
@@ -204,6 +205,7 @@ describe("appendToCatalog", () => {
 
     const sparql = calls[1].body ?? "";
     expect(sparql).toContain("dcat:Distribution");
+    expect(sparql).toContain(`dcat:accessURL <${binaryUri}>`);
     expect(sparql).toContain('dcat:mediaType "image/jpeg"');
     expect(sparql).toContain("dcat:byteSize 4500000");
   });
@@ -359,15 +361,15 @@ describe("linkCatalogToProfile", () => {
     expect(calls[0].url).toBe("https://pod.example/profile/card");
   });
 
-  it("PATCH uses text/n3 content type", async () => {
+  it("PATCH uses application/sparql-update content type", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
 
-    expect(calls[0].contentType).toBe("text/n3");
+    expect(calls[0].contentType).toBe("application/sparql-update");
   });
 
-  it("patch body contains dcat:catalog pointing to catalog.ttl", async () => {
+  it("INSERT body contains dcat:catalog pointing to catalog.ttl", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
@@ -377,15 +379,13 @@ describe("linkCatalogToProfile", () => {
     expect(body).toContain("https://pod.example/catalog.ttl");
   });
 
-  it("patch uses solid:InsertDeletePatch with solid:inserts (no deletes)", async () => {
+  it("INSERT uses INSERT DATA (not DELETE)", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
 
-    const body = calls[0].body ?? "";
-    expect(body).toContain("solid:InsertDeletePatch");
-    expect(body).toContain("solid:inserts");
-    expect(body).not.toContain("solid:deletes");
+    expect(calls[0].body).toContain("INSERT DATA");
+    expect(calls[0].body).not.toContain("DELETE");
   });
 
   it("throws when PATCH fails", async () => {
