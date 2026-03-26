@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useResource, useSubject } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { PostShShapeType } from "./.ldo/post.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
@@ -10,6 +11,7 @@ type FileCardProps = {
 };
 
 export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => {
+  const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
 
   const metadataResource = useResource(metadataUri);
@@ -17,6 +19,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
   const fileMeta = useSubject(PostShShapeType, metadataUri);
   const { getResource } = useLdo();
 
+  /**
+   * Resolves the URI of the binary file inside the container.
+   * Prefers a live child resource, then falls back to the metadata name or image field.
+   */
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
       const leaf = containerResource.children().find(
@@ -29,6 +35,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
   const binaryResource = useResource(binaryUri);
 
+  /**
+   * Creates a local object URL for image preview if the binary resource is available.
+   * Returns undefined for non-binary or unloaded resources.
+   */
   const previewUrl = useMemo(() => {
     if (isBinary(binaryResource) && binaryResource.isBinary()) {
       return URL.createObjectURL(binaryResource.getBlob());
@@ -38,19 +48,20 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
   const isImageFile = fileMeta?.encodingFormat?.startsWith("image/") ?? false;
 
+  /** Asks the user to confirm, then deletes the entire file container from the pod. */
   const handleDelete = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete this file?")) return;
+    if (!confirm(translate("fileCard.deleteConfirm"))) return;
     const container = getResource(containerUri);
     if (isDeletable(container)) {
       await container.delete();
     }
-  }, [containerUri, getResource]);
+  }, [containerUri, getResource, translate]);
 
   if (isReadable(metadataResource) && metadataResource.isReading()) {
     return (
-      <div className="file-card" style={{ display: "flex", gap: 8, alignItems: "center", color: "var(--text-muted)", fontSize: 13 }}>
-        <div className="spinner" style={{ width: 14, height: 14 }} />
-        Loading…
+      <div className="file-card file-card--loading">
+        <div className="spinner spinner--medium" />
+        {translate("fileCard.loading")}
       </div>
     );
   }
@@ -87,18 +98,17 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri }) => 
 
       <div className="file-card__meta">
         <span className="file-card__date">{uploadedAt}</span>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="file-card__actions">
           {!isImageFile && binaryUri && (
             <a
-              className="btn btn-ghost"
+              className="btn btn--ghost btn--small"
               href={binaryUri}
               download={binaryUri.split("/").pop()}
-              style={{ fontSize: 12, padding: "6px 12px" }}
             >
-              Download
+              {translate("fileCard.download")}
             </a>
           )}
-          <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+          <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
         </div>
       </div>
     </div>

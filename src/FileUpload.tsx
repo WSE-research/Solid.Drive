@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useSolidAuth } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { PostShShapeType } from "./.ldo/post.shapeTypes";
 import { isSolidLeaf } from "./pod";
 import type { ContainerCreationResult } from "./pod";
@@ -11,6 +12,7 @@ type FileUploadProps = {
 };
 
 export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }) => {
+  const [translate] = useTranslation();
   const { session } = useSolidAuth();
   const { createData, commitData } = useLdo();
   const [title, setTitle] = useState("");
@@ -19,6 +21,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Handles form submission: 
+   * creates a named container on the pod, uploads the binary file,
+   * then writes an index.ttl metadata resource with the title, description, and file info.
+   */
   const handleSubmit = useCallback(async (error: React.SyntheticEvent<HTMLFormElement>) => {
     error.preventDefault();
     if (!session.webId || !pendingFile) return;
@@ -65,14 +72,14 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="file-upload__row">
         <label className="file-upload__label" htmlFor="file-upload-input">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Choose file
+          {translate("fileUpload.chooseFile")}
         </label>
         <input
           id="file-upload-input"
@@ -91,24 +98,24 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer }
           <input
             className="file-upload__title"
             type="text"
-            placeholder="Add a title…"
+            placeholder={translate("fileUpload.titlePlaceholder")}
             value={title}
             onChange={(error) => setTitle(error.target.value)}
           />
           <textarea
             className="file-upload__body"
-            placeholder="Add a description (optional)"
+            placeholder={translate("fileUpload.descriptionPlaceholder")}
             value={description}
             onChange={(error) => setDescription(error.target.value)}
             rows={2}
           />
           <div className="file-upload__divider" />
           <div className="file-upload__footer">
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {pendingFile.type || "unknown datatype"} · {(pendingFile.size / 1024).toFixed(1)} KB
+            <span className="file-upload__meta">
+              {pendingFile.type || translate("fileUpload.unknownType")} · {(pendingFile.size / 1024).toFixed(1)} KB
             </span>
-            <button className="btn btn-primary" type="submit" disabled={isUploading}>
-              {isUploading ? "Uploading…" : "Upload"}
+            <button className="btn btn--primary" type="submit" disabled={isUploading}>
+              {isUploading ? translate("fileUpload.uploading") : translate("fileUpload.upload")}
             </button>
           </div>
         </>

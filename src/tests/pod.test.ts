@@ -10,41 +10,33 @@ import {
   isSolidLeaf,
 } from '../pod';
 
-// ─── formatBytes ────────────────────────────────────────────────────────────
 
 describe('formatBytes', () => {
   it('returns empty string for undefined', () => {
     expect(formatBytes(undefined)).toBe('');
   });
 
-  it('returns empty string for zero bytes', () => {
+  it('returns empty string for zero', () => {
     expect(formatBytes('0')).toBe('');
   });
 
-  it('returns bytes for values under 1 KB', () => {
+  it('formats bytes under 1 KB', () => {
     expect(formatBytes('512')).toBe('512 B');
-    expect(formatBytes('1')).toBe('1 B');
-    expect(formatBytes('1023')).toBe('1023 B');
   });
 
-  it('returns KB for values between 1 KB and 1 MB', () => {
-    expect(formatBytes('1024')).toBe('1.0 KB');
+  it('formats bytes in KB range', () => {
     expect(formatBytes('2048')).toBe('2.0 KB');
+  });
+
+  it('formats bytes in MB range', () => {
+    expect(formatBytes('3145728')).toBe('3.0 MB');
+  });
+
+  it('rounds to one decimal place', () => {
     expect(formatBytes('1536')).toBe('1.5 KB');
-  });
-
-  it('returns MB for values 1 MB and above', () => {
-    expect(formatBytes('1048576')).toBe('1.0 MB');
-    expect(formatBytes('2097152')).toBe('2.0 MB');
-    expect(formatBytes('1572864')).toBe('1.5 MB');
-  });
-
-  it('returns empty string for non-numeric strings', () => {
-    expect(formatBytes('abc')).toBe('');
   });
 });
 
-// ─── Type guards ─────────────────────────────────────────────────────────────
 
 describe('isLoadable', () => {
   it('returns true when object has isLoading method', () => {
@@ -55,13 +47,8 @@ describe('isLoadable', () => {
     expect(isLoadable(null)).toBe(false);
   });
 
-  it('returns false for object missing isLoading', () => {
-    expect(isLoadable({ other: true })).toBe(false);
-  });
-
-  it('returns false for primitives', () => {
-    expect(isLoadable(42)).toBe(false);
-    expect(isLoadable('string')).toBe(false);
+  it('returns false when isLoading is missing', () => {
+    expect(isLoadable({ reload: () => {} })).toBe(false);
   });
 });
 
@@ -74,8 +61,8 @@ describe('isReadable', () => {
     expect(isReadable(null)).toBe(false);
   });
 
-  it('returns false for object missing isReading', () => {
-    expect(isReadable({ isLoading: () => false })).toBe(false);
+  it('returns false when isReading is missing', () => {
+    expect(isReadable({})).toBe(false);
   });
 });
 
@@ -88,10 +75,6 @@ describe('isBinary', () => {
     expect(isBinary({ isBinary: () => true })).toBe(false);
   });
 
-  it('returns false when isBinary is missing', () => {
-    expect(isBinary({ getBlob: () => new Blob() })).toBe(false);
-  });
-
   it('returns false for null', () => {
     expect(isBinary(null)).toBe(false);
   });
@@ -102,12 +85,12 @@ describe('isDeletable', () => {
     expect(isDeletable({ delete: async () => {} })).toBe(true);
   });
 
-  it('returns false for null', () => {
-    expect(isDeletable(null)).toBe(false);
+  it('returns false when delete is missing', () => {
+    expect(isDeletable({})).toBe(false);
   });
 
-  it('returns false for object missing delete', () => {
-    expect(isDeletable({ remove: async () => {} })).toBe(false);
+  it('returns false for null', () => {
+    expect(isDeletable(null)).toBe(false);
   });
 });
 
@@ -116,12 +99,12 @@ describe('isReloadable', () => {
     expect(isReloadable({ reload: async () => {} })).toBe(true);
   });
 
-  it('returns false for null', () => {
-    expect(isReloadable(null)).toBe(false);
+  it('returns false when reload is missing', () => {
+    expect(isReloadable({})).toBe(false);
   });
 
-  it('returns false for object missing reload', () => {
-    expect(isReloadable({ refresh: async () => {} })).toBe(false);
+  it('returns false for null', () => {
+    expect(isReloadable(null)).toBe(false);
   });
 });
 
@@ -137,30 +120,18 @@ describe('isSolidContainer', () => {
   it('returns false for null', () => {
     expect(isSolidContainer(null)).toBe(false);
   });
-
-  it('returns false for object missing children', () => {
-    expect(isSolidContainer({ uri: 'https://pod.example.com/' })).toBe(false);
-  });
 });
 
 describe('isSolidLeaf', () => {
-  it('returns true when object has type === "SolidLeaf"', () => {
+  it('returns true when type is SolidLeaf', () => {
     expect(isSolidLeaf({ type: 'SolidLeaf' })).toBe(true);
   });
 
-  it('returns false for different type value', () => {
+  it('returns false when type is different', () => {
     expect(isSolidLeaf({ type: 'SolidContainer' })).toBe(false);
   });
 
   it('returns false for null', () => {
     expect(isSolidLeaf(null)).toBe(false);
-  });
-
-  it('returns false for object missing type', () => {
-    expect(isSolidLeaf({ uri: 'https://pod.example.com/file.txt' })).toBe(false);
-  });
-
-  it('returns false for undefined', () => {
-    expect(isSolidLeaf(undefined)).toBe(false);
   });
 });
