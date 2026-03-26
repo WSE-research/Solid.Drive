@@ -168,6 +168,18 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
+  if (noStorageDetected) {
+    return (
+      <div className="drive-loading">
+        <div className="spinner" />
+        <span>Your Pod storage could not be located. Retrying…</span>
+        <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
+          Retry now
+        </button>
+      </div>
+    );
+  }
+
   if (!currentContainer) {
     return (
       <div className="drive-loading">
