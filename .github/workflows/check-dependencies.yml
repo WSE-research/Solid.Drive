@@ -16,5 +16,6 @@ jobs:
           cache: npm
 
       - run: npm ci
-
+      
       - run: npx depcheck --ignores="@types/*,eslint-*,globals,vitest,@vitejs/*,typescript,typescript-eslint,vite,@ldo/solid,@ldo/connected-solid,buffer,shexj,@vitest/coverage-v8,@testing-library/user-event" --ignore-dirs="dist,node_modules"
+
