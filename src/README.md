@@ -56,13 +56,6 @@ System files (`catalog.ttl`, `robots.txt`, `README`, `.acl`, `.meta`) are filter
 
 Executes the upload sequence (see root README for the full flow). Key implementation details:
 
-<<<<<<< HEAD
-- **TBox validation** — `loadTBox()` is called on mount; the resulting shapes are used by `validateMetadata()` on every form change. The submit button stays disabled until all required fields (`name`, `uploadDate`, `publisher`) are present. `name` maps to the visible title input; `uploadDate` and `publisher` are auto-populated and surface as non-actionable violations if missing.
-- `resolveClass(mimeType)` from `podCatalog.ts` converts the MIME type to a schema.org class URI before the container is created
-- Filenames are sanitized to lowercase alphanumeric + hyphens before upload (`safeFileName`) so NSS does not reject PUT requests for filenames with special characters
-- `profileHasCatalog` (passed from `FileExplorer`) prevents adding a duplicate `dcat:catalog` triple when the user already has one from another app
-- Rollback on failure: if any step after the binary upload throws, the container is deleted via raw `fetch` calls before surfacing the error
-=======
 ```
 resolve schema.org class from MIME type
   → sanitize filename
@@ -74,7 +67,6 @@ resolve schema.org class from MIME type
 ```
 
 Filenames are sanitized to lowercase alphanumeric + hyphens before upload (`safeFileName`) so that NSS does not reject PUT requests for filenames with special characters. If any step after the binary upload fails, the entire container is deleted so no half-written resources are left on the Pod. The `profileHasCatalog` prop prevents overwriting a user's custom catalog pointer with a second `dcat:catalog` triple.
->>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
 
 ### `FileCard.tsx`
 

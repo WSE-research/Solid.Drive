@@ -220,23 +220,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
         <p className="files-section-label">
           {isInAppFolder ? "Your Files" : "Pod Contents"}
         </p>
-<<<<<<< HEAD
         <div>
-=======
-        <div style={{ display: "flex", gap: 8 }}>
-<<<<<<< HEAD
-          {storageRootUri && (
-            <button
-              className="btn btn-ghost"
-              style={{ fontSize: 12, padding: "6px 12px" }}
-              onClick={() => setShowCatalog(true)}
-            >
-              File Catalog
-            </button>
-          )}
->>>>>>> 4ba3623 (feat: represent user identity and social connections using FOAF)
-=======
->>>>>>> 7d296de (fix: remove file catalog button)
           <button
             className="btn btn--ghost btn--small"
             onClick={handleReload}
@@ -284,28 +268,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
               <div key={entry.uri} className="file-entry">
                 <span className="file-entry__name">{fileName}</span>
                 <button
-<<<<<<< HEAD
                   className="btn btn--ghost btn--small"
                   onClick={() => handleDownload(entry, fileName)}
-=======
-                  className="btn btn-ghost"
-                  style={{ fontSize: 12, padding: "6px 12px" }}
-                  onClick={async () => {
-                    try {
-                      const response = await solidFetch(entry.uri);
-                      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-                      const blob = await response.blob();
-                      const blobUrl = URL.createObjectURL(blob);
-                      const anchor = document.createElement("a");
-                      anchor.href = blobUrl;
-                      anchor.download = fileName;
-                      anchor.click();
-                      URL.revokeObjectURL(blobUrl);
-                    } catch (error) {
-                      alert(`Download failed: ${(error as Error).message}`);
-                    }
-                  }}
->>>>>>> 4f52342 (refactor: rename unclear variables)
                 >
                   Download
                 </button>

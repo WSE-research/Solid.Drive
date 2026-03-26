@@ -53,7 +53,6 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-<<<<<<< HEAD
   // Create a blob URL for inline preview; revoke it in cleanup to prevent memory leaks.
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
   useEffect(() => {
@@ -62,15 +61,6 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewUrl(url); // legitimate: synchronizing with the browser blob URL API, not derived from React state
     return () => {
-=======
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
-    const url = URL.createObjectURL(binaryResource.getBlob());
-    const id = setTimeout(() => setPreviewUrl(url), 0);
-    return () => {
-      clearTimeout(id);
->>>>>>> 4f52342 (refactor: rename unclear variables)
       URL.revokeObjectURL(url);
       setPreviewUrl(undefined);
     };
@@ -148,11 +138,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   // Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
   const typeId = (() => {
-<<<<<<< HEAD
     const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find(isKnownType);
-=======
-    const fromType = fileMeta.type?.toArray().map((typeObj: { "@id": string }) => typeObj["@id"]).find((typeId: string) => typeId in FILE_TYPES);
->>>>>>> 4f52342 (refactor: rename unclear variables)
     if (fromType) return fromType;
     const mimeType = fileMeta.encodingFormat ?? "";
     return mimeType ? resolveClass(mimeType) : "http://schema.org/DigitalDocument";
@@ -205,14 +191,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         <span className="file-card__date">{uploadedAt}</span>
         <div className="file-card__actions">
           <button
-<<<<<<< HEAD
             className="btn btn--ghost btn--small"
             onClick={() => setShowInfo((currentValue) => !currentValue)}
-=======
-            className="btn btn-ghost"
-            onClick={() => setShowInfo((isCurrentlyShown) => !isCurrentlyShown)}
-            style={{ fontSize: 12, padding: "6px 12px" }}
->>>>>>> 4f52342 (refactor: rename unclear variables)
           >
             {showInfo ? "Hide Info" : "Info"}
           </button>
