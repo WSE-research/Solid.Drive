@@ -52,14 +52,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   }, [session.webId]);
 
   useEffect(() => {
-    initialized.current = false;
-    setAppContainerUri(undefined);
-    setStorageRootUri("");
-    setCurrentUri(undefined);
-    setBreadcrumbs([]);
-  }, [session.webId]);
-
-  useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
 

@@ -12,6 +12,7 @@ type FileUploadProps = {
   mainContainer: SolidContainer;
   catalogUri: string;
   profileHasCatalog: boolean;
+  onUploadSuccess?: () => void;
 };
 
 /**
@@ -25,7 +26,7 @@ type FileUploadProps = {
  * Validation is TBox-driven: shapes are loaded from tbox.ttl (sourced from
  * datashapes.org). Required fields are enforced; missing fields prompt the user.
  */
-export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog }) => {
+export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog, onUploadSuccess }) => {
   const { session, fetch: solidFetch } = useSolidAuth();
   const { createData, commitData } = useLdo();
   const [title, setTitle] = useState("");
@@ -171,6 +172,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         await appendToCatalog(
           catalogUri,
           indexResource.uri,
+          binaryUri,
           classUri,
           pendingFile.type,
           pendingFile.size,
@@ -203,7 +205,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     } finally {
       setIsUploading(false);
     }
-  }, [mainContainer, catalogUri, profileHasCatalog, session, solidFetch, pendingFile, title, description, createData, commitData, validation]);
+  }, [mainContainer, catalogUri, profileHasCatalog, onUploadSuccess, session, solidFetch, pendingFile, title, description, createData, commitData, validation]);
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
