@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "./pod";
 
@@ -14,6 +15,7 @@ const KNOWN_PROVIDERS = [
 const CUSTOM_PROVIDER_VALUE = "custom";
 
 export const Header: FunctionComponent = () => {
+  const [t] = useTranslation();
   const { session, login, logout } = useSolidAuth();
   const [selectedProvider, setSelectedProvider] = useState("");
   const [customIssuerUrl, setCustomIssuerUrl] = useState("");
@@ -40,7 +42,7 @@ export const Header: FunctionComponent = () => {
             Logged in as <strong>{displayName}</strong>
           </p>
           <button className="btn btn-ghost" onClick={logout}>
-            Log Out
+            {t('header.logOut')}
           </button>
         </div>
       ) : (
@@ -73,7 +75,7 @@ export const Header: FunctionComponent = () => {
               onClick={() => login(issuerUrl)}
               disabled={!issuerUrl}
             >
-              Log In
+              {t('header.logIn')}
             </button>
           </div>
           <span className="auth-signup">
