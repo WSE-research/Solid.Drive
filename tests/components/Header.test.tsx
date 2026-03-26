@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string) => key],
 }));
 
-vi.mock('../LanguageSwitcher', () => ({
+vi.mock('../../src/LanguageSwitcher', () => ({
   LanguageSwitcher: () => null,
 }));
 
