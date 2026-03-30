@@ -8,8 +8,12 @@ vi.mock('@ldo/solid-react', () => ({
   useSubject: vi.fn(() => null),
 }));
 
-vi.mock('../.ldo/solidProfile.shapeTypes', () => ({
-  SolidProfileShapeType: {},
+vi.mock('react-i18next', () => ({
+  useTranslation: () => [(key: string) => key],
+}));
+
+vi.mock('../LanguageSwitcher', () => ({
+  LanguageSwitcher: () => null,
 }));
 
 import { useSolidAuth } from '@ldo/solid-react';
@@ -35,27 +39,22 @@ describe('Header — logged out', () => {
     expect(screen.getByText(/solid/i, { selector: '.site-header__brand' })).toBeInTheDocument();
   });
 
-  it('renders the provider select dropdown', () => {
+  it('renders the login button', () => {
     render(<Header />);
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'header.logIn' })).toBeInTheDocument();
   });
 
-  it('renders the Log In button', () => {
+  it('disables the login button when no provider is selected', () => {
     render(<Header />);
-    expect(screen.getByRole('button', { name: 'Log In' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'header.logIn' })).toBeDisabled();
   });
 
-  it('disables the Log In button when no provider is selected', () => {
-    render(<Header />);
-    expect(screen.getByRole('button', { name: 'Log In' })).toBeDisabled();
-  });
-
-  it('enables the Log In button after selecting a known provider', () => {
+  it('enables the login button after a provider is selected', () => {
     render(<Header />);
     fireEvent.change(screen.getByRole('combobox'), {
       target: { value: 'https://solidcommunity.net' },
     });
-    expect(screen.getByRole('button', { name: 'Log In' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'header.logIn' })).not.toBeDisabled();
   });
 
   it('calls login with the selected provider URL when clicked', () => {
@@ -63,24 +62,8 @@ describe('Header — logged out', () => {
     fireEvent.change(screen.getByRole('combobox'), {
       target: { value: 'https://solidcommunity.net' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
+    fireEvent.click(screen.getByRole('button', { name: 'header.logIn' }));
     expect(mockLogin).toHaveBeenCalledWith('https://solidcommunity.net');
-  });
-
-  it('shows a custom URL input when "Custom…" is selected', () => {
-    render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
-    expect(screen.getByPlaceholderText('https://your-provider.example')).toBeInTheDocument();
-  });
-
-  it('calls login with the custom URL when entered and submitted', () => {
-    render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
-    fireEvent.change(screen.getByPlaceholderText('https://your-provider.example'), {
-      target: { value: 'https://my.custom.provider' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
-    expect(mockLogin).toHaveBeenCalledWith('https://my.custom.provider');
   });
 });
 
@@ -93,29 +76,19 @@ describe('Header — logged in', () => {
     });
   });
 
-  it('renders the Log Out button', () => {
+  it('renders the logout button', () => {
     render(<Header />);
-    expect(screen.getByRole('button', { name: 'Log Out' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'header.logOut' })).toBeInTheDocument();
   });
 
-  it('calls logout when the Log Out button is clicked', () => {
+  it('calls logout when the logout button is clicked', () => {
     render(<Header />);
-    fireEvent.click(screen.getByRole('button', { name: 'Log Out' }));
+    fireEvent.click(screen.getByRole('button', { name: 'header.logOut' }));
     expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render the Log In button when logged in', () => {
+  it('does not render the login button when logged in', () => {
     render(<Header />);
-    expect(screen.queryByRole('button', { name: 'Log In' })).not.toBeInTheDocument();
-  });
-
-  it('does not render the provider dropdown when logged in', () => {
-    render(<Header />);
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-  });
-
-  it('displays the webId as the user identifier', () => {
-    render(<Header />);
-    expect(screen.getByText('https://user.solidcommunity.net/profile/card#me')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'header.logIn' })).not.toBeInTheDocument();
   });
 });

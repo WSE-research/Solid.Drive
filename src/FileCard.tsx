@@ -15,7 +15,7 @@ type FileCardProps = {
 };
 
 /**
- * Displays a file based on metadata from index.ttl 
+ * Displays a file based on metadata from index.ttl
  * Renders a preview when possible
  * Provides options to download or delete the file
  */
@@ -58,8 +58,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   useEffect(() => {
     if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
     const url = URL.createObjectURL(binaryResource.getBlob());
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPreviewUrl(url); // legitimate: synchronizing with the browser blob URL API, not derived from React state
+    setPreviewUrl(url);
     return () => {
       URL.revokeObjectURL(url);
       setPreviewUrl(undefined);
@@ -193,9 +192,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
             {showInfo ? "Hide Info" : "Info"}
           </button>
           <button
-            className="btn btn-ghost"
+            className="btn btn--ghost btn--small"
             onClick={() => setShowShare((isVisible) => !isVisible)}
-            style={{ fontSize: 12, padding: "6px 12px" }}
           >
             {showShare ? "Hide Share" : "Share"}
           </button>

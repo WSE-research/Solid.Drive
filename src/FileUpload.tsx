@@ -77,7 +77,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   const titleViolation = validation?.violations.find(
     (violation) => violation.localName === "name"
   );
-  // Violations the user can't fix in this form 
+  // Violations the user can't fix in this form
   const autoViolations = validation?.violations.filter(
     (violation) => violation.localName !== "name"
   ) ?? [];

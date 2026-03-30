@@ -27,7 +27,7 @@ Wraps the tree in `BrowserSolidLdoProvider`. Required — without it no componen
 
 ### `Header.tsx`
 
-Login/logout bar. Presents a provider dropdown (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, custom URL) with registration links per provider. When logged in, resolves and displays the user's name from their Solid profile (`vcard:fn` → `foaf:name` → WebID fallback).
+Login/logout bar. Presents a provider dropdown (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, custom URL) with registration links per provider. When logged in, resolves and displays the user's name from their Solid profile (`vcard:fn` → `foaf:name` → WebID fallback). Supports i18n via `react-i18next`.
 
 ### `ProfileSidebar.tsx`
 
@@ -62,6 +62,8 @@ Displays one uploaded file. It reads `index.ttl` with `useSubject` to get the me
 
 The **Info panel** (toggled with a button) shows: type, title, description, format, size, upload date, last modified date, publisher name, and `isPartOf` URI.
 
+The **Share panel** (toggled with a button) provides WAC-based file sharing with contacts from the user's FOAF graph.
+
 **Delete** calls `removeFromCatalog` first (removes the DCAT entry), then deletes the container (which removes the binary and `index.ttl`).
 
 ### `FolderEntry.tsx`
@@ -86,15 +88,13 @@ Opens as a modal, fetches `catalog.ttl` fresh on each open, and shows the 2 most
 
 All catalog and file-type logic. No direct LDO usage — communicates with the Pod via raw `fetch`.
 
-## `foaf.ts`
-
-Isolated write layer for FOAF profile edits. Keeping patch logic here rather than inside the component means there is one place to change if the server changes or if you want to extend what the app writes to the profile.
-
-`saveProfileFields` replaces `foaf:name` and `foaf:img` in a single PATCH — combining both fields into one request avoids a window where another client could read the profile between two separate writes. `ensureProfileDocType` adds the `foaf:PersonalProfileDocument` and `foaf:primaryTopic` declarations on first edit; NSS-created profiles sometimes omit them, and some Solid clients require these types to recognise the document as a profile.
-
 - **`resolveClass(mimeType)`** — maps a MIME type to a schema.org class URI. Spreadsheet types are matched before the generic `text/*` wildcard to avoid misclassification.
 
 - **`friendlyLabel(uriOrId)`** — accepts a full schema.org URI or local ID (e.g. `ImageObject`) and returns the display label (e.g. `Photo/Image`).
+
+- **`friendlyTypeInfo(uriOrId)`** — returns both the label and description for a file type.
+
+- **`isKnownType(uriOrId)`** — returns whether the given type is one the app recognizes.
 
 - **`appendToCatalog(catalogUri, ...)`** — creates `catalog.ttl` with a SPARQL `PUT` if it doesn't exist, then `PATCH`es it with `INSERT DATA` to add a `dcat:Dataset` node and a linked `dcat:Distribution` (access URL, media type, byte size).
 
@@ -104,7 +104,13 @@ Isolated write layer for FOAF profile edits. Keeping patch logic here rather tha
 
 - **`parseCatalog(turtleText)`** — parses a `catalog.ttl` Turtle string into `CatalogEntry` objects. Used in tests and tooling.
 
-- **`friendlyLabel(uriOrId)`** — converts a TBox class URI into a readable class label (e.g., `ImageFile` → `Photo/Image`).
+---
+
+## `foaf.ts`
+
+Isolated write layer for FOAF profile edits. Keeping patch logic here rather than inside the component means there is one place to change if the server changes or if you want to extend what the app writes to the profile.
+
+`saveProfileFields` replaces `foaf:name` and `foaf:img` in a single PATCH — combining both fields into one request avoids a window where another client could read the profile between two separate writes. `ensureProfileDocType` adds the `foaf:PersonalProfileDocument` and `foaf:primaryTopic` declarations on first edit; NSS-created profiles sometimes omit them, and some Solid clients require these types to recognise the document as a profile.
 
 ---
 

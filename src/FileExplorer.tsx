@@ -170,7 +170,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
-
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
   const isInAppFolder = currentUri === appContainerUri;

@@ -2,17 +2,19 @@
 
 A file manager built on the [Solid Protocol](https://solidproject.org/). Every file is stored directly in the user's own Solid Pod — the server never holds a copy.
 
+Each uploaded file is assigned a semantic class drawn from the [schema.org](https://schema.org/) vocabulary (Image, Video, Audio, Document, Spreadsheet, or general File). This makes the data discoverable and consumable by other Solid-compatible applications without requiring access to this app.
+
 <details>
 <summary>Architecture diagram</summary>
 
 ![Architecture diagram](docs/architecture.svg)
 
+</details>
+
 Regenerate with:
 ```bash
 java -jar plantuml.jar -tsvg docs/architecture.puml
 ```
-
-</details>
 
 ## How it works
 
@@ -71,6 +73,8 @@ MIME types are mapped to [schema.org](https://schema.org/) classes so files are 
 - **Catalog management** — `catalog.ttl` updated on every upload and delete via SPARQL PATCH; the full file list is always queryable without scanning Pod containers
 - **Delete** — removes catalog entry, binary, `index.ttl`, and container in the correct order; no orphaned resources
 - **File adoption** — containers without `index.ttl` (pre-existing Pod files) render a fallback card with folder name and download button
+- **WAC-based file sharing** — share files with contacts via Web Access Control; ACL discovery and agent management integrated into the file card UI
+- **Social contacts** — FOAF-based contact graph (`foaf:knows`) for sharing files with known contacts
 
 ## Known Issues
 
