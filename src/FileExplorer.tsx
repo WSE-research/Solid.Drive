@@ -4,6 +4,7 @@ import { FileUpload } from "./FileUpload";
 import { FolderEntry } from "./FolderEntry";
 import { FileCard } from "./FileCard";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isLoadable, isReloadable } from "./pod";
 import { resolveCatalogUri } from "./useCatalogUri";
@@ -18,8 +19,6 @@ interface FileExplorerProps {
 
 const APP_CONTAINER_PATH = "my-solid-app/";
 const DEFAULT_STORAGE_RETRY_DELAY_MS = 10_000;
-
-// System files that are filtered out of the user-facing file list
 const SYSTEM_FILES = new Set(["catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
 
 /**
@@ -29,11 +28,12 @@ const SYSTEM_FILES = new Set(["catalog.ttl", "robots.txt", "README", ".acl", ".m
 export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   storageRetryDelayMs = DEFAULT_STORAGE_RETRY_DELAY_MS,
 }) => {
+  const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
+  const webIdResource = useResource(session.webId);
   const { getResource } = useLdo();
   const initialized = useRef(false);
-  const webIdResource = useResource(session.webId);
   const [appContainerUri, setAppContainerUri] = useState<SolidContainerUri>();
   const [storageRootUri, setStorageRootUri] = useState<string | undefined>();
   const [currentUri, setCurrentUri] = useState<SolidContainerUri>();
@@ -41,22 +41,15 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [isReloading, setIsReloading] = useState(false);
   const [noStorageDetected, setNoStorageDetected] = useState(false);
 
-// On first load, resolve the Pod root, app container, and initial breadcrumb state.
-// Re-runs via retryTick when the profile loads after the first render.
-  useEffect(() => {
-    initialized.current = false;
-    setAppContainerUri(undefined);
-    setStorageRootUri("");
-    setCurrentUri(undefined);
-    setBreadcrumbs([]);
-  }, [session.webId]);
-
+  /**
+   * Sets up the user's storage root, app folder, and initial navigation state on first load.
+   * Runs again if the WebID profile is reloaded and the storage location changes.
+   */
   useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
 
     if (!storageRootId) {
-      // Only flag an error once the profile document has actually finished loading
       if (isLoadable(webIdResource) && !webIdResource.isLoading()) {
         setNoStorageDetected(true);
       }
@@ -70,7 +63,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     setCurrentUri(storageRoot);
     setAppContainerUri(appUri);
     setStorageRootUri(storageRoot);
-    setBreadcrumbs([{ label: "My Pod", uri: storageRoot }]);
+    setBreadcrumbs([{ label: translate("fileExplorer.myPod"), uri: storageRoot }]);
     initialized.current = true;
 
     void (async () => {
@@ -79,25 +72,25 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
         await (appContainerRes as SolidContainer).createIfAbsent();
       }
     })();
-  }, [profile, webIdResource, getResource]);
+  }, [profile, webIdResource, getResource, translate]);
 
   const currentContainer = useResource(currentUri);
   const appContainer = useResource(appContainerUri);
 
-// Navigate into a folder and add it to breadcrumbs with a readable label
+  /** Navigates into a subfolder and appends it to the breadcrumb trail. */
   const handleNavigate = useCallback((uri: string) => {
     const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
     setBreadcrumbs((prev) => [...prev, { label, uri: uri as SolidContainerUri }]);
     setCurrentUri(uri as SolidContainerUri);
   }, []);
 
-// Jump to a breadcrumb and trim the trail to keep navigation in sync
+  /** Navigates back to a breadcrumb at the given index and trims the trail to that point. */
   const handleBreadcrumbClick = useCallback((index: number, uri: SolidContainerUri) => {
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
     setCurrentUri(uri);
   }, []);
 
-// Download a file via the session and trigger a browser save, then release the blob URL
+  /** Downloads a file via the session and triggers a browser save, then releases the blob URL. */
   const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {
     try {
       const response = await solidFetch(entry.uri);
@@ -114,7 +107,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     }
   }, [solidFetch]);
 
-// Refresh the current folder from the pod and show a loading state while it runs
+  /** Reloads the current folder from the pod to reflect the latest contents. */
   const handleReload = useCallback(async () => {
     if (!currentContainer || !isReloadable(currentContainer)) return;
     setIsReloading(true);
@@ -125,7 +118,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     }
   }, [currentContainer]);
 
-// Reload the WebID profile document and retry storage root discovery
+  /** Reloads the WebID profile document and retries storage root discovery. */
   const handleRetryStorage = useCallback(async () => {
     if (!isReloadable(webIdResource)) return;
     setNoStorageDetected(false);
@@ -133,7 +126,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     await webIdResource.reload();
   }, [webIdResource]);
 
-// Automatically retry storage discovery after a delay when no storage root was found
   useEffect(() => {
     if (!noStorageDetected) return;
     const timer = setTimeout(handleRetryStorage, storageRetryDelayMs);
@@ -143,19 +135,19 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   if (!session.isLoggedIn) {
     return (
       <div className="drive-gate">
-        <div className="empty-state__icon">✦</div>
-        <p>Please log in to access your drive.</p>
+        <div className="drive-gate__icon">✦</div>
+        <p>{translate("fileExplorer.loginPrompt")}</p>
       </div>
     );
   }
 
   if (noStorageDetected) {
     return (
-      <div className="drive-loading">
-        <div className="spinner" />
-        <span>Your Pod storage could not be located. Retrying…</span>
+      <div className="drive-error">
+        <div className="drive-error__icon">⚠</div>
+        <p>{translate("fileExplorer.noStorageFound")}</p>
         <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
-          Retry now
+          {translate("fileExplorer.retry")}
         </button>
       </div>
     );
@@ -165,7 +157,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     return (
       <div className="drive-loading">
         <div className="spinner" />
-        <span>Connecting to your Pod…</span>
+        <span>{translate("fileExplorer.connecting")}</span>
       </div>
     );
   }
@@ -177,7 +169,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     ? currentContainer.children()
     : [];
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
-// Only show normal leaf files here
   const leafEntries = (entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[])
     .filter((entry) => {
       const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? "");
@@ -209,37 +200,35 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
       <div className="files-section-header">
         <p className="files-section-label">
-          {isInAppFolder ? "Your Files" : "Pod Contents"}
+          {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
         </p>
-        <div>
-          <button
-            className="btn btn--ghost btn--small"
-            onClick={handleReload}
-            disabled={isReloading}
-          >
-            {isReloading ? (
-              <>
-                <div className="spinner spinner--small" />
-                Reloading…
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="23 4 23 10 17 10" />
-                  <polyline points="1 20 1 14 7 14" />
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                </svg>
-                Refresh
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          className="btn btn--ghost btn--small"
+          onClick={handleReload}
+          disabled={isReloading}
+        >
+          {isReloading ? (
+            <>
+              <div className="spinner spinner--small" />
+              {translate("fileExplorer.reloading")}
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+              {translate("fileExplorer.refresh")}
+            </>
+          )}
+        </button>
       </div>
 
       {entries.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state__icon">◌</div>
-          <p>{isInAppFolder ? "You pod is currently empty. Please upload your first one above." : "This folder is empty."}</p>
+          <p>{isInAppFolder ? translate("fileExplorer.noFilesYet") : translate("fileExplorer.emptyFolder")}</p>
         </div>
       ) : (
         <>
@@ -262,7 +251,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
                   className="btn btn--ghost btn--small"
                   onClick={() => handleDownload(entry, fileName)}
                 >
-                  Download
+                  {translate("fileExplorer.download")}
                 </button>
               </div>
             );

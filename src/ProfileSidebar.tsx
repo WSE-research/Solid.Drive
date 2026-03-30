@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import type { FunctionComponent } from "react";
 import { useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isLoadable, isReloadable } from "./pod";
 import { ensureProfileDocType, saveProfileFields, type ProfileFields } from "./foaf";
-
-
 
 const ProfileInput: FunctionComponent<{
   label: string;
@@ -14,14 +13,11 @@ const ProfileInput: FunctionComponent<{
   disabled?: boolean;
   placeholder?: string;
 }> = ({ label, value, onChange, disabled, placeholder }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-    <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-      {label}
-    </label>
+  <div className="profile-input">
+    <label className="profile-input__label">{label}</label>
     <input
       type="text"
-      className="file-upload__title"
-      style={{ fontSize: 13, padding: "6px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}
+      className="profile-input__field"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
@@ -33,6 +29,7 @@ const ProfileInput: FunctionComponent<{
 // ─── ProfileCard ─────────────────────────────────────────────────────────────
 
 const ProfileCard: FunctionComponent = () => {
+  const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
   const webIdResource = useResource(session.webId);
   const profile = useSubject(SolidProfileShapeType, session.webId);
@@ -99,11 +96,11 @@ const ProfileCard: FunctionComponent = () => {
   };
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div className="profile-card">
       {/* Avatar + name row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      <div className="profile-card__header">
         {editing ? (
-          <label style={{ cursor: "pointer", position: "relative", flexShrink: 0, width: 48, height: 48, display: "block" }}>
+          <label className="avatar avatar--upload">
             <input
               type="file"
               accept="image/*"
@@ -112,14 +109,14 @@ const ProfileCard: FunctionComponent = () => {
               onChange={(event) => { const selectedFile = event.target.files?.[0]; if (selectedFile) handleAvatarUpload(selectedFile); }}
             />
             {avatarUrl ? (
-              <img src={avatarUrl} alt={displayName || "avatar"} width={48} height={48} style={{ borderRadius: "50%", objectFit: "cover", display: "block" }} />
+              <img src={avatarUrl} alt={displayName || "avatar"} className="avatar" />
             ) : (
-              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 600 }}>
-                {uploadingAvatar ? <div className="spinner" style={{ width: 18, height: 18 }} /> : firstLetter}
+              <div className="avatar avatar--placeholder">
+                {uploadingAvatar ? <div className="spinner" /> : firstLetter}
               </div>
             )}
             {!uploadingAvatar && (
-              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div className="avatar--overlay">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                   <circle cx="12" cy="13" r="4"/>
@@ -128,43 +125,40 @@ const ProfileCard: FunctionComponent = () => {
             )}
           </label>
         ) : avatarUrl ? (
-          <img src={avatarUrl} alt={displayName || "avatar"} width={48} height={48} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+          <img src={avatarUrl} alt={displayName || "avatar"} className="avatar" />
         ) : (
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 600, flexShrink: 0 }}>
-            {isLoading ? <div className="spinner" style={{ width: 18, height: 18 }} /> : firstLetter}
+          <div className="avatar avatar--placeholder">
+            {isLoading ? <div className="spinner" /> : firstLetter}
           </div>
         )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {isLoading ? "Loading…" : (displayName || <span style={{ color: "var(--text-muted)" }}>Name not set</span>)}
+        <div className="profile-card__info">
+          <p className="profile-card__name">
+            {isLoading ? translate("profileSidebar.loading") : (displayName || <span className="profile-card__muted">{translate("profileSidebar.nameNotSet")}</span>)}
           </p>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p className="profile-card__webid">
             {session.webId}
           </p>
         </div>
       </div>
 
-
       {/* Edit form */}
       {editing && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-          <ProfileInput label="Name" value={name} onChange={setName} disabled={saving} />
-          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+        <div className="profile-card__edit">
+          <ProfileInput label={translate("profileSidebar.name")} value={name} onChange={setName} disabled={saving} />
+          <div className="profile-card__actions">
             <button
-              className="btn btn-primary"
-              style={{ fontSize: 12, padding: "6px 14px" }}
+              className="btn btn--primary btn--small"
               onClick={handleSave}
               disabled={saving}
             >
-              {saving ? "Saving…" : "Save"}
+              {saving ? translate("profileSidebar.saving") : translate("profileSidebar.save")}
             </button>
             <button
-              className="btn btn-ghost"
-              style={{ fontSize: 12, padding: "6px 14px" }}
+              className="btn btn--ghost btn--small"
               onClick={() => setEditing(false)}
               disabled={saving}
             >
-              Cancel
+              {translate("profileSidebar.cancel")}
             </button>
           </div>
         </div>
@@ -172,11 +166,10 @@ const ProfileCard: FunctionComponent = () => {
 
       {!editing && (
         <button
-          className="btn btn-ghost"
-          style={{ fontSize: 12, padding: "6px 14px", width: "100%" }}
+          className="btn btn--ghost btn--small profile-card__edit-btn"
           onClick={handleEditStart}
         >
-          Edit profile
+          {translate("profileSidebar.editProfile")}
         </button>
       )}
     </div>
@@ -185,6 +178,7 @@ const ProfileCard: FunctionComponent = () => {
 
 
 const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = ({ webId, onRemove }) => {
+  const [translate] = useTranslation();
   const contactResource = useResource(webId.split("#")[0]);
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
@@ -195,26 +189,27 @@ const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = (
   const firstLetter = displayName.slice(0, 1).toUpperCase() || "?";
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+    <div className="contact-row">
       {avatarUrl ? (
-        <img src={avatarUrl} alt={displayName} width={28} height={28} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+        <img src={avatarUrl} alt={displayName} className="avatar avatar--sm" />
       ) : (
-        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>
-          {isLoading ? <div className="spinner" style={{ width: 12, height: 12 }} /> : firstLetter}
+        <div className="avatar avatar--sm avatar--placeholder">
+          {isLoading ? <div className="spinner" /> : firstLetter}
         </div>
       )}
-      <span style={{ flex: 1, fontSize: 13, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {isLoading ? "Loading…" : (displayName.length > 30 ? displayName.slice(0, 30) + "…" : displayName)}
+      <span className="contact-row__name">
+        {isLoading ? translate("profileSidebar.loading") : (displayName.length > 30 ? displayName.slice(0, 30) + "…" : displayName)}
       </span>
-      <button className="btn btn-danger" style={{ fontSize: 11, padding: "3px 8px" }} onClick={onRemove}>
-        Remove
+      <button className="btn btn--delete btn--small" onClick={onRemove}>
+        {translate("profileSidebar.remove")}
       </button>
     </div>
   );
 };
- 
+
 
 const ContactsList: FunctionComponent = () => {
+  const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
   const webIdResource = useResource(session.webId);
   const profile = useSubject(SolidProfileShapeType, session.webId);
@@ -282,33 +277,31 @@ const ContactsList: FunctionComponent = () => {
 
   return (
     <div>
-      <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
-        Contacts
+      <p className="contacts__heading">
+        {translate("profileSidebar.contacts")}
       </p>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+      <div className="contacts__input-row">
         <input
           type="text"
-          className="file-upload__title"
-          placeholder="WebID https://…"
+          className="contacts__input"
+          placeholder={translate("profileSidebar.webIdPlaceholder")}
           value={newWebId}
           onChange={(event) => setNewWebId(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter") handleAdd(); }}
           disabled={isAdding}
-          style={{ flex: 1, fontSize: 12, padding: "6px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}
         />
         <button
-          className="btn btn-primary"
-          style={{ fontSize: 12, padding: "6px 12px" }}
+          className="btn btn--primary btn--small"
           onClick={handleAdd}
           disabled={isAdding || !newWebId.trim()}
         >
-          {isAdding ? "…" : "Add"}
+          {isAdding ? "…" : translate("profileSidebar.add")}
         </button>
       </div>
 
       {contacts.length === 0 ? (
-        <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", padding: "8px 0" }}>No contacts yet.</p>
+        <p className="contacts__placeholder">{translate("profileSidebar.noContacts")}</p>
       ) : (
         contacts.map((contactWebId) => (
           <ContactRow key={contactWebId} webId={contactWebId} onRemove={() => handleRemove(contactWebId)} />
@@ -321,9 +314,9 @@ const ContactsList: FunctionComponent = () => {
 // profile sidebar component
 export const ProfileSidebar: FunctionComponent = () => (
   <aside className="profile-sidebar">
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "16px" }}>
+    <div className="profile-sidebar__card">
       <ProfileCard />
-      <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "16px 0" }} />
+      <hr className="profile-sidebar__divider" />
       <ContactsList />
     </div>
   </aside>

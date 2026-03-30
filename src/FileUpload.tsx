@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useSolidAuth } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { isSolidLeaf } from "./pod";
 import { resolveClass, appendToCatalog, linkCatalogToProfile } from "./podCatalog";
@@ -27,6 +28,7 @@ type FileUploadProps = {
  * datashapes.org). Required fields are enforced; missing fields prompt the user.
  */
 export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog, onUploadSuccess }) => {
+  const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
   const { createData, commitData } = useLdo();
   const [title, setTitle] = useState("");
@@ -68,39 +70,23 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       contentSize: pendingFile.size.toString(),
       uploadDate: new Date().toISOString(),
       publisher: { "@id": session.webId ?? "" },
-      type: [{ "@id": typeLocalName }], // cosmetic — not used by SHACL validation (classUri is used for shape lookup)
+      type: [{ "@id": typeLocalName }],
     };
     setValidation(validateMetadata(snapshot, classUri, tbox.shapes, tbox.parents));
   }, [tbox, pendingFile, title, description, session.webId]);
 
-  // Map violations to the fields the user can fix in this form
   const titleViolation = validation?.violations.find(
     (violation) => violation.localName === "name"
   );
-  // Violations the user can't fix in this form
   const autoViolations = validation?.violations.filter(
     (violation) => violation.localName !== "name"
   ) ?? [];
   const canUpload = !validation || validation.valid;
 
-  /**
-   * Upload pipeline:
-   *   1. Resolve schema.org class from MIME type.
-   *   2. Create a container named after the file (slugified).
-   *   3. Upload the binary into that container.
-   *   4. Write LDO metadata to index.ttl.
-   *   5. Append a DCAT catalog entry via SPARQL PATCH.
-   *   6. Link the catalog to the profile on first upload.
-   *
-   * On binary upload failure (step 3) deletes the container.
-   * On catalog failure (step 5) deletes the container, binary, and index.ttl.
-   * Step 4 (commitData) does not roll back.
-   */
   const handleSubmit = useCallback(async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!session.webId || !pendingFile) return;
 
-    // TBox validation gate — block upload if required fields are missing
     if (validation && !validation.valid) return;
 
     setIsUploading(true);
@@ -109,21 +95,14 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     try {
       const classUri = resolveClass(pendingFile.type);
 
-      // Use a safe folder name so the container URI is predictable
       containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
-      const fileExtension = pendingFile.name.includes(".") ? pendingFile.name.split(".").pop()! : "";
-      const safeFileName = fileExtension
-        ? `${containerSlug.replace(/\.[^.]+$/, "")}.${fileExtension}`
-        : containerSlug;
       const containerUri = `${containerSlug}/` as SolidContainerUri;
-      // Create a container per file (binary and index.ttl live together)
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
       if (containerResult.isError) return alert(containerResult.message);
       const fileContainer = containerResult.resource;
 
-      // Upload the file with its MIME type so it is stored and served correctly.
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
-        safeFileName,
+        pendingFile.name,
         pendingFile,
         pendingFile.type
       );
@@ -133,10 +112,9 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         alert(uploadResult.message);
         return;
       }
-      // index.ttl must exist to store RDF metadata
       const indexResource = fileContainer.child("index.ttl");
       if (!isSolidLeaf(indexResource)) {
-        const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
+        const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
         await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
         await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
         alert("Could not create metadata resource.");
@@ -144,7 +122,6 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       }
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
-      // Extract schema type from full URI and add to metadata
       const typeLocalName = (classUri.split(/[#/]/).pop() ?? "DigitalDocument") as
         "DigitalDocument" | "ImageObject" | "VideoObject" | "AudioObject" | "TextDigitalDocument" | "SpreadsheetDigitalDocument";
 
@@ -156,17 +133,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       metadata.publisher = { "@id": session.webId };
       if (description.trim()) metadata.description = description.trim();
 
-      // Persist metadata to index.ttl
       const commitResult = await commitData(metadata);
-      if (commitResult.isError) {
-        const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
-        await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
-        await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
-        alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
-        return;
-      }
+      if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
-      const binaryUri = `${mainContainer.uri}${containerSlug}/${safeFileName}`;
+      const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
 
       try {
         await appendToCatalog(
@@ -189,7 +159,6 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         alert(`Upload failed: catalog could not be updated. ${(catalogErr as Error).message}`);
         return;
       }
-      // Link catalog once so future reads can discover it from the profile
       if (!profileHasCatalog) {
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
@@ -210,7 +179,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
       {tboxError && (
-        <p className="file-upload__validation-error">TBox could not be loaded: {tboxError}</p>
+        <p className="file-upload__validation-error">{translate("fileUpload.tboxError")} {tboxError}</p>
       )}
       <div className="file-upload__row">
         <label className="file-upload__label" htmlFor="file-upload-input">
@@ -219,7 +188,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Choose file
+          {translate("fileUpload.chooseFile")}
         </label>
         <input
           id="file-upload-input"
@@ -236,20 +205,20 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         <>
           <div className="file-upload__divider" />
           <label className="file-upload__field-label" htmlFor="file-upload-title">
-            Title {titleViolation && <span className="file-upload__field-error">— {titleViolation.label} is required</span>}
+            {translate("fileUpload.title")} {titleViolation && <span className="file-upload__field-error">{translate("fileUpload.fieldRequired", { label: titleViolation.label })}</span>}
           </label>
           <input
             id="file-upload-title"
             className={`file-upload__title${titleViolation ? " file-upload__title--error" : ""}`}
             type="text"
-            placeholder="Add a title…"
+            placeholder={translate("fileUpload.titlePlaceholder")}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             required
           />
           <textarea
             className="file-upload__body"
-            placeholder="Add a description (optional)"
+            placeholder={translate("fileUpload.descriptionPlaceholder")}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             rows={2}
@@ -258,7 +227,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
           {autoViolations.length > 0 && (
             <div className="file-upload__validation-errors">
-              <p className="file-upload__validation-heading">Missing required fields:</p>
+              <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
               {autoViolations.map((v) => (
                 <p key={v.path} className="file-upload__validation-item">
                   <strong>{v.label}</strong>
@@ -270,13 +239,13 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
           <div className="file-upload__footer">
             <span className="file-upload__meta">
-              {pendingFile.type || "unknown datatype"} · {(pendingFile.size / 1024).toFixed(1)} KB
+              {pendingFile.type || translate("fileUpload.unknownType")} · {(pendingFile.size / 1024).toFixed(1)} KB
               {validation?.shape && (
                 <span className="file-upload__type-label"> · {validation.shape.label}</span>
               )}
             </span>
             <button className="btn btn--primary" type="submit" disabled={isUploading || !canUpload}>
-              {isUploading ? "Uploading…" : !canUpload ? "Fill required fields" : "Upload"}
+              {isUploading ? translate("fileUpload.uploading") : !canUpload ? translate("fileUpload.fillRequired") : translate("fileUpload.upload")}
             </button>
           </div>
         </>

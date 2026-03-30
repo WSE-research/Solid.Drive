@@ -23,17 +23,15 @@ generateShape.ts  inspect unknown Turtle data and infer RDF shapes
 
 ### `App.tsx`
 
-Wraps the tree in `BrowserSolidLdoProvider`. Required — without it no component can access the Solid session or LDO hooks. When logged in, renders `ProfileSidebar` on the left alongside the main `FileExplorer`.
+Root component. Wraps the tree in `BrowserSolidLdoProvider`, which manages the Solid session and exposes LDO hooks to every child. Nothing below this can authenticate or read Pod data without it.
 
 ### `Header.tsx`
 
-Login/logout bar. Presents a provider dropdown (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, custom URL) with registration links per provider. When logged in, resolves and displays the user's name from their Solid profile (`vcard:fn` → `foaf:name` → WebID fallback). Supports i18n via `react-i18next`.
+Top-level authentication bar for login and logout. The provider dropdown lets users choose their identity provider, since Solid uses decentralized Pods instead of a single identity server. Also renders `LanguageSwitcher` in both the logged-in and logged-out states.
 
-### `ProfileSidebar.tsx`
+### `LanguageSwitcher.tsx`
 
-Social identity on Solid is more than a display name, it includes a live contact graph (`foaf:knows`) that links one WebID to others across different pods. `ProfileSidebar` is where the app exposes that: it reads the logged-in user's WebID profile document via LDO and lets them edit their name, avatar, and contacts without leaving the app.
-
-Every write goes through N3 Patch (`solid:InsertDeletePatch`), not SPARQL UPDATE, because NSS does not support SPARQL UPDATE on profile documents. Contact profiles are fetched per-row by `ContactRow`; it strips the `#fragment` from the WebID before requesting the document because the document lives at the base IRI, the fragment identifies the person within it, not a separate resource.
+Dropdown that lets users switch the UI language at runtime. Supported languages: English, German. Uses `i18next`'s `changeLanguage` under the hood.
 
 ### `FileExplorer.tsx`
 
@@ -52,7 +50,6 @@ Executes the upload sequence (see root README for the full flow). Key implementa
 
 - **TBox validation** — `loadTBox()` is called on mount; the resulting shapes are used by `validateMetadata()` on every form change. The submit button stays disabled until all required fields (`name`, `uploadDate`, `publisher`) are present. `name` maps to the visible title input; `uploadDate` and `publisher` are auto-populated and surface as non-actionable violations if missing.
 - `resolveClass(mimeType)` from `podCatalog.ts` converts the MIME type to a schema.org class URI before the container is created
-- Filenames are sanitized to lowercase alphanumeric + hyphens before upload (`safeFileName`) so NSS does not reject PUT requests for filenames with special characters
 - `profileHasCatalog` (passed from `FileExplorer`) prevents adding a duplicate `dcat:catalog` triple when the user already has one from another app
 - Rollback on failure: if any step after the binary upload throws, the container is deleted via raw `fetch` calls before surfacing the error
 
@@ -62,19 +59,11 @@ Displays one uploaded file. It reads `index.ttl` with `useSubject` to get the me
 
 The **Info panel** (toggled with a button) shows: type, title, description, format, size, upload date, last modified date, publisher name, and `isPartOf` URI.
 
-The **Share panel** (toggled with a button) provides WAC-based file sharing with contacts from the user's FOAF graph.
-
 **Delete** calls `removeFromCatalog` first (removes the DCAT entry), then deletes the container (which removes the binary and `index.ttl`).
 
 ### `FolderEntry.tsx`
 
 A navigable row for Pod containers that are not managed by this app. Kept separate from `FileCard` because it cannot assume `index.ttl` or any app-specific metadata exists.
-
----
-
-### `DataCatalog.tsx`
-
-Opens as a modal, fetches `catalog.ttl` fresh on each open, and shows the 2 most recent uploads sorted by `dcterms:modified`. Composed of `TBoxView` and `ABoxView`.
 
 ---
 
@@ -92,10 +81,6 @@ All catalog and file-type logic. No direct LDO usage — communicates with the P
 
 - **`friendlyLabel(uriOrId)`** — accepts a full schema.org URI or local ID (e.g. `ImageObject`) and returns the display label (e.g. `Photo/Image`).
 
-- **`friendlyTypeInfo(uriOrId)`** — returns both the label and description for a file type.
-
-- **`isKnownType(uriOrId)`** — returns whether the given type is one the app recognizes.
-
 - **`appendToCatalog(catalogUri, ...)`** — creates `catalog.ttl` with a SPARQL `PUT` if it doesn't exist, then `PATCH`es it with `INSERT DATA` to add a `dcat:Dataset` node and a linked `dcat:Distribution` (access URL, media type, byte size).
 
 - **`removeFromCatalog(catalogUri, instanceUri, fetch)`** — `PATCH`es `catalog.ttl` with `DELETE WHERE` to remove the dataset and its distribution node in one request. Silently returns if the catalog doesn't exist.
@@ -106,13 +91,9 @@ All catalog and file-type logic. No direct LDO usage — communicates with the P
 
 ---
 
-## `foaf.ts`
+## `i18n.ts`
 
-Isolated write layer for FOAF profile edits. Keeping patch logic here rather than inside the component means there is one place to change if the server changes or if you want to extend what the app writes to the profile.
-
-`saveProfileFields` replaces `foaf:name` and `foaf:img` in a single PATCH — combining both fields into one request avoids a window where another client could read the profile between two separate writes. `ensureProfileDocType` adds the `foaf:PersonalProfileDocument` and `foaf:primaryTopic` declarations on first edit; NSS-created profiles sometimes omit them, and some Solid clients require these types to recognise the document as a profile.
-
----
+Initialises `i18next` with the HTTP backend (translations loaded from `public/locales/<lang>/translation.json`) and browser-language detection (localStorage → navigator).
 
 ## `pod.ts`
 

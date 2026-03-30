@@ -2,19 +2,17 @@
 
 A file manager built on the [Solid Protocol](https://solidproject.org/). Every file is stored directly in the user's own Solid Pod — the server never holds a copy.
 
-Each uploaded file is assigned a semantic class drawn from the [schema.org](https://schema.org/) vocabulary (Image, Video, Audio, Document, Spreadsheet, or general File). This makes the data discoverable and consumable by other Solid-compatible applications without requiring access to this app.
-
 <details>
 <summary>Architecture diagram</summary>
 
 ![Architecture diagram](docs/architecture.svg)
 
-</details>
-
 Regenerate with:
 ```bash
 java -jar plantuml.jar -tsvg docs/architecture.puml
 ```
+
+</details>
 
 ## How it works
 
@@ -63,18 +61,19 @@ MIME types are mapped to [schema.org](https://schema.org/) classes so files are 
 
 ## Features
 
-- **Authentication** — OIDC login via `solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a custom provider; registration links per provider
-- **Pod navigation** — browse the full Pod directory tree with breadcrumb navigation and a refresh button
-- **TBox-driven validation** — SHACL shapes are loaded from `public/tbox.ttl` (auto-generated from datashapes.org) at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before the upload button is enabled; missing fields are surfaced inline
-- **File upload** — accepts any file type with optional title and description; stores binary and `index.ttl` inside a dedicated container
-- **Inline preview** — images (`<img>`), videos (`<video>`), audio (`<audio>`), PDFs and text (`<iframe>`) rendered from a local blob URL
-- **File info panel** — type, title, description, MIME, size, upload date, last modified date, and publisher name resolved from the publisher's Solid profile
-- **Profile-first catalog** — reads `dcat:catalog` from the WebID profile first, falling back to `${storageRoot}catalog.ttl`; users who bring their own catalog from another app have it recognized automatically
-- **Catalog management** — `catalog.ttl` updated on every upload and delete via SPARQL PATCH; the full file list is always queryable without scanning Pod containers
-- **Delete** — removes catalog entry, binary, `index.ttl`, and container in the correct order; no orphaned resources
-- **File adoption** — containers without `index.ttl` (pre-existing Pod files) render a fallback card with folder name and download button
-- **WAC-based file sharing** — share files with contacts via Web Access Control; ACL discovery and agent management integrated into the file card UI
-- **Social contacts** — FOAF-based contact graph (`foaf:knows`) for sharing files with known contacts
+- **Authentication**: logs in via any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self-hosted server)
+- **Pod navigation**: browse the full Pod directory tree with breadcrumb navigation
+- **TBox-driven validation**: SHACL shapes are loaded from `public/tbox.ttl` (auto-generated from datashapes.org) at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before the upload button is enabled; missing fields are surfaced inline
+- **File adoption**: renders files that existed on the Pod before the app was used, showing folder name and download button for containers lacking `index.ttl`
+- **File upload**: accepts any file type; stores the binary and a metadata document (`index.ttl`) inside a dedicated container on the Pod
+- **Semantic classification**: MIME type is mapped to a schema.org class (`schema:ImageObject`, `schema:VideoObject`, `schema:AudioObject`, `schema:TextDigitalDocument`, `schema:SpreadsheetDigitalDocument`, or `schema:DigitalDocument`) and written to `index.ttl` as `rdf:type`
+- **Inline preview**: images render as `<img>`, videos as `<video>`, audio as `<audio>`, PDFs and text files as `<iframe>`, all from a local blob URL — no request leaves the browser after the file is fetched
+- **Download**: triggers a browser-native download from the blob URL, not a redirect to the Pod server
+- **File info**: a toggle on each file card shows: type, title, description, MIME type, size, upload date, and publisher name (resolved from their Solid profile); all metadata read from `index.ttl`
+- **Profile-first catalog**: `dcat:catalog` is read from the user's WebID profile first, falling back to `${storageRoot}catalog.ttl`. Users who bring their own catalog from another app will have it recognized automatically
+- **Catalog management**: `catalog.ttl` is updated on every upload and cleaned up on every delete using SPARQL PATCH, so the full list of files and their classes is always queryable without scanning Pod containers
+- **Delete**: removes the binary, `index.ttl`, the container, and the entry in `catalog.ttl` in the correct order so no orphaned resources remain
+- Switch the UI language at runtime
 
 ## Known Issues
 
@@ -86,6 +85,7 @@ MIME types are mapped to [schema.org](https://schema.org/) classes so files are 
 |---|---|
 | Frontend | React 19 · TypeScript · Vite |
 | Solid / Linked Data | [@ldo/solid](https://github.com/o-development/ldo) · @ldo/solid-react · ShEx · schema.org · DCAT · SHACL |
+| Internationalisation | i18next · i18next-browser-languagedetector · i18next-http-backend |
 | Testing | Vitest · @testing-library/react · jsdom |
 | Deployment | Docker · nginx |
 
@@ -134,6 +134,9 @@ solid.drive/
 ├── docs/
 │   ├── architecture.puml # PlantUML diagram source
 │   └── architecture.svg  # Generated SVG
+├── public/
+│   └── locales/       # i18n translation files
+├── .github/           # CI/CD workflows and issue templates
 ├── Dockerfile
 ├── nginx.conf
 └── vite.config.ts
