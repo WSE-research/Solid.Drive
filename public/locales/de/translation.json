@@ -71,7 +71,19 @@
     "add": "Hinzufügen",
     "noContacts": "Noch keine Kontakte.",
     "remove": "Entfernen",
-    "name": "Name"
+    "name": "Name",
+    "requestAccess": "Zugriff anfragen",
+    "requestSent": "Angefragt",
+    "requestError": "Erneut versuchen"
+  },
+  "requestsPanel": {
+    "heading": "Anfragen",
+    "loading": "Wird geladen…",
+    "noRequests": "Keine offenen Anfragen.",
+    "requestsAccess": "möchte Zugriff auf Ihren Katalog",
+    "approve": "Genehmigen",
+    "deny": "Ablehnen",
+    "refresh": "Aktualisieren"
   },
   "sharePanel": {
     "access": "Zugriff",

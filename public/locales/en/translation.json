@@ -71,7 +71,19 @@
     "add": "Add",
     "noContacts": "No contacts yet.",
     "remove": "Remove",
-    "name": "Name"
+    "name": "Name",
+    "requestAccess": "Request Access",
+    "requestSent": "Requested",
+    "requestError": "Retry"
+  },
+  "requestsPanel": {
+    "heading": "Requests",
+    "loading": "Loading…",
+    "noRequests": "No pending requests.",
+    "requestsAccess": "wants access to your catalog",
+    "approve": "Approve",
+    "deny": "Deny",
+    "refresh": "Refresh"
   },
   "sharePanel": {
     "access": "Access",
