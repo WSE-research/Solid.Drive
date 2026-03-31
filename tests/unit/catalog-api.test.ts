@@ -97,7 +97,6 @@ describe("appendToCatalog", () => {
   ) {
     const responses = overrides.responses ?? [
       { status: 200, ok: true },
-      { status: 200, ok: true },
     ];
     const { fetch, calls } = capturingMock(responses);
     await appendToCatalog(
@@ -128,7 +127,7 @@ describe("appendToCatalog", () => {
       "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch
     );
 
-    expect(calls[0].method).toBe("HEAD");
+    expect(calls[0].method).toBe("PATCH");
     expect(calls[1].method).toBe("PUT");
     expect(calls[1].url).toBe(catalogUri);
     expect(calls[2].method).toBe("PATCH");
@@ -152,34 +151,33 @@ describe("appendToCatalog", () => {
   it("skips PUT when catalog.ttl already exists", async () => {
     const { calls } = await runAppend();
 
-    expect(calls).toHaveLength(2);
-    expect(calls[0].method).toBe("HEAD");
-    expect(calls[1].method).toBe("PATCH");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe("PATCH");
   });
 
   it("PATCH is sent to catalog.ttl with application/sparql-update", async () => {
     const { calls } = await runAppend();
 
-    expect(calls[1].url).toBe(catalogUri);
-    expect(calls[1].contentType).toBe("application/sparql-update");
+    expect(calls[0].url).toBe(catalogUri);
+    expect(calls[0].contentType).toBe("application/sparql-update");
   });
 
   it("SPARQL INSERT links dataset URI to catalog resource", async () => {
     const { calls } = await runAppend();
 
-    expect(calls[1].body).toContain(`dcat:dataset <${instanceUri}>`);
+    expect(calls[0].body).toContain(`dcat:dataset <${instanceUri}>`);
   });
 
   it("SPARQL INSERT types the entry as dcat:Dataset", async () => {
     const { calls } = await runAppend();
 
-    expect(calls[1].body).toContain("dcat:Dataset");
+    expect(calls[0].body).toContain("dcat:Dataset");
   });
 
   it("SPARQL INSERT includes dcterms:title, dcterms:publisher, dcterms:conformsTo", async () => {
     const { calls } = await runAppend();
 
-    const sparql = calls[1].body ?? "";
+    const sparql = calls[0].body ?? "";
     expect(sparql).toContain('dcterms:title "Summer Photo"');
     expect(sparql).toContain(`dcterms:publisher <${publisherWebId}>`);
     expect(sparql).toContain(`dcterms:conformsTo <${classUri}>`);
@@ -187,7 +185,6 @@ describe("appendToCatalog", () => {
 
   it("dcterms:conformsTo references the schema.org class URI resolved from MIME type", async () => {
     const { fetch, calls } = capturingMock([
-      { status: 200, ok: true },
       { status: 200, ok: true },
     ]);
 
@@ -197,13 +194,13 @@ describe("appendToCatalog", () => {
       "application/pdf", 512000, "Report", "", modified, publisherWebId, fetch
     );
 
-    expect(calls[1].body).toContain("dcterms:conformsTo <http://schema.org/TextDigitalDocument>");
+    expect(calls[0].body).toContain("dcterms:conformsTo <http://schema.org/TextDigitalDocument>");
   });
 
   it("SPARQL INSERT declares dcat:Distribution with accessURL and mediaType", async () => {
     const { calls } = await runAppend();
 
-    const sparql = calls[1].body ?? "";
+    const sparql = calls[0].body ?? "";
     expect(sparql).toContain("dcat:Distribution");
     expect(sparql).toContain(`dcat:accessURL <${binaryUri}>`);
     expect(sparql).toContain('dcat:mediaType "image/jpeg"');
@@ -213,19 +210,19 @@ describe("appendToCatalog", () => {
   it("distribution is linked from the dataset via dcat:distribution", async () => {
     const { calls } = await runAppend();
 
-    expect(calls[1].body).toContain(`dcat:distribution <${instanceUri}#dist>`);
+    expect(calls[0].body).toContain(`dcat:distribution <${instanceUri}#dist>`);
   });
 
   it("includes dcterms:description when description is provided", async () => {
     const { calls } = await runAppend({ description: "A sunny day photo" });
 
-    expect(calls[1].body).toContain('dcterms:description "A sunny day photo"');
+    expect(calls[0].body).toContain('dcterms:description "A sunny day photo"');
   });
 
   it("omits dcterms:description when description is empty", async () => {
     const { calls } = await runAppend({ description: "" });
 
-    expect(calls[1].body).not.toContain("dcterms:description");
+    expect(calls[0].body).not.toContain("dcterms:description");
   });
 
   it("throws when catalog PUT creation fails", async () => {
@@ -242,7 +239,6 @@ describe("appendToCatalog", () => {
 
   it("throws when PATCH update fails", async () => {
     const { fetch } = capturingMock([
-      { status: 200, ok: true },
       { status: 500, ok: false, statusText: "Internal Server Error" },
     ]);
 
@@ -255,7 +251,6 @@ describe("appendToCatalog", () => {
   it("escapes double quotes in title so the SPARQL is not malformed", async () => {
     const { fetch, calls } = capturingMock([
       { status: 200, ok: true },
-      { status: 200, ok: true },
     ]);
 
     await appendToCatalog(
@@ -263,12 +258,11 @@ describe("appendToCatalog", () => {
       "image/jpeg", 100, 'Q1 "Draft"', "", modified, publisherWebId, fetch
     );
 
-    expect(calls[1].body).toContain('dcterms:title "Q1 \\"Draft\\""');
+    expect(calls[0].body).toContain('dcterms:title "Q1 \\"Draft\\""');
   });
 
   it("escapes backslashes in description so the SPARQL is not malformed", async () => {
     const { fetch, calls } = capturingMock([
-      { status: 200, ok: true },
       { status: 200, ok: true },
     ]);
 
@@ -277,12 +271,11 @@ describe("appendToCatalog", () => {
       "image/jpeg", 100, "Photo", "Path: C:\\Users\\me", modified, publisherWebId, fetch
     );
 
-    expect(calls[1].body).toContain('dcterms:description "Path: C:\\\\Users\\\\me"');
+    expect(calls[0].body).toContain('dcterms:description "Path: C:\\\\Users\\\\me"');
   });
 
   it("escapes newlines in description so the SPARQL is not malformed", async () => {
     const { fetch, calls } = capturingMock([
-      { status: 200, ok: true },
       { status: 200, ok: true },
     ]);
 
@@ -291,7 +284,7 @@ describe("appendToCatalog", () => {
       "image/jpeg", 100, "Photo", "line one\nline two", modified, publisherWebId, fetch
     );
 
-    expect(calls[1].body).toContain('dcterms:description "line one\\nline two"');
+    expect(calls[0].body).toContain('dcterms:description "line one\\nline two"');
   });
 });
 

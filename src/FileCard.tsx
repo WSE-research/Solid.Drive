@@ -4,7 +4,7 @@ import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react"
 import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
-import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
+import { isBinary, isLoadable, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { removeFromCatalog, friendlyTypeInfo, resolveClass, isKnownType } from "./podCatalog";
 import { SharePanel } from "./SharePanel";
@@ -13,14 +13,14 @@ import { discoverAclUri, readAclAgents } from "./fileAccess";
 type FileCardProps = {
   containerUri: string;
   catalogUri: string;
+  readOnly?: boolean;
 };
 
 /**
- * Displays a file based on metadata from index.ttl
- * Renders a preview when possible
- * Provides options to download or delete the file
+ * Renders a file card from index.ttl metadata.
+ * Shows a preview when possible, with download and delete options.
  */
-export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri }) => {
+export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri, readOnly = false }) => {
   const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
 
@@ -43,8 +43,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   );
 
   /**
-   * Resolves the URI of the binary file inside the container.
-   * Prefers a live child resource, then falls back to the metadata name or image field.
+   * Find the binary file URI inside the container.
+   * Prefers a live child resource, falls back to metadata name or image field.
    */
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
@@ -58,20 +58,19 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-  /** Creates a blob URL for inline preview; revokes it on cleanup to prevent memory leaks. */
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
-  useEffect(() => {
-    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
-    const url = URL.createObjectURL(binaryResource.getBlob());
-    setPreviewUrl(url);
-    return () => {
-      URL.revokeObjectURL(url);
-      setPreviewUrl(undefined);
-    };
+  const previewUrl = useMemo(() => {
+    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return undefined;
+    return URL.createObjectURL(binaryResource.getBlob());
   }, [binaryResource]);
 
   useEffect(() => {
-    if (!containerResource) return;
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!containerUri) return;
     let cancelled = false;
     discoverAclUri(containerUri, solidFetch)
       .then((aclUri) => readAclAgents(aclUri, solidFetch))
@@ -80,9 +79,9 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         console.warn("[FileCard] ACL discovery failed for", containerUri, err);
       });
     return () => { cancelled = true; };
-  }, [containerUri, solidFetch, containerResource]);
+  }, [containerUri, solidFetch]);
 
-  /** Asks the user to confirm, then deletes the entire file container from the pod. */
+  // Asks the user to confirm, then deletes the entire file container from the pod.
   const handleDelete = useCallback(async () => {
     if (!confirm(translate("fileCard.deleteConfirm"))) return;
     await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
@@ -92,13 +91,23 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     }
   }, [containerUri, metadataUri, catalogUri, solidFetch, getResource, translate]);
 
-  if (isReadable(metadataResource) && metadataResource.isReading()) {
+  const isMetaLoading =
+    (isLoadable(metadataResource) && (metadataResource.isLoading() || metadataResource.isUnfetched())) ||
+    (isReadable(metadataResource) && metadataResource.isReading());
+
+  if (isMetaLoading) {
     return (
       <div className="file-card file-card--loading">
         <div className="spinner spinner--medium" />
         {translate("fileCard.loading")}
       </div>
     );
+  }
+
+  // Hide shared entries once metadata loading has finished if we still do not
+  // have enough data to render a usable file card.
+  if (readOnly && isLoadable(metadataResource) && metadataResource.isFetched() && !fileMeta?.uploadDate) {
+    return null;
   }
 
   if (!fileMeta) {
@@ -136,14 +145,16 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       })
     : "";
 
-  // Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
-  const typeId = (() => {
+  // Prefer an explicit schema type, then fall back to MIME-based classification for the info panel
+  const classUri = (() => {
     const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find(isKnownType);
-    if (fromType) return fromType;
+    if (fromType) return fromType.startsWith("http://") || fromType.startsWith("https://")
+      ? fromType
+      : `http://schema.org/${fromType}`;
     const mimeType = fileMeta.encodingFormat ?? "";
     return mimeType ? resolveClass(mimeType) : "http://schema.org/DigitalDocument";
   })();
-  const fileType = friendlyTypeInfo(typeId);
+  const fileType = friendlyTypeInfo(classUri);
 
   return (
     <div className="file-card">
@@ -196,12 +207,14 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
           >
             {showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info")}
           </button>
-          <button
-            className="btn btn--ghost btn--small"
-            onClick={() => setShowShare((isVisible) => !isVisible)}
-          >
-            {showShare ? translate("fileCard.hideShare") : translate("fileCard.share")}
-          </button>
+          {!readOnly && (
+            <button
+              className="btn btn--ghost btn--small"
+              onClick={() => setShowShare((isVisible) => !isVisible)}
+            >
+              {showShare ? translate("fileCard.hideShare") : translate("fileCard.share")}
+            </button>
+          )}
           {(previewUrl ?? binaryUri) && (
             <a
               className="btn btn--ghost btn--small"
@@ -211,12 +224,28 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
               {translate("fileCard.download")}
             </a>
           )}
-          <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+          {!readOnly && (
+            <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+          )}
         </div>
       </div>
 
-      {showShare && (
-        <SharePanel containerUri={containerUri} contacts={contacts} />
+      {!readOnly && showShare && (
+        <SharePanel
+          containerUri={containerUri}
+          catalogUri={catalogUri}
+          contacts={contacts}
+          sharedEntry={{
+            metadataUri,
+            binaryUri: binaryUri ?? metadataUri,
+            classUri,
+            mediaType: fileMeta.encodingFormat ?? "application/octet-stream",
+            byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
+            title: fileMeta.name ?? metadataUri.split("/").pop() ?? "Shared file",
+            description: fileMeta.description ?? "",
+            modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
+          }}
+        />
       )}
 
       {showInfo && (

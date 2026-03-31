@@ -1,10 +1,11 @@
 import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
-// LDO exposes capabilities via method presence instead of a class hierarchy
-// These interfaces describe those shapes so we can safely narrow resources
-// without depending on internal LDO types
+// LDO exposes capabilities via method presence, not class hierarchy.
+// These interfaces let us narrow resources without depending on internal LDO types.
 export interface LoadableResource {
   isLoading: () => boolean;
+  isUnfetched: () => boolean;
+  isFetched: () => boolean;
 }
 
 export interface ReadableResource {
@@ -47,56 +48,56 @@ export interface ContainerCreationResult {
 
 // Type guards for resource capabilities
 
-/** Returns true if the resource exposes an `isLoading` method. */
-export function isLoadable(result: unknown): result is LoadableResource {
-  return typeof result === "object" && result !== null && "isLoading" in result;
+/** Returns true if the resource exposes the full loadable resource shape. */
+export function isLoadable(resource: unknown): resource is LoadableResource {
+  return typeof resource === "object" && resource !== null && "isLoading" in resource && "isUnfetched" in resource && "isFetched" in resource;
 }
 
 /** Returns true if the resource exposes an `isReading` method. */
-export function isReadable(result: unknown): result is ReadableResource {
-  return typeof result === "object" && result !== null && "isReading" in result;
+export function isReadable(resource: unknown): resource is ReadableResource {
+  return typeof resource === "object" && resource !== null && "isReading" in resource;
 }
 
 /** Returns true if the resource exposes `isBinary` and `getBlob` methods. */
-export function isBinary(result: unknown): result is BinaryResource {
-  return typeof result === "object" && result !== null && "isBinary" in result && "getBlob" in result;
+export function isBinary(resource: unknown): resource is BinaryResource {
+  return typeof resource === "object" && resource !== null && "isBinary" in resource && "getBlob" in resource;
 }
 
 /** Returns true if the resource exposes a `delete` method. */
-export function isDeletable(result: unknown): result is DeletableResource {
-  return typeof result === "object" && result !== null && "delete" in result;
+export function isDeletable(resource: unknown): resource is DeletableResource {
+  return typeof resource === "object" && resource !== null && "delete" in resource;
 }
 
 /** Returns true if the resource exposes a `reload` method. */
-export function isReloadable(result: unknown): result is ReloadableResource {
-  return typeof result === "object" && result !== null && "reload" in result;
+export function isReloadable(resource: unknown): resource is ReloadableResource {
+  return typeof resource === "object" && resource !== null && "reload" in resource;
 }
 
 /** Returns true if the resource is a Solid container (has a `children` function). */
-export function isSolidContainer(result: unknown): result is SolidContainer {
+export function isSolidContainer(resource: unknown): resource is SolidContainer {
   return (
-    typeof result === "object" &&
-    result !== null &&
-    "children" in result &&
-    typeof (result as SolidContainer).children === "function"
+    typeof resource === "object" &&
+    resource !== null &&
+    "children" in resource &&
+    typeof (resource as SolidContainer).children === "function"
   );
 }
 
 /** Returns true if the resource is a Solid leaf (non-container resource). */
-export function isSolidLeaf(result: unknown): result is SolidLeaf {
+export function isSolidLeaf(resource: unknown): resource is SolidLeaf {
   return (
-    !!result &&
-    typeof result === "object" &&
-    "type" in result &&
-    (result as SolidLeaf).type === "SolidLeaf"
+    !!resource &&
+    typeof resource === "object" &&
+    "type" in resource &&
+    (resource as SolidLeaf).type === "SolidLeaf"
   );
 }
 
 //  Utilities
 
 /**
- * Converts a byte count (as a string) into a human-readable size string.
- * Returns KB or MB for larger files, and an empty string for zero bytes.
+ * Format a byte count string into a readable size (B, KB, or MB).
+ * Returns empty string for zero/undefined bytes.
  */
 export function formatBytes(bytes: string | undefined): string {
   const byteCount = parseInt(bytes ?? "0", 10);

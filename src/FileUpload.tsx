@@ -17,15 +17,10 @@ type FileUploadProps = {
 };
 
 /**
- * Handles file uploads into the app container in the user's pod.
- *
- * The upload flow creates a dedicated container for the file, stores the binary,
- * writes RDF metadata to index.ttl, and then adds the new item to the catalog.
- * If a later step fails, it tries to delete any resources created earlier so the
- * pod does not end up with half-finished upload state.
- *
- * Validation is TBox-driven: shapes are loaded from tbox.ttl (sourced from
- * datashapes.org). Required fields are enforced; missing fields prompt the user.
+ * Upload a file to the user's pod.
+ * Creates a container, stores the binary, writes index.ttl metadata,
+ * and adds the item to the catalog. Cleans up on partial failure.
+ * Validation uses TBox shapes from tbox.ttl.
  */
 export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog, onUploadSuccess }) => {
   const [translate] = useTranslation();
@@ -228,10 +223,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           {autoViolations.length > 0 && (
             <div className="file-upload__validation-errors">
               <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
-              {autoViolations.map((v) => (
-                <p key={v.path} className="file-upload__validation-item">
-                  <strong>{v.label}</strong>
-                  {v.description && <span> — {v.description}</span>}
+              {autoViolations.map((violation) => (
+                <p key={violation.path} className="file-upload__validation-item">
+                  <strong>{violation.label}</strong>
+                  {violation.description && <span> — {violation.description}</span>}
                 </p>
               ))}
             </div>

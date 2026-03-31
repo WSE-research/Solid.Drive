@@ -50,7 +50,7 @@ const ProfileCard: FunctionComponent = () => {
   const isLoading = isLoadable(webIdResource) && webIdResource.isLoading();
   const avatarUrl = editing ? (imgUrl || profile?.img?.["@id"]) : profile?.img?.["@id"];
   const displayName = editing ? name : (profile?.name ?? profile?.fn ?? "");
-  const firstLetter = displayName.slice(0, 1).toUpperCase() || "?";
+  const initial = displayName.slice(0, 1).toUpperCase() || "?";
 
   const handleAvatarUpload = async (file: File) => {
     if (!session.webId) return;
@@ -112,7 +112,7 @@ const ProfileCard: FunctionComponent = () => {
               <img src={avatarUrl} alt={displayName || "avatar"} className="avatar" />
             ) : (
               <div className="avatar avatar--placeholder">
-                {uploadingAvatar ? <div className="spinner" /> : firstLetter}
+                {uploadingAvatar ? <div className="spinner" /> : initial}
               </div>
             )}
             {!uploadingAvatar && (
@@ -128,7 +128,7 @@ const ProfileCard: FunctionComponent = () => {
           <img src={avatarUrl} alt={displayName || "avatar"} className="avatar" />
         ) : (
           <div className="avatar avatar--placeholder">
-            {isLoading ? <div className="spinner" /> : firstLetter}
+          {isLoading ? <div className="spinner" /> : initial}
           </div>
         )}
         <div className="profile-card__info">
@@ -183,10 +183,10 @@ const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = (
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
 
-  const username = webId.replace(/#.*$/, "").split("/").filter(Boolean).find(segment => segment !== "profile" && segment !== "card" && !segment.startsWith("http")) ?? webId;
-  const displayName = contact?.name ?? contact?.fn ?? username;
+  const extractedUsername = webId.replace(/#.*$/, "").split("/").filter(Boolean).find(segment => segment !== "profile" && segment !== "card" && !segment.startsWith("http")) ?? webId;
+  const displayName = contact?.name ?? contact?.fn ?? extractedUsername;
   const avatarUrl = contact?.img?.["@id"];
-  const firstLetter = displayName.slice(0, 1).toUpperCase() || "?";
+  const initial = displayName.slice(0, 1).toUpperCase() || "?";
 
   return (
     <div className="contact-row">
@@ -194,7 +194,7 @@ const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = (
         <img src={avatarUrl} alt={displayName} className="avatar avatar--sm" />
       ) : (
         <div className="avatar avatar--sm avatar--placeholder">
-          {isLoading ? <div className="spinner" /> : firstLetter}
+          {isLoading ? <div className="spinner" /> : initial}
         </div>
       )}
       <span className="contact-row__name">

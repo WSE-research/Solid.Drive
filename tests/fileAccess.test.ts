@@ -1,6 +1,32 @@
 
 import { describe, it, expect, vi } from "vitest";
-import { discoverAclUri, readAclAgents, buildAclTurtle, writeAcl } from "../src/fileAccess";
+import { Parser } from "n3";
+import { discoverAclUri, readAclAgents, buildAclTurtle, buildResourceAclTurtle, writeAcl, writeResourceAcl } from "../src/fileAccess";
+
+const ACL_NS = "http://www.w3.org/ns/auth/acl#";
+const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+
+function parseAclTurtle(turtle: string, baseIRI = "https://pod.example/.acl") {
+  return new Parser({ baseIRI }).parse(turtle);
+}
+
+function getModesForAgent(turtle: string, agentWebId: string, baseIRI?: string): string[] {
+  const quads = parseAclTurtle(turtle, baseIRI);
+  const authSubjects = new Set(
+    quads
+      .filter((q) => q.predicate.value === RDF_TYPE && q.object.value === `${ACL_NS}Authorization`)
+      .map((q) => q.subject.value)
+  );
+  const modes: string[] = [];
+  for (const subject of authSubjects) {
+    const hasAgent = quads.some((q) => q.subject.value === subject && q.predicate.value === `${ACL_NS}agent` && q.object.value === agentWebId);
+    if (!hasAgent) continue;
+    quads
+      .filter((q) => q.subject.value === subject && q.predicate.value === `${ACL_NS}mode`)
+      .forEach((q) => modes.push(q.object.value));
+  }
+  return modes;
+}
 
 const makeFetch = (responses: Record<string, { status: number; headers?: Record<string, string>; body?: string }>) =>
   vi.fn(async (url: RequestInfo, init?: RequestInit) => {
@@ -85,14 +111,28 @@ describe("readAclAgents", () => {
 describe("buildAclTurtle", () => {
   it("includes owner with Read Write Control", () => {
     const turtle = buildAclTurtle("https://pod.example/file/", "https://owner.example/#me", []);
-    expect(turtle).toContain("acl:mode acl:Read, acl:Write, acl:Control");
-    expect(turtle).toContain("<https://owner.example/#me>");
+    const ownerModes = getModesForAgent(turtle, "https://owner.example/#me");
+    expect(ownerModes).toContain(`${ACL_NS}Read`);
+    expect(ownerModes).toContain(`${ACL_NS}Write`);
+    expect(ownerModes).toContain(`${ACL_NS}Control`);
   });
 
   it("includes each agent with Read only", () => {
     const turtle = buildAclTurtle("https://pod.example/file/", "https://owner.example/#me", ["https://alice.example/#me"]);
-    expect(turtle).toContain("<https://alice.example/#me>");
-    expect(turtle).toContain("acl:mode acl:Read .");
+    const aliceModes = getModesForAgent(turtle, "https://alice.example/#me");
+    expect(aliceModes).toContain(`${ACL_NS}Read`);
+    expect(aliceModes).not.toContain(`${ACL_NS}Write`);
+    expect(aliceModes).not.toContain(`${ACL_NS}Control`);
+  });
+});
+
+describe("buildResourceAclTurtle", () => {
+  it("does not include acl:default for leaf resources", () => {
+    const turtle = buildResourceAclTurtle("https://pod.example/catalog.ttl", "https://owner.example/#me", ["https://alice.example/#me"]);
+    const quads = parseAclTurtle(turtle);
+    expect(quads.some((q) => q.predicate.value === `${ACL_NS}default`)).toBe(false);
+    const aliceModes = getModesForAgent(turtle, "https://alice.example/#me");
+    expect(aliceModes).toContain(`${ACL_NS}Read`);
   });
 });
 
@@ -113,5 +153,18 @@ describe("writeAcl", () => {
     await expect(
       writeAcl("https://pod.example/file/.acl", "https://pod.example/file/", "https://owner.example/#me", [], mockFetch)
     ).rejects.toThrow("403");
+  });
+});
+
+describe("writeResourceAcl", () => {
+  it("PUTs turtle to ACL URI with text/turtle content-type", async () => {
+    const mockFetch = makeFetch({ "PUT https://pod.example/catalog.ttl.acl": { status: 201 } });
+    await expect(
+      writeResourceAcl("https://pod.example/catalog.ttl.acl", "https://pod.example/catalog.ttl", "https://owner.example/#me", [], mockFetch)
+    ).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://pod.example/catalog.ttl.acl",
+      expect.objectContaining({ method: "PUT", headers: expect.objectContaining({ "Content-Type": "text/turtle" }) })
+    );
   });
 });
