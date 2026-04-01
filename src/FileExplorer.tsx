@@ -156,30 +156,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
-  if (noStorageDetected) {
-    return (
-      <div className="drive-loading">
-        <div className="spinner" />
-        <span>Your Pod storage could not be located. Retrying…</span>
-        <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
-          Retry now
-        </button>
-      </div>
-    );
-  }
-
-  if (noStorageDetected) {
-    return (
-      <div className="drive-loading">
-        <div className="spinner" />
-        <span>Your Pod storage could not be located. Retrying…</span>
-        <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
-          Retry now
-        </button>
-      </div>
-    );
-  }
-
   if (!currentContainer) {
     return (
       <div className="drive-loading">
@@ -204,7 +180,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const leafEntries = (entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[])
     .filter((entry) => {
       const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? "");
-      return !SYSTEM_FILES.has(fileName);
+      return !SYSTEM_FILES.has(fileName) && !fileName.startsWith(".");
     });
 
   return (
