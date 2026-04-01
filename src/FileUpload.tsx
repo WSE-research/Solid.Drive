@@ -134,8 +134,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
       // Extract schema type from full URI and add to metadata
-      const typeLocalName = (classUri.split(/[#/]/).pop() ?? "DigitalDocument") as
-        "DigitalDocument" | "ImageObject" | "VideoObject" | "AudioObject" | "TextDigitalDocument" | "SpreadsheetDigitalDocument";
+      const typeLocalName = classUri.split(/[#/]/).pop() ?? "DigitalDocument";
 
       metadata.type.add({ "@id": typeLocalName });
       metadata.name = title.trim() || pendingFile.name;

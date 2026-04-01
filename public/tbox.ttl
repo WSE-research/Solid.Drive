@@ -6,7 +6,7 @@
 
 <https://w3id.org/solid-drive/tbox>
   <http://www.w3.org/2002/07/owl#imports> <https://datashapes.org/schema> ;
-  <http://www.w3.org/2000/01/rdf-schema#comment> "Auto-extracted from datashapes.org. App cardinality from tbox-cardinality.ttl." ;
+  <http://www.w3.org/2000/01/rdf-schema#comment> "Auto-extracted from datashapes.org." ;
 .
 @prefix sh: <http://www.w3.org/ns/shacl#>.
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
@@ -93,36 +93,3 @@ schema:TextDigitalDocument sh:property schema:Thing-name, schema:Thing-descripti
 schema:SpreadsheetDigitalDocument sh:property schema:Thing-name, schema:Thing-description, schema:MediaObject-encodingFormat, schema:MediaObject-contentSize, schema:MediaObject-uploadDate, schema:CreativeWork-publisher, schema:CreativeWork-dateModified, schema:CreativeWork-isPartOf.
 schema:CreativeWork sh:property schema:Thing-name, schema:Thing-description, schema:MediaObject-contentSize, schema:MediaObject-uploadDate.
 schema:Thing sh:property schema:MediaObject-encodingFormat, schema:MediaObject-contentSize, schema:MediaObject-uploadDate, schema:CreativeWork-publisher, schema:CreativeWork-dateModified, schema:CreativeWork-isPartOf.
-
-# App-specific cardinality constraints.
-#
-# This file is merged on top of the shapes extracted from datashapes.org.
-# The source shapes define property types; this file defines which are required.
-#
-# Edit this file to change what fields the upload form enforces.
-
-@prefix sh:    <http://www.w3.org/ns/shacl#> .
-@prefix schema: <http://schema.org/> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
-
-# ─── All file types must provide a name ────────────────────────────────────
-schema:Thing-name
-  sh:minCount 1 ;
-.
-
-# ─── All file types must have an upload date ───────────────────────────────
-# Override datatype to xsd:dateTime — the app stores new Date().toISOString()
-schema:MediaObject-uploadDate
-  sh:minCount 1 ;
-  sh:datatype xsd:dateTime ;
-.
-
-# ─── All file types must have a publisher (WebID) ──────────────────────────
-schema:CreativeWork-publisher
-  sh:minCount 1 ;
-.
-
-# ─── Description is optional — uncomment to make it required ───────────────
-# schema:Thing-description
-#   sh:minCount 1 ;
-# .

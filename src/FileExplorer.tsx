@@ -77,7 +77,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   }, [profile, webIdResource, getResource, translate]);
 
   const currentContainer = useResource(currentUri);
-  const appContainer = useResource(appContainerUri);
+  useResource(appContainerUri);
 
   /** Navigates into a subfolder and appends it to the breadcrumb trail. */
   const handleNavigate = useCallback((uri: string) => {
@@ -185,8 +185,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   return (
     <main>
-      {isSolidContainer(appContainer) && catalogUri && (
-        <FileUpload mainContainer={appContainer} catalogUri={catalogUri} profileHasCatalog={!!profile?.catalog?.["@id"]} />
+      {isSolidContainer(currentContainer) && catalogUri && (
+        <FileUpload mainContainer={currentContainer} catalogUri={catalogUri} profileHasCatalog={!!profile?.catalog?.["@id"]} />
       )}
 
       {breadcrumbs.length > 1 && (
