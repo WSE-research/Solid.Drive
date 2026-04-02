@@ -71,7 +71,34 @@
     "add": "Hinzufügen",
     "noContacts": "Noch keine Kontakte.",
     "remove": "Entfernen",
-    "name": "Name"
+    "name": "Name",
+    "requestAccess": "Zugriff anfragen",
+    "requestSent": "Angefragt",
+    "requestError": "Erneut versuchen",
+    "requestDenied": "Abgelehnt",
+    "requestAgain": "Erneut anfragen"
+  },
+  "sharedWithMe": {
+    "heading": "Mit mir geteilt",
+    "from": "Von {{name}}",
+    "noFilesYet": "Noch keine Dateien geteilt.",
+    "browseHeading": "Verfügbare Dateien durchsuchen",
+    "requestFile": "Zugriff anfragen",
+    "requestAll": "Alle {{type}} anfragen",
+    "requestSent": "Angefragt",
+    "requestError": "Fehler – erneut versuchen",
+    "requestDenied": "Abgelehnt",
+    "requestAgain": "Erneut anfragen"
+  },
+  "requestsPanel": {
+    "heading": "Anfragen",
+    "loading": "Wird geladen…",
+    "noRequests": "Keine offenen Anfragen.",
+    "requestsAccess": "möchte Zugriff auf Ihren Katalog",
+    "requestsFileAccess": "möchte Zugriff auf {{resource}}",
+    "approve": "Genehmigen",
+    "deny": "Ablehnen",
+    "refresh": "Aktualisieren"
   },
   "sharePanel": {
     "access": "Zugriff",

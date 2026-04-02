@@ -71,7 +71,22 @@
     "add": "Add",
     "noContacts": "No contacts yet.",
     "remove": "Remove",
-    "name": "Name"
+    "name": "Name",
+    "requestAccess": "Request Access",
+    "requestSent": "Requested",
+    "requestError": "Retry",
+    "requestDenied": "Denied",
+    "requestAgain": "Request Again"
+  },
+  "requestsPanel": {
+    "heading": "Requests",
+    "loading": "Loading…",
+    "noRequests": "No pending requests.",
+    "requestsAccess": "wants access to your catalog",
+    "requestsFileAccess": "wants access to {{resource}}",
+    "approve": "Approve",
+    "deny": "Deny",
+    "refresh": "Refresh"
   },
   "sharePanel": {
     "access": "Access",
@@ -88,7 +103,15 @@
   },
   "sharedWithMe": {
     "heading": "Shared with Me",
-    "from": "From {{name}}"
+    "from": "From {{name}}",
+    "noFilesYet": "Access granted — no files shared yet.",
+    "browseHeading": "Also available",
+    "requestFile": "Request",
+    "requestAll": "Request all {{type}}",
+    "requestSent": "Requested",
+    "requestError": "Retry",
+    "requestDenied": "Denied",
+    "requestAgain": "Request Again"
   },
   "languageSwitcher": {
     "label": "Language"

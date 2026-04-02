@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { FunctionComponent } from "react";
 import { useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isLoadable, isReloadable } from "./pod";
 import { ensureProfileDocType, saveProfileFields, addContact, removeContact, type ProfileFields } from "./foaf";
+import { discoverInboxUri, postCatalogAccessRequest, listRejectionNotifications, deleteAccessRequest } from "./inboxAccess";
+import type { AccessRejection } from "./inboxAccess";
+import { resolveCatalogUri } from "./useCatalogUri";
+import { RequestsPanel } from "./RequestsPanel";
 
 const ProfileInput: FunctionComponent<{
   label: string;
@@ -26,8 +30,7 @@ const ProfileInput: FunctionComponent<{
   </div>
 );
 
-// ─── ProfileCard ─────────────────────────────────────────────────────────────
-
+// Profile card
 const ProfileCard: FunctionComponent = () => {
   const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
@@ -76,8 +79,17 @@ const ProfileCard: FunctionComponent = () => {
   };
 
   const handleEditStart = () => {
-    originalRef.current = { name, imgUrl };
+    originalRef.current = {
+      name: profile?.name ?? "",
+      imgUrl: profile?.img?.["@id"] ?? "",
+    };
     setEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setName(originalRef.current.name);
+    setImgUrl(originalRef.current.imgUrl);
+    setEditing(false);
   };
 
   const handleSave = async () => {
@@ -106,7 +118,10 @@ const ProfileCard: FunctionComponent = () => {
               accept="image/*"
               style={{ display: "none" }}
               disabled={saving || uploadingAvatar}
-              onChange={(event) => { const selectedFile = event.target.files?.[0]; if (selectedFile) handleAvatarUpload(selectedFile); }}
+              onChange={(event) => {
+                const selectedFile = event.target.files?.[0];
+                if (selectedFile) handleAvatarUpload(selectedFile);
+              }}
             />
             {avatarUrl ? (
               <img src={avatarUrl} alt={displayName || "avatar"} className="avatar" />
@@ -117,9 +132,18 @@ const ProfileCard: FunctionComponent = () => {
             )}
             {!uploadingAvatar && (
               <div className="avatar--overlay">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                  <circle cx="12" cy="13" r="4"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
                 </svg>
               </div>
             )}
@@ -128,7 +152,7 @@ const ProfileCard: FunctionComponent = () => {
           <img src={avatarUrl} alt={displayName || "avatar"} className="avatar" />
         ) : (
           <div className="avatar avatar--placeholder">
-          {isLoading ? <div className="spinner" /> : initial}
+            {isLoading ? <div className="spinner" /> : initial}
           </div>
         )}
         <div className="profile-card__info">
@@ -155,7 +179,7 @@ const ProfileCard: FunctionComponent = () => {
             </button>
             <button
               className="btn btn--ghost btn--small"
-              onClick={() => setEditing(false)}
+              onClick={handleEditCancel}
               disabled={saving}
             >
               {translate("profileSidebar.cancel")}
@@ -176,17 +200,56 @@ const ProfileCard: FunctionComponent = () => {
   );
 };
 
+type ContactRowProps = {
+  webId: string;
+  ownerWebId: string;
+  solidFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
+  rejection: AccessRejection | undefined;
+  onClearRejection: () => void;
+  onRemove: () => void;
+};
 
-const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = ({ webId, onRemove }) => {
+const ContactRow: FunctionComponent<ContactRowProps> = ({
+  webId,
+  ownerWebId,
+  solidFetch,
+  rejection,
+  onClearRejection,
+  onRemove,
+}) => {
   const [translate] = useTranslation();
   const contactResource = useResource(webId.split("#")[0]);
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
+  const [requestStatus, setRequestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  const extractedUsername = webId.replace(/#.*$/, "").split("/").filter(Boolean).find(segment => segment !== "profile" && segment !== "card" && !segment.startsWith("http")) ?? webId;
+  const extractedUsername = webId.replace(/#.*$/, "").split("/").filter(Boolean).find((segment) => segment !== "profile" && segment !== "card" && !segment.startsWith("http")) ?? webId;
   const displayName = contact?.name ?? contact?.fn ?? extractedUsername;
   const avatarUrl = contact?.img?.["@id"];
   const initial = displayName.slice(0, 1).toUpperCase() || "?";
+
+  const handleRequestAccess = useCallback(async () => {
+    setRequestStatus("sending");
+    try {
+      const inboxUri = await discoverInboxUri(webId, solidFetch);
+      await postCatalogAccessRequest(inboxUri, ownerWebId, webId, solidFetch);
+      setRequestStatus("sent");
+    } catch {
+      setRequestStatus("error");
+    }
+  }, [webId, ownerWebId, solidFetch]);
+
+  const handleRequestAgain = useCallback(async () => {
+    if (!rejection) return;
+    try {
+      await deleteAccessRequest(rejection.messageUri, solidFetch);
+    } catch {
+      // Cleanup failure is non-critical
+    }
+    onClearRejection();
+    setRequestStatus("idle");
+    void handleRequestAccess();
+  }, [rejection, solidFetch, onClearRejection, handleRequestAccess]);
 
   return (
     <div className="contact-row">
@@ -198,25 +261,70 @@ const ContactRow: FunctionComponent<{ webId: string; onRemove: () => void }> = (
         </div>
       )}
       <span className="contact-row__name">
-        {isLoading ? translate("profileSidebar.loading") : (displayName.length > 30 ? displayName.slice(0, 30) + "…" : displayName)}
+        {isLoading ? translate("profileSidebar.loading") : (displayName.length > 30 ? `${displayName.slice(0, 30)}...` : displayName)}
       </span>
-      <button className="btn btn--delete btn--small" onClick={onRemove}>
-        {translate("profileSidebar.remove")}
-      </button>
+      <div className="contact-row__actions">
+        {rejection ? (
+          <>
+            <span className="contact-row__denied">{translate("profileSidebar.requestDenied")}</span>
+            <button className="btn btn--ghost btn--small" onClick={handleRequestAgain}>
+              {translate("profileSidebar.requestAgain")}
+            </button>
+          </>
+        ) : (
+          <button
+            className="btn btn--ghost btn--small"
+            onClick={handleRequestAccess}
+            disabled={requestStatus === "sending" || requestStatus === "sent"}
+          >
+            {requestStatus === "sending"
+              ? "..."
+              : requestStatus === "sent"
+              ? translate("profileSidebar.requestSent")
+              : requestStatus === "error"
+              ? translate("profileSidebar.requestError")
+              : translate("profileSidebar.requestAccess")}
+          </button>
+        )}
+        <button className="btn btn--delete btn--small" onClick={onRemove}>
+          {translate("profileSidebar.remove")}
+        </button>
+      </div>
     </div>
   );
 };
 
-
-const ContactsList: FunctionComponent = () => {
+const ContactsList: FunctionComponent<{ ownerWebId: string }> = ({ ownerWebId }) => {
   const [translate] = useTranslation();
-  const { session, fetch: solidFetch } = useSolidAuth();
-  const webIdResource = useResource(session.webId);
-  const profile = useSubject(SolidProfileShapeType, session.webId);
+  const { fetch: solidFetch } = useSolidAuth();
+  const webIdResource = useResource(ownerWebId);
+  const profile = useSubject(SolidProfileShapeType, ownerWebId);
 
   const [contacts, setContacts] = useState<string[]>([]);
   const [newWebId, setNewWebId] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  // Map contact WebIDs to their latest rejection message
+  const [rejections, setRejections] = useState<Map<string, AccessRejection>>(new Map());
+
+  useEffect(() => {
+    if (!ownerWebId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const inboxUri = await discoverInboxUri(ownerWebId, solidFetch);
+        const found = await listRejectionNotifications(inboxUri, solidFetch);
+        if (cancelled) return;
+        // For catalog requests, accessTo is the contact's WebID
+        const map = new Map(found.map((r) => [r.accessTo, r]));
+        setRejections(map);
+      } catch {
+        // Ignore missing or inaccessible inboxes
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerWebId, solidFetch]);
 
   useEffect(() => {
     if (!profile) return;
@@ -230,15 +338,15 @@ const ContactsList: FunctionComponent = () => {
       alert("WebID must be a valid http(s):// URL without special characters");
       return;
     }
-    if (!session.webId) return;
+    if (!ownerWebId) return;
     if (contacts.includes(trimmed)) {
       alert("This contact is already in your list.");
       return;
     }
     setIsAdding(true);
     try {
-      await addContact(session.webId, trimmed, solidFetch);
-      setContacts(prev => [...prev, trimmed]);
+      await addContact(ownerWebId, trimmed, solidFetch);
+      setContacts((prev) => [...prev, trimmed]);
       setNewWebId("");
       if (isReloadable(webIdResource)) await webIdResource.reload().catch(() => {});
     } catch (error) {
@@ -249,10 +357,10 @@ const ContactsList: FunctionComponent = () => {
   };
 
   const handleRemove = async (contactWebId: string) => {
-    if (!session.webId) return;
+    if (!ownerWebId) return;
     try {
-      await removeContact(session.webId, contactWebId, solidFetch);
-      setContacts(prev => prev.filter(existingContact => existingContact !== contactWebId));
+      await removeContact(ownerWebId, contactWebId, solidFetch);
+      setContacts((prev) => prev.filter((existingContact) => existingContact !== contactWebId));
       if (isReloadable(webIdResource)) await webIdResource.reload().catch(() => {});
     } catch (error) {
       alert(`Failed to remove contact: ${(error as Error).message}`);
@@ -272,7 +380,9 @@ const ContactsList: FunctionComponent = () => {
           placeholder={translate("profileSidebar.webIdPlaceholder")}
           value={newWebId}
           onChange={(event) => setNewWebId(event.target.value)}
-          onKeyDown={(event) => { if (event.key === "Enter") handleAdd(); }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") handleAdd();
+          }}
           disabled={isAdding}
         />
         <button
@@ -280,7 +390,7 @@ const ContactsList: FunctionComponent = () => {
           onClick={handleAdd}
           disabled={isAdding || !newWebId.trim()}
         >
-          {isAdding ? "…" : translate("profileSidebar.add")}
+          {isAdding ? "..." : translate("profileSidebar.add")}
         </button>
       </div>
 
@@ -288,20 +398,54 @@ const ContactsList: FunctionComponent = () => {
         <p className="contacts__placeholder">{translate("profileSidebar.noContacts")}</p>
       ) : (
         contacts.map((contactWebId) => (
-          <ContactRow key={contactWebId} webId={contactWebId} onRemove={() => handleRemove(contactWebId)} />
+          <ContactRow
+            key={contactWebId}
+            webId={contactWebId}
+            ownerWebId={ownerWebId}
+            solidFetch={solidFetch}
+            rejection={rejections.get(contactWebId)}
+            onClearRejection={() => setRejections((prev) => {
+              const next = new Map(prev);
+              next.delete(contactWebId);
+              return next;
+            })}
+            onRemove={() => handleRemove(contactWebId)}
+          />
         ))
       )}
     </div>
   );
 };
 
-// profile sidebar component
-export const ProfileSidebar: FunctionComponent = () => (
-  <aside className="profile-sidebar">
-    <div className="profile-sidebar__card">
-      <ProfileCard />
-      <hr className="profile-sidebar__divider" />
-      <ContactsList />
-    </div>
-  </aside>
-);
+// Profile sidebar component
+export const ProfileSidebar: FunctionComponent = () => {
+  const { session, fetch: solidFetch } = useSolidAuth();
+  const profile = useSubject(SolidProfileShapeType, session.webId);
+  const ownerWebId = session.webId ?? "";
+  const storageRoot =
+    profile?.storage?.toArray()?.[0]?.["@id"] ??
+    ownerWebId.replace(/\/profile\/card.*/, "/");
+  const catalogUri = resolveCatalogUri(profile, storageRoot);
+
+  return (
+    <aside className="profile-sidebar">
+      <div className="profile-sidebar__card">
+        <ProfileCard />
+        <hr className="profile-sidebar__divider" />
+        <ContactsList ownerWebId={ownerWebId} />
+        {ownerWebId && storageRoot && catalogUri && (
+          <>
+            <hr className="profile-sidebar__divider" />
+            <RequestsPanel
+              ownerWebId={ownerWebId}
+              storageRoot={storageRoot}
+              catalogUri={catalogUri}
+              fetch={solidFetch}
+              onCountChange={() => {}}
+            />
+          </>
+        )}
+      </div>
+    </aside>
+  );
+};

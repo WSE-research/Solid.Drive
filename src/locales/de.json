@@ -71,7 +71,22 @@
     "add": "Hinzufügen",
     "noContacts": "Noch keine Kontakte.",
     "remove": "Entfernen",
-    "name": "Name"
+    "name": "Name",
+    "requestAccess": "Zugriff anfragen",
+    "requestSent": "Angefragt",
+    "requestError": "Erneut versuchen",
+    "requestDenied": "Abgelehnt",
+    "requestAgain": "Erneut anfragen"
+  },
+  "requestsPanel": {
+    "heading": "Anfragen",
+    "loading": "Wird geladen…",
+    "noRequests": "Keine offenen Anfragen.",
+    "requestsAccess": "möchte Zugriff auf Ihren Katalog",
+    "requestsFileAccess": "möchte Zugriff auf {{resource}}",
+    "approve": "Genehmigen",
+    "deny": "Ablehnen",
+    "refresh": "Aktualisieren"
   },
   "sharePanel": {
     "access": "Zugriff",
@@ -88,7 +103,15 @@
   },
   "sharedWithMe": {
     "heading": "Mit mir geteilt",
-    "from": "Von {{name}}"
+    "from": "Von {{name}}",
+    "noFilesYet": "Zugriff gewährt — noch keine Dateien geteilt.",
+    "browseHeading": "Auch verfügbar",
+    "requestFile": "Anfragen",
+    "requestAll": "Alle {{type}} anfragen",
+    "requestSent": "Angefragt",
+    "requestError": "Erneut versuchen",
+    "requestDenied": "Abgelehnt",
+    "requestAgain": "Erneut anfragen"
   },
   "languageSwitcher": {
     "label": "Sprache"
