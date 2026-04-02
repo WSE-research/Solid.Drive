@@ -34,10 +34,25 @@ body {
   padding: 0 24px 80px;
 }
 
-/* APP LAYOUT */
-.app-layout { display: flex; gap: 32px; align-items: flex-start; }
-.profile-sidebar { width: 280px; flex-shrink: 0; position: sticky; top: 24px; max-height: calc(100vh - 120px); overflow-y: auto; }
-.app-main { flex: 1; min-width: 0; }
+.app-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.profile-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
 
 /* HEADER */
 .site-header {
@@ -102,6 +117,8 @@ select option[disabled] { display: none; }
 .file-upload__body::placeholder { color: var(--text-muted); }
 textarea.file-upload__body { resize: none; min-height: 60px; }
 .file-upload__divider { height: 1px; background: var(--border); margin: 16px 0; }
+.file-upload__row { display: flex; align-items: center; gap: 10px; }
+.file-upload__meta { font-size: 12px; color: var(--text-muted); }
 .file-upload__footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .file-upload__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .file-upload__meta { font-size: 13px; color: var(--text-muted); }

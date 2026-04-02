@@ -113,7 +113,7 @@ All catalog and file-type logic. No direct LDO usage — communicates with the P
 - **`linkCatalogToProfile(catalogUri, webId, fetch)`** — adds a `dcat:catalog` triple to the WebID profile document so external agents can discover the catalog. Only called on first upload (guarded by `profileHasCatalog` in `FileUpload`).
 - **`parseCatalog(turtleText, baseUri?)`** — parses a `catalog.ttl` Turtle string into `CatalogEntry` objects. `baseUri` is optional and is used when relative IRIs in shared catalogs need to resolve to absolute resource URIs.
 
----
+## `i18n.ts`
 
 ## `fileAccess.ts`
 

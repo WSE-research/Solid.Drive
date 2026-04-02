@@ -76,7 +76,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   }, [profile, webIdResource, getResource, translate]);
 
   const currentContainer = useResource(currentUri);
-  const appContainer = useResource(appContainerUri);
+  useResource(appContainerUri);
 
   /** Navigate into a subfolder and push it onto the breadcrumb trail. */
   const handleNavigate = useCallback((uri: string) => {
@@ -170,10 +170,13 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
+
   const isInAppFolder = currentUri === appContainerUri;
   const entries: DriveEntry[] = isSolidContainer(currentContainer)
     ? currentContainer.children()
     : [];
+
+  // Split entries into folders and files so they can be rendered differently.
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
   const leafEntries = (entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[])
     .filter((entry) => {
@@ -183,8 +186,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   return (
     <main>
-      {isSolidContainer(appContainer) && catalogUri && (
-        <FileUpload mainContainer={appContainer} catalogUri={catalogUri} profileHasCatalog={!!profile?.catalog?.["@id"]} />
+      {isSolidContainer(currentContainer) && catalogUri && (
+        <FileUpload mainContainer={currentContainer} catalogUri={catalogUri} profileHasCatalog={!!profile?.catalog?.["@id"]} />
       )}
 
       {breadcrumbs.length > 1 && (
