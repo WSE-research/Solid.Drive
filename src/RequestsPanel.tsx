@@ -186,7 +186,7 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
       // Delete the inbox message
       await deleteAccessRequest(request.messageUri, solidFetch);
 
-      const updated = requests.filter((request) => request.messageUri !== request.messageUri);
+      const updated = requests.filter((pending) => pending.messageUri !== request.messageUri);
       setRequests(updated);
       onCountChange(updated.length);
     } catch (err) {
