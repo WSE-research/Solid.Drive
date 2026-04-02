@@ -5,10 +5,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['src/tests/**/*.test.{ts,tsx}'],
-    setupFiles: ['src/tests/setup.ts'],
+    setupFiles: "./tests/setup.ts",
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
   },
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 1000, // kB — suppress advisory for large vendor bundles
+  },
   optimizeDeps: {
     force: true,
     include: [

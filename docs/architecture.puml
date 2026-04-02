@@ -1,9 +1,12 @@
-@startuml solid.drive Architecture
+@startuml architecture
+title solid.drive Architecture
+
 !theme plain
 skinparam defaultFontName sans-serif
 skinparam defaultFontSize 13
-skinparam linetype ortho
 skinparam classAttributeIconSize 0
+skinparam backgroundColor White
+skinparam linetype ortho
 
 skinparam class {
   BackgroundColor White
@@ -19,15 +22,26 @@ skinparam package {
   FontStyle Bold
 }
 
-skinparam note {
-  BackgroundColor #FFFFF0
-  BorderColor #AAAAAA
+skinparam arrow {
+  Margin 15
+  FontSize 14
 }
+
+skinparam label {
+  BackgroundColor White
+  FontSize 14
+}
+
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam linetype ortho
+
+left to right direction
 
 package "Browser" {
 
-  class App <<component>> {
-  }
+  class App <<component>>
 
   class Header <<component>> {
     +login(issuer: string)
@@ -40,15 +54,21 @@ package "Browser" {
 
   class FileExplorer <<component>> {
     +navigate(uri: string)
-    +breadcrumbClick(index: int, uri: string)
     +reload()
   }
 
   class FileUpload <<component>> {
-    +submit(file: File, title: string, description: string)
+    +submit(file, title, description)
+  }
+
+  class TBoxValidator <<module>> {
+    +loadTBox()
+    +validateMetadata()
+    +getShapeForType()
   }
 
   class FileCard <<component>> {
+    +download()
     +delete()
   }
 
@@ -69,46 +89,60 @@ package "Browser" {
   FileExplorer --> FileUpload
   FileExplorer --> FileCard
   FileExplorer --> FolderEntry
+  FileUpload --> TBoxValidator
   App ..> i18n : uses
   Header ..> i18n : uses
   LanguageSwitcher ..> i18n : uses
 }
 
-package "Solid Pod (user-owned)" {
-
-  class PodStorage <<container>> {
-    +uri: string
+package "App Assets (public/)" {
+  class TBoxTTL <<tbox.ttl>> {
+    sh:NodeShape definitions
+    rdfs:subClassOf hierarchy
+    sh:minCount constraints
   }
-
-  class AppContainer <<container>> {
-    +path: my-solid-app/
-  }
-
-  class FileContainer <<container>> {
-    +path: slug/
-  }
-
-  class IndexTTL <<resource>> {
-    +name: string
-    +description: string
-    +encodingFormat: string
-    +contentSize: string
-    +uploadDate: date
-    +publisher: IRI
-  }
-
-  class BinaryFile <<resource>> {
-    +path: original-file.ext
-  }
-
-  PodStorage --> AppContainer
-  AppContainer --> "1..*" FileContainer
-  FileContainer --> IndexTTL
-  FileContainer --> BinaryFile
 }
 
-FileExplorer ..> PodStorage : browses
-FileUpload ..> AppContainer : uploads to
-FileCard ..> FileContainer : reads
+package "Solid Pod (user-owned)" {
+
+  class CatalogTTL <<catalog.ttl>> {
+    dcat:Dataset entries
+  }
+
+  class AppContainer <<my-solid-app/>>
+
+  class FileContainer <<file-slug/>>
+
+  class IndexTTL <<index.ttl>> {
+    rdf:type (schema.org class)
+    schema:name
+    schema:uploadDate
+    schema:publisher
+  }
+
+  class BinaryFile <<file.ext>>
+
+  class WebIDProfile <<profile/card>> {
+    sp:storage
+    dcat:catalog (optional)
+  }
+}
+  AppContainer -- "1..*" FileContainer
+  FileContainer -- IndexTTL
+  FileContainer -- BinaryFile
+  WebIDProfile --- CatalogTTL : dcat:catalog
+
+TBoxValidator .. TBoxTTL        : fetches
+
+FileUpload .. CatalogTTL        : appends
+FileUpload .. AppContainer      : uploads\nto
+FileUpload .. WebIDProfile      : links\ncatalog
+
+FileCard .. IndexTTL            : reads
+FileCard .. CatalogTTL          : removes
+FileCard .down. WebIDProfile   : resolves\npublisher
+
+FileExplorer .. AppContainer    : browses
+FileExplorer .down. WebIDProfile    : resolves\ncatalog URI
 
 @enduml

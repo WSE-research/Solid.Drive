@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import i18n from '../i18n';
+import i18n from '../../src/i18n';
 
 describe('i18n configuration', () => {
   it('has English as fallback language', () => {
@@ -23,8 +23,7 @@ describe('i18n configuration', () => {
     expect(order[1]).toBe('navigator');
   });
 
-  it('loads translations from the correct path', () => {
-    const loadPath = (i18n.options.backend as { loadPath: string })?.loadPath;
-    expect(loadPath).toBe('/locales/{{lng}}/{{ns}}.json');
+  it('bundles English translations', () => {
+    expect(i18n.getResourceBundle('en', 'translation')).toBeDefined();
   });
 });

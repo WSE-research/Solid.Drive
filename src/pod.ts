@@ -1,7 +1,8 @@
 import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
-//  Resource capability interfaces and related type guards
-
+// LDO exposes capabilities via method presence instead of a class hierarchy
+// These interfaces describe those shapes so we can safely narrow resources
+// without depending on internal LDO types
 export interface LoadableResource {
   isLoading: () => boolean;
 }
@@ -22,8 +23,6 @@ export interface DeletableResource {
 export interface ReloadableResource {
   reload: () => Promise<void>;
 }
-
-// Upload API response shapes and related types
 
 export interface UploadResult {
   isError: boolean;

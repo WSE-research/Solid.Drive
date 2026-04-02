@@ -2,14 +2,14 @@ import type { Schema } from "shexj";
 
 /**
  * =============================================================================
- * postSchema: ShexJ Schema for post
+ * catalogEntrySchema: ShexJ Schema for catalogEntry
  * =============================================================================
  */
-export const postSchema: Schema = {
+export const catalogEntrySchema: Schema = {
   type: "Schema",
   shapes: [
     {
-      id: "https://example.com/PostSh",
+      id: "https://w3id.org/solid-drive#CatalogEntrySh",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -21,11 +21,7 @@ export const postSchema: Schema = {
               predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
               valueExpr: {
                 type: "NodeConstraint",
-                values: [
-                  "http://schema.org/DigitalDocument",
-                  "http://schema.org/CreativeWork",
-                  "http://schema.org/Thing",
-                ],
+                nodeKind: "iri",
               },
             },
             {
@@ -78,6 +74,24 @@ export const postSchema: Schema = {
             },
             {
               type: "TripleConstraint",
+              predicate: "http://schema.org/publisher",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "http://purl.org/dc/terms/conformsTo",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+              min: 0,
+              max: 1,
+            },
+            {
+              type: "TripleConstraint",
               predicate: "http://schema.org/dateModified",
               valueExpr: {
                 type: "NodeConstraint",
@@ -105,14 +119,6 @@ export const postSchema: Schema = {
               },
               min: 0,
               max: -1,
-            },
-            {
-              type: "TripleConstraint",
-              predicate: "http://schema.org/publisher",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
             },
           ],
         },

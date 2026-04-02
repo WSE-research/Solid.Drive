@@ -28,4 +28,13 @@ export interface SolidProfile {
   storage?: LdSet<{
     "@id": string;
   }>;
+  publicTypeIndex?: {
+    "@id": string;
+  };
+  privateTypeIndex?: {
+    "@id": string;
+  };
+  catalog?: {
+    "@id": string;
+  };
 }
