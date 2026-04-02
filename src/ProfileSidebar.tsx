@@ -3,7 +3,7 @@ import type { FunctionComponent } from "react";
 import { useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isLoadable, isReloadable } from "./pod";
-import { ensureProfileDocType, saveProfileFields, type ProfileFields } from "./foaf";
+import { ensureProfileDocType, saveProfileFields, addContact, removeContact, type ProfileFields } from "./foaf";
 
 
 
@@ -242,18 +242,10 @@ const ContactsList: FunctionComponent = () => {
     }
     setIsAdding(true);
     try {
-      const addResponse = await solidFetch(session.webId.split("#")[0], {
-        method: "PATCH",
-        headers: { "Content-Type": "text/n3" },
-        body: `@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix solid: <http://www.w3.org/ns/solid/terms#> .
-<> a solid:InsertDeletePatch;
-  solid:inserts { <#me> foaf:knows <${trimmed}> . } .`,
-      });
-      if (!addResponse.ok) throw new Error(`${addResponse.status} ${addResponse.statusText}`);
+      await addContact(session.webId, trimmed, solidFetch);
       setContacts(prev => [...prev, trimmed]);
       setNewWebId("");
-      if (isReloadable(webIdResource)) webIdResource.reload();
+      if (isReloadable(webIdResource)) await webIdResource.reload().catch(() => {});
     } catch (error) {
       alert(`Failed to add contact: ${(error as Error).message}`);
     } finally {
@@ -264,17 +256,9 @@ const ContactsList: FunctionComponent = () => {
   const handleRemove = async (contactWebId: string) => {
     if (!session.webId) return;
     try {
-      const removeResponse = await solidFetch(session.webId.split("#")[0], {
-        method: "PATCH",
-        headers: { "Content-Type": "text/n3" },
-        body: `@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix solid: <http://www.w3.org/ns/solid/terms#> .
-<> a solid:InsertDeletePatch;
-  solid:deletes { <#me> foaf:knows <${contactWebId}> . } .`,
-      });
-      if (!removeResponse.ok) throw new Error(`${removeResponse.status} ${removeResponse.statusText}`);
+      await removeContact(session.webId, contactWebId, solidFetch);
       setContacts(prev => prev.filter(existingContact => existingContact !== contactWebId));
-      if (isReloadable(webIdResource)) webIdResource.reload();
+      if (isReloadable(webIdResource)) await webIdResource.reload().catch(() => {});
     } catch (error) {
       alert(`Failed to remove contact: ${(error as Error).message}`);
     }
