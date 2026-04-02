@@ -90,7 +90,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     try {
       const classUri = resolveClass(pendingFile.type);
 
-      containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+      containerSlug = pendingFile.name.toLowerCase().replace(/\.[^.]+$/, "").replace(/[^a-z0-9]+/g, "-");
       const containerUri = `${containerSlug}/` as SolidContainerUri;
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
       if (containerResult.isError) return alert(containerResult.message);
@@ -99,7 +99,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
         pendingFile.name,
         pendingFile,
-        pendingFile.type
+        pendingFile.type || "application/octet-stream"
       );
 
       if (uploadResult.isError) {

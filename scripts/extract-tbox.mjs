@@ -1,6 +1,5 @@
 /**
- * Builds a reduced SHACL TBox from https://datashapes.org/schema.ttl.
- * It keeps only the shapes used by solid.drive and merges app specific cardinality constraints.
+ * Builds a full SHACL TBox from https://datashapes.org/schema.ttl.
  *
  * Writes the result to public/tbox.ttl so the generated TBox stays in sync
  * with the source and is never edited by hand.
@@ -27,20 +26,6 @@ function getArg(name, fallback) {
 const SOURCE_URL = getArg("source", "https://datashapes.org/schema.ttl");
 const OUTPUT_PATH = getArg("output", resolve(__dirname, "../public/tbox.ttl"));
 
-// Types to extract 
-const TARGET_TYPES = [
-  "http://schema.org/DigitalDocument",
-  "http://schema.org/MediaObject",
-  "http://schema.org/ImageObject",
-  "http://schema.org/VideoObject",
-  "http://schema.org/AudioObject",
-  "http://schema.org/TextDigitalDocument",
-  "http://schema.org/SpreadsheetDigitalDocument",
-  "http://schema.org/CreativeWork",
-  "http://schema.org/Thing",
-];
-
-
 async function main() {
   console.log(`[tbox] fetching ${SOURCE_URL} ...`);
   const response = await fetch(SOURCE_URL);
@@ -54,35 +39,14 @@ async function main() {
   const store = new Store(quads);
   console.log(`[tbox] parsed ${quads.length} triples`);
 
-  // Keep target shapes and any ancestor shapes that are also declared as NodeShapes
-  const shapeUris = new Set();
-  for (const typeUri of TARGET_TYPES) {
-    if (
-        store.getQuads(
-          typeUri, 
-          "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", 
-          "http://www.w3.org/ns/shacl#NodeShape", 
-          null
-        ).length > 0
-      ) {
-      shapeUris.add(typeUri);
-    }
-  }
+  // Include ALL NodeShapes from the schema so any file type can be classified
+  const shapeUris = new Set(
+    store
+      .getQuads(null, "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", "http://www.w3.org/ns/shacl#NodeShape", null)
+      .map((quad) => quad.subject.value)
+  );
 
-  const ancestors = collectAncestors(TARGET_TYPES, store);
-  for (const ancestor of ancestors) {
-    if (
-        store.getQuads(
-          ancestor, 
-          "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", 
-          "http://www.w3.org/ns/shacl#NodeShape", 
-          null).length > 0
-        ) {
-      shapeUris.add(ancestor);
-    }
-  }
-
-  console.log(`[tbox] collected ${shapeUris.size} shapes (including ancestors)`);
+  console.log(`[tbox] collected ${shapeUris.size} shapes`);
 
   const SH = "http://www.w3.org/ns/shacl#";
   const propertyShapeUris = new Set();
@@ -270,25 +234,6 @@ function extractPropertyName(uri) {
   const localPart = uri.split(/[#/]/).pop() ?? "";
   const dashIndex= localPart.lastIndexOf("-");
   return dashIndex >= 0 ? localPart.substring(dashIndex + 1) : localPart;
-}
-
-function collectAncestors(typeUris, store) {
-  const RDFS_SUBCLASS = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
-  const visited = new Set(typeUris);
-  const queue = [...typeUris];
-
-  while (queue.length > 0) {
-    const current = queue.shift();
-    const parents = store.getObjects(current, RDFS_SUBCLASS, null);
-    for (const parent of parents) {
-      if (!visited.has(parent.value)) {
-        visited.add(parent.value);
-        queue.push(parent.value);
-      }
-    }
-  }
-
-  return [...visited].filter((uri) => !typeUris.includes(uri));
 }
 
 main().catch((err) => {

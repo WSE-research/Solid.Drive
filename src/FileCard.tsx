@@ -75,8 +75,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     discoverAclUri(containerUri, solidFetch)
       .then((aclUri) => readAclAgents(aclUri, solidFetch))
       .then((sharedAgents) => { if (!cancelled) setIsShared(sharedAgents.length > 0); })
-      .catch((err) => {
-        console.warn("[FileCard] ACL discovery failed for", containerUri, err);
+      .catch((err: unknown) => {
+        const msg = (err as Error)?.message ?? "";
+        if (!msg.includes("404")) {
+          console.warn("[FileCard] ACL discovery failed for", containerUri, err);
+        }
       });
     return () => { cancelled = true; };
   }, [containerUri, solidFetch]);
