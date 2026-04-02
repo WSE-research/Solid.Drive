@@ -13,7 +13,7 @@ export const LanguageSwitcher: FunctionComponent = () => {
     <select
       aria-label={translate("languageSwitcher.label")}
       value={i18n.resolvedLanguage}
-      onChange={(error) => i18n.changeLanguage(error.target.value)}
+      onChange={(event) => i18n.changeLanguage(event.target.value)}
     >
       {LANGUAGES.map((language) => (
         <option key={language.code} value={language.code}>

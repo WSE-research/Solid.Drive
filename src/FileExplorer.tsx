@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment, useCallback, useRef } from "react";
+import { useEffect, useState, Fragment, useCallback, useRef, useMemo } from "react";
 import type { FunctionComponent } from "react";
 import { FileUpload } from "./FileUpload";
 import { FolderEntry } from "./FolderEntry";
@@ -8,6 +8,8 @@ import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isLoadable, isReloadable } from "./pod";
 import { resolveCatalogUri } from "./useCatalogUri";
+import { SharedWithMeSection } from "./SharedWithMeSection";
+import { getAppContainerUri, isSharedCatalogFile } from "./shareCatalog";
 import type { SolidContainer, SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
 
 type DriveEntry = SolidContainer | SolidLeaf;
@@ -17,14 +19,12 @@ interface FileExplorerProps {
   storageRetryDelayMs?: number;
 }
 
-const APP_CONTAINER_PATH = "my-solid-app/";
 const DEFAULT_STORAGE_RETRY_DELAY_MS = 10_000;
-// System files that are filtered out of the user-facing file list
 const SYSTEM_FILES = new Set(["catalog.ttl", "robots.txt", "README", ".acl", ".meta"]);
 
 /**
- * Main file explorer: manages session, navigation state, and data loading,
- * and coordinates folder browsing, uploads, and file display
+ * Main file explorer — session, navigation, data loading,
+ * folder browsing, uploads, and file display.
  */
 export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   storageRetryDelayMs = DEFAULT_STORAGE_RETRY_DELAY_MS,
@@ -43,15 +43,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [noStorageDetected, setNoStorageDetected] = useState(false);
 
   /**
-   * Sets up the user's storage root, app folder, and initial navigation state on first load.
-   * Runs again if the WebID profile is reloaded and the storage location changes.
+   * Set up storage root, app folder, and initial navigation on first load.
+   * Re-runs if the profile reloads and storage location changes.
    */
   useEffect(() => {
     if (initialized.current) return;
     const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
 
     if (!storageRootId) {
-      // Only flag an error once the profile document has actually finished loading
       if (isLoadable(webIdResource) && !webIdResource.isLoading()) {
         setNoStorageDetected(true);
       }
@@ -60,7 +59,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
     setNoStorageDetected(false);
     const storageRoot = storageRootId as SolidContainerUri;
-    const appUri = `${storageRoot}${APP_CONTAINER_PATH}` as SolidContainerUri;
+    const appUri = getAppContainerUri(storageRoot) as SolidContainerUri;
 
     setCurrentUri(storageRoot);
     setAppContainerUri(appUri);
@@ -79,20 +78,20 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const currentContainer = useResource(currentUri);
   useResource(appContainerUri);
 
-  /** Navigates into a subfolder and appends it to the breadcrumb trail. */
+  /** Navigate into a subfolder and push it onto the breadcrumb trail. */
   const handleNavigate = useCallback((uri: string) => {
     const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
     setBreadcrumbs((prev) => [...prev, { label, uri: uri as SolidContainerUri }]);
     setCurrentUri(uri as SolidContainerUri);
   }, []);
 
-  /** Navigates back to a breadcrumb at the given index and trims the trail to that point. */
+  /** Jump back to a breadcrumb at the given index and trim the trail. */
   const handleBreadcrumbClick = useCallback((index: number, uri: SolidContainerUri) => {
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
     setCurrentUri(uri);
   }, []);
 
-  /** Downloads a file via the session and triggers a browser save, then releases the blob URL. */
+  /** Download a file via the session and trigger a browser save. */
   const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {
     try {
       const response = await solidFetch(entry.uri);
@@ -109,7 +108,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     }
   }, [solidFetch]);
 
-  /** Reloads the current folder from the pod to reflect the latest contents. */
+  /** Reload the current folder from the pod. */
   const handleReload = useCallback(async () => {
     if (!currentContainer || !isReloadable(currentContainer)) return;
     setIsReloading(true);
@@ -120,7 +119,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     }
   }, [currentContainer]);
 
-// Reload the WebID profile document and retry storage root discovery
+  /** Reload the WebID profile and retry storage root discovery. */
   const handleRetryStorage = useCallback(async () => {
     if (!isReloadable(webIdResource)) return;
     setNoStorageDetected(false);
@@ -128,12 +127,16 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     await webIdResource.reload();
   }, [webIdResource]);
 
-// Automatically retry storage discovery after a delay when no storage root was found
   useEffect(() => {
     if (!noStorageDetected) return;
     const timer = setTimeout(handleRetryStorage, storageRetryDelayMs);
     return () => clearTimeout(timer);
   }, [noStorageDetected, handleRetryStorage, storageRetryDelayMs]);
+
+  const contacts = useMemo(
+    () => profile?.knows?.toArray().map((contactEntry: { "@id": string }) => contactEntry["@id"]) ?? [],
+    [profile]
+  );
 
   if (!session.isLoggedIn) {
     return (
@@ -165,10 +168,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
-
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
-  // True when browsing the app's own folder; false when at the pod root or a generic subfolder.
+
   const isInAppFolder = currentUri === appContainerUri;
   const entries: DriveEntry[] = isSolidContainer(currentContainer)
     ? currentContainer.children()
@@ -176,11 +178,10 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   // Split entries into folders and files so they can be rendered differently.
   const folderEntries = entries.filter(isSolidContainer) as SolidContainer[];
-// Only show normal leaf files here
   const leafEntries = (entries.filter((entry) => !isSolidContainer(entry)) as SolidLeaf[])
     .filter((entry) => {
       const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? "");
-      return !SYSTEM_FILES.has(fileName) && !fileName.startsWith(".");
+      return !SYSTEM_FILES.has(fileName) && !isSharedCatalogFile(fileName);
     });
 
   return (
@@ -266,6 +267,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
           })}
         </>
       )}
+      <SharedWithMeSection contacts={contacts} ownerWebId={session.webId ?? ""} />
     </main>
   );
 };

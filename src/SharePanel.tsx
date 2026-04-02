@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import type { FunctionComponent } from "react";
 import { useSolidAuth, useSubject, useResource } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
-import { discoverAclUri, readAclAgents, writeAcl } from "./fileAccess";
+import { discoverAclUri, readAclAgents, writeAcl, writeListOnlyAcl, writeResourceAcl } from "./fileAccess";
 import { isLoadable } from "./pod";
+import { appendToCatalog, removeFromCatalog } from "./podCatalog";
+import { getCandidateSharedCatalogUris, getSharedCatalogUri } from "./shareCatalog";
 
-function toMessage(err: unknown): string {
+function formatErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err);
 }
@@ -15,6 +18,7 @@ const GranteeRow: FunctionComponent<{ webId: string; onRevoke: () => void; disab
   onRevoke,
   disabled,
 }) => {
+  const [translate] = useTranslation();
   const contactResource = useResource(webId.split("#")[0]);
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
@@ -23,53 +27,39 @@ const GranteeRow: FunctionComponent<{ webId: string; onRevoke: () => void; disab
       .replace(/#.*$/, "")
       .split("/")
       .filter(Boolean)
-      .find((s) => s !== "profile" && s !== "card" && !s.startsWith("http")) ?? webId;
+      .find((pathSegment) => pathSegment !== "profile" && pathSegment !== "card" && !pathSegment.startsWith("http")) ?? webId;
   const displayName = contact?.name ?? contact?.fn ?? webIdFallbackName;
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 0" }}>
-      <div
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          background: "var(--surface-2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 11,
-          flexShrink: 0,
-          marginTop: 2,
-        }}
-      >
-        {isLoading ? <div className="spinner" style={{ width: 10, height: 10 }} /> : displayName.slice(0, 1).toUpperCase()}
+    <div className="share-panel__row">
+      <div className="share-panel__avatar share-panel__avatar--grantee">
+        {isLoading ? <div className="spinner spinner--tiny" /> : displayName.slice(0, 1).toUpperCase()}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 12, color: "var(--text-primary)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {isLoading ? "Loading…" : displayName}
+      <div className="share-panel__name">
+        <span className="share-panel__name-text">
+          {isLoading ? translate("sharePanel.loading") : displayName}
         </span>
-        <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          Access mode: Read
+        <span className="share-panel__mode">
+          {translate("sharePanel.accessMode")}
         </span>
       </div>
       <button
-        className="btn btn-danger"
-        style={{ fontSize: 11, padding: "2px 8px", flexShrink: 0 }}
+        className="btn btn--delete btn--small share-panel__revoke"
         onClick={onRevoke}
         disabled={disabled}
       >
-        Revoke
+        {translate("sharePanel.revoke")}
       </button>
     </div>
   );
 };
-
 
 const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; disabled: boolean }> = ({
   webId,
   onGrant,
   disabled,
 }) => {
+  const [translate] = useTranslation();
   const contactResource = useResource(webId.split("#")[0]);
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
@@ -78,49 +68,46 @@ const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; 
       .replace(/#.*$/, "")
       .split("/")
       .filter(Boolean)
-      .find((s) => s !== "profile" && s !== "card" && !s.startsWith("http")) ?? webId;
+      .find((pathSegment) => pathSegment !== "profile" && pathSegment !== "card" && !pathSegment.startsWith("http")) ?? webId;
   const displayName = contact?.name ?? contact?.fn ?? webIdFallbackName;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
-      <div
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          background: "var(--surface-2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 11,
-          flexShrink: 0,
-          opacity: 0.6,
-        }}
-      >
-        {isLoading ? <div className="spinner" style={{ width: 10, height: 10 }} /> : displayName.slice(0, 1).toUpperCase()}
+    <div className="share-panel__row--available">
+      <div className="share-panel__avatar share-panel__avatar--pending">
+        {isLoading ? <div className="spinner spinner--tiny" /> : displayName.slice(0, 1).toUpperCase()}
       </div>
-      <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {isLoading ? "Loading…" : displayName}
+      <span className="share-panel__name-text--pending">
+        {isLoading ? translate("sharePanel.loading") : displayName}
       </span>
       <button
-        className="btn btn-ghost"
-        style={{ fontSize: 11, padding: "2px 8px" }}
+        className="btn btn--ghost btn--small"
         onClick={onGrant}
         disabled={disabled}
       >
-        Grant
+        {translate("sharePanel.grant")}
       </button>
     </div>
   );
 };
 
-
 type SharePanelProps = {
   containerUri: string;
+  catalogUri: string;
   contacts: string[];
+  sharedEntry: {
+    metadataUri: string;
+    binaryUri: string;
+    classUri: string;
+    mediaType: string;
+    byteSize: number;
+    title: string;
+    description: string;
+    modified: string;
+  };
 };
 
-export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, contacts }) => {
+export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, catalogUri, contacts, sharedEntry }) => {
+  const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
   const ownerWebId = session.webId ?? "";
 
@@ -130,6 +117,60 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const appContainerUri = containerUri.replace(/\/$/, "").split("/").slice(0, -1).join("/") + "/";
+
+  /**
+   * Copy the shared entry into the grantee's per-contact catalog
+   * so they can discover it without reading the owner's main catalog.
+   */
+  const syncSharedCatalog = useCallback(async (contactWebId: string) => {
+    const sharedCatalogUri = getSharedCatalogUri(appContainerUri, contactWebId);
+    await appendToCatalog(
+      sharedCatalogUri,
+      sharedEntry.metadataUri,
+      sharedEntry.binaryUri,
+      sharedEntry.classUri,
+      sharedEntry.mediaType,
+      sharedEntry.byteSize,
+      sharedEntry.title,
+      sharedEntry.description,
+      sharedEntry.modified,
+      ownerWebId,
+      solidFetch
+    );
+    const sharedCatalogAclUri = await discoverAclUri(sharedCatalogUri, solidFetch);
+    await writeResourceAcl(sharedCatalogAclUri, sharedCatalogUri, ownerWebId, [contactWebId], solidFetch);
+  }, [appContainerUri, ownerWebId, sharedEntry, solidFetch]);
+
+  /**
+   * Remove legacy broad ACL entries now that per-contact catalogs exist.
+   * Swallows errors so it doesn't block the current share action.
+   */
+  const removeLegacyDiscoveryAccess = useCallback(async (agents: string[]) => {
+    if (agents.length === 0 || !ownerWebId) return;
+
+    try {
+      const appAclUri = await discoverAclUri(appContainerUri, solidFetch);
+      const existingAppAgents = await readAclAgents(appAclUri, solidFetch);
+      const remainingAppAgents = existingAppAgents.filter((webId) => !agents.includes(webId));
+      if (remainingAppAgents.length !== existingAppAgents.length) {
+        await writeListOnlyAcl(appAclUri, appContainerUri, ownerWebId, remainingAppAgents, solidFetch);
+      }
+    } catch {
+      // legacy cleanup should not block the current share operation
+    }
+    try {
+      const catalogAclUri = await discoverAclUri(catalogUri, solidFetch);
+      const existingCatalogAgents = await readAclAgents(catalogAclUri, solidFetch);
+      const remainingCatalogAgents = existingCatalogAgents.filter((webId) => !agents.includes(webId));
+      if (remainingCatalogAgents.length !== existingCatalogAgents.length) {
+        await writeResourceAcl(catalogAclUri, catalogUri, ownerWebId, remainingCatalogAgents, solidFetch);
+      }
+    } catch {
+      // legacy cleanup should not block the current share operation
+    }
+  }, [appContainerUri, catalogUri, ownerWebId, solidFetch]);
+
   const loadAcl = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -138,17 +179,21 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
       setAclUri(discoveredAclUri);
       const currentGrantees = await readAclAgents(discoveredAclUri, solidFetch);
       setGrantees(currentGrantees);
+      for (const contactWebId of currentGrantees) {
+        await syncSharedCatalog(contactWebId);
+      }
+      await removeLegacyDiscoveryAccess(currentGrantees);
     } catch (err) {
-      const message = toMessage(err);
+      const message = formatErrorMessage(err);
       if (message.includes("No ACL link header")) {
-        setError("Sharing is not supported by your pod provider.");
+        setError(translate("sharePanel.notSupported"));
       } else {
-        setError(`Failed to load access list: ${message}`);
+        setError(message);
       }
     } finally {
       setLoading(false);
     }
-  }, [containerUri, solidFetch]);
+  }, [containerUri, removeLegacyDiscoveryAccess, solidFetch, syncSharedCatalog, translate]);
 
   useEffect(() => {
     loadAcl();
@@ -161,13 +206,15 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
     try {
       const newGrantees = [...grantees, contactWebId];
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
+      await syncSharedCatalog(contactWebId);
+      await removeLegacyDiscoveryAccess([contactWebId]);
       setGrantees(newGrantees);
     } catch (err) {
-      setError(`Failed to grant access: ${toMessage(err)}`);
+      setError(formatErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
-  }, [aclUri, containerUri, grantees, ownerWebId, solidFetch]);
+  }, [aclUri, containerUri, grantees, ownerWebId, removeLegacyDiscoveryAccess, solidFetch, syncSharedCatalog]);
 
   const handleRevoke = useCallback(async (contactWebId: string) => {
     if (!aclUri) return;
@@ -176,13 +223,16 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
     try {
       const newGrantees = grantees.filter((granteeWebId) => granteeWebId !== contactWebId);
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
+      for (const sharedCatalogUri of getCandidateSharedCatalogUris(appContainerUri, contactWebId)) {
+        await removeFromCatalog(sharedCatalogUri, sharedEntry.metadataUri, solidFetch).catch(() => {});
+      }
       setGrantees(newGrantees);
     } catch (err) {
-      setError(`Failed to revoke access: ${toMessage(err)}`);
+      setError(formatErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
-  }, [aclUri, containerUri, grantees, ownerWebId, solidFetch]);
+  }, [aclUri, appContainerUri, containerUri, grantees, ownerWebId, sharedEntry.metadataUri, solidFetch]);
 
   const availableContacts = contacts.filter(
     (contactWebId) => contactWebId !== ownerWebId && !grantees.includes(contactWebId)
@@ -192,24 +242,24 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
 
   return (
     <div className="share-panel">
-      <p className="share-panel__heading">Access</p>
+      <p className="share-panel__heading">{translate("sharePanel.access")}</p>
 
       {loading && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-muted)", fontSize: 12, padding: "8px 0" }}>
-          <div className="spinner" style={{ width: 12, height: 12 }} />
-          Loading access list…
+        <div className="share-panel__loading">
+          <div className="spinner spinner--xs" />
+          {translate("sharePanel.loadingAccessList")}
         </div>
       )}
 
       {error && (
-        <p style={{ fontSize: 12, color: "var(--danger)", margin: "6px 0" }}>{error}</p>
+        <p className="share-panel__error">{error}</p>
       )}
 
       {!loading && !error && (
         <>
           {grantees.length === 0 ? (
-            <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", padding: "4px 0" }}>
-              Not shared with anyone yet.
+            <p className="share-panel__placeholder">
+              {translate("sharePanel.notShared")}
             </p>
           ) : (
             grantees.filter(Boolean).map((webId) => (
@@ -224,7 +274,7 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
 
           {availableContacts.length > 0 && (
             <>
-              <p className="share-panel__subheading">Share with</p>
+              <p className="share-panel__subheading">{translate("sharePanel.shareWith")}</p>
               {availableContacts.filter(Boolean).map((webId) => (
                 <ContactPickerRow
                   key={webId}
@@ -237,13 +287,13 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
           )}
 
           {contacts.filter((contactWebId) => contactWebId !== ownerWebId).length === 0 && (
-            <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", padding: "4px 0" }}>
-              Add contacts in the sidebar to share files.
+            <p className="share-panel__placeholder">
+              {translate("sharePanel.addContacts")}
             </p>
           )}
           {availableContacts.length === 0 && contacts.filter((contactWebId) => contactWebId !== ownerWebId).length > 0 && (
-            <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", padding: "4px 0" }}>
-              All contacts already have access.
+            <p className="share-panel__placeholder">
+              {translate("sharePanel.allHaveAccess")}
             </p>
           )}
         </>

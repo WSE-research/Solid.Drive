@@ -2,6 +2,7 @@ type FetchFn = (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
 export type ProfileFields = { name: string; imgUrl: string };
 
+/** Throw if the IRI is not a valid http(s) URL without special characters. */
 function assertSafeIri(iri: string, label: string): void {
   if (!/^https?:\/\/[^\s<>"{}|\\^`[\]]*$/.test(iri)) {
     throw new Error(`Invalid ${label}: must be a valid http(s):// URL without special characters`);
@@ -12,6 +13,10 @@ function escapeN3String(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 }
 
+/**
+ * Update foaf:name and foaf:img on the user's profile via a Solid InsertDeletePatch.
+ * Only changed fields are touched — old values are deleted and new ones inserted.
+ */
 export async function saveProfileFields(
   webId: string,
   original: ProfileFields,
@@ -39,17 +44,17 @@ export async function saveProfileFields(
 
   if (deleteTriples.length === 0 && insertTriples.length === 0) return;
 
-  const parts: string[] = [];
+  const patchParts: string[] = [];
   if (deleteTriples.length > 0)
-    parts.push(`solid:deletes { ${deleteTriples.join(" ")} }`);
+    patchParts.push(`solid:deletes { ${deleteTriples.join(" ")} }`);
   if (insertTriples.length > 0)
-    parts.push(`solid:inserts { ${insertTriples.join(" ")} }`);
+    patchParts.push(`solid:inserts { ${insertTriples.join(" ")} }`);
 
   const body = `@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix solid: <http://www.w3.org/ns/solid/terms#> .
 
 <> a solid:InsertDeletePatch;
-  ${parts.join(";\n  ")} .`;
+  ${patchParts.join(";\n  ")} .`;
 
   const response = await fetchFn(profileDocUri, {
     method: "PATCH",
@@ -59,6 +64,11 @@ export async function saveProfileFields(
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
 }
 
+/**
+ * Make sure the profile document has basic FOAF type triples:
+ * foaf:PersonalProfileDocument pointing to a foaf:Person.
+ * Safe to call repeatedly — existing triples are just re-inserted.
+ */
 export async function ensureProfileDocType(webId: string, fetchFn: FetchFn): Promise<void> {
   assertSafeIri(webId, "webId");
   const profileDocUri = webId.split("#")[0];

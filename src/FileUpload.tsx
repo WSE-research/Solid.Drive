@@ -13,20 +13,16 @@ type FileUploadProps = {
   mainContainer: SolidContainer;
   catalogUri: string;
   profileHasCatalog: boolean;
+  onUploadSuccess?: () => void;
 };
 
 /**
- * Handles file uploads into the app container in the user's pod.
- *
- * The upload flow creates a dedicated container for the file, stores the binary,
- * writes RDF metadata to index.ttl, and then adds the new item to the catalog.
- * If a later step fails, it tries to delete any resources created earlier so the
- * pod does not end up with half-finished upload state.
- *
- * Validation is TBox-driven: shapes are loaded from tbox.ttl (sourced from
- * datashapes.org). Required fields are enforced; missing fields prompt the user.
+ * Upload a file to the user's pod.
+ * Creates a container, stores the binary, writes index.ttl metadata,
+ * and adds the item to the catalog. Cleans up on partial failure.
+ * Validation uses TBox shapes from tbox.ttl.
  */
-export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog }) => {
+export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog, onUploadSuccess }) => {
   const [translate] = useTranslation();
   const { session, fetch: solidFetch } = useSolidAuth();
   const { createData, commitData } = useLdo();
@@ -69,31 +65,23 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       contentSize: pendingFile.size.toString(),
       uploadDate: new Date().toISOString(),
       publisher: { "@id": session.webId ?? "" },
-      type: [{ "@id": typeLocalName }], // cosmetic — not used by SHACL validation (classUri is used for shape lookup)
+      type: [{ "@id": typeLocalName }],
     };
     setValidation(validateMetadata(snapshot, classUri, tbox.shapes, tbox.parents));
   }, [tbox, pendingFile, title, description, session.webId]);
 
-  // Map violations to the fields the user can fix in this form
   const titleViolation = validation?.violations.find(
     (violation) => violation.localName === "name"
   );
-  // Violations the user can't fix in this form 
   const autoViolations = validation?.violations.filter(
     (violation) => violation.localName !== "name"
   ) ?? [];
   const canUpload = !validation || validation.valid;
 
-  /**
-   * Handles form submission:
-   * creates a named container on the pod, uploads the binary file,
-   * then writes an index.ttl metadata resource with the title, description, and file info.
-   */
   const handleSubmit = useCallback(async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!session.webId || !pendingFile) return;
 
-    // TBox validation gate — block upload if required fields are missing
     if (validation && !validation.valid) return;
 
     setIsUploading(true);
@@ -102,19 +90,16 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     try {
       const classUri = resolveClass(pendingFile.type);
 
-      // Use a safe folder name so the container URI is predictable
-      containerSlug = pendingFile.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+      containerSlug = pendingFile.name.toLowerCase().replace(/\.[^.]+$/, "").replace(/[^a-z0-9]+/g, "-");
       const containerUri = `${containerSlug}/` as SolidContainerUri;
-      // Create a container per file (binary and index.ttl live together)
       const containerResult = await mainContainer.createChildAndOverwrite(containerUri) as ContainerCreationResult;
       if (containerResult.isError) return alert(containerResult.message);
       const fileContainer = containerResult.resource;
 
-      // Upload the file with its MIME type so it is stored and served correctly.
       const uploadResult = await fileContainer.uploadChildAndOverwrite(
         pendingFile.name,
         pendingFile,
-        pendingFile.type
+        pendingFile.type || "application/octet-stream"
       );
 
       if (uploadResult.isError) {
@@ -122,7 +107,6 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         alert(uploadResult.message);
         return;
       }
-      // index.ttl must exist to store RDF metadata
       const indexResource = fileContainer.child("index.ttl");
       if (!isSolidLeaf(indexResource)) {
         const binaryUri = `${mainContainer.uri}${containerSlug}/${pendingFile.name}`;
@@ -133,8 +117,8 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       }
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
-      // Extract schema type from full URI and add to metadata
-      const typeLocalName = classUri.split(/[#/]/).pop() ?? "DigitalDocument";
+      const typeLocalName = (classUri.split(/[#/]/).pop() ?? "DigitalDocument") as
+        "DigitalDocument" | "ImageObject" | "VideoObject" | "AudioObject" | "TextDigitalDocument" | "SpreadsheetDigitalDocument";
 
       metadata.type.add({ "@id": typeLocalName });
       metadata.name = title.trim() || pendingFile.name;
@@ -144,11 +128,9 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       metadata.publisher = { "@id": session.webId };
       if (description.trim()) metadata.description = description.trim();
 
-      // Persist metadata to index.ttl
       const commitResult = await commitData(metadata);
       if (commitResult.isError) return alert(`Upload failed: the file metadata is invalid — ${commitResult.message}`);
 
-      // Build final binary URI for the catalog entry and append to catalog with SPARQL PATCH
       const binaryUri = `${mainContainer.uri}${containerSlug}/${encodeURIComponent(pendingFile.name)}`;
 
       try {
@@ -172,11 +154,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         alert(`Upload failed: catalog could not be updated. ${(catalogErr as Error).message}`);
         return;
       }
-      // Link catalog once so future reads can discover it from the profile
       if (!profileHasCatalog) {
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
 
+      onUploadSuccess?.();
       setTitle("");
       setDescription("");
       setPendingFile(undefined);
@@ -187,12 +169,12 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     } finally {
       setIsUploading(false);
     }
-  }, [mainContainer, catalogUri, profileHasCatalog, session, solidFetch, pendingFile, title, description, createData, commitData, validation]);
+  }, [mainContainer, catalogUri, profileHasCatalog, onUploadSuccess, session, solidFetch, pendingFile, title, description, createData, commitData, validation]);
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
       {tboxError && (
-        <p className="file-upload__validation-error">TBox could not be loaded: {tboxError}</p>
+        <p className="file-upload__validation-error">{translate("fileUpload.tboxError")} {tboxError}</p>
       )}
       <div className="file-upload__row">
         <label className="file-upload__label" htmlFor="file-upload-input">
@@ -218,7 +200,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         <>
           <div className="file-upload__divider" />
           <label className="file-upload__field-label" htmlFor="file-upload-title">
-            Title {titleViolation && <span className="file-upload__field-error">— {titleViolation.label} is required</span>}
+            {translate("fileUpload.title")} {titleViolation && <span className="file-upload__field-error">{translate("fileUpload.fieldRequired", { label: titleViolation.label })}</span>}
           </label>
           <input
             id="file-upload-title"
@@ -240,11 +222,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
           {autoViolations.length > 0 && (
             <div className="file-upload__validation-errors">
-              <p className="file-upload__validation-heading">Missing required fields:</p>
-              {autoViolations.map((v) => (
-                <p key={v.path} className="file-upload__validation-item">
-                  <strong>{v.label}</strong>
-                  {v.description && <span> — {v.description}</span>}
+              <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
+              {autoViolations.map((violation) => (
+                <p key={violation.path} className="file-upload__validation-item">
+                  <strong>{violation.label}</strong>
+                  {violation.description && <span> — {violation.description}</span>}
                 </p>
               ))}
             </div>

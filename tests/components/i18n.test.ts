@@ -23,7 +23,9 @@ describe('i18n configuration', () => {
     expect(order[1]).toBe('navigator');
   });
 
-  it('bundles English translations', () => {
-    expect(i18n.getResourceBundle('en', 'translation')).toBeDefined();
+  it('bundles translations for en and de', () => {
+    const resources = i18n.options.resources as Record<string, unknown>;
+    expect(resources).toHaveProperty('en');
+    expect(resources).toHaveProperty('de');
   });
 });

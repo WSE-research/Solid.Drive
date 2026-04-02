@@ -86,6 +86,10 @@
     "allHaveAccess": "Alle Kontakte haben bereits Zugriff.",
     "notSupported": "Teilen wird von Ihrem Pod-Anbieter nicht unterstützt."
   },
+  "sharedWithMe": {
+    "heading": "Mit mir geteilt",
+    "from": "Von {{name}}"
+  },
   "languageSwitcher": {
     "label": "Sprache"
   }

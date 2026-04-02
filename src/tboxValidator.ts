@@ -48,8 +48,8 @@ export function resetTBoxCache(): void {
 }
 
 /**
- * Fetch and parse the TBox file, then cache the result
- * Returns cached data if already loaded
+ * Fetch and parse the TBox file, then cache the result.
+ * Returns cached data if already loaded.
  */
 export async function loadTBox(
   tboxUri: string = DEFAULT_TBOX_URI,
@@ -72,8 +72,8 @@ export async function loadTBox(
 }
 
 /**
- * Convert a Turtle string into shape definitions and a parent map
- * Does not perform any I/O
+ * Parse Turtle text into shape definitions and a parent map.
+ * Pure parsing — no I/O.
  */
 export function parseTBox(turtle: string): {
   shapes: Map<string, ShapeDefinition>;
@@ -91,7 +91,7 @@ export function parseTBox(turtle: string): {
   const parents = new Map<string, string[]>();
 
   const nodeShapeQuads = store.getQuads(null, `${RDF}type`, `${SH}NodeShape`, null);
-  const nodeShapeUris = new Set(nodeShapeQuads.map((q) => q.subject.value));
+  const nodeShapeUris = new Set(nodeShapeQuads.map((quad) => quad.subject.value));
 
   const subClassQuads = store.getQuads(null, `${RDFS}subClassOf`, null, null);
   for (const quad of subClassQuads) {
@@ -112,8 +112,8 @@ export function parseTBox(turtle: string): {
 }
 
 /**
- * Build a shape definition from a NodeShape URI
- * Splits properties into required and optional
+ * Build a shape definition from a NodeShape URI.
+ * Splits properties into required and optional.
  */
 function extractShape(store: N3Store, shapeUri: string): ShapeDefinition | null {
 
@@ -146,8 +146,8 @@ function extractShape(store: N3Store, shapeUri: string): ShapeDefinition | null 
 }
 
 /**
- * Read a SHACL property node and return its constraint details
- * Returns null if no path is defined
+ * Read a SHACL property node and return its constraint details.
+ * Returns null if no path is found.
  */
 function extractPropertyConstraint(store: N3Store, propUri: string): PropertyConstraint | null {
 
@@ -181,7 +181,6 @@ function extractPropertyConstraint(store: N3Store, propUri: string): PropertyCon
   };
 }
 
-
 // Extract the last segment of a URI (after '/' or '#')
 function localName(uri: string): string {
   const hash = uri.lastIndexOf("#");
@@ -190,8 +189,7 @@ function localName(uri: string): string {
   return index >= 0 ? uri.substring(index + 1) : uri;
 }
 
-
-//Collect a type and all its parent types via rdfs:subClassOf
+// Collect a type and all its parent types via rdfs:subClassOf
 function collectAncestors(
   typeUri: string,
   parents: Map<string, string[]>
@@ -228,7 +226,7 @@ export function getShapeForType(
 
   const applicableShapes = ancestors
     .map((uri) => shapes.get(uri))
-    .filter((s): s is ShapeDefinition => s !== undefined);
+    .filter((shape): shape is ShapeDefinition => shape !== undefined);
 
   if (applicableShapes.length === 0) return null;
 
@@ -302,11 +300,11 @@ function hasProperty(
   constraint: PropertyConstraint
 ): boolean {
 
-  const byLocal = metadata[constraint.localName];
-  if (isNonEmpty(byLocal)) return true;
+  const valueByLocalName = metadata[constraint.localName];
+  if (isNonEmpty(valueByLocalName)) return true;
 
-  const byUri = metadata[constraint.path];
-  if (isNonEmpty(byUri)) return true;
+  const valueByFullPath = metadata[constraint.path];
+  if (isNonEmpty(valueByFullPath)) return true;
 
   return false;
 }

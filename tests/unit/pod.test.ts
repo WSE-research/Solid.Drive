@@ -39,16 +39,20 @@ describe('formatBytes', () => {
 
 
 describe('isLoadable', () => {
-  it('returns true when object has isLoading method', () => {
-    expect(isLoadable({ isLoading: () => false })).toBe(true);
+  it('returns true when object has the full loadable shape', () => {
+    expect(isLoadable({
+      isLoading: () => false,
+      isUnfetched: () => false,
+      isFetched: () => true,
+    })).toBe(true);
   });
 
   it('returns false for null', () => {
     expect(isLoadable(null)).toBe(false);
   });
 
-  it('returns false when isLoading is missing', () => {
-    expect(isLoadable({ reload: () => {} })).toBe(false);
+  it('returns false when any required loadable method is missing', () => {
+    expect(isLoadable({ isLoading: () => false, isFetched: () => true })).toBe(false);
   });
 });
 

@@ -1,34 +1,33 @@
 import N3 from "n3";
 
 // Split an IRI into namespace and local name using the last '#' or '/'
-function splitIri(iri: string): { ns: string; local: string } | null {
+function splitIri(iri: string): { namespace: string; localName: string } | null {
   const index = Math.max(iri.lastIndexOf("#"), iri.lastIndexOf("/"));
   if (index < 0) return null;
-  return { ns: iri.substring(0, index + 1), local: iri.substring(index + 1) };
+  return { namespace: iri.substring(0, index + 1), localName: iri.substring(index + 1) };
 }
 
 // Get the local name from an IRI, or return the original if it can't be split
 function getLocalName(iri: string): string {
-  return splitIri(iri)?.local ?? iri;
+  return splitIri(iri)?.localName ?? iri;
 }
 
-// Build an inverted map ns
-//from prefix to namespace, to namespace to prefix for quick lookup during IRI abbreviation
-function buildNsMap(prefixes: Record<string, string>): Map<string, string> {
-  const ns = new Map<string, string>();
-  for (const [key, value] of Object.entries(prefixes)) ns.set(value, key);
-  return ns;
+// Build a namespace-to-prefix map for quick IRI abbreviation
+function buildNamespaceToPrefixMap(prefixes: Record<string, string>): Map<string, string> {
+  const namespaceToPrefix = new Map<string, string>();
+  for (const [key, value] of Object.entries(prefixes)) namespaceToPrefix.set(value, key);
+  return namespaceToPrefix;
 }
 
 // Match an IRI to a known prefix and return "prefix + local name"
 function getPrefixForIri(
   iri: string,
-  nsMap: Map<string, string>
-): { prefix: string; local: string } | null {
-  const parts = splitIri(iri);
-  if (!parts) return null;
-  const prefix = nsMap.get(parts.ns);
-  return prefix != null ? { prefix, local: parts.local } : null;
+  namespaceToPrefixMap: Map<string, string>
+): { prefix: string; localName: string } | null {
+  const iriParts = splitIri(iri);
+  if (!iriParts) return null;
+  const prefix = namespaceToPrefixMap.get(iriParts.namespace);
+  return prefix != null ? { prefix, localName: iriParts.localName } : null;
 }
 
 // Extract @prefix mappings from Turtle text for early IRI abbreviation.
@@ -45,8 +44,8 @@ function parsePrefixes(turtleText: string): Record<string, string> {
 export interface DiscoveredProperty {
   predicate: string;
   types: Set<string>;
-  occurrences: number;   
-  totalSubjects: number; 
+  occurrences: number;
+  totalSubjects: number;
 }
 
 export interface DiscoveredShape {
@@ -63,7 +62,7 @@ export function discoverShapesFromTurtle(turtleText: string): DiscoveredShape[] 
   } catch {
     return [];
   }
-  const nsMap = buildNsMap(parsePrefixes(turtleText));
+  const namespaceToPrefixMap = buildNamespaceToPrefixMap(parsePrefixes(turtleText));
   const rdfType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
   // Per subject, keep:
@@ -90,8 +89,8 @@ export function discoverShapesFromTurtle(turtleText: string): DiscoveredShape[] 
     if (quad.object.termType === "NamedNode") {
       typeLabel = "IRI";
     } else if (quad.object.termType === "Literal" && quad.object.datatype) {
-      const dt = getPrefixForIri(quad.object.datatype.value, nsMap);
-      typeLabel = dt ? `${dt.prefix}:${dt.local}` : `xsd:${getLocalName(quad.object.datatype.value)}`;
+      const datatypePrefix = getPrefixForIri(quad.object.datatype.value, namespaceToPrefixMap);
+      typeLabel = datatypePrefix ? `${datatypePrefix.prefix}:${datatypePrefix.localName}` : `xsd:${getLocalName(quad.object.datatype.value)}`;
     } else {
       typeLabel = "xsd:string";
     }
@@ -105,14 +104,14 @@ export function discoverShapesFromTurtle(turtleText: string): DiscoveredShape[] 
   }
 
   // Aggregate per type: merge predicate records from all subjects of that type
-  type TypeAgg = { subjects: Set<string>; preds: Map<string, PredEntry> };
-  const typeAgg = new Map<string, TypeAgg>();
+  type TypeAggregation = { subjects: Set<string>; preds: Map<string, PredEntry> };
+  const typeAggregations = new Map<string, TypeAggregation>();
 
   for (const [subject, types] of subjectTypes) {
     const props = subjectProps.get(subject);
     for (const typeIri of types) {
-      if (!typeAgg.has(typeIri)) typeAgg.set(typeIri, { subjects: new Set(), preds: new Map() });
-      const agg = typeAgg.get(typeIri)!;
+      if (!typeAggregations.has(typeIri)) typeAggregations.set(typeIri, { subjects: new Set(), preds: new Map() });
+      const agg = typeAggregations.get(typeIri)!;
       agg.subjects.add(subject);
       if (props) {
         for (const [predicate, { types: valTypes, count }] of props) {
@@ -127,13 +126,13 @@ export function discoverShapesFromTurtle(turtleText: string): DiscoveredShape[] 
 
   // Build output
   const shapes: DiscoveredShape[] = [];
-  for (const [typeIri, { subjects, preds }] of typeAgg) {
-    const type = getPrefixForIri(typeIri, nsMap);
-    const typeName = type ? `${type.prefix}:${type.local}` : getLocalName(typeIri);
+  for (const [typeIri, { subjects, preds }] of typeAggregations) {
+    const type = getPrefixForIri(typeIri, namespaceToPrefixMap);
+    const typeName = type ? `${type.prefix}:${type.localName}` : getLocalName(typeIri);
 
     const properties: DiscoveredProperty[] = [];
     for (const [predicate, { types, count }] of preds) {
-      properties.push({ predicate: predicate, types, occurrences: count, totalSubjects: subjects.size });
+      properties.push({ predicate, types, occurrences: count, totalSubjects: subjects.size });
     }
 
     shapes.push({ typeName, properties });

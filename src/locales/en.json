@@ -86,6 +86,10 @@
     "allHaveAccess": "All contacts already have access.",
     "notSupported": "Sharing is not supported by your pod provider."
   },
+  "sharedWithMe": {
+    "heading": "Shared with Me",
+    "from": "From {{name}}"
+  },
   "languageSwitcher": {
     "label": "Language"
   }

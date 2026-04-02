@@ -4,21 +4,23 @@ import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react"
 import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
-import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
+import { isBinary, isLoadable, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { removeFromCatalog, friendlyTypeInfo, resolveClass, isKnownType } from "./podCatalog";
+import { SharePanel } from "./SharePanel";
+import { discoverAclUri, readAclAgents } from "./fileAccess";
 
 type FileCardProps = {
   containerUri: string;
   catalogUri: string;
+  readOnly?: boolean;
 };
 
 /**
- * Displays a file based on metadata from index.ttl 
- * Renders a preview when possible
- * Provides options to download or delete the file
+ * Renders a file card from index.ttl metadata.
+ * Shows a preview when possible, with download and delete options.
  */
-export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri }) => {
+export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri, readOnly = false }) => {
   const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
 
@@ -29,12 +31,20 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const publisherProfile = useSubject(SolidProfileShapeType, publisherWebId);
   const publisherName = publisherProfile?.fn ?? publisherProfile?.name ?? publisherWebId;
   const { getResource } = useLdo();
-  const { fetch: solidFetch } = useSolidAuth();
+  const { session, fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+
+  const ownerProfile = useSubject(SolidProfileShapeType, session.webId);
+  const contacts = useMemo(
+    () => ownerProfile?.knows?.toArray().map((knownContact: { "@id": string }) => knownContact["@id"]) ?? [],
+    [ownerProfile]
+  );
 
   /**
-   * Resolves the URI of the binary file inside the container.
-   * Prefers a live child resource, then falls back to the metadata name or image field.
+   * Find the binary file URI inside the container.
+   * Prefers a live child resource, falls back to metadata name or image field.
    */
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
@@ -48,20 +58,33 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-  /** Creates a blob URL for inline preview; revokes it on cleanup to prevent memory leaks. */
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
-  useEffect(() => {
-    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
-    const url = URL.createObjectURL(binaryResource.getBlob());
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPreviewUrl(url); // legitimate: synchronizing with the browser blob URL API, not derived from React state
-    return () => {
-      URL.revokeObjectURL(url);
-      setPreviewUrl(undefined);
-    };
+  const previewUrl = useMemo(() => {
+    if (!isBinary(binaryResource) || !binaryResource.isBinary()) return undefined;
+    return URL.createObjectURL(binaryResource.getBlob());
   }, [binaryResource]);
 
-  /** Asks the user to confirm, then deletes the entire file container from the pod. */
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!containerUri) return;
+    let cancelled = false;
+    discoverAclUri(containerUri, solidFetch)
+      .then((aclUri) => readAclAgents(aclUri, solidFetch))
+      .then((sharedAgents) => { if (!cancelled) setIsShared(sharedAgents.length > 0); })
+      .catch((err: unknown) => {
+        const msg = (err as Error)?.message ?? "";
+        if (!msg.includes("404")) {
+          console.warn("[FileCard] ACL discovery failed for", containerUri, err);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [containerUri, solidFetch]);
+
+  // Asks the user to confirm, then deletes the entire file container from the pod.
   const handleDelete = useCallback(async () => {
     if (!confirm(translate("fileCard.deleteConfirm"))) return;
     await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
@@ -71,13 +94,23 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     }
   }, [containerUri, metadataUri, catalogUri, solidFetch, getResource, translate]);
 
-  if (isReadable(metadataResource) && metadataResource.isReading()) {
+  const isMetaLoading =
+    (isLoadable(metadataResource) && (metadataResource.isLoading() || metadataResource.isUnfetched())) ||
+    (isReadable(metadataResource) && metadataResource.isReading());
+
+  if (isMetaLoading) {
     return (
       <div className="file-card file-card--loading">
         <div className="spinner spinner--medium" />
         {translate("fileCard.loading")}
       </div>
     );
+  }
+
+  // Hide shared entries once metadata loading has finished if we still do not
+  // have enough data to render a usable file card.
+  if (readOnly && isLoadable(metadataResource) && metadataResource.isFetched() && !fileMeta?.uploadDate) {
+    return null;
   }
 
   if (!fileMeta) {
@@ -87,13 +120,13 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         <p className="file-card__name">{folderName}</p>
         {binaryUri && (
           <div className="file-card__meta">
-            <span className="file-card__date">No metadata</span>
+            <span className="file-card__date">{translate("fileCard.noMetadata")}</span>
             <a
               className="btn btn--ghost btn--small"
               href={binaryUri}
               download={binaryUri.split("/").pop()}
             >
-              Download
+              {translate("fileCard.download")}
             </a>
           </div>
         )}
@@ -115,18 +148,32 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       })
     : "";
 
-  // Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
-  const typeId = (() => {
+  // Prefer an explicit schema type, then fall back to MIME-based classification for the info panel
+  const classUri = (() => {
     const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find(isKnownType);
-    if (fromType) return fromType;
+    if (fromType) return fromType.startsWith("http://") || fromType.startsWith("https://")
+      ? fromType
+      : `http://schema.org/${fromType}`;
     const mimeType = fileMeta.encodingFormat ?? "";
     return mimeType ? resolveClass(mimeType) : "http://schema.org/DigitalDocument";
   })();
-  const fileType = friendlyTypeInfo(typeId);
+  const fileType = friendlyTypeInfo(classUri);
 
   return (
     <div className="file-card">
-      {fileMeta.name && <p className="file-card__name">{fileMeta.name}</p>}
+      {fileMeta.name && (
+        <div className="file-card__header">
+          <p className="file-card__name">{fileMeta.name}</p>
+          {isShared && (
+            <span title="Shared" className="file-card__shared">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </span>
+          )}
+        </div>
+      )}
 
       {previewUrl && (() => {
         const mimeType = fileMeta.encodingFormat ?? "";
@@ -161,8 +208,16 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
             className="btn btn--ghost btn--small"
             onClick={() => setShowInfo((currentValue) => !currentValue)}
           >
-            {showInfo ? "Hide Info" : "Info"}
+            {showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info")}
           </button>
+          {!readOnly && (
+            <button
+              className="btn btn--ghost btn--small"
+              onClick={() => setShowShare((isVisible) => !isVisible)}
+            >
+              {showShare ? translate("fileCard.hideShare") : translate("fileCard.share")}
+            </button>
+          )}
           {(previewUrl ?? binaryUri) && (
             <a
               className="btn btn--ghost btn--small"
@@ -172,14 +227,34 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
               {translate("fileCard.download")}
             </a>
           )}
-          <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+          {!readOnly && (
+            <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+          )}
         </div>
       </div>
+
+      {!readOnly && showShare && (
+        <SharePanel
+          containerUri={containerUri}
+          catalogUri={catalogUri}
+          contacts={contacts}
+          sharedEntry={{
+            metadataUri,
+            binaryUri: binaryUri ?? metadataUri,
+            classUri,
+            mediaType: fileMeta.encodingFormat ?? "application/octet-stream",
+            byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
+            title: fileMeta.name ?? metadataUri.split("/").pop() ?? "Shared file",
+            description: fileMeta.description ?? "",
+            modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
+          }}
+        />
+      )}
 
       {showInfo && (
         <div className="file-card__schema">
           <div className="file-card__schema-row">
-            <span className="file-card__schema-label">File type</span>
+            <span className="file-card__schema-label">{translate("fileCard.fileType")}</span>
             <span className="file-card__schema-value">
               <span className="file-card__type-badge">{fileType.label}</span>
               {fileType.description && <span className="file-card__type-note">{fileType.description}</span>}
@@ -188,49 +263,49 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
           {fileMeta.name && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Title</span>
+              <span className="file-card__schema-label">{translate("fileCard.title")}</span>
               <span className="file-card__schema-value">{fileMeta.name}</span>
             </div>
           )}
           {fileMeta.description && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Description</span>
+              <span className="file-card__schema-label">{translate("fileCard.description")}</span>
               <span className="file-card__schema-value">{fileMeta.description}</span>
             </div>
           )}
           {fileMeta.encodingFormat && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Format</span>
+              <span className="file-card__schema-label">{translate("fileCard.format")}</span>
               <span className="file-card__schema-value">{fileMeta.encodingFormat}</span>
             </div>
           )}
           {fileMeta.contentSize && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Size</span>
+              <span className="file-card__schema-label">{translate("fileCard.size")}</span>
               <span className="file-card__schema-value">{formatBytes(fileMeta.contentSize)}</span>
             </div>
           )}
           {uploadedAt && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Uploaded on</span>
+              <span className="file-card__schema-label">{translate("fileCard.uploadedOn")}</span>
               <span className="file-card__schema-value">{uploadedAt}</span>
             </div>
           )}
           {dateModified && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Last updated</span>
+              <span className="file-card__schema-label">{translate("fileCard.lastUpdated")}</span>
               <span className="file-card__schema-value">{dateModified}</span>
             </div>
           )}
           {publisherWebId && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Uploaded by</span>
+              <span className="file-card__schema-label">{translate("fileCard.uploadedBy")}</span>
               <span className="file-card__schema-value">{publisherName}</span>
             </div>
           )}
           {fileMeta.isPartOf?.["@id"] && (
             <div className="file-card__schema-row">
-              <span className="file-card__schema-label">Part of</span>
+              <span className="file-card__schema-label">{translate("fileCard.partOf")}</span>
               <span className="file-card__schema-value file-card__schema-value--uri">{fileMeta.isPartOf["@id"]}</span>
             </div>
           )}

@@ -59,7 +59,7 @@ export function resolveClass(contentType: string): string {
   return "http://schema.org/DigitalDocument";
 }
 
-// ── DCAT catalog management ────────────────────────────────────────────
+// DCAT catalog management
 
 const CATALOG_SPARQL_PREFIXES = `
 PREFIX dcat: <http://www.w3.org/ns/dcat#>
@@ -89,9 +89,8 @@ export interface CatalogEntry {
 }
 
 /**
- * Add a dataset entry and matching distribution to the catalog
- * Uses SPARQL PATCH so updates do not replace the full document
- * Creates the catalog first if it does not exist yet
+ * Add a dataset entry to the catalog via SPARQL PATCH.
+ * Creates the catalog on 404 and retries.
  */
 export async function appendToCatalog(
   catalogUri: string,
@@ -111,24 +110,10 @@ export async function appendToCatalog(
   assertSafeUri(binaryUri);
   assertSafeUri(classUri);
   assertSafeUri(publisherWebId);
-  // Create the catalog only if it does not exist yet
-  const headResponse = await fetch(catalogUri, { method: "HEAD" });
-  if (!headResponse.ok) {
-    const putResponse = await fetch(catalogUri, {
-      method: "PUT",
-      headers: { "Content-Type": "text/turtle" },
-      body: EMPTY_CATALOG_TURTLE,
-    });
-    if (!putResponse.ok) {
-      throw new Error(`Failed to create catalog.ttl: ${putResponse.status} ${putResponse.statusText}`);
-    }
-  }
 
-  // Escape user text before inserting it into Turtle literals
-  const escapeTurtleLiteral = (s: string) =>
-    s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+  const escapeTurtleLiteral = (literal: string) =>
+    literal.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 
-  // Only include description when one was provided
   const descriptionTriple = description.trim()
     ? `\n    dcterms:description "${escapeTurtleLiteral(description)}" ;`
     : "";
@@ -150,20 +135,38 @@ export async function appendToCatalog(
   }
 `.trim();
 
-  const patchResponse = await fetch(catalogUri, {
+  // Try PATCH first — the catalog usually exists (one request).
+  // On 404, create the catalog first then retry (avoids HEAD + TOCTOU race).
+  let patchResponse = await fetch(catalogUri, {
     method: "PATCH",
     headers: { "Content-Type": "application/sparql-update" },
     body: sparqlUpdate,
   });
+
+  if (!patchResponse.ok && patchResponse.status === 404) {
+    const putResponse = await fetch(catalogUri, {
+      method: "PUT",
+      headers: { "Content-Type": "text/turtle" },
+      body: EMPTY_CATALOG_TURTLE,
+    });
+    if (!putResponse.ok) {
+      throw new Error(`Failed to create catalog.ttl: ${putResponse.status} ${putResponse.statusText}`);
+    }
+    patchResponse = await fetch(catalogUri, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/sparql-update" },
+      body: sparqlUpdate,
+    });
+  }
+
   if (!patchResponse.ok) {
     throw new Error(`Failed to update catalog.ttl: ${patchResponse.status} ${patchResponse.statusText}`);
   }
 }
 
 /**
- * Removes a dataset and its distribution from the catalog in a single SPARQL
- * DELETE WHERE PATCH, preventing orphaned #dist resources.  Silently returns
- * if the catalog doesn't exist — nothing to remove.
+ * Remove a dataset and its distribution in one PATCH so we don't leave
+ * orphaned `#dist` nodes behind. No-ops if the catalog isn't reachable.
  */
 export async function removeFromCatalog(
   catalogUri: string,
@@ -191,12 +194,14 @@ export async function removeFromCatalog(
   }
 }
 
-// Parse catalog entries from Turtle text using N3 so URIs with dots or
-// multi-line literals don't cause premature block termination.
-export function parseCatalog(turtleText: string): CatalogEntry[] {
+/**
+ * Parse DCAT catalog entries from Turtle text.
+ * Pass a base URI to resolve relative IRIs in shared catalogs.
+ */
+export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry[] {
   let quads;
   try {
-    quads = new N3Parser().parse(turtleText);
+    quads = new N3Parser(baseUri ? { baseIRI: baseUri } : undefined).parse(turtleText);
   } catch {
     return [];
   }
@@ -205,30 +210,30 @@ export function parseCatalog(turtleText: string): CatalogEntry[] {
   const DCAT = "http://www.w3.org/ns/dcat#";
   const DCTERMS = "http://purl.org/dc/terms/";
 
-  const datasetUris = store.getObjects(null, `${DCAT}dataset`, null).map((t) => t.value);
+  const datasetUris = store.getObjects(null, `${DCAT}dataset`, null).map((term) => term.value);
 
-  const val = (subject: string, predicate: string) =>
+  const queryFirstValue = (subject: string, predicate: string) =>
     store.getObjects(subject, predicate, null)[0]?.value ?? "";
 
   return datasetUris.map((datasetUri) => {
-    const distUri = val(datasetUri, `${DCAT}distribution`);
+    const distUri = queryFirstValue(datasetUri, `${DCAT}distribution`);
     return {
       uri: datasetUri,
-      conformsTo: val(datasetUri, `${DCTERMS}conformsTo`),
-      title: val(datasetUri, `${DCTERMS}title`),
-      description: val(datasetUri, `${DCTERMS}description`),
-      modified: val(datasetUri, `${DCTERMS}modified`),
-      publisher: val(datasetUri, `${DCTERMS}publisher`),
-      mediaType: val(distUri, `${DCAT}mediaType`),
-      byteSize: parseInt(val(distUri, `${DCAT}byteSize`) || "0", 10),
-      accessURL: val(distUri, `${DCAT}accessURL`),
+      conformsTo: queryFirstValue(datasetUri, `${DCTERMS}conformsTo`),
+      title: queryFirstValue(datasetUri, `${DCTERMS}title`),
+      description: queryFirstValue(datasetUri, `${DCTERMS}description`),
+      modified: queryFirstValue(datasetUri, `${DCTERMS}modified`),
+      publisher: queryFirstValue(datasetUri, `${DCTERMS}publisher`),
+      mediaType: queryFirstValue(distUri, `${DCAT}mediaType`),
+      byteSize: parseInt(queryFirstValue(distUri, `${DCAT}byteSize`) || "0", 10),
+      accessURL: queryFirstValue(distUri, `${DCAT}accessURL`),
     };
   });
 }
 
 /**
- * Add a dcat:catalog link from the user's profile to the catalog document
- * Uses the profile document URI, not the WebID fragment
+ * Link the catalog to the user's profile via dcat:catalog.
+ * Patches the profile document (strips WebID fragment).
  */
 export async function linkCatalogToProfile(
   catalogUri: string,
