@@ -25,15 +25,6 @@ export const solidProfileContext: LdoJsonldContext = {
         "@id": "http://xmlns.com/foaf/0.1/name",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      img: {
-        "@id": "http://xmlns.com/foaf/0.1/img",
-        "@type": "@id",
-      },
-      knows: {
-        "@id": "http://xmlns.com/foaf/0.1/knows",
-        "@type": "@id",
-        "@isCollection": true,
-      },
       inbox: {
         "@id": "http://www.w3.org/ns/ldp#inbox",
         "@type": "@id",
@@ -72,15 +63,6 @@ export const solidProfileContext: LdoJsonldContext = {
         "@id": "http://xmlns.com/foaf/0.1/name",
         "@type": "http://www.w3.org/2001/XMLSchema#string",
       },
-      img: {
-        "@id": "http://xmlns.com/foaf/0.1/img",
-        "@type": "@id",
-      },
-      knows: {
-        "@id": "http://xmlns.com/foaf/0.1/knows",
-        "@type": "@id",
-        "@isCollection": true,
-      },
       inbox: {
         "@id": "http://www.w3.org/ns/ldp#inbox",
         "@type": "@id",
@@ -111,15 +93,6 @@ export const solidProfileContext: LdoJsonldContext = {
   name: {
     "@id": "http://xmlns.com/foaf/0.1/name",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
-  },
-  img: {
-    "@id": "http://xmlns.com/foaf/0.1/img",
-    "@type": "@id",
-  },
-  knows: {
-    "@id": "http://xmlns.com/foaf/0.1/knows",
-    "@type": "@id",
-    "@isCollection": true,
   },
   inbox: {
     "@id": "http://www.w3.org/ns/ldp#inbox",

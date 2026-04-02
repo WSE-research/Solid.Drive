@@ -21,7 +21,6 @@ export default defineConfig({
       '@ldo/ldo',
       '@ldo/solid',
       '@ldo/solid-react',
-      'uuid',
     ],
   },
   define: {

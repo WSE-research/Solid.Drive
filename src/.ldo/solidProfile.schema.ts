@@ -49,26 +49,6 @@ export const solidProfileSchema: Schema = {
             },
             {
               type: "TripleConstraint",
-              predicate: "http://xmlns.com/foaf/0.1/img",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
-              min: 0,
-              max: 1,
-            },
-            {
-              type: "TripleConstraint",
-              predicate: "http://xmlns.com/foaf/0.1/knows",
-              valueExpr: {
-                type: "NodeConstraint",
-                nodeKind: "iri",
-              },
-              min: 0,
-              max: -1,
-            },
-            {
-              type: "TripleConstraint",
               predicate: "http://www.w3.org/ns/ldp#inbox",
               valueExpr: {
                 type: "NodeConstraint",

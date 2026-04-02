@@ -22,12 +22,6 @@ export interface SolidProfile {
   >;
   fn?: string;
   name?: string;
-  img?: {
-    "@id": string;
-  };
-  knows?: LdSet<{
-    "@id": string;
-  }>;
   inbox: {
     "@id": string;
   };

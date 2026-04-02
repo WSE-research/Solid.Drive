@@ -29,29 +29,9 @@ body {
 }
 
 .App {
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 0 24px 80px;
-}
-
-.app-layout {
-  display: flex;
-  gap: 32px;
-  align-items: flex-start;
-}
-
-.profile-sidebar {
-  width: 280px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 24px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-}
-
-.app-main {
-  flex: 1;
-  min-width: 0;
 }
 
 /* HEADER */
