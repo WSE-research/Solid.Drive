@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string) => key],
 }));
 
-vi.mock('../LanguageSwitcher', () => ({
+vi.mock('../../src/LanguageSwitcher', () => ({
   LanguageSwitcher: () => null,
 }));
 
@@ -37,6 +37,11 @@ describe('Header — logged out', () => {
   it('renders the brand name', () => {
     render(<Header />);
     expect(screen.getByText(/solid/i, { selector: '.site-header__brand' })).toBeInTheDocument();
+  });
+
+  it('renders the provider select dropdown', () => {
+    render(<Header />);
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('renders the login button', () => {
@@ -65,6 +70,22 @@ describe('Header — logged out', () => {
     fireEvent.click(screen.getByRole('button', { name: 'header.logIn' }));
     expect(mockLogin).toHaveBeenCalledWith('https://solidcommunity.net');
   });
+
+  it('shows a custom URL input when "Custom…" is selected', () => {
+    render(<Header />);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
+    expect(screen.getByPlaceholderText('header.customProviderPlaceholder')).toBeInTheDocument();
+  });
+
+  it('calls login with the custom URL when entered and submitted', () => {
+    render(<Header />);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByPlaceholderText('header.customProviderPlaceholder'), {
+      target: { value: 'https://my.custom.provider' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'header.logIn' }));
+    expect(mockLogin).toHaveBeenCalledWith('https://my.custom.provider');
+  });
 });
 
 describe('Header — logged in', () => {
@@ -90,5 +111,15 @@ describe('Header — logged in', () => {
   it('does not render the login button when logged in', () => {
     render(<Header />);
     expect(screen.queryByRole('button', { name: 'header.logIn' })).not.toBeInTheDocument();
+  });
+
+  it('does not render the provider dropdown when logged in', () => {
+    render(<Header />);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('displays the webId as the user identifier', () => {
+    render(<Header />);
+    expect(screen.getByText('https://user.solidcommunity.net/profile/card#me')).toBeInTheDocument();
   });
 });

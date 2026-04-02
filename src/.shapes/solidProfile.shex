@@ -8,14 +8,12 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 PREFIX dcat: <http://www.w3.org/ns/dcat#>
 
 <SolidProfileShape> EXTRA a {
-  a [ schema:Person foaf:Person ] ;
-  vcard:fn xsd:string ? ;
-  foaf:name xsd:string ? ;
-  foaf:img IRI ? ;
-  foaf:knows IRI * ;
-  ldp:inbox IRI ;
-  sp:storage IRI * ;
-  solid:publicTypeIndex IRI ? ;
-  solid:privateTypeIndex IRI ? ;
-  dcat:catalog IRI ? ;
+	a [schema:Person foaf:Person] ;
+	vcard:fn xsd:string ? ;
+	foaf:name xsd:string ? ;
+	ldp:inbox IRI ;
+	sp:storage IRI * ;
+	solid:publicTypeIndex IRI ? ;
+	solid:privateTypeIndex IRI ? ;
+	dcat:catalog IRI ? ;
 }

@@ -14,7 +14,7 @@ function capturingMock(
   const calls: FetchCall[] = [];
   let callIndex = 0;
 
-  const mockFetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+  const fetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
     const headers = init?.headers as Record<string, string> | undefined;
     calls.push({
       url: String(url),
@@ -30,7 +30,7 @@ function capturingMock(
     } as Response;
   });
 
-  return { fetch: mockFetch, calls };
+  return { fetch, calls };
 }
 
 describe("resolveClass", () => {
@@ -205,6 +205,7 @@ describe("appendToCatalog", () => {
 
     const sparql = calls[1].body ?? "";
     expect(sparql).toContain("dcat:Distribution");
+    expect(sparql).toContain(`dcat:accessURL <${binaryUri}>`);
     expect(sparql).toContain('dcat:mediaType "image/jpeg"');
     expect(sparql).toContain("dcat:byteSize 4500000");
   });
@@ -373,9 +374,9 @@ describe("linkCatalogToProfile", () => {
 
     await linkCatalogToProfile(catalogUri, webId, fetch);
 
-    const body = calls[0].body ?? "";
-    expect(body).toContain("dcat:catalog");
-    expect(body).toContain("https://pod.example/catalog.ttl");
+    const sparql = calls[0].body ?? "";
+    expect(sparql).toContain("dcat:catalog");
+    expect(sparql).toContain("https://pod.example/catalog.ttl");
   });
 
   it("INSERT uses INSERT DATA (not DELETE)", async () => {

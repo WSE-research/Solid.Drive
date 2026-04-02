@@ -23,8 +23,7 @@ describe('i18n configuration', () => {
     expect(order[1]).toBe('navigator');
   });
 
-  it('loads translations from the correct path', () => {
-    const loadPath = (i18n.options.backend as { loadPath: string })?.loadPath;
-    expect(loadPath).toBe('/locales/{{lng}}/{{ns}}.json');
+  it('bundles English translations', () => {
+    expect(i18n.getResourceBundle('en', 'translation')).toBeDefined();
   });
 });

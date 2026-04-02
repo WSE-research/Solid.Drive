@@ -1,27 +1,25 @@
 import { useMemo, useCallback, useState, useEffect } from "react";
 import type { FunctionComponent } from "react";
 import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "./.ldo/catalogEntry.shapeTypes";
 import { SolidProfileShapeType } from "./.ldo/solidProfile.shapeTypes";
 import { isBinary, isReadable, isDeletable, isSolidContainer, formatBytes } from "./pod";
 import type { SolidLeaf } from "@ldo/connected-solid";
-import { removeFromCatalog } from "./podCatalog";
-
-const FILE_TYPES: Record<string, { label: string; description: string }> = {
-  DigitalDocument: { label: "File", description: "Any general file" },
-  ImageObject: { label: "Photo/Image", description: "Pictures/graphics" },
-  VideoObject: { label: "Video", description: "Videos/movie clips" },
-  AudioObject: { label: "Audio", description: "Music, podcasts, recordings" },
-  TextDigitalDocument: { label: "Document", description: "PDFs, text, Word files" },
-  SpreadsheetDigitalDocument: { label: "Spreadsheet", description: "Excel, CSV, etc." },
-};
+import { removeFromCatalog, friendlyTypeInfo, resolveClass, isKnownType } from "./podCatalog";
 
 type FileCardProps = {
   containerUri: string;
   catalogUri: string;
 };
 
+/**
+ * Displays a file based on metadata from index.ttl 
+ * Renders a preview when possible
+ * Provides options to download or delete the file
+ */
 export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri }) => {
+  const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
 
   const metadataResource = useResource(metadataUri);
@@ -34,6 +32,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const { fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
 
+  /**
+   * Resolves the URI of the binary file inside the container.
+   * Prefers a live child resource, then falls back to the metadata name or image field.
+   */
   const binaryUri = useMemo(() => {
     if (isSolidContainer(containerResource)) {
       const leaf = containerResource.children().find(
@@ -46,36 +48,34 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const binaryResource = useResource(binaryUri);
 
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
+  /** Creates a blob URL for inline preview; revokes it on cleanup to prevent memory leaks. */
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
   useEffect(() => {
     if (!isBinary(binaryResource) || !binaryResource.isBinary()) return;
     const url = URL.createObjectURL(binaryResource.getBlob());
-    const id = setTimeout(() => setPreviewUrl(url), 0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreviewUrl(url); // legitimate: synchronizing with the browser blob URL API, not derived from React state
     return () => {
-      clearTimeout(id);
       URL.revokeObjectURL(url);
       setPreviewUrl(undefined);
     };
   }, [binaryResource]);
 
+  /** Asks the user to confirm, then deletes the entire file container from the pod. */
   const handleDelete = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete this file?")) return;
-    try {
-      await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
-      const container = getResource(containerUri);
-      if (isDeletable(container)) {
-        await container.delete();
-      }
-    } catch (err) {
-      alert(`Delete failed: ${(err as Error).message}`);
+    if (!confirm(translate("fileCard.deleteConfirm"))) return;
+    await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
+    const container = getResource(containerUri);
+    if (isDeletable(container)) {
+      await container.delete();
     }
-  }, [containerUri, metadataUri, catalogUri, solidFetch, getResource]);
+  }, [containerUri, metadataUri, catalogUri, solidFetch, getResource, translate]);
 
   if (isReadable(metadataResource) && metadataResource.isReading()) {
     return (
-      <div className="file-card" style={{ display: "flex", gap: 8, alignItems: "center", color: "var(--text-muted)", fontSize: 13 }}>
-        <div className="spinner" style={{ width: 14, height: 14 }} />
-        Loading…
+      <div className="file-card file-card--loading">
+        <div className="spinner spinner--medium" />
+        {translate("fileCard.loading")}
       </div>
     );
   }
@@ -87,12 +87,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         <p className="file-card__name">{folderName}</p>
         {binaryUri && (
           <div className="file-card__meta">
-            <span className="file-card__date" style={{ color: "var(--text-muted)", fontSize: 12 }}>No metadata</span>
+            <span className="file-card__date">No metadata</span>
             <a
-              className="btn btn-ghost"
+              className="btn btn--ghost btn--small"
               href={binaryUri}
               download={binaryUri.split("/").pop()}
-              style={{ fontSize: 12, padding: "6px 12px" }}
             >
               Download
             </a>
@@ -116,18 +115,14 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       })
     : "";
 
+  // Format dates and infer file type from metadata or MIME to ensure consistent display when data is incomplete.
   const typeId = (() => {
-    const fromType = fileMeta.type?.toArray().map((typeObj: { "@id": string }) => typeObj["@id"]).find((typeId: string) => typeId in FILE_TYPES);
+    const fromType = fileMeta.type?.toArray().map((typeEntry: { "@id": string }) => typeEntry["@id"]).find(isKnownType);
     if (fromType) return fromType;
     const mimeType = fileMeta.encodingFormat ?? "";
-    if (mimeType.startsWith("image/")) return "ImageObject";
-    if (mimeType.startsWith("video/")) return "VideoObject";
-    if (mimeType.startsWith("audio/")) return "AudioObject";
-    if (mimeType.startsWith("text/") || mimeType === "application/pdf" || mimeType === "application/msword" || mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "TextDigitalDocument";
-    if (mimeType === "application/vnd.ms-excel" || mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || mimeType === "text/csv") return "SpreadsheetDigitalDocument";
-    return "DigitalDocument";
+    return mimeType ? resolveClass(mimeType) : "http://schema.org/DigitalDocument";
   })();
-  const fileType = FILE_TYPES[typeId] ?? { label: typeId, description: "" };
+  const fileType = friendlyTypeInfo(typeId);
 
   return (
     <div className="file-card">
@@ -161,25 +156,23 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
       <div className="file-card__meta">
         <span className="file-card__date">{uploadedAt}</span>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="file-card__actions">
           <button
-            className="btn btn-ghost"
-            onClick={() => setShowInfo((isCurrentlyShown) => !isCurrentlyShown)}
-            style={{ fontSize: 12, padding: "6px 12px" }}
+            className="btn btn--ghost btn--small"
+            onClick={() => setShowInfo((currentValue) => !currentValue)}
           >
             {showInfo ? "Hide Info" : "Info"}
           </button>
           {(previewUrl ?? binaryUri) && (
             <a
-              className="btn btn-ghost"
+              className="btn btn--ghost btn--small"
               href={previewUrl ?? binaryUri}
               download={fileMeta.name ?? binaryUri?.split("/").pop()}
-              style={{ fontSize: 12, padding: "6px 12px" }}
             >
-              Download
+              {translate("fileCard.download")}
             </a>
           )}
-          <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+          <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
         </div>
       </div>
 

@@ -1,63 +1,70 @@
 # ShEx Shapes
 
-Each `.shex` file in this folder defines a data contract for one type of resource stored on the Pod. The contract specifies which RDF properties a resource must have (`rdf:type`, required fields) and which are optional, along with the exact datatype for each.
+Each `.shex` file defines the data contract for one type of resource stored on the Pod. LDO reads these files and generates TypeScript interfaces and validators in `src/.ldo/`. Those generated files are what the React components import to read and write Pod data in a type-safe way.
 
-LDO reads these files and generates TypeScript interfaces, validators, and shape type objects in `src/.ldo/`. Those generated files are what the React components import to read and write Pod data in a type-safe way.
+**Edit `.shex` files here. Never edit `src/.ldo/` directly.**
 
-**Edit `.shex` files here. Never edit `src/.ldo/` directly.** Run `npm run build:ldo` to regenerate after any change.
-
-### `catalogEntry.shex`
-
-Defines the structure of the metadata document (`index.ttl`) written inside each uploaded file's container.
-
-**Required fields**: the upload is rejected if any is missing:
-
-| Field | Type | Reason required |
-|---|---|---|
-| `rdf:type` | schema.org class IRI | Every file must be classified for discoverability by external apps |
-| `schema:uploadDate` | `xsd:dateTime` | Every file must have a creation timestamp so the catalog can be sorted and audited |
-| `schema:publisher` | IRI (WebID) | Every file must be traceable to the Pod owner who uploaded it |
-
-**`rdf:type`** must be exactly one of:
-
-| Value | Meaning |
-|---|---|
-| `schema:DigitalDocument` | Base class — used when no more specific class matches |
-| `schema:ImageObject` | MIME type starts with `image/` |
-| `schema:VideoObject` | MIME type starts with `video/` |
-| `schema:AudioObject` | MIME type starts with `audio/` |
-| `schema:TextDigitalDocument` | `text/*`, `application/pdf`, Word documents |
-| `schema:SpreadsheetDigitalDocument` | Excel, CSV |
-
-These are standard schema.org classes, no custom vocabulary file is needed on the Pod.
-
-**Optional fields:**
-
-| Field | Type |
-|---|---|
-| `schema:name` | `xsd:string` |
-| `schema:description` | `xsd:string` |
-| `schema:encodingFormat` | `xsd:string` |
-| `schema:contentSize` | `xsd:string` |
-| `schema:dateModified` | `xsd:dateTime` |
-| `schema:isPartOf` | IRI |
-| `schema:sharedWith` | IRI |
-| `dcterms:conformsTo` | IRI |
+```bash
+npm run build:ldo   # regenerate after any change
+```
 
 ---
 
-### `solidProfile.shex`
+## `catalogEntry.shex`
 
-A WebID profile document is an open-world RDF graph — any Solid client can write triples to it, and different servers declare the profile type differently. This shape does not try to validate the whole document; it declares only the fields the app needs to read and lets everything else pass through. `EXTRA a` is what enables that: without it, the shape would reject profiles whose `rdf:type` URI differs from what the shape expects, which breaks across server implementations.
+Defines the structure of `index.ttl` — the metadata document written inside each uploaded file's container.
 
-To read additional profile fields in a fork (e.g. `foaf:workplaceHomepage`), add them here and run `npm run build:ldo` to regenerate the TypeScript types.
+### Vocabulary note
 
-| Field | Why the app needs it |
+`index.ttl` uses two vocabularies for file type:
+
+- **`rdf:type`** uses the `sd:` namespace (`https://w3id.org/solid-drive#`) — these are the ShEx-validated types that LDO reads and writes.
+- **`dcterms:conformsTo`** (optional) holds the corresponding `schema.org` class URI — written by `resolveClass()` in `podCatalog.ts` and used in `catalog.ttl` for interoperability with other Solid apps.
+
+| `rdf:type` (sd:) | `dcterms:conformsTo` (schema:) | When applied |
+|---|---|---|
+| `schema:DigitalDocument` | `schema:DigitalDocument` | Fallback for unknown types |
+| `sd:ImageFile` | `schema:ImageObject` | `image/*` MIME types |
+| `sd:VideoFile` | `schema:VideoObject` | `video/*` MIME types |
+| `sd:AudioFile` | `schema:AudioObject` | `audio/*` MIME types |
+| `sd:TextDocument` | `schema:TextDigitalDocument` | PDFs, text, Word documents |
+| `sd:SpreadsheetDocument` | `schema:SpreadsheetDigitalDocument` | CSV, Excel |
+
+### Required fields
+
+| Field | Type | Why required |
+|---|---|---|
+| `rdf:type` | one of the `sd:` types above | every file must be classified |
+| `schema:uploadDate` | `xsd:dateTime` | creation timestamp for sorting and auditing |
+| `schema:publisher` | IRI (WebID) | every file must be traceable to its uploader |
+
+### Optional fields
+
+| Field | Type | Purpose |
+|---|---|---|
+| `schema:name` | `xsd:string` | display title |
+| `schema:description` | `xsd:string` | user-entered description |
+| `schema:encodingFormat` | `xsd:string` | MIME type |
+| `schema:contentSize` | `xsd:string` | byte size as string |
+| `dcterms:conformsTo` | IRI | schema.org class URI for catalog interop |
+| `schema:dateModified` | `xsd:dateTime` | last edit timestamp |
+| `schema:isPartOf` | IRI | link to a parent dataset or collection |
+| `schema:sharedWith` | IRI (zero or more) | WebIDs this file has been shared with |
+
+---
+
+## `solidProfile.shex`
+
+Defines the minimum fields the app reads from a user's WebID profile document.
+
+| Field | Purpose |
 |---|---|
-| `sp:storage` | The root URI of the user's Pod — used to construct the path for `catalog.ttl` and `my-solid-app/` |
-| `dcat:catalog` | (Optional) If present, points to the user's custom catalog from another app. Used by `resolveCatalogUri` to enable catalog portability across Solid applications |
-| `foaf:name` | Display name — shown in `ProfileSidebar` and editable in-app |
-| `foaf:img` | Avatar IRI — rendered as a profile photo and replaceable without leaving the app |
-| `foaf:knows` | Contact WebIDs — the social graph the app exposes through `ProfileSidebar` |
+| `vcard:fn` | Display name (preferred) |
+| `foaf:name` | Display name (fallback) |
+| `sp:storage` | Root URI of the user's Pod — used to construct the path for `catalog.ttl` and `my-solid-app/` |
+| `ldp:inbox` | Linked Data Platform inbox |
+| `solid:publicTypeIndex` | Public type index |
+| `solid:privateTypeIndex` | Private type index |
+| `dcat:catalog` | (Optional) Pointer to the user's catalog. Read by `resolveCatalogUri` to enable catalog portability across Solid apps |
 
-`EXTRA a` is set so the shape accepts any profile `rdf:type`, not just a specific one. This is necessary because different Solid servers use different type URIs for profile documents, and the app only cares about the storage location and optional catalog pointer, not the profile type.
+`EXTRA a` is set so the shape accepts any profile `rdf:type`. Different Solid servers use different type URIs for profile documents; the app only needs the storage location and optional catalog pointer.
