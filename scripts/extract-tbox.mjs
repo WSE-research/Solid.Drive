@@ -12,7 +12,7 @@
  */
 
 import { Parser, Store, Writer, DataFactory } from "n3";
-import { writeFileSync, mkdirSync, readFileSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -26,7 +26,6 @@ function getArg(name, fallback) {
 
 const SOURCE_URL = getArg("source", "https://datashapes.org/schema.ttl");
 const OUTPUT_PATH = getArg("output", resolve(__dirname, "../public/tbox.ttl"));
-const CARDINALITY_PATH = getArg("cardinality", resolve(__dirname, "./tbox-cardinality.ttl"));
 
 // Types to extract 
 const TARGET_TYPES = [
@@ -225,15 +224,6 @@ async function main() {
 
   console.log(`[tbox] extracted ${outputQuads.length} triples from source`);
 
-  // Load local cardinality overrides, if present
-  let cardinalityTurtle = "";
-  try {
-    cardinalityTurtle = readFileSync(CARDINALITY_PATH, "utf-8");
-    console.log(`[tbox] loading app cardinality from ${CARDINALITY_PATH}`);
-  } catch {
-    console.log(`[tbox] no cardinality file at ${CARDINALITY_PATH}, skipping`);
-  }
-
   const turtle_output = await new Promise((resolve, reject) => {
     const writer = new Writer({
       prefixes: {
@@ -261,12 +251,12 @@ async function main() {
     "",
     `<https://w3id.org/solid-drive/tbox>`,
     `  <http://www.w3.org/2002/07/owl#imports> <https://datashapes.org/schema> ;`,
-    `  <http://www.w3.org/2000/01/rdf-schema#comment> "Auto-extracted from datashapes.org. App cardinality from tbox-cardinality.ttl." ;`,
+    `  <http://www.w3.org/2000/01/rdf-schema#comment> "Auto-extracted from datashapes.org." ;`,
     `.`,
     "",
   ].join("\n");
 
-  const finalTurtle = header + turtle_output + "\n" + cardinalityTurtle;
+  const finalTurtle = header + turtle_output;
 
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
   writeFileSync(OUTPUT_PATH, finalTurtle, "utf-8");

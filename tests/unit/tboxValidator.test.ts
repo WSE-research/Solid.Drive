@@ -443,30 +443,22 @@ describe("validateMetadata", () => {
     // The real TBox should have shapes
     expect(realShapes.size).toBeGreaterThan(0);
 
-    // Validate ImageObject with all required fields
-    const valid = validateMetadata(
-      {
-        name: "Photo",
-        uploadDate: new Date().toISOString(),
-        publisher: { "@id": "https://pod.example/profile/card#me" },
-      },
+    // Without cardinality overrides all fields are optional — any metadata is valid
+    const withName = validateMetadata(
+      { name: "Photo" },
       "http://schema.org/ImageObject",
       realShapes,
       realParents
     );
-    expect(valid.valid).toBe(true);
+    expect(withName.valid).toBe(true);
 
-    // Validate ImageObject missing name
-    const invalid = validateMetadata(
-      {
-        uploadDate: new Date().toISOString(),
-        publisher: { "@id": "https://pod.example/profile/card#me" },
-      },
+    const withoutName = validateMetadata(
+      {},
       "http://schema.org/ImageObject",
       realShapes,
       realParents
     );
-    expect(invalid.valid).toBe(false);
-    expect(invalid.violations.some((v) => v.localName === "name")).toBe(true);
+    expect(withoutName.valid).toBe(true);
+    expect(withoutName.violations).toHaveLength(0);
   });
 });
