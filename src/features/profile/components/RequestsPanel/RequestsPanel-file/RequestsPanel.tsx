@@ -1,0 +1,158 @@
+/**
+ * Access requests panel for managing incoming sharing requests.
+ *
+ * @packageDocumentation
+ */
+
+import { useState, type FunctionComponent } from "react";
+import { useSubject, useResource } from "@ldo/solid-react";
+import { useTranslation } from "react-i18next";
+import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
+import { isLoadable } from "@/infrastructure/solid/resourceGuards";
+import type { AccessRequest } from "@/infrastructure/inbox/inboxAccess";
+import { useAccessRequests } from "@/features/profile/hooks/useAccessRequests";
+import { MAX_DISPLAY_NAME_LENGTH, DEFAULT_LOCALE, SHORT_DATE_FORMAT_OPTIONS } from "@/config";
+import { Avatar } from "@/shared/components/Avatar";
+import { getInitial, getProfileDisplayName } from "@/shared/utils";
+
+/**
+ * Row component displaying the requester's profile info.
+ *
+ * @internal
+ */
+const RequesterRow: FunctionComponent<{ webId: string }> = ({ webId }) => {
+  const [translate] = useTranslation();
+  const contactResource = useResource(webId.split("#")[0]);
+  const contact = useSubject(SolidProfileShapeType, webId);
+  const isLoading = isLoadable(contactResource) && contactResource.isLoading();
+  const displayName = getProfileDisplayName(contact, webId);
+  const avatarUrl = contact?.img?.["@id"];
+  const initial = getInitial(displayName);
+
+  return (
+    <div className="requests-panel__requester">
+      <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
+      <span className="requests-panel__requester-name">
+        {isLoading
+          ? translate("requestsPanel.loading")
+          : displayName.length > MAX_DISPLAY_NAME_LENGTH
+            ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}…`
+            : displayName}
+      </span>
+    </div>
+  );
+};
+
+/**
+ * Request item component with approve/deny actions.
+ *
+ * @internal
+ */
+const RequestItem: FunctionComponent<{
+  request: AccessRequest;
+  onApprove: (r: AccessRequest) => Promise<void>;
+  onDeny: (r: AccessRequest) => Promise<void>;
+  isBusy: boolean;
+}> = ({ request, onApprove, onDeny, isBusy }) => {
+  const [translate] = useTranslation();
+
+  const formattedDate = request.timestamp
+    ? new Date(request.timestamp).toLocaleDateString(DEFAULT_LOCALE, SHORT_DATE_FORMAT_OPTIONS)
+    : "";
+
+  const descriptionKey = request.requestType === "file"
+    ? "requestsPanel.requestsFileAccess"
+    : "requestsPanel.requestsAccess";
+
+  const resourceLabel = request.requestType === "file"
+    ? decodeURIComponent(request.accessTo.replace(/\/$/, "").split("/").pop() ?? request.accessTo)
+    : undefined;
+
+  return (
+    <div className="requests-panel__item">
+      <RequesterRow webId={request.requesterWebId} />
+      <p className="requests-panel__description">
+        {translate(descriptionKey, { resource: resourceLabel })}
+      </p>
+      {formattedDate && <p className="requests-panel__timestamp">{formattedDate}</p>}
+      <div className="requests-panel__actions">
+        <button className="btn btn--primary btn--small" onClick={() => onApprove(request)} disabled={isBusy}>
+          {translate("requestsPanel.approve")}
+        </button>
+        <button className="btn btn--delete btn--small" onClick={() => onDeny(request)} disabled={isBusy}>
+          {translate("requestsPanel.deny")}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Props for the RequestsPanel component.
+ */
+export type RequestsPanelProps = {
+  ownerWebId: string;
+  storageRoot: string;
+  catalogUri: string;
+};
+
+/**
+ * Collapsible panel showing pending access requests from contacts.
+ * Loads requests from the user's inbox when opened.
+ *
+ * @public
+ */
+export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
+  ownerWebId,
+  storageRoot,
+  catalogUri,
+}) => {
+  const [translate] = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const { requests, loading, error, busyMessageUri, loadRequests, approve, deny } =
+    useAccessRequests(ownerWebId, storageRoot, catalogUri);
+
+  function handleToggle() {
+    if (!isOpen) loadRequests();
+    setIsOpen((prev) => !prev);
+  }
+
+  return (
+    <div className="requests-panel">
+      <button className="requests-panel__toggle" onClick={handleToggle}>
+        <span>{translate("requestsPanel.heading")}</span>
+        {requests.length > 0 && <span className="requests-panel__badge">{requests.length}</span>}
+        <span className="requests-panel__chevron" style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▼</span>
+      </button>
+
+      {isOpen && (
+        <div className="requests-panel__body">
+          {loading && (
+            <div className="requests-panel__loading">
+              <div className="spinner spinner--small" />
+              {translate("requestsPanel.loading")}
+            </div>
+          )}
+          {error && <p className="requests-panel__error">{error}</p>}
+          {!loading && !error && requests.length === 0 && (
+            <p className="requests-panel__empty">{translate("requestsPanel.noRequests")}</p>
+          )}
+          {!loading && requests.map((request) => (
+            <RequestItem
+              key={request.messageUri}
+              request={request}
+              onApprove={approve}
+              onDeny={deny}
+              isBusy={busyMessageUri === request.messageUri}
+            />
+          ))}
+          {!loading && (
+            <button className="btn btn--ghost btn--small requests-panel__refresh" onClick={loadRequests} disabled={loading}>
+              {translate("requestsPanel.refresh")}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
