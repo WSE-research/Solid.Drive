@@ -1,8 +1,15 @@
+/**
+ * Application entry point.
+ * Initializes i18n, renders the root App component in StrictMode.
+ *
+ * @packageDocumentation
+ */
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './i18n'
-import './index.css'
-import App from './App.tsx'
+import './app/i18n'
+import './app/index.css'
+import App from './app/App'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
