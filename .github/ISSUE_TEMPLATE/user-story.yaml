@@ -1,6 +1,5 @@
 name: User Story
 description: Create a structured user story
-title: "[User Story]: "
 labels: ["user-story"]
 assignees: []
 
@@ -41,29 +40,29 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
+  - type: textarea
     id: definition_of_ready
     attributes:
       label: Definition of Ready (DoR)
-      options:
-        - label: Independent
-        - label: Negotiable
-        - label: Valuable
-        - label: Estimable
-        - label: Small
-        - label: Testable
+      value: |
+        - [ ] Independent
+        - [ ] Negotiable
+        - [ ] Valuable
+        - [ ] Estimable
+        - [ ] Small
+        - [ ] Testable
     validations:
       required: true
 
-  - type: checkboxes
+  - type: textarea
     id: definition_of_done
     attributes:
       label: Definition of Done (DoD)
-      options:
-        - label: Acceptance criteria are met
-        - label: Meaningful tests are implemented
-        - label: CI pipeline passes successfully
-        - label: Documentation updated 
-        - label: Code review completed
+      value: |
+        - [ ] Acceptance criteria are met
+        - [ ] Meaningful tests are implemented
+        - [ ] Validation checks pass successfully
+        - [ ] Documentation updated
+        - [ ] Code review completed
     validations:
       required: true
