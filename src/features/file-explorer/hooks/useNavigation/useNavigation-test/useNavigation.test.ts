@@ -4,10 +4,6 @@ import { useNavigation } from '../useNavigation-file/useNavigation';
 import type { SolidContainerUri } from '@ldo/connected-solid';
 
 describe('useNavigation', () => {
-  it('is defined', () => {
-    expect(useNavigation).toBeDefined();
-  });
-
   it('initializes with undefined currentUri when no args given', () => {
     const { result } = renderHook(() => useNavigation());
     expect(result.current.currentUri).toBeUndefined();
@@ -116,7 +112,20 @@ describe('useNavigation', () => {
     });
 
     expect(result.current.breadcrumbs).toHaveLength(3);
-    expect(result.current.breadcrumbs.map((b: any) => b.label)).toEqual(['a', 'b', 'c']);
+    expect(result.current.breadcrumbs.map((b: { label: string }) => b.label)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('handleNavigate uses full URI as label when path segment is empty', () => {
+    const { result } = renderHook(() => useNavigation());
+
+    act(() => {
+      // URI with only a scheme and no path segments after removing trailing slash
+      // After replace trailing slash: "https:" → split("/") → ["https:"] → pop() → "https:" (non-empty, so || won't trigger)
+      // Use an edge case: URI that is just "/" → remove trailing slash → "" → split("/") → [""] → pop() → "" (falsy) → fallback to uri
+      result.current.handleNavigate('/');
+    });
+
+    expect(result.current.breadcrumbs[0].label).toBe('/');
   });
 
   it('handleBreadcrumbClick at last index keeps all breadcrumbs', () => {

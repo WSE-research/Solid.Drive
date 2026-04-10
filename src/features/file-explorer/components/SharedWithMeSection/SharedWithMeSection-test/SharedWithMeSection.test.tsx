@@ -7,9 +7,10 @@ const mockParseCatalog = vi.fn();
 const mockHasAccess = vi.fn();
 const mockDiscoverInboxUri = vi.fn();
 const mockListRejectionNotifications = vi.fn();
+let mockIsLoading = false;
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => [(key: string, params?: any) => {
+  useTranslation: () => [(key: string, params?: Record<string, string>) => {
     if (params?.name) return `${key}:${params.name}`;
     return key;
   }],
@@ -17,8 +18,8 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
-  useResource: () => ({ isLoading: () => false, isFetched: () => true, isUnfetched: () => false }),
-  useSubject: (_type: any, webId: string) => {
+  useResource: () => ({ isLoading: () => mockIsLoading, isFetched: () => !mockIsLoading, isUnfetched: () => false }),
+  useSubject: (_type: unknown, webId: string) => {
     if (webId === 'https://alice.example/profile/card#me') {
       return {
         fn: 'Alice',
@@ -48,28 +49,28 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  parseCatalog: (...args: any[]) => mockParseCatalog(...args),
+  parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
   getAppContainerUri: (root: string) => `${root}my-solid-app/`,
   getCandidateSharedCatalogUris: () => ['https://alice.example/my-solid-app/.shared-viewer.ttl'],
   toContainerUri: (uri: string) => uri.replace(/index\.ttl$/, ''),
-  hasAccess: (...args: any[]) => mockHasAccess(...args),
+  hasAccess: (...args: unknown[]) => mockHasAccess(...args),
 }));
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
-  discoverInboxUri: (...args: any[]) => mockDiscoverInboxUri(...args),
-  listRejectionNotifications: (...args: any[]) => mockListRejectionNotifications(...args),
+  discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
+  listRejectionNotifications: (...args: unknown[]) => mockListRejectionNotifications(...args),
 }));
 
 vi.mock('@/features/file-explorer/components/FileCard', () => ({
-  FileCard: ({ containerUri }: any) => <div data-testid="file-card" data-uri={containerUri} />,
+  FileCard: ({ containerUri }: { containerUri: string }) => <div data-testid="file-card" data-uri={containerUri} />,
 }));
 
 let capturedOnClearRejection: ((containerUri: string) => void) | null = null;
 vi.mock('@/features/file-explorer/components/TypeFolder', () => ({
-  TypeFolder: ({ classUri, onClearRejection }: any) => {
+  TypeFolder: ({ classUri, onClearRejection }: { classUri: string; onClearRejection: (containerUri: string) => void }) => {
     capturedOnClearRejection = onClearRejection;
     return <div data-testid="type-folder" data-class={classUri} />;
   },
@@ -83,6 +84,7 @@ describe('SharedWithMeSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedOnClearRejection = null;
+    mockIsLoading = false;
     mockFetch.mockResolvedValue({ ok: false });
     mockParseCatalog.mockReturnValue([]);
     mockHasAccess.mockResolvedValue(false);
@@ -313,7 +315,7 @@ describe('SharedWithMeSection', () => {
   it('renders null for ContactSharedFiles when catalog not accessible', async () => {
     mockFetch.mockResolvedValue({ ok: false });
 
-    const { container } = render(
+    render(
       <SharedWithMeSection
         contacts={['https://owner.example/profile/card#me', 'https://alice.example/profile/card#me']}
         ownerWebId="https://owner.example/profile/card#me"
@@ -330,6 +332,22 @@ describe('SharedWithMeSection', () => {
     // No file cards or type folders should be rendered
     expect(screen.queryByTestId('file-card')).not.toBeInTheDocument();
     expect(screen.queryByTestId('type-folder')).not.toBeInTheDocument();
+  });
+
+  it('renders null for ContactSharedFiles when profile is still loading and catalog not accessible', () => {
+    mockIsLoading = true;
+    mockFetch.mockResolvedValue({ ok: false });
+
+    render(
+      <SharedWithMeSection
+        contacts={['https://owner.example/profile/card#me', 'https://alice.example/profile/card#me']}
+        ownerWebId="https://owner.example/profile/card#me"
+      />
+    );
+
+    // Section heading shows but no file cards since catalog is not yet accessible
+    expect(screen.getByText('sharedWithMe.heading')).toBeInTheDocument();
+    expect(screen.queryByTestId('file-card')).not.toBeInTheDocument();
   });
 
   it('fetches inbox rejections when catalog is accessible', async () => {
@@ -357,7 +375,7 @@ describe('SharedWithMeSection', () => {
     });
   });
 
-  it('handles inbox discovery failure gracefully', async () => {
+  it('still renders shared entries when inbox discovery fails', async () => {
     mockDiscoverInboxUri.mockRejectedValue(new Error('no inbox'));
     const sharedEntries = [
       { uri: 'https://alice.example/files/photo/index.ttl', title: 'Photo', conformsTo: '' },
@@ -383,7 +401,7 @@ describe('SharedWithMeSection', () => {
     });
   });
 
-  it('handles per-contact catalog fetch throwing an error', async () => {
+  it('falls back to main catalog when per-contact catalog fetch throws', async () => {
     const mainEntries = [
       { uri: 'https://alice.example/files/doc/index.ttl', title: 'Doc', conformsTo: '' },
     ];
@@ -475,7 +493,7 @@ describe('SharedWithMeSection', () => {
     });
   });
 
-  it('handles main catalog throw when per-contact catalog is accessible', async () => {
+  it('ignores main catalog error when per-contact catalog is already accessible', async () => {
     // Per-contact catalog accessible (empty), but main catalog fetch throws
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('.shared-viewer')) {
@@ -501,7 +519,7 @@ describe('SharedWithMeSection', () => {
     });
   });
 
-  it('handles fallback main catalog throw when per-contact catalogs all fail', async () => {
+  it('renders nothing when both per-contact and main catalog fetches throw', async () => {
     // Per-contact catalogs all fail (not accessible), main catalog also throws
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('.shared-viewer')) {
@@ -513,7 +531,7 @@ describe('SharedWithMeSection', () => {
       return Promise.resolve({ ok: false });
     });
 
-    const { container } = render(
+    render(
       <SharedWithMeSection
         contacts={['https://owner.example/profile/card#me', 'https://alice.example/profile/card#me']}
         ownerWebId="https://owner.example/profile/card#me"
@@ -525,6 +543,78 @@ describe('SharedWithMeSection', () => {
     });
     // ContactSharedFiles should return null (not accessible)
     expect(screen.queryByTestId('file-card')).not.toBeInTheDocument();
+  });
+
+  it('groups browsable entries under DEFAULT_FILE_TYPE_URI when conformsTo is falsy', async () => {
+    const sharedEntries = [
+      { uri: 'https://alice.example/files/photo/index.ttl', title: 'Photo', conformsTo: 'http://schema.org/ImageObject' },
+    ];
+    const mainEntries = [
+      ...sharedEntries,
+      { uri: 'https://alice.example/files/noclass/index.ttl', title: 'NoClass', conformsTo: '' },
+      { uri: 'https://alice.example/files/nullclass/index.ttl', title: 'NullClass', conformsTo: null },
+    ];
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('shared') });
+      }
+      if (url === 'https://alice.example/catalog.ttl') {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('main') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockImplementation((_text: string, uri: string) => {
+      if (uri.includes('.shared-viewer')) return sharedEntries;
+      return mainEntries;
+    });
+    mockHasAccess.mockResolvedValue(false);
+
+    render(
+      <SharedWithMeSection
+        contacts={['https://owner.example/profile/card#me', 'https://alice.example/profile/card#me']}
+        ownerWebId="https://owner.example/profile/card#me"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('type-folder')).toBeInTheDocument();
+    });
+  });
+
+  it('renders FileCard with empty string catalogUri when resolvedCatalogUri is null after recovery', async () => {
+    // Simulate: per-contact catalog accessible but no entries found (foundCatalogUri stays null),
+    // then main catalog has entries that are accessible → recovered into sharedEntries
+    // resolvedCatalogUri remains null → FileCard gets catalogUri=""
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('empty') });
+      }
+      if (url === 'https://alice.example/catalog.ttl') {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('main') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockImplementation((_text: string, uri: string) => {
+      if (uri.includes('.shared-viewer')) return []; // empty → foundCatalogUri stays null
+      // main catalog has entries
+      return [{ uri: 'https://alice.example/files/recovered/index.ttl', title: 'Recovered', conformsTo: '' }];
+    });
+    mockHasAccess.mockResolvedValue(true); // entry is accessible → goes to sharedEntries
+
+    render(
+      <SharedWithMeSection
+        contacts={['https://owner.example/profile/card#me', 'https://alice.example/profile/card#me']}
+        ownerWebId="https://owner.example/profile/card#me"
+      />
+    );
+
+    await waitFor(() => {
+      const card = screen.getByTestId('file-card');
+      expect(card).toBeInTheDocument();
+      // catalogUri should be "" (resolvedCatalogUri is null, so ?? "" kicks in)
+      expect(card.getAttribute('data-uri')).toBe('https://alice.example/files/recovered/');
+    });
   });
 
   it('clears rejection when onClearRejection is called via TypeFolder', async () => {

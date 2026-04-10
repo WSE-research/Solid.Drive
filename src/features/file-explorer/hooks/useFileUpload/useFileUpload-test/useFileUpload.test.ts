@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import type { SolidContainer } from '@ldo/connected-solid';
 
 // Mock variables
-const mockSession = { webId: 'https://pod.example/profile/card#me' };
+let mockSession = { webId: 'https://pod.example/profile/card#me' };
 const mockFetch = vi.fn();
 const mockCreateData = vi.fn();
 const mockCommitData = vi.fn();
@@ -18,14 +19,14 @@ vi.mock('@/.ldo/catalogEntry.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isSolidLeaf: (res: any) => res && res._isSolidLeaf === true,
+  isSolidLeaf: (res: unknown) => res != null && (res as Record<string, unknown>)._isSolidLeaf === true,
 }));
 
 const mockAppendToCatalog = vi.fn();
 const mockLinkCatalogToProfile = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  appendToCatalog: (...args: any[]) => mockAppendToCatalog(...args),
-  linkCatalogToProfile: (...args: any[]) => mockLinkCatalogToProfile(...args),
+  appendToCatalog: (...args: unknown[]) => mockAppendToCatalog(...args),
+  linkCatalogToProfile: (...args: unknown[]) => mockLinkCatalogToProfile(...args),
 }));
 
 vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
@@ -46,7 +47,7 @@ describe('useFileUpload', () => {
     encodingFormat: '',
     contentSize: '',
     uploadDate: '',
-    publisher: null as any,
+    publisher: null,
     description: '',
   };
 
@@ -63,6 +64,7 @@ describe('useFileUpload', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSession = { webId: 'https://pod.example/profile/card#me' };
     mockCreateData.mockReturnValue(mockMetadata);
     mockCommitData.mockResolvedValue({ isError: false });
     mockMainContainer.createChildAndOverwrite.mockResolvedValue({ isError: false, resource: mockFileContainer });
@@ -73,21 +75,17 @@ describe('useFileUpload', () => {
     mockFetch.mockResolvedValue({ ok: true });
   });
 
-  it('is defined', () => {
-    expect(useFileUpload).toBeDefined();
-  });
-
   it('returns isUploading false initially', () => {
     const { result } = renderHook(() => useFileUpload());
     expect(result.current.isUploading).toBe(false);
   });
 
-  it('returns an upload function', () => {
+  it('exposes upload as a callable function for initiating file uploads', () => {
     const { result } = renderHook(() => useFileUpload());
     expect(typeof result.current.upload).toBe('function');
   });
 
-  it('uploads a file successfully', async () => {
+  it('uploads a file by creating container, writing metadata, and appending to catalog', async () => {
     const { result } = renderHook(() => useFileUpload());
 
     await act(async () => {
@@ -95,7 +93,7 @@ describe('useFileUpload', () => {
         file: mockFile,
         title: 'My Photo',
         description: 'A nice photo',
-        mainContainer: mockMainContainer as any,
+        mainContainer: mockMainContainer as unknown as SolidContainer,
         catalogUri: 'https://pod.example/catalog.ttl',
         profileHasCatalog: true,
       });
@@ -110,8 +108,7 @@ describe('useFileUpload', () => {
   });
 
   it('throws when not logged in', async () => {
-    const savedWebId = mockSession.webId;
-    mockSession.webId = '' as any;
+    mockSession.webId = '';
     const { result } = renderHook(() => useFileUpload());
 
     await expect(
@@ -120,14 +117,12 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
       })
     ).rejects.toThrow('Not logged in');
-
-    mockSession.webId = savedWebId;
   });
 
   it('throws when container creation fails', async () => {
@@ -140,7 +135,7 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
@@ -158,7 +153,7 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
@@ -178,7 +173,7 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
@@ -196,7 +191,7 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
@@ -214,7 +209,7 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
@@ -230,7 +225,7 @@ describe('useFileUpload', () => {
         file: mockFile,
         title: 'Photo',
         description: '',
-        mainContainer: mockMainContainer as any,
+        mainContainer: mockMainContainer as unknown as SolidContainer,
         catalogUri: 'https://pod.example/catalog.ttl',
         profileHasCatalog: false,
       });
@@ -247,7 +242,7 @@ describe('useFileUpload', () => {
         file: mockFile,
         title: 'Photo',
         description: '',
-        mainContainer: mockMainContainer as any,
+        mainContainer: mockMainContainer as unknown as SolidContainer,
         catalogUri: 'https://pod.example/catalog.ttl',
         profileHasCatalog: true,
       });
@@ -264,7 +259,7 @@ describe('useFileUpload', () => {
         file: mockFile,
         title: '  ',
         description: '',
-        mainContainer: mockMainContainer as any,
+        mainContainer: mockMainContainer as unknown as SolidContainer,
         catalogUri: 'https://pod.example/catalog.ttl',
         profileHasCatalog: true,
       });
@@ -282,7 +277,7 @@ describe('useFileUpload', () => {
         file: emptyTypeFile,
         title: 'Binary',
         description: '',
-        mainContainer: mockMainContainer as any,
+        mainContainer: mockMainContainer as unknown as SolidContainer,
         catalogUri: 'https://pod.example/catalog.ttl',
         profileHasCatalog: true,
       });
@@ -308,12 +303,12 @@ describe('useFileUpload', () => {
           file: mockFile,
           title: 'Photo',
           description: '',
-          mainContainer: mockMainContainer as any,
+          mainContainer: mockMainContainer as unknown as SolidContainer,
           catalogUri: 'https://pod.example/catalog.ttl',
           profileHasCatalog: true,
         });
       });
-    } catch {}
+    } catch { /* expected */ }
 
     expect(result.current.isUploading).toBe(false);
   });

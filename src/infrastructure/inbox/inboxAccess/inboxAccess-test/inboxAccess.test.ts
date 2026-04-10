@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { FetchFn } from "@/types/solid";
 import {
   discoverInboxUri,
   postCatalogAccessRequest,
@@ -116,7 +117,7 @@ describe("postFileAccessRequest", () => {
     );
   });
 
-  it("throws when POST fails", async () => {
+  it("throws an error when POST returns a non-2xx status code", async () => {
     const mockFetch = makeFetch({ "POST https://alice.example/inbox/": { status: 500 } });
     await expect(
       postFileAccessRequest(
@@ -190,7 +191,7 @@ describe("listAccessRequests", () => {
     expect(result).toEqual([]);
   });
 
-  it("skips messages that throw during fetch", async () => {
+  it("skips messages and returns them excluded when individual message fetch throws", async () => {
     const mockFetch = vi.fn(async (url: RequestInfo) => {
       const urlStr = url as string;
       if (urlStr === "https://alice.example/inbox/") {
@@ -199,7 +200,7 @@ describe("listAccessRequests", () => {
       throw new Error("network error");
     });
 
-    const result = await listAccessRequests("https://alice.example/inbox/", mockFetch as any);
+    const result = await listAccessRequests("https://alice.example/inbox/", mockFetch as unknown as FetchFn);
     expect(result).toEqual([]);
   });
 });
@@ -233,7 +234,7 @@ describe("listRejectionNotifications", () => {
     expect(result[0].messageUri).toBe("https://requester.example/inbox/msg1");
   });
 
-  it("skips unreadable messages without throwing", async () => {
+  it("returns empty array when an individual message returns a non-2xx status", async () => {
     const inboxTurtle = `
       @prefix ldp: <${LDP_NS}> .
       <https://requester.example/inbox/> ldp:contains <https://requester.example/inbox/msg1> .
@@ -247,7 +248,7 @@ describe("listRejectionNotifications", () => {
     expect(result).toEqual([]);
   });
 
-  it("skips rejection messages that throw during fetch", async () => {
+  it("returns empty array when individual rejection message fetch throws", async () => {
     const inboxTurtle = `
       @prefix ldp: <${LDP_NS}> .
       <https://requester.example/inbox/> ldp:contains <https://requester.example/inbox/msg1> .
@@ -260,7 +261,7 @@ describe("listRejectionNotifications", () => {
       throw new Error("network error");
     });
 
-    const result = await listRejectionNotifications("https://requester.example/inbox/", mockFetch as any);
+    const result = await listRejectionNotifications("https://requester.example/inbox/", mockFetch as unknown as FetchFn);
     expect(result).toEqual([]);
   });
 });

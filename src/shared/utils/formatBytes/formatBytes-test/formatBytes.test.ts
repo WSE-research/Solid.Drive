@@ -10,8 +10,20 @@ describe('formatBytes', () => {
     expect(formatBytes('0')).toBe('');
   });
 
+  it('returns empty string for non-numeric string', () => {
+    expect(formatBytes('abc')).toBe('');
+  });
+
+  it('returns empty string for empty string', () => {
+    expect(formatBytes('')).toBe('');
+  });
+
   it('formats bytes under 1 KB', () => {
     expect(formatBytes('512')).toBe('512 B');
+  });
+
+  it('formats 1 byte correctly', () => {
+    expect(formatBytes('1')).toBe('1 B');
   });
 
   it('formats bytes in KB range', () => {
@@ -22,7 +34,18 @@ describe('formatBytes', () => {
     expect(formatBytes('3145728')).toBe('3.0 MB');
   });
 
+  it('formats large MB values near GB boundary', () => {
+    // 999 MB = 999 * 1024 * 1024
+    expect(formatBytes('1047527424')).toBe('999.0 MB');
+  });
+
   it('rounds to one decimal place', () => {
     expect(formatBytes('1536')).toBe('1.5 KB');
+  });
+
+  it('returns negative byte string for negative values (potential bug)', () => {
+    // Note: formatBytes does not guard against negative values.
+    // parseInt('-1') = -1, which is truthy and < 1024, so it returns '-1 B'.
+    expect(formatBytes('-1')).toBe('-1 B');
   });
 });

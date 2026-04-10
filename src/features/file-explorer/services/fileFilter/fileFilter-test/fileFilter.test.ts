@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { SolidLeaf } from '@ldo/connected-solid';
 import { isVisibleLeaf } from '../fileFilter-file/fileFilter';
 
 // Mock dependencies
@@ -11,14 +12,10 @@ vi.mock('@/config/constants', () => ({
 }));
 
 function makeLeaf(uri: string) {
-  return { uri } as any;
+  return { uri } as SolidLeaf;
 }
 
 describe('isVisibleLeaf', () => {
-  it('is defined', () => {
-    expect(isVisibleLeaf).toBeDefined();
-  });
-
   it('returns true for a normal file', () => {
     expect(isVisibleLeaf(makeLeaf('https://pod.example/files/photo.jpg'))).toBe(true);
   });
@@ -59,12 +56,24 @@ describe('isVisibleLeaf', () => {
     expect(isVisibleLeaf(makeLeaf('https://pod.example/files/my.document.pdf'))).toBe(true);
   });
 
-  it('handles URI with trailing slash (empty pop result)', () => {
+  it('returns true when URI ends with trailing slash because the extracted filename is empty', () => {
     // When URI ends with /, pop returns "", which is not a system file
     expect(isVisibleLeaf(makeLeaf('https://pod.example/files/'))).toBe(true);
   });
 
-  it('handles empty URI', () => {
+  it('returns true for an empty URI string since no system-file name matches', () => {
     expect(isVisibleLeaf(makeLeaf(''))).toBe(true);
+  });
+
+  it('falls back to empty string when split/pop yields undefined', () => {
+    // Force the ?? "" fallback by providing a uri whose split().pop() returns undefined
+    const leaf = { uri: '' } as SolidLeaf;
+    const original = Array.prototype.pop;
+    Array.prototype.pop = function () { return undefined; };
+    try {
+      expect(isVisibleLeaf(leaf)).toBe(true);
+    } finally {
+      Array.prototype.pop = original;
+    }
   });
 });

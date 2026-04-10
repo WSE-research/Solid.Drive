@@ -94,7 +94,7 @@ describe("fileTypeRegistry", () => {
   });
 
   describe("parseFileTypesFromTurtle", () => {
-    it("parses file types from valid turtle", () => {
+    it("returns parsed file types including uri, label, and HTML-stripped description from valid turtle", () => {
       const types = parseFileTypesFromTurtle(SAMPLE_TURTLE);
 
       expect(types.length).toBeGreaterThanOrEqual(6);
@@ -146,7 +146,7 @@ schema:TestLongDesc
       expect(testType!.description).toMatch(/\.\.\.$/);
     });
 
-    it("uses humanizeId when rdfs:label is missing", () => {
+    it("generates a humanized label from the class ID when rdfs:label is absent", () => {
       const turtle = `
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -164,7 +164,7 @@ schema:ImageObject
       expect(imageType!.label).toBe("Image object");
     });
 
-    it("humanizeId handles consecutive uppercase letters", () => {
+    it("correctly humanizes IDs with consecutive uppercase letters", () => {
       const turtle = `
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -187,7 +187,7 @@ schema:HTMLDocument
   });
 
   describe("loadFileTypes", () => {
-    it("loads and caches file types", async () => {
+    it("fetches file types from TBox and returns the same cached instance on repeated calls", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(SAMPLE_TURTLE),
@@ -203,7 +203,7 @@ schema:HTMLDocument
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it("throws on fetch failure", async () => {
+    it("throws when TBox fetch returns a non-ok status", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
@@ -239,7 +239,7 @@ schema:HTMLDocument
       expect(getFileTypesSync()).toBeNull();
     });
 
-    it("returns types after loading", async () => {
+    it("returns the cached file types after loadFileTypes has been called", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(SAMPLE_TURTLE),
@@ -260,13 +260,13 @@ schema:HTMLDocument
       await loadFileTypes("/tbox.ttl", mockFetch);
     });
 
-    it("finds type by ID", () => {
+    it("returns the matching file type when looked up by ID", () => {
       const type = getFileType("ImageObject");
       expect(type).toBeDefined();
       expect(type?.id).toBe("ImageObject");
     });
 
-    it("finds type by URI", () => {
+    it("returns the matching file type when looked up by URI", () => {
       const type = getFileType("http://schema.org/ImageObject");
       expect(type).toBeDefined();
       expect(type?.id).toBe("ImageObject");
@@ -297,7 +297,7 @@ schema:HTMLDocument
       await loadFileTypes("/tbox.ttl", mockFetch);
     });
 
-    it("returns label for known type", () => {
+    it("returns the registered label for a known type ID", () => {
       expect(getFileTypeLabel("ImageObject")).toBe("Image");
     });
 
@@ -315,13 +315,13 @@ schema:HTMLDocument
       await loadFileTypes("/tbox.ttl", mockFetch);
     });
 
-    it("returns label and description for known type", () => {
+    it("returns the label and description for a known type", () => {
       const info = getFileTypeInfo("ImageObject");
       expect(info.label).toBe("Image");
       expect(info.description).toContain("image file");
     });
 
-    it("returns fallback for unknown type", () => {
+    it("returns extracted local name and empty description for an unknown type", () => {
       const info = getFileTypeInfo("http://example.org/Mystery");
       expect(info.label).toBe("Mystery");
       expect(info.description).toBe("");
@@ -329,7 +329,7 @@ schema:HTMLDocument
   });
 
   describe("getFileTypeUri", () => {
-    it("returns URI for known ID", () => {
+    it("returns the full schema.org URI for a known type ID", () => {
       expect(getFileTypeUri("ImageObject")).toBe("http://schema.org/ImageObject");
     });
 
@@ -339,7 +339,7 @@ schema:HTMLDocument
   });
 
   describe("getAllFileTypes", () => {
-    it("returns all available types", async () => {
+    it("returns all registered types including ImageObject and VideoObject after loading", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(SAMPLE_TURTLE),

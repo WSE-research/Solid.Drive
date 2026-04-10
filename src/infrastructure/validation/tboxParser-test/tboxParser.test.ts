@@ -145,7 +145,7 @@ describe('parseTBox', () => {
     expect(shape!.optionalProperties[0].description).toBe('');
   });
 
-  it('handles sh:nodeKind constraint', () => {
+  it('includes sh:nodeKind value in the property when nodeKind is specified', () => {
     const turtle = makeTurtle([
       'ex:Shape a sh:NodeShape ;',
       '  sh:property ex:prop .',
@@ -173,7 +173,7 @@ describe('parseTBox', () => {
     expect(shape!.optionalProperties[0].nodeKind).toBe('');
   });
 
-  it('handles URI with # separator in localName', () => {
+  it('extracts localName from the fragment part of a URI with # separator', () => {
     const turtle = makeTurtle([
       'ex:Shape a sh:NodeShape ;',
       '  sh:property ex:prop .',
@@ -204,7 +204,7 @@ describe('parseTBox', () => {
     expect(shape!.label).toBe('urn:noSeparator');
   });
 
-  it('parses multiple NodeShapes', () => {
+  it('returns all shape definitions when the turtle contains multiple NodeShapes', () => {
     const turtle = makeTurtle([
       'ex:ShapeA a sh:NodeShape ;',
       '  rdfs:label "Shape A" .',
@@ -219,7 +219,7 @@ describe('parseTBox', () => {
     expect(result.shapes.get(`${EX}ShapeB`)!.label).toBe('Shape B');
   });
 
-  it('handles shapes with no properties', () => {
+  it('returns shape with empty required and optional property arrays when shape has no sh:property', () => {
     const turtle = makeTurtle([
       'ex:EmptyShape a sh:NodeShape ;',
       '  rdfs:label "Empty" .',

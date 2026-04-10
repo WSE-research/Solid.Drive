@@ -216,7 +216,7 @@ describe("removeFromCatalog", () => {
     expect(sparql).toContain(`<${instanceUri}#dist>`);
   });
 
-  it("throws when PATCH fails", async () => {
+  it("throws when the removal PATCH fails for removeFromCatalog", async () => {
     const { fetch } = capturingMock([
       { status: 200, ok: true }, { status: 500, ok: false, statusText: "Internal Server Error" },
     ]);
@@ -259,7 +259,7 @@ describe("linkCatalogToProfile", () => {
     expect(calls[0].body).not.toContain("DELETE");
   });
 
-  it("throws when PATCH fails", async () => {
+  it("throws when the profile PATCH fails for linkCatalogToProfile", async () => {
     const { fetch } = capturingMock([{ status: 403, ok: false, statusText: "Forbidden" }]);
     await expect(linkCatalogToProfile(catalogUri, webId, fetch))
       .rejects.toThrow("Failed to link catalog to profile");
@@ -349,7 +349,7 @@ describe("parseCatalog", () => {
     expect(entries[0].description).toBe("Quarterly financial summary");
   });
 
-  it("returns zero byteSize and empty strings gracefully for missing properties", () => {
+  it("returns zero byteSize and empty strings for missing optional properties", () => {
     const catalogUri = "https://pod.example/my-app/catalog.ttl";
     const instanceUri = "https://pod.example/my-app/file/index.ttl";
     const turtle = `
@@ -366,7 +366,7 @@ describe("parseCatalog", () => {
     expect(entries[0].accessURL).toBe("");
   });
 
-  it("parses catalog with baseUri parameter (line 217 truthy branch)", () => {
+  it("parses catalog with baseUri parameter for resolving relative URIs", () => {
     const turtle = `
     @prefix dcat: <http://www.w3.org/ns/dcat#> .
     @prefix dcterms: <http://purl.org/dc/terms/> .
@@ -395,7 +395,7 @@ describe("getFileTypeLabel", () => {
     expect(getFileTypeLabel("http://schema.org/DigitalDocument")).toBe("Digital document");
   });
 
-  it("returns the label when matched by id", () => {
+  it("returns the label when looked up by local ID string", () => {
     expect(getFileTypeLabel("ImageObject")).toBe("Image");
     expect(getFileTypeLabel("TextDigitalDocument")).toBe("Text digital document");
     expect(getFileTypeLabel("SpreadsheetDigitalDocument")).toBe("Spreadsheet digital document");

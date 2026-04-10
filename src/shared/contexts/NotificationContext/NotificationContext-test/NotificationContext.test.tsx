@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { NotificationProvider, useNotifications } from '../NotificationContext-file/NotificationContext';
 
+type TestWindow = Window & { __confirmResult?: boolean };
+
 // Helper component to access and use notification functions
 function TestConsumer({ action }: { action?: (ctx: ReturnType<typeof useNotifications>) => void }) {
   const ctx = useNotifications();
@@ -11,7 +13,7 @@ function TestConsumer({ action }: { action?: (ctx: ReturnType<typeof useNotifica
       <button onClick={() => ctx.showError('error msg')}>showError</button>
       <button onClick={() => ctx.showSuccess('success msg')}>showSuccess</button>
       <button onClick={() => ctx.showInfo('info msg')}>showInfo</button>
-      <button onClick={() => { ctx.confirm('Are you sure?').then((v) => { (window as any).__confirmResult = v; }); }}>confirm</button>
+      <button onClick={() => { ctx.confirm('Are you sure?').then((v) => { (window as TestWindow).__confirmResult = v; }); }}>confirm</button>
       {action && <button onClick={() => action(ctx)}>custom</button>}
     </div>
   );
@@ -32,18 +34,10 @@ describe('NotificationContext', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    delete (window as any).__confirmResult;
+    delete (window as TestWindow).__confirmResult;
   });
 
-  it('NotificationProvider is defined', () => {
-    expect(NotificationProvider).toBeDefined();
-  });
-
-  it('useNotifications hook is defined', () => {
-    expect(useNotifications).toBeDefined();
-  });
-
-  it('throws when useNotifications is used outside provider', () => {
+  it('throws a descriptive error when useNotifications is called outside NotificationProvider', () => {
     // Suppress React error boundary console noise
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<TestConsumer />)).toThrow(
@@ -134,7 +128,7 @@ describe('NotificationContext', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Confirm'));
     });
-    expect((window as any).__confirmResult).toBe(true);
+    expect((window as TestWindow).__confirmResult).toBe(true);
     // Dialog should be dismissed
     expect(screen.queryByText('Are you sure?')).not.toBeInTheDocument();
   });
@@ -147,7 +141,7 @@ describe('NotificationContext', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Cancel'));
     });
-    expect((window as any).__confirmResult).toBe(false);
+    expect((window as TestWindow).__confirmResult).toBe(false);
   });
 
   it('confirm resolves false when overlay is clicked', async () => {
@@ -159,7 +153,7 @@ describe('NotificationContext', () => {
     await act(async () => {
       fireEvent.click(overlay);
     });
-    expect((window as any).__confirmResult).toBe(false);
+    expect((window as TestWindow).__confirmResult).toBe(false);
   });
 
   it('clicking dialog itself does not dismiss (stopPropagation)', async () => {

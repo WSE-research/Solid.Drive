@@ -28,7 +28,7 @@ describe('FolderEntry', () => {
     expect(onNavigate).toHaveBeenCalledTimes(1);
   });
 
-  it('handles URI without trailing slash', () => {
+  it('extracts folder name correctly from a URI without a trailing slash', () => {
     render(<FolderEntry uri="https://pod.example.com/folder" onNavigate={vi.fn()} />);
     expect(screen.getByText('folder')).toBeInTheDocument();
   });
@@ -39,7 +39,7 @@ describe('FolderEntry', () => {
     expect(svgs.length).toBe(2); // folder icon + arrow icon
   });
 
-  it('renders without crash for empty URI', () => {
+  it('renders a clickable button even when URI is an empty string', () => {
     render(<FolderEntry uri="" onNavigate={vi.fn()} />);
     expect(screen.getByRole('button')).toBeInTheDocument();
   });

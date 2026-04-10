@@ -146,7 +146,7 @@ describe("buildResourceAclTurtle", () => {
 });
 
 describe("writeAcl", () => {
-  it("PUTs turtle to ACL URI with text/turtle content-type", async () => {
+  it("writeAcl PUTs turtle to ACL URI with text/turtle content-type", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/file/.acl": { status: 201 } });
     await expect(
       writeAcl("https://pod.example/file/.acl", "https://pod.example/file/", "https://owner.example/#me", [], mockFetch)
@@ -157,7 +157,7 @@ describe("writeAcl", () => {
     );
   });
 
-  it("throws when PUT fails", async () => {
+  it("throws when PUT fails for container ACL", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/file/.acl": { status: 403 } });
     await expect(
       writeAcl("https://pod.example/file/.acl", "https://pod.example/file/", "https://owner.example/#me", [], mockFetch)
@@ -166,7 +166,7 @@ describe("writeAcl", () => {
 });
 
 describe("writeResourceAcl", () => {
-  it("PUTs turtle to ACL URI with text/turtle content-type", async () => {
+  it("writeResourceAcl PUTs turtle to ACL URI with text/turtle content-type", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/catalog.ttl.acl": { status: 201 } });
     await expect(
       writeResourceAcl("https://pod.example/catalog.ttl.acl", "https://pod.example/catalog.ttl", "https://owner.example/#me", [], mockFetch)
@@ -177,7 +177,7 @@ describe("writeResourceAcl", () => {
     );
   });
 
-  it("throws when PUT fails", async () => {
+  it("throws when PUT fails for resource ACL", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/catalog.ttl.acl": { status: 403 } });
     await expect(
       writeResourceAcl("https://pod.example/catalog.ttl.acl", "https://pod.example/catalog.ttl", "https://owner.example/#me", [], mockFetch)
@@ -244,7 +244,7 @@ describe("buildListOnlyAclTurtle", () => {
     expect(hasDefault).toBe(true);
   });
 
-  it("handles multiple agents", () => {
+  it("generates ACL entries for each agent when multiple agents are provided", () => {
     const bob = "https://bob.example/profile/card#me";
     const turtle = buildListOnlyAclTurtle(containerUri, ownerWebId, [agentWebId, bob]);
     expect(getModesForAgent(turtle, agentWebId)).toContain(`${ACL_NS}Read`);
@@ -255,7 +255,7 @@ describe("buildListOnlyAclTurtle", () => {
 // ─── writeListOnlyAcl ─────────────────────────────────────────────────────────
 
 describe("writeListOnlyAcl", () => {
-  it("PUTs turtle to the ACL URI with text/turtle content-type", async () => {
+  it("writeListOnlyAcl PUTs turtle to the ACL URI with text/turtle content-type", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/my-app/.acl": { status: 201 } });
     await expect(
       writeListOnlyAcl(
@@ -272,7 +272,7 @@ describe("writeListOnlyAcl", () => {
     );
   });
 
-  it("throws when PUT fails", async () => {
+  it("throws when PUT fails for list-only ACL", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/my-app/.acl": { status: 403 } });
     await expect(
       writeListOnlyAcl(

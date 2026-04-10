@@ -3,10 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { Avatar } from '../Avatar-file/Avatar';
 
 describe('Avatar', () => {
-  it('is defined', () => {
-    expect(Avatar).toBeDefined();
-  });
-
   it('renders an img element when src is provided', () => {
     render(<Avatar src="https://example.com/photo.jpg" alt="User" />);
     const img = screen.getByRole('img');

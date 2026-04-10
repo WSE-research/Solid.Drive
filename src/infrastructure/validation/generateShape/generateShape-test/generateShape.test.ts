@@ -299,7 +299,7 @@ describe("discoverShapesFromTurtle", () => {
     expect(shapes[0].typeName).toBe("dcat:Dataset");
   });
 
-  it("classifies blank node property values as xsd:string (lines 152-153)", () => {
+  it("classifies blank node property values as xsd:string", () => {
     // A blank node value is neither NamedNode nor Literal → falls to else → xsd:string
     const turtle = `
       @prefix dcat: <${DCAT_NS}> .

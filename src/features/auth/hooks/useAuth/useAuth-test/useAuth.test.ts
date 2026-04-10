@@ -34,17 +34,17 @@ describe('useAuth — logged out', () => {
     expect(result.current.webId).toBeUndefined();
   });
 
-  it('exposes the login function', () => {
+  it('exposes login as a callable function from useSolidAuth', () => {
     const { result } = renderHook(() => useAuth());
     expect(typeof result.current.login).toBe('function');
   });
 
-  it('exposes the logout function', () => {
+  it('exposes logout as a callable function from useSolidAuth', () => {
     const { result } = renderHook(() => useAuth());
     expect(typeof result.current.logout).toBe('function');
   });
 
-  it('exposes the raw session object', () => {
+  it('exposes the raw session object reflecting logged-out state', () => {
     const { result } = renderHook(() => useAuth());
     expect(result.current.session).toEqual({ isLoggedIn: false, webId: undefined });
   });
@@ -55,7 +55,7 @@ describe('useAuth — logged out', () => {
     expect(mockLogin).toHaveBeenCalledWith('https://solidcommunity.net');
   });
 
-  it('calls logout', async () => {
+  it('calls logout on the underlying session and completes once', async () => {
     const { result } = renderHook(() => useAuth());
     await result.current.logout();
     expect(mockLogout).toHaveBeenCalledTimes(1);

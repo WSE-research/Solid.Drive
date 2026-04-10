@@ -13,8 +13,6 @@ function reducer(_state: State, action: Action): State {
   switch (action.type) {
     case "SET_SHARED":
       return { isShared: action.payload };
-    default:
-      return _state;
   }
 }
 

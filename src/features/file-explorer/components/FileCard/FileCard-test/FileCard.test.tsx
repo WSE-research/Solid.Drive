@@ -412,7 +412,7 @@ describe('FileCard â€” delete action', () => {
 });
 
 describe('FileCard — classUri branch coverage', () => {
-  it('returns DEFAULT_FILE_TYPE_URI when no type match and encodingFormat is empty', () => {
+  it('falls back to default file type class when no type annotations or encoding format exist', () => {
     withFileMeta({ encodingFormat: undefined, type: { toArray: () => [] } });
     renderCard();
     // classUri falls through to DEFAULT_FILE_TYPE_URI because mime is ""

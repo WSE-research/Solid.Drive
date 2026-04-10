@@ -20,7 +20,8 @@ type FolderEntryProps = {
  * @public
  */
 export const FolderEntry: FunctionComponent<FolderEntryProps> = ({ uri, onNavigate }) => {
-  const name = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
+  const segments = uri.replace(/\/$/, "").split("/");
+  const name = decodeURIComponent(segments[segments.length - 1]);
 
   return (
     <button className="folder-entry" onClick={() => onNavigate(uri)}>

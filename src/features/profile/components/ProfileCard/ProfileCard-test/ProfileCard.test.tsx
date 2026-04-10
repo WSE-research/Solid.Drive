@@ -24,7 +24,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string) => key],
 }));
 
-let mockSubjectValue: any = {
+let mockSubjectValue: Record<string, unknown> | null = {
   img: { '@id': 'https://pod.example/avatar.png' },
   storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
 };
@@ -59,7 +59,7 @@ vi.mock('@/shared/utils', () => ({
 }));
 
 vi.mock('@/shared/components/Avatar', () => ({
-  Avatar: ({ alt, isLoading }: any) => (
+  Avatar: ({ alt, isLoading }: { alt: string; isLoading?: boolean }) => (
     <div data-testid="avatar" data-loading={isLoading}>
       {alt}
     </div>
@@ -87,7 +87,7 @@ describe('ProfileCard', () => {
     };
   });
 
-  it('renders profile card container', () => {
+  it('renders the .profile-card root container element', () => {
     render(<ProfileCard />);
     expect(document.querySelector('.profile-card')).toBeInTheDocument();
   });
@@ -109,7 +109,7 @@ describe('ProfileCard', () => {
     expect(screen.getByText('profileSidebar.editProfile')).toBeInTheDocument();
   });
 
-  it('shows loading text when isLoading', () => {
+  it('shows loading text in the name area when isLoading is true', () => {
     profileReturnValue = { ...profileReturnValue, isLoading: true };
     render(<ProfileCard />);
     expect(document.querySelector('.profile-card__name')).toHaveTextContent(
@@ -186,7 +186,7 @@ describe('ProfileCard', () => {
     expect(document.querySelector('.avatar--overlay')).toBeInTheDocument();
   });
 
-  it('handles avatar upload success', async () => {
+  it('uploads avatar via PUT and calls setImgUrl and shows success toast when a file is selected', async () => {
     mockSolidFetch.mockResolvedValue({ ok: true });
     render(<ProfileCard />);
     fireEvent.click(screen.getByText('profileSidebar.editProfile'));
@@ -235,7 +235,7 @@ describe('ProfileCard', () => {
     expect(mockSolidFetch).not.toHaveBeenCalled();
   });
 
-  it('renders Avatar component with correct loading state', () => {
+  it('renders Avatar component when profile data is available', () => {
     render(<ProfileCard />);
     const avatar = screen.getByTestId('avatar');
     expect(avatar).toBeInTheDocument();
@@ -322,7 +322,7 @@ describe('ProfileCard', () => {
     expect(avatar).toBeInTheDocument();
   });
 
-  it('falls back to profile img when imgUrl is empty in edit mode (line 80)', () => {
+  it('falls back to profile img when imgUrl is empty in edit mode', () => {
     profileReturnValue = {
       ...profileReturnValue,
       imgUrl: '',

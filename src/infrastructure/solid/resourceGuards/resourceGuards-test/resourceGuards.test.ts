@@ -18,7 +18,7 @@ describe('isLoadable', () => {
     })).toBe(true);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because loadable requires isLoading, isUnfetched, and isFetched', () => {
     expect(isLoadable(null)).toBe(false);
   });
 
@@ -32,7 +32,7 @@ describe('isReadable', () => {
     expect(isReadable({ isReading: () => false })).toBe(true);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because readable requires isReading', () => {
     expect(isReadable(null)).toBe(false);
   });
 
@@ -50,7 +50,7 @@ describe('isBinary', () => {
     expect(isBinary({ isBinary: () => true })).toBe(false);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because binary requires isBinary and getBlob', () => {
     expect(isBinary(null)).toBe(false);
   });
 });
@@ -64,7 +64,7 @@ describe('isDeletable', () => {
     expect(isDeletable({})).toBe(false);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because deletable requires delete method', () => {
     expect(isDeletable(null)).toBe(false);
   });
 });
@@ -78,7 +78,7 @@ describe('isReloadable', () => {
     expect(isReloadable({})).toBe(false);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because reloadable requires reload method', () => {
     expect(isReloadable(null)).toBe(false);
   });
 });
@@ -92,7 +92,7 @@ describe('isSolidContainer', () => {
     expect(isSolidContainer({ children: [] })).toBe(false);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because SolidContainer requires children function', () => {
     expect(isSolidContainer(null)).toBe(false);
   });
 });
@@ -106,7 +106,7 @@ describe('isSolidLeaf', () => {
     expect(isSolidLeaf({ type: 'SolidContainer' })).toBe(false);
   });
 
-  it('returns false for null', () => {
+  it('returns false for null because SolidLeaf requires type property', () => {
     expect(isSolidLeaf(null)).toBe(false);
   });
 });

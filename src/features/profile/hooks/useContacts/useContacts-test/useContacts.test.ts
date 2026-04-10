@@ -1,18 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 
 const mockFetch = vi.fn();
-let mockWebIdResource: any = { isLoading: () => false, reload: vi.fn() };
-const mockProfile: any = {
+let mockWebIdResource: Record<string, unknown> = { isLoading: () => false, reload: vi.fn() };
+const mockProfile: Record<string, unknown> = {
   knows: { toArray: () => [{ '@id': 'https://alice.example/profile/card#me' }] },
 };
 const mockAddProfileContact = vi.fn();
 const mockRemoveProfileContact = vi.fn();
+let mockProfileOverride: Record<string, unknown> | null | undefined = undefined;
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
   useResource: () => mockWebIdResource,
-  useSubject: () => mockProfile,
+  useSubject: () => mockProfileOverride !== undefined ? mockProfileOverride : mockProfile,
 }));
 
 vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
@@ -20,23 +21,13 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isReloadable: (res: any) => res && typeof res.reload === 'function',
+  isReloadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).reload === 'function',
 }));
 
 vi.mock('@/infrastructure/solid/profile', () => ({
-  addContact: (...args: any[]) => mockAddProfileContact(...args),
-  removeContact: (...args: any[]) => mockRemoveProfileContact(...args),
+  addContact: (...args: unknown[]) => mockAddProfileContact(...args),
+  removeContact: (...args: unknown[]) => mockRemoveProfileContact(...args),
 }));
-
-let mockProfileOverride: any = undefined;
-
-vi.mock('@ldo/solid-react', async () => {
-  return {
-    useSolidAuth: () => ({ fetch: mockFetch }),
-    useResource: () => mockWebIdResource,
-    useSubject: () => mockProfileOverride !== undefined ? mockProfileOverride : mockProfile,
-  };
-});
 
 import { useContacts } from '../useContacts-file/useContacts';
 
@@ -51,16 +42,12 @@ describe('useContacts', () => {
     mockProfileOverride = undefined;
   });
 
-  it('is defined', () => {
-    expect(useContacts).toBeDefined();
-  });
-
-  it('returns contacts from profile', () => {
+  it('returns an array of contact WebIDs extracted from the user profile', () => {
     const { result } = renderHook(() => useContacts(ownerWebId));
     expect(result.current.contacts).toEqual(['https://alice.example/profile/card#me']);
   });
 
-  it('isAdding is initially false', () => {
+  it('isAdding is initially false before any addContact call', () => {
     const { result } = renderHook(() => useContacts(ownerWebId));
     expect(result.current.isAdding).toBe(false);
   });
@@ -115,7 +102,7 @@ describe('useContacts', () => {
       await act(async () => {
         await result.current.addContact('https://bob.example/profile/card#me');
       });
-    } catch {}
+    } catch { /* expected */ }
 
     expect(result.current.isAdding).toBe(false);
   });

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-let mockProfileValue: any = {
+let mockProfileValue: Record<string, unknown> | null = {
   storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
 };
-let mockWebIdResource: any = { isLoading: () => false };
+let mockWebIdResource: Record<string, unknown> = { isLoading: () => false };
 const mockGetResource = vi.fn(() => ({}));
 
 vi.mock('@ldo/solid-react', () => ({
@@ -23,7 +23,7 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isLoadable: (res: any) => res && typeof res.isLoading === 'function',
+  isLoadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).isLoading === 'function',
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -47,7 +47,7 @@ describe('usePodDiscovery', () => {
     vi.useRealTimers();
   });
 
-  it('returns expected shape', () => {
+  it('exposes appContainerUri, storageRootUri, noStorageDetected, and initial navigation state', () => {
     const { result } = renderHook(() => usePodDiscovery(10000));
     expect(result.current).toHaveProperty('appContainerUri');
     expect(result.current).toHaveProperty('storageRootUri');
@@ -69,7 +69,7 @@ describe('usePodDiscovery', () => {
     expect(result.current.initialBreadcrumbLabel).toBe('fileExplorer.myPod');
   });
 
-  it('noStorageDetected is false when storage exists', () => {
+  it('noStorageDetected is false during pod discovery when storage exists', () => {
     const { result } = renderHook(() => usePodDiscovery(10000));
     expect(result.current.noStorageDetected).toBe(false);
   });
@@ -81,14 +81,14 @@ describe('usePodDiscovery', () => {
     expect(mockCreate).toHaveBeenCalled();
   });
 
-  it('sets noStorageDetected when profile has no storage and resource done loading', () => {
+  it('sets noStorageDetected during pod discovery when profile has no storage and resource done loading', () => {
     mockProfileValue = { storage: { toArray: () => [] } };
     mockWebIdResource = { isLoading: () => false };
     const { result } = renderHook(() => usePodDiscovery(10000));
     expect(result.current.noStorageDetected).toBe(true);
   });
 
-  it('does not set noStorageDetected when resource is still loading', () => {
+  it('does not set noStorageDetected during pod discovery when resource is still loading', () => {
     mockProfileValue = { storage: { toArray: () => [] } };
     mockWebIdResource = { isLoading: () => true };
     const { result } = renderHook(() => usePodDiscovery(10000));

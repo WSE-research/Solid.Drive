@@ -32,7 +32,7 @@ export function useNavigation(initialUri?: SolidContainerUri, initialLabel?: str
   );
 
   const handleNavigate = useCallback((uri: string) => {
-    const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
+    const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() || uri);
     setBreadcrumbs((prev) => [...prev, { label, uri: uri as SolidContainerUri }]);
     setCurrentUri(uri as SolidContainerUri);
   }, []);

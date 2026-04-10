@@ -15,16 +15,16 @@ vi.mock('@ldo/solid-react', () => ({
 }));
 
 vi.mock('@/infrastructure/wac/aclManager', () => ({
-  discoverAclUri: (...args: any[]) => mockDiscoverAclUri(...args),
-  readAclAgents: (...args: any[]) => mockReadAclAgents(...args),
-  writeAcl: (...args: any[]) => mockWriteAcl(...args),
-  writeListOnlyAcl: (...args: any[]) => mockWriteListOnlyAcl(...args),
-  writeResourceAcl: (...args: any[]) => mockWriteResourceAcl(...args),
+  discoverAclUri: (...args: unknown[]) => mockDiscoverAclUri(...args),
+  readAclAgents: (...args: unknown[]) => mockReadAclAgents(...args),
+  writeAcl: (...args: unknown[]) => mockWriteAcl(...args),
+  writeListOnlyAcl: (...args: unknown[]) => mockWriteListOnlyAcl(...args),
+  writeResourceAcl: (...args: unknown[]) => mockWriteResourceAcl(...args),
 }));
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  appendToCatalog: (...args: any[]) => mockAppendToCatalog(...args),
-  removeFromCatalog: (...args: any[]) => mockRemoveFromCatalog(...args),
+  appendToCatalog: (...args: unknown[]) => mockAppendToCatalog(...args),
+  removeFromCatalog: (...args: unknown[]) => mockRemoveFromCatalog(...args),
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -61,11 +61,7 @@ describe('useAclManager', () => {
     mockRemoveFromCatalog.mockResolvedValue(undefined);
   });
 
-  it('is defined', () => {
-    expect(useAclManager).toBeDefined();
-  });
-
-  it('returns expected shape', () => {
+  it('exposes all expected properties: aclUri, grantees, loading, error, isSaving, loadAcl, grant, and revoke', () => {
     const { result } = renderHook(() =>
       useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
     );
@@ -79,7 +75,7 @@ describe('useAclManager', () => {
     expect(result.current).toHaveProperty('revoke');
   });
 
-  it('loading is initially true', () => {
+  it('returns loading as true before loadAcl is called', () => {
     const { result } = renderHook(() =>
       useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
     );
@@ -102,7 +98,7 @@ describe('useAclManager', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('loadAcl syncs shared catalog for each grantee', async () => {
+  it('loadAcl calls appendToCatalog for each grantee to sync the shared catalog', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
     const { result } = renderHook(() =>
       useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
@@ -115,7 +111,7 @@ describe('useAclManager', () => {
     expect(mockAppendToCatalog).toHaveBeenCalled();
   });
 
-  it('loadAcl sets error on failure', async () => {
+  it('loadAcl sets error message when ACL discovery fails', async () => {
     mockDiscoverAclUri.mockRejectedValue(new Error('ACL not found'));
     const { result } = renderHook(() =>
       useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
@@ -161,7 +157,7 @@ describe('useAclManager', () => {
     expect(mockWriteAcl).not.toHaveBeenCalled();
   });
 
-  it('grant sets error on failure', async () => {
+  it('grant sets error message when writeAcl throws', async () => {
     const { result } = renderHook(() =>
       useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
     );
@@ -210,7 +206,7 @@ describe('useAclManager', () => {
     expect(mockWriteAcl).not.toHaveBeenCalled();
   });
 
-  it('revoke sets error on failure', async () => {
+  it('revoke sets error message when writeAcl throws', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
     const { result } = renderHook(() =>
       useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
@@ -229,7 +225,7 @@ describe('useAclManager', () => {
     expect(result.current.isSaving).toBe(false);
   });
 
-  it('removeLegacyDiscoveryAccess catches app ACL error without blocking', async () => {
+  it('loadAcl completes successfully even when app-level ACL discovery fails', async () => {
     const contactWebId = 'https://alice.example/profile/card#me';
     mockReadAclAgents.mockResolvedValue([contactWebId]);
     // Call sequence: 1) container ACL, 2) shared catalog ACL (syncSharedCatalog), 3) app ACL (removeLegacy) → throw
@@ -250,7 +246,7 @@ describe('useAclManager', () => {
     expect(result.current.grantees).toEqual([contactWebId]);
   });
 
-  it('removeLegacyDiscoveryAccess catches catalog ACL error without blocking', async () => {
+  it('loadAcl completes successfully even when catalog-level ACL discovery fails', async () => {
     const contactWebId = 'https://alice.example/profile/card#me';
     mockReadAclAgents
       .mockResolvedValueOnce([contactWebId])  // container grantees
@@ -272,7 +268,7 @@ describe('useAclManager', () => {
     expect(result.current.grantees).toEqual([contactWebId]);
   });
 
-  it('removeLegacyDiscoveryAccess skips writeListOnlyAcl when app agents unchanged', async () => {
+  it('loadAcl does not rewrite app or catalog ACLs when no legacy agents need removal', async () => {
     const contactWebId = 'https://alice.example/profile/card#me';
     mockReadAclAgents
       .mockResolvedValueOnce([contactWebId])   // container grantees
@@ -297,7 +293,7 @@ describe('useAclManager', () => {
     expect(mockWriteListOnlyAcl).not.toHaveBeenCalled();
     // writeResourceAcl is called for sharedCatalog but NOT for catalog legacy cleanup
     const catalogLegacyCalls = mockWriteResourceAcl.mock.calls.filter(
-      (call: any[]) => call[1] === catalogUri
+      (call: unknown[]) => call[1] === catalogUri
     );
     expect(catalogLegacyCalls).toHaveLength(0);
   });

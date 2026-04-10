@@ -21,8 +21,8 @@ describe("ensureProfileDocType", () => {
   });
 
   it("throws when the server returns an error", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 403, statusText: "Forbidden" });
-    await expect(ensureProfileDocType(WEB_ID, mockFetch)).rejects.toThrow("403 Forbidden");
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: "Internal Server Error" });
+    await expect(ensureProfileDocType(WEB_ID, mockFetch)).rejects.toThrow("500 Internal Server Error");
   });
 
   it("derives profile document URI by stripping the fragment", async () => {
@@ -172,12 +172,12 @@ describe("addContact", () => {
     expect(mockFetch.mock.calls[0][0]).toBe(PROFILE_DOC);
   });
 
-  it("throws when the PATCH fails", async () => {
+  it("throws when the PATCH request fails", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 403, statusText: "Forbidden" });
-    await expect(addContact(WEB_ID, "https://bob.example/profile/card#me", mockFetch)).rejects.toThrow("403");
+    await expect(addContact(WEB_ID, "https://bob.example/profile/card#me", mockFetch)).rejects.toThrow("403 Forbidden");
   });
 
-  it("throws when contactWebId is not a valid URL", async () => {
+  it("throws when given an invalid contactWebId URL", async () => {
     const mockFetch = vi.fn();
     await expect(addContact(WEB_ID, "not-a-url", mockFetch)).rejects.toThrow("Invalid contactWebId");
   });
@@ -201,12 +201,12 @@ describe("removeContact", () => {
     expect(init.body).not.toContain("solid:inserts");
   });
 
-  it("throws when the PATCH fails", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: "Internal Server Error" });
-    await expect(removeContact(WEB_ID, "https://bob.example/profile/card#me", mockFetch)).rejects.toThrow("500");
+  it("throws when the PATCH request fails", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 403, statusText: "Forbidden" });
+    await expect(removeContact(WEB_ID, "https://bob.example/profile/card#me", mockFetch)).rejects.toThrow("403 Forbidden");
   });
 
-  it("throws when contactWebId is not a valid URL", async () => {
+  it("throws when given an invalid contactWebId URL", async () => {
     const mockFetch = vi.fn();
     await expect(removeContact(WEB_ID, "not-a-url", mockFetch)).rejects.toThrow("Invalid contactWebId");
   });

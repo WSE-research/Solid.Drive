@@ -3,8 +3,8 @@ import { renderHook, act } from '@testing-library/react';
 
 const mockSession = { webId: 'https://pod.example/profile/card#me' };
 const mockFetch = vi.fn();
-let mockWebIdResource: any = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
-let mockProfile: any = {
+let mockWebIdResource: Record<string, unknown> = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
+let mockProfile: Record<string, unknown> | null = {
   name: 'Test User',
   fn: 'Test FN',
   img: { '@id': 'https://pod.example/avatar.jpg' },
@@ -23,13 +23,13 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isLoadable: (res: any) => res && typeof res.isLoading === 'function',
-  isReloadable: (res: any) => res && typeof res.reload === 'function',
+  isLoadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).isLoading === 'function',
+  isReloadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).reload === 'function',
 }));
 
 vi.mock('@/infrastructure/solid/profile', () => ({
-  saveProfileFields: (...args: any[]) => mockSaveProfileFields(...args),
-  ensureProfileDocType: (...args: any[]) => mockEnsureProfileDocType(...args),
+  saveProfileFields: (...args: unknown[]) => mockSaveProfileFields(...args),
+  ensureProfileDocType: (...args: unknown[]) => mockEnsureProfileDocType(...args),
 }));
 
 import { useProfile } from '../useProfile-file/useProfile';
@@ -48,11 +48,7 @@ describe('useProfile', () => {
     mockSession.webId = 'https://pod.example/profile/card#me';
   });
 
-  it('is defined', () => {
-    expect(useProfile).toBeDefined();
-  });
-
-  it('returns expected shape', () => {
+  it('exposes name, imgUrl, displayName, isLoading, setName, setImgUrl, save, and reload', () => {
     const { result } = renderHook(() => useProfile());
     expect(result.current).toHaveProperty('name');
     expect(result.current).toHaveProperty('imgUrl');
@@ -64,18 +60,18 @@ describe('useProfile', () => {
     expect(result.current).toHaveProperty('reload');
   });
 
-  it('syncs name and imgUrl from profile', () => {
+  it('returns name and imgUrl matching the profile data', () => {
     const { result } = renderHook(() => useProfile());
     expect(result.current.name).toBe('Test User');
     expect(result.current.imgUrl).toBe('https://pod.example/avatar.jpg');
   });
 
-  it('displayName comes from profile.name', () => {
+  it('returns displayName equal to profile.name when name is set', () => {
     const { result } = renderHook(() => useProfile());
     expect(result.current.displayName).toBe('Test User');
   });
 
-  it('isLoading reflects resource state', () => {
+  it('returns isLoading false when the resource is not loading', () => {
     const { result } = renderHook(() => useProfile());
     expect(result.current.isLoading).toBe(false);
   });
@@ -86,7 +82,7 @@ describe('useProfile', () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it('setName updates name', () => {
+  it('setName updates the name state when called', () => {
     const { result } = renderHook(() => useProfile());
     act(() => {
       result.current.setName('New Name');
@@ -94,7 +90,7 @@ describe('useProfile', () => {
     expect(result.current.name).toBe('New Name');
   });
 
-  it('setImgUrl updates imgUrl', () => {
+  it('setImgUrl updates the imgUrl state when called', () => {
     const { result } = renderHook(() => useProfile());
     act(() => {
       result.current.setImgUrl('https://pod.example/new-avatar.jpg');
@@ -116,8 +112,7 @@ describe('useProfile', () => {
   });
 
   it('save does nothing when webId is empty', async () => {
-    const savedWebId = mockSession.webId;
-    mockSession.webId = '' as any;
+    mockSession.webId = '';
     const { result } = renderHook(() => useProfile());
 
     await act(async () => {
@@ -125,10 +120,9 @@ describe('useProfile', () => {
     });
 
     expect(mockSaveProfileFields).not.toHaveBeenCalled();
-    mockSession.webId = savedWebId;
   });
 
-  it('reload reloads the resource', async () => {
+  it('reload calls the resource reload method', async () => {
     const { result } = renderHook(() => useProfile());
     await act(async () => {
       await result.current.reload();
@@ -136,7 +130,7 @@ describe('useProfile', () => {
     expect(mockWebIdResource.reload).toHaveBeenCalled();
   });
 
-  it('suspendSync prevents profile sync', () => {
+  it('returns empty name string when the suspendSync option is true', () => {
     const { result } = renderHook(() => useProfile({ suspendSync: true }));
     // Name should be empty string (default) because sync is suspended
     expect(result.current.name).toBe('');
@@ -154,19 +148,19 @@ describe('useProfile', () => {
     expect(result.current.displayName).toBe('');
   });
 
-  it('syncs empty name when profile.name is null', () => {
+  it('returns empty string for name when profile.name is null', () => {
     mockProfile = { name: null, fn: null, img: null };
     const { result } = renderHook(() => useProfile());
     expect(result.current.name).toBe('');
   });
 
-  it('syncs empty imgUrl when profile.img is null', () => {
+  it('returns empty string for imgUrl when profile.img is null', () => {
     mockProfile = { name: 'Test', fn: null, img: null };
     const { result } = renderHook(() => useProfile());
     expect(result.current.imgUrl).toBe('');
   });
 
-  it('handles null profile without crashing', () => {
+  it('returns empty strings for name, imgUrl, and displayName when profile is null', () => {
     mockProfile = null;
     const { result } = renderHook(() => useProfile());
     expect(result.current.name).toBe('');
@@ -174,7 +168,7 @@ describe('useProfile', () => {
     expect(result.current.displayName).toBe('');
   });
 
-  it('save handles ensureProfileDocType failure gracefully', async () => {
+  it('save still completes after ensureProfileDocType fails, logging the error', async () => {
     mockEnsureProfileDocType.mockRejectedValue(new Error('doc type fail'));
     const { result } = renderHook(() => useProfile());
     const original = { name: 'Old', imgUrl: '' };

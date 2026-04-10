@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import type { SolidContainer } from '@ldo/connected-solid';
 import { FileUpload } from '../FileUpload-file/FileUpload';
 
 const mockShowError = vi.fn();
 const mockShowSuccess = vi.fn();
 const mockUpload = vi.fn();
-let mockValidation: any = null;
+let mockValidation: Record<string, unknown> | null = null;
 let mockTboxError: string | null = null;
 let mockIsUploading = false;
 
@@ -29,7 +30,7 @@ vi.mock('@/features/file-explorer/hooks/useFileUpload', () => ({
   useFileUpload: () => ({ isUploading: mockIsUploading, upload: mockUpload }),
 }));
 
-const mockContainer = { uri: 'https://pod.example/my-solid-app/' } as any;
+const mockContainer = { uri: 'https://pod.example/my-solid-app/' } as unknown as SolidContainer;
 
 const baseProps = {
   mainContainer: mockContainer,
@@ -46,7 +47,7 @@ describe('FileUpload', () => {
     mockUpload.mockResolvedValue(undefined);
   });
 
-  it('renders the upload form', () => {
+  it('renders the file upload form container element', () => {
     const { container } = render(<FileUpload {...baseProps} />);
     expect(container.querySelector('.file-upload')).toBeInTheDocument();
   });
@@ -72,6 +73,15 @@ describe('FileUpload', () => {
     expect(screen.getByPlaceholderText('fileUpload.titlePlaceholder')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('fileUpload.descriptionPlaceholder')).toBeInTheDocument();
     expect(screen.getByText('fileUpload.upload')).toBeInTheDocument();
+  });
+
+  it('updates description textarea value on change', () => {
+    render(<FileUpload {...baseProps} />);
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'f.txt', { type: 'text/plain' })] } });
+    const textarea = screen.getByPlaceholderText('fileUpload.descriptionPlaceholder');
+    fireEvent.change(textarea, { target: { value: 'A description' } });
+    expect(textarea).toHaveValue('A description');
   });
 
   it('shows file metadata (type and size)', () => {
@@ -190,6 +200,32 @@ describe('FileUpload', () => {
     });
 
     expect(mockShowError).toHaveBeenCalledWith('Upload failed: Network error');
+  });
+
+  it('does not call upload when form is submitted without selecting a file', async () => {
+    render(<FileUpload {...baseProps} />);
+    const form = document.querySelector('.file-upload')!;
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
+  it('does not call upload when form is submitted with invalid validation', async () => {
+    mockValidation = {
+      valid: false,
+      violations: [{ localName: 'name', label: 'Title', path: 'name', description: '' }],
+      shape: null,
+    };
+    render(<FileUpload {...baseProps} />);
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'f.txt', { type: 'text/plain' })] } });
+
+    const form = document.querySelector('.file-upload')!;
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(mockUpload).not.toHaveBeenCalled();
   });
 
   it('shows unknownType when file has no MIME type', () => {

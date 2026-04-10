@@ -38,7 +38,7 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
 let capturedOnClearRejection: (() => void) | undefined;
 
 vi.mock('@/features/profile/components/ContactRow', () => ({
-  ContactRow: ({ webId, onRemove, onClearRejection }: any) => {
+  ContactRow: ({ webId, onRemove, onClearRejection }: { webId: string; onRemove: () => void; onClearRejection: () => void }) => {
     capturedOnClearRejection = onClearRejection;
     return (
       <div data-testid="contact-row" data-webid={webId}>
@@ -59,7 +59,7 @@ describe('ContactsList', () => {
     capturedOnClearRejection = undefined;
   });
 
-  it('renders heading', () => {
+  it('renders contacts section heading', () => {
     render(<ContactsList ownerWebId="https://owner.example/profile/card#me" />);
     expect(screen.getByText('profileSidebar.contacts')).toBeInTheDocument();
   });
@@ -154,7 +154,7 @@ describe('ContactsList', () => {
     expect(mockShowError).toHaveBeenCalledWith('Remove failed');
   });
 
-  it('silently handles inbox discovery failure', async () => {
+  it('renders normally without error when inbox discovery fails', async () => {
     const { discoverInboxUri } = await import('@/infrastructure/inbox/inboxAccess');
     vi.mocked(discoverInboxUri).mockRejectedValueOnce(new Error('no inbox'));
     await act(async () => {
@@ -168,7 +168,7 @@ describe('ContactsList', () => {
     mockContacts = ['https://alice.example/profile/card#me'];
     const { listRejectionNotifications } = await import('@/infrastructure/inbox/inboxAccess');
     vi.mocked(listRejectionNotifications).mockResolvedValueOnce([
-      { accessTo: 'https://alice.example/profile/card#me', messageUri: 'https://owner.example/inbox/rej1', sender: 'https://alice.example/profile/card#me' },
+      { accessTo: 'https://alice.example/profile/card#me', messageUri: 'https://owner.example/inbox/rej1' },
     ]);
     await act(async () => {
       render(<ContactsList ownerWebId="https://owner.example/profile/card#me" />);

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { SolidContainer, SolidLeaf } from '@ldo/connected-solid';
 import { DriveFileList } from '../FileExplorer-file/DriveFileList';
 
 vi.mock('react-i18next', () => ({
@@ -7,13 +8,13 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@/features/file-explorer/components/FileCard', () => ({
-  FileCard: ({ containerUri, catalogUri }: any) => (
+  FileCard: ({ containerUri, catalogUri }: { containerUri: string; catalogUri: string }) => (
     <div data-testid="file-card" data-uri={containerUri} data-catalog={catalogUri} />
   ),
 }));
 
 vi.mock('@/features/file-explorer/components/FolderEntry', () => ({
-  FolderEntry: ({ uri, onNavigate }: any) => (
+  FolderEntry: ({ uri, onNavigate }: { uri: string; onNavigate: (uri: string) => void }) => (
     <div data-testid="folder-entry" data-uri={uri} onClick={() => onNavigate(uri)} />
   ),
 }));
@@ -21,11 +22,11 @@ vi.mock('@/features/file-explorer/components/FolderEntry', () => ({
 const mockOnNavigate = vi.fn();
 const mockOnDownload = vi.fn();
 
-const makeFolders = (uris: string[]) =>
-  uris.map((uri) => ({ uri, children: () => [] })) as any[];
+const makeFolders = (uris: string[]): SolidContainer[] =>
+  uris.map((uri) => ({ uri, children: () => [] })) as unknown as SolidContainer[];
 
-const makeLeaves = (uris: string[]) =>
-  uris.map((uri) => ({ uri, type: 'SolidLeaf' })) as any[];
+const makeLeaves = (uris: string[]): SolidLeaf[] =>
+  uris.map((uri) => ({ uri, type: 'SolidLeaf' })) as unknown as SolidLeaf[];
 
 describe('DriveFileList', () => {
   beforeEach(() => vi.clearAllMocks());

@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import type { SolidContainerUri } from '@ldo/connected-solid';
 import { FileExplorer } from '../FileExplorer-file/FileExplorer';
 
 /* ---- Mocks ---- */
-const mockSession = { isLoggedIn: true, webId: 'https://pod.example/profile/card#me' };
+const mockSession: { isLoggedIn: boolean; webId: string | undefined } = { isLoggedIn: true, webId: 'https://pod.example/profile/card#me' };
 const mockFetch = vi.fn();
 const mockShowError = vi.fn();
 
@@ -18,11 +19,11 @@ vi.mock('@ldo/solid-react', () => ({
 }));
 
 const mockUseDriveInit = {
-  appContainerUri: 'https://pod.example/my-solid-app/' as any,
+  appContainerUri: 'https://pod.example/my-solid-app/' as SolidContainerUri,
   storageRootUri: 'https://pod.example/',
-  currentUri: 'https://pod.example/my-solid-app/' as any,
+  currentUri: 'https://pod.example/my-solid-app/' as SolidContainerUri,
   setCurrentUri: vi.fn(),
-  breadcrumbs: [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as any }],
+  breadcrumbs: [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }],
   setBreadcrumbs: vi.fn(),
   noStorageDetected: false,
   handleRetryStorage: vi.fn(),
@@ -38,8 +39,8 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isSolidContainer: vi.fn((r: any) => !!r?.children),
-  isReloadable: vi.fn((r: any) => !!r?.reload),
+  isSolidContainer: vi.fn((r: unknown) => !!(r as Record<string, unknown>)?.children),
+  isReloadable: vi.fn((r: unknown) => !!(r as Record<string, unknown>)?.reload),
 }));
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
@@ -58,16 +59,23 @@ vi.mock('@/config', () => ({
   STORAGE_RETRY_DELAY_MS: 0,
 }));
 
-let capturedDriveFileListProps: any = {};
+interface DriveFileListProps {
+  onNavigate: (uri: string) => void;
+  onDownload: (resource: { uri: string }, filename: string) => Promise<void>;
+  isInAppFolder: boolean;
+  [key: string]: unknown;
+}
+
+let capturedDriveFileListProps: DriveFileListProps = {} as DriveFileListProps;
 vi.mock('../FileExplorer-file/DriveFileList', () => ({
-  DriveFileList: (props: any) => {
+  DriveFileList: (props: DriveFileListProps) => {
     capturedDriveFileListProps = props;
     return <div data-testid="drive-file-list" data-app={String(props.isInAppFolder)} />;
   },
 }));
 
 vi.mock('@/features/file-explorer/components/SharedWithMeSection', () => ({
-  SharedWithMeSection: ({ contacts }: any) => (
+  SharedWithMeSection: ({ contacts }: { contacts: string[] }) => (
     <div data-testid="shared-section" data-contacts={contacts.join(',')} />
   ),
 }));
@@ -79,7 +87,7 @@ vi.mock('@/features/file-explorer/components/FileUpload', () => ({
 import { useResource, useSubject } from '@ldo/solid-react';
 
 // Helper to create a mock container resource
-const makeContainer = (childList: any[] = []) => ({
+const makeContainer = (childList: unknown[] = []) => ({
   children: () => childList,
   uri: 'https://pod.example/my-solid-app/',
   reload: vi.fn().mockResolvedValue(undefined),
@@ -91,11 +99,11 @@ describe('FileExplorer', () => {
     mockSession.isLoggedIn = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockUseDriveInit.noStorageDetected = false;
-    mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as any;
-    mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as any;
-    mockUseDriveInit.breadcrumbs = [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as any }];
-    vi.mocked(useResource).mockReturnValue(makeContainer() as any);
-    vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as any);
+    mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
+    mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
+    mockUseDriveInit.breadcrumbs = [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }];
+    vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
+    vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
   });
 
   it('renders login prompt when not logged in', () => {
@@ -113,7 +121,7 @@ describe('FileExplorer', () => {
   });
 
   it('renders loading spinner when currentContainer is null', () => {
-    vi.mocked(useResource).mockReturnValue(null as any);
+    vi.mocked(useResource).mockReturnValue(null as unknown as ReturnType<typeof useResource>);
     render(<FileExplorer />);
     expect(screen.getByText('fileExplorer.connecting')).toBeInTheDocument();
   });
@@ -131,7 +139,7 @@ describe('FileExplorer', () => {
   });
 
   it('shows "podContents" label when not in app folder', () => {
-    mockUseDriveInit.currentUri = 'https://pod.example/other/' as any;
+    mockUseDriveInit.currentUri = 'https://pod.example/other/' as SolidContainerUri;
     render(<FileExplorer />);
     expect(screen.getByText('fileExplorer.podContents')).toBeInTheDocument();
   });
@@ -143,8 +151,8 @@ describe('FileExplorer', () => {
 
   it('renders breadcrumbs when more than one', () => {
     mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as any },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as any },
+      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
     ];
     render(<FileExplorer />);
     expect(screen.getByText('My Drive')).toBeInTheDocument();
@@ -153,8 +161,8 @@ describe('FileExplorer', () => {
 
   it('last breadcrumb is disabled', () => {
     mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as any },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as any },
+      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
     ];
     render(<FileExplorer />);
     const buttons = screen.getAllByRole('button');
@@ -165,8 +173,8 @@ describe('FileExplorer', () => {
 
   it('clicking a breadcrumb calls setBreadcrumbs and setCurrentUri', () => {
     mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as any },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as any },
+      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
     ];
     render(<FileExplorer />);
     fireEvent.click(screen.getByText('My Drive'));
@@ -178,7 +186,7 @@ describe('FileExplorer', () => {
     const mockReload = vi.fn().mockResolvedValue(undefined);
     const container = makeContainer();
     container.reload = mockReload;
-    vi.mocked(useResource).mockReturnValue(container as any);
+    vi.mocked(useResource).mockReturnValue(container as unknown as ReturnType<typeof useResource>);
 
     render(<FileExplorer />);
     await act(async () => {
@@ -216,8 +224,8 @@ describe('FileExplorer', () => {
 
     const mockAnchor = { href: '', download: '', click: vi.fn(), style: {} };
     const originalCreateElement = document.createElement.bind(document);
-    const spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string, options?: any) => {
-      if (tag === 'a') return mockAnchor as any;
+    const spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string, options?: ElementCreationOptions) => {
+      if (tag === 'a') return mockAnchor as unknown as HTMLAnchorElement;
       return originalCreateElement(tag, options);
     });
 
@@ -260,7 +268,7 @@ describe('FileExplorer', () => {
   it('handleReload does nothing when container is not reloadable', async () => {
     // Return container without reload method → isReloadable returns false
     const container = { children: () => [], uri: 'https://pod.example/my-solid-app/' };
-    vi.mocked(useResource).mockReturnValue(container as any);
+    vi.mocked(useResource).mockReturnValue(container as unknown as ReturnType<typeof useResource>);
 
     render(<FileExplorer />);
     await act(async () => {
@@ -273,7 +281,7 @@ describe('FileExplorer', () => {
   it('renders entries when currentContainer is not a SolidContainer', () => {
     // Return a non-container resource (no children method)
     const nonContainer = { uri: 'https://pod.example/file.txt' };
-    vi.mocked(useResource).mockReturnValue(nonContainer as any);
+    vi.mocked(useResource).mockReturnValue(nonContainer as unknown as ReturnType<typeof useResource>);
 
     render(<FileExplorer />);
     // Should still render main layout, but entries will be empty
@@ -282,9 +290,9 @@ describe('FileExplorer', () => {
 
   it('renders breadcrumb separator and active class for multiple crumbs', () => {
     mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as any },
-      { label: 'photos', uri: 'https://pod.example/my-solid-app/photos/' as any },
-      { label: 'vacation', uri: 'https://pod.example/my-solid-app/photos/vacation/' as any },
+      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+      { label: 'photos', uri: 'https://pod.example/my-solid-app/photos/' as SolidContainerUri },
+      { label: 'vacation', uri: 'https://pod.example/my-solid-app/photos/vacation/' as SolidContainerUri },
     ];
     render(<FileExplorer />);
 
@@ -303,7 +311,7 @@ describe('FileExplorer', () => {
   });
 
   it('passes empty string as ownerWebId to SharedWithMeSection when session.webId is undefined', () => {
-    mockSession.webId = undefined as any;
+    mockSession.webId = undefined;
     render(<FileExplorer />);
     const sharedSection = screen.getByTestId('shared-section');
     // ownerWebId should be "" because session.webId ?? "" triggers the fallback

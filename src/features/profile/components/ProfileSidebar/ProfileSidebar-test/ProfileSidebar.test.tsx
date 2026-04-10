@@ -10,7 +10,7 @@ vi.mock('@ldo/solid-react', () => ({
 }));
 
 let mockWebId: string | undefined = 'https://pod.example/profile/card#me';
-let mockProfile: any = {
+let mockProfile: Record<string, unknown> | null = {
   storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
 };
 
@@ -27,13 +27,13 @@ vi.mock('@/features/profile/components/ProfileCard', () => ({
 }));
 
 vi.mock('@/features/profile/components/ContactsList', () => ({
-  ContactsList: ({ ownerWebId }: any) => (
+  ContactsList: ({ ownerWebId }: { ownerWebId: string }) => (
     <div data-testid="contacts-list">{ownerWebId}</div>
   ),
 }));
 
 vi.mock('@/features/profile/components/RequestsPanel', () => ({
-  RequestsPanel: ({ ownerWebId, storageRoot, catalogUri }: any) => (
+  RequestsPanel: ({ ownerWebId, storageRoot, catalogUri }: { ownerWebId: string; storageRoot: string; catalogUri: string }) => (
     <div data-testid="requests-panel">
       {ownerWebId}|{storageRoot}|{catalogUri}
     </div>
@@ -54,7 +54,7 @@ describe('ProfileSidebar', () => {
     expect(aside).toBeInTheDocument();
   });
 
-  it('renders ProfileCard', () => {
+  it('renders ProfileCard component in the sidebar', () => {
     render(<ProfileSidebar />);
     expect(screen.getByTestId('profile-card')).toBeInTheDocument();
   });
@@ -79,7 +79,7 @@ describe('ProfileSidebar', () => {
     expect(dividers.length).toBe(2);
   });
 
-  it('renders the card wrapper div', () => {
+  it('renders the .profile-sidebar__card wrapper around ProfileCard', () => {
     render(<ProfileSidebar />);
     expect(document.querySelector('.profile-sidebar__card')).toBeInTheDocument();
   });
@@ -102,7 +102,7 @@ describe('ProfileSidebar', () => {
   });
 
   it('hides RequestsPanel when ownerWebId is empty', () => {
-    mockWebId = '' as any;
+    mockWebId = '';
     render(<ProfileSidebar />);
     expect(screen.queryByTestId('requests-panel')).not.toBeInTheDocument();
   });

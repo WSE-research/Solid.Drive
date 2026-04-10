@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import type { CatalogEntry } from '@/types';
+import type { AccessRejection } from '@/infrastructure/inbox/inboxAccess';
 import { TypeFolder } from '../TypeFolder-file/TypeFolder';
 
 const mockFetch = vi.fn();
@@ -27,9 +29,9 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
 }));
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
-  discoverInboxUri: (...args: any[]) => mockDiscoverInboxUri(...args),
-  postFileAccessRequest: (...args: any[]) => mockPostFileAccessRequest(...args),
-  deleteAccessRequest: (...args: any[]) => mockDeleteAccessRequest(...args),
+  discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
+  postFileAccessRequest: (...args: unknown[]) => mockPostFileAccessRequest(...args),
+  deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
 }));
 
 const entries = [
@@ -39,7 +41,7 @@ const entries = [
 
 const baseProps = {
   classUri: 'http://schema.org/ImageObject',
-  entries: entries as any,
+  entries: entries as CatalogEntry[],
   contactWebId: 'https://contact.example/profile/card#me',
   viewerWebId: 'https://viewer.example/profile/card#me',
   rejections: new Map(),
@@ -81,7 +83,7 @@ describe('TypeFolder', () => {
     expect(screen.queryByText('Document 1')).not.toBeInTheDocument();
   });
 
-  it('renders "request all" button', () => {
+  it('renders a "request all" button for bulk access requests', () => {
     render(<TypeFolder {...baseProps} />);
     expect(screen.getByText('sharedWithMe.requestAll')).toBeInTheDocument();
   });
@@ -112,7 +114,7 @@ describe('TypeFolder', () => {
     expect(screen.getByText('sharedWithMe.requestError')).toBeInTheDocument();
   });
 
-  it('individual file request button works', async () => {
+  it('individual file request button sends access request on click', async () => {
     render(<TypeFolder {...baseProps} />);
     fireEvent.click(screen.getByText('Image'));
     const requestButtons = screen.getAllByText('sharedWithMe.requestFile');
@@ -127,10 +129,9 @@ describe('TypeFolder', () => {
       ['https://pod.example/app/doc1/', {
         accessTo: 'https://pod.example/app/doc1/',
         messageUri: 'https://viewer.example/inbox/rejection1',
-        sender: 'https://contact.example/profile/card#me',
       }],
     ]);
-    render(<TypeFolder {...baseProps} rejections={rejections as any} />);
+    render(<TypeFolder {...baseProps} rejections={rejections as Map<string, AccessRejection>} />);
     fireEvent.click(screen.getByText('Image'));
     expect(screen.getByText('sharedWithMe.requestDenied')).toBeInTheDocument();
     expect(screen.getByText('sharedWithMe.requestAgain')).toBeInTheDocument();
@@ -141,10 +142,9 @@ describe('TypeFolder', () => {
       ['https://pod.example/app/doc1/', {
         accessTo: 'https://pod.example/app/doc1/',
         messageUri: 'https://viewer.example/inbox/rejection1',
-        sender: 'https://contact.example/profile/card#me',
       }],
     ]);
-    render(<TypeFolder {...baseProps} rejections={rejections as any} />);
+    render(<TypeFolder {...baseProps} rejections={rejections as Map<string, AccessRejection>} />);
     fireEvent.click(screen.getByText('Image'));
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAgain'));
@@ -181,10 +181,9 @@ describe('TypeFolder', () => {
       ['https://pod.example/app/doc1/', {
         accessTo: 'https://pod.example/app/doc1/',
         messageUri: 'https://viewer.example/inbox/rejection1',
-        sender: 'https://contact.example/profile/card#me',
       }],
     ]);
-    render(<TypeFolder {...baseProps} rejections={rejections as any} />);
+    render(<TypeFolder {...baseProps} rejections={rejections as Map<string, AccessRejection>} />);
     fireEvent.click(screen.getByText('Image'));
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAgain'));

@@ -67,7 +67,7 @@ describe("rdfUtils", () => {
       expect(result).toContain("rdfs:Class");
     });
 
-    it("handles blank nodes correctly", () => {
+    it("serializes blank node subjects using _: notation", () => {
       const { blankNode } = DataFactory;
       const quads = [
         quad(
@@ -81,7 +81,7 @@ describe("rdfUtils", () => {
       expect(result).toContain('"Anonymous"');
     });
 
-    it("handles literals with language tags", () => {
+    it("serializes language-tagged literals with @lang notation", () => {
       const quads = [
         quad(
           namedNode("http://example.org/doc"),
@@ -93,7 +93,7 @@ describe("rdfUtils", () => {
       expect(result).toContain('"Hello"@en');
     });
 
-    it("handles typed literals correctly", () => {
+    it("serializes typed literals preserving their subject, predicate, and value", () => {
       const quads = [
         quad(
           namedNode("http://example.org/person"),

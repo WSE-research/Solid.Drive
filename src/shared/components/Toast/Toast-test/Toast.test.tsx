@@ -3,10 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Toast } from '../Toast-file/Toast';
 
 describe('Toast', () => {
-  it('is defined', () => {
-    expect(Toast).toBeDefined();
-  });
-
   it('renders the message text', () => {
     render(<Toast message="Hello world" />);
     expect(screen.getByText('Hello world')).toBeInTheDocument();

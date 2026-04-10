@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { useFilePreview } from '../useFilePreview-file/useFilePreview';
 
 const mockBlob = new Blob(['test'], { type: 'image/png' });
@@ -8,17 +8,17 @@ const mockBinaryResource = {
   getBlob: () => mockBlob,
 };
 const mockNonBinaryResource = {};
-let mockResource: any = mockNonBinaryResource;
+let mockResource: Record<string, unknown> = mockNonBinaryResource;
 
 vi.mock('@ldo/solid-react', () => ({
   useResource: () => mockResource,
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isBinary: (res: any) => res && typeof res.isBinary === 'function',
+  isBinary: (res: unknown) => res != null && typeof (res as Record<string, unknown>).isBinary === 'function',
 }));
 
-// Mock URL.createObjectURL and revokeObjectURL
+// Save originals so they can be restored after each test
 const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
 
@@ -29,8 +29,11 @@ describe('useFilePreview', () => {
     URL.revokeObjectURL = vi.fn();
   });
 
-  it('is defined', () => {
-    expect(useFilePreview).toBeDefined();
+  afterEach(() => {
+    // Restore originals, falling back to no-op so deferred React passive
+    // effect cleanup never encounters a non-function value in jsdom.
+    URL.createObjectURL = originalCreateObjectURL ?? ((() => '') as typeof URL.createObjectURL);
+    URL.revokeObjectURL = originalRevokeObjectURL ?? (() => {});
   });
 
   it('returns undefined previewUrl when resource is not binary', () => {
@@ -47,12 +50,12 @@ describe('useFilePreview', () => {
   });
 
   it('returns undefined previewUrl when binaryUri is undefined', () => {
-    mockResource = undefined;
+    mockResource = undefined as unknown as Record<string, unknown>;
     const { result } = renderHook(() => useFilePreview(undefined));
     expect(result.current.previewUrl).toBeUndefined();
   });
 
-  it('revokes URL on unmount', () => {
+  it('revokes the blob URL on unmount to prevent memory leaks', () => {
     mockResource = mockBinaryResource;
     const { unmount } = renderHook(() => useFilePreview('https://pod.example/file.png'));
     unmount();

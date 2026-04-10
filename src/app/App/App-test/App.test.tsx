@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import App from '../App-file/App';
 
 // Mock all child components and providers
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: vi.fn(() => ({ session: { isLoggedIn: false } })),
-  BrowserSolidLdoProvider: ({ children }: any) => <div data-testid="solid-provider">{children}</div>,
+  BrowserSolidLdoProvider: ({ children }: { children: ReactNode }) => <div data-testid="solid-provider">{children}</div>,
 }));
 
 vi.mock('@/features/auth/components/Header', () => ({
@@ -21,7 +22,7 @@ vi.mock('@/features/profile/components/ProfileSidebar', () => ({
 }));
 
 vi.mock('@/shared/contexts/NotificationContext', () => ({
-  NotificationProvider: ({ children }: any) => <div data-testid="notification-provider">{children}</div>,
+  NotificationProvider: ({ children }: { children: ReactNode }) => <div data-testid="notification-provider">{children}</div>,
 }));
 
 vi.mock('../App-file/App.css', () => ({}));
@@ -29,10 +30,6 @@ vi.mock('../App-file/App.css', () => ({}));
 import { useSolidAuth } from '@ldo/solid-react';
 
 describe('App', () => {
-  it('is defined', () => {
-    expect(App).toBeDefined();
-  });
-
   it('renders the app wrapper div', () => {
     const { container } = render(<App />);
     expect(container.querySelector('.App')).toBeInTheDocument();
@@ -48,7 +45,7 @@ describe('App', () => {
     expect(screen.getByTestId('notification-provider')).toBeInTheDocument();
   });
 
-  it('renders Header', () => {
+  it('renders Header component inside the app layout', () => {
     render(<App />);
     expect(screen.getByTestId('header')).toBeInTheDocument();
   });
@@ -64,21 +61,21 @@ describe('App', () => {
   });
 
   it('renders ProfileSidebar and FileExplorer when logged in', () => {
-    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as any);
+    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as ReturnType<typeof useSolidAuth>);
     render(<App />);
     expect(screen.getByTestId('profile-sidebar')).toBeInTheDocument();
     expect(screen.getByTestId('file-explorer')).toBeInTheDocument();
   });
 
   it('renders app-layout class when logged in', () => {
-    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as any);
+    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as ReturnType<typeof useSolidAuth>);
     const { container } = render(<App />);
     expect(container.querySelector('.app-layout')).toBeInTheDocument();
     expect(container.querySelector('.app-main')).toBeInTheDocument();
   });
 
   it('does not render app-layout class when logged out', () => {
-    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as any);
+    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     const { container } = render(<App />);
     expect(container.querySelector('.app-layout')).not.toBeInTheDocument();
   });

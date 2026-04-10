@@ -18,7 +18,7 @@ let mockAclState = {
 
 let mockSessionWebId: string | undefined = 'https://owner.example/profile/card#me';
 let mockResourceLoading = false;
-let mockSubjectMap: Record<string, any> = {
+let mockSubjectMap: Record<string, Record<string, unknown> | null> = {
   'https://alice.example/profile/card#me': { name: 'Alice', fn: null },
   'https://bob.example/profile/card#me': { name: 'Bob', fn: null },
 };
@@ -30,7 +30,7 @@ vi.mock('react-i18next', () => ({
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ session: { webId: mockSessionWebId } }),
   useResource: () => ({ isLoading: () => mockResourceLoading }),
-  useSubject: (_type: any, webId: string) => mockSubjectMap[webId] ?? null,
+  useSubject: (_type: unknown, webId: string) => mockSubjectMap[webId] ?? null,
 }));
 
 vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
@@ -89,28 +89,23 @@ describe('SharePanel', () => {
     };
   });
 
-  it('calls loadAcl on mount via useEffect', () => {
+  it('calls loadAcl on mount to discover existing grantees', () => {
     render(<SharePanel {...baseProps} />);
     expect(mockLoadAcl).toHaveBeenCalled();
   });
 
-  it('calls loadAcl on mount', () => {
-    render(<SharePanel {...baseProps} />);
-    expect(mockLoadAcl).toHaveBeenCalled();
-  });
-
-  it('shows heading', () => {
+  it('shows access management heading', () => {
     render(<SharePanel {...baseProps} />);
     expect(screen.getByText('sharePanel.access')).toBeInTheDocument();
   });
 
-  it('shows loading state', () => {
+  it('shows loading access list message while ACL is loading', () => {
     mockAclState.loading = true;
     render(<SharePanel {...baseProps} />);
     expect(screen.getByText('sharePanel.loadingAccessList')).toBeInTheDocument();
   });
 
-  it('shows error message', () => {
+  it('shows ACL error message when loading fails', () => {
     mockAclState.error = 'Something went wrong';
     render(<SharePanel {...baseProps} />);
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();

@@ -17,18 +17,18 @@ vi.mock('@ldo/solid-react', () => ({
 }));
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
-  discoverInboxUri: (...args: any[]) => mockDiscoverInboxUri(...args),
-  listAccessRequests: (...args: any[]) => mockListAccessRequests(...args),
-  deleteAccessRequest: (...args: any[]) => mockDeleteAccessRequest(...args),
-  postRejectionNotification: (...args: any[]) => mockPostRejectionNotification(...args),
+  discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
+  listAccessRequests: (...args: unknown[]) => mockListAccessRequests(...args),
+  deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
+  postRejectionNotification: (...args: unknown[]) => mockPostRejectionNotification(...args),
 }));
 
 vi.mock('@/infrastructure/wac/aclManager', () => ({
-  discoverAclUri: (...args: any[]) => mockDiscoverAclUri(...args),
-  readAclAgents: (...args: any[]) => mockReadAclAgents(...args),
-  writeResourceAcl: (...args: any[]) => mockWriteResourceAcl(...args),
-  writeListOnlyAcl: (...args: any[]) => mockWriteListOnlyAcl(...args),
-  writeAcl: (...args: any[]) => mockWriteAcl(...args),
+  discoverAclUri: (...args: unknown[]) => mockDiscoverAclUri(...args),
+  readAclAgents: (...args: unknown[]) => mockReadAclAgents(...args),
+  writeResourceAcl: (...args: unknown[]) => mockWriteResourceAcl(...args),
+  writeListOnlyAcl: (...args: unknown[]) => mockWriteListOnlyAcl(...args),
+  writeAcl: (...args: unknown[]) => mockWriteAcl(...args),
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -65,11 +65,7 @@ describe('useAccessRequests', () => {
     mockFetch.mockResolvedValue({ ok: true });
   });
 
-  it('is defined', () => {
-    expect(useAccessRequests).toBeDefined();
-  });
-
-  it('loads requests on mount', async () => {
+  it('fetches access requests from inbox on mount and exposes them via requests array', async () => {
     const requests = [
       { messageUri: 'https://pod.example/inbox/msg1', requesterWebId: 'https://alice.example/profile/card#me', requestType: 'catalog', accessTo: '' },
     ];
@@ -105,8 +101,7 @@ describe('useAccessRequests', () => {
     mockListAccessRequests.mockResolvedValue([request]);
     mockFetch.mockResolvedValue({ ok: false }); // ensureEmptySharedCatalog HEAD check fails
 
-    const putFetch = vi.fn().mockResolvedValue({ ok: true });
-    mockFetch.mockImplementation(async (url: string, opts?: any) => {
+    mockFetch.mockImplementation(async (url: string, opts?: Record<string, unknown>) => {
       if (opts?.method === 'HEAD') return { ok: false };
       if (opts?.method === 'PUT') return { ok: true };
       return { ok: true };
@@ -164,7 +159,7 @@ describe('useAccessRequests', () => {
     expect(result.current.requests).toEqual([]);
   });
 
-  it('deny handles notification failure gracefully', async () => {
+  it('deny still removes the request even when rejection notification fails to send', async () => {
     const request = {
       messageUri: 'https://pod.example/inbox/msg4',
       requesterWebId: 'https://alice.example/profile/card#me',
@@ -213,7 +208,7 @@ describe('useAccessRequests', () => {
 
   // --- Branch coverage additions ---
 
-  it('ensureEmptySharedCatalog HEAD ok → skips PUT', async () => {
+  it('skips creating shared catalog file when it already exists on the server', async () => {
     const request = {
       messageUri: 'https://pod.example/inbox/msg6',
       requesterWebId: 'https://alice.example/profile/card#me',
@@ -222,7 +217,7 @@ describe('useAccessRequests', () => {
     };
     mockListAccessRequests.mockResolvedValue([request]);
     // HEAD returns ok → ensureEmptySharedCatalog should return immediately without PUT
-    mockFetch.mockImplementation(async (_url: string, opts?: any) => {
+    mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
       if (opts?.method === 'HEAD') return { ok: true };
       if (opts?.method === 'PUT') throw new Error('PUT should not be called');
       return { ok: true };
@@ -239,7 +234,7 @@ describe('useAccessRequests', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('ensureEmptySharedCatalog PUT failure throws error', async () => {
+  it('sets error when shared catalog file creation fails on the server', async () => {
     const request = {
       messageUri: 'https://pod.example/inbox/msg7',
       requesterWebId: 'https://alice.example/profile/card#me',
@@ -247,7 +242,7 @@ describe('useAccessRequests', () => {
       accessTo: 'https://pod.example/files/',
     };
     mockListAccessRequests.mockResolvedValue([request]);
-    mockFetch.mockImplementation(async (_url: string, opts?: any) => {
+    mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
       if (opts?.method === 'HEAD') return { ok: false };
       if (opts?.method === 'PUT') return { ok: false, status: 403, statusText: 'Forbidden' };
       return { ok: true };
@@ -304,7 +299,7 @@ describe('useAccessRequests', () => {
       accessTo: 'https://pod.example/files/',
     };
     mockListAccessRequests.mockResolvedValue([request]);
-    mockFetch.mockImplementation(async (_url: string, opts?: any) => {
+    mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
       if (opts?.method === 'HEAD') return { ok: false };
       if (opts?.method === 'PUT') return { ok: true };
       return { ok: true };
@@ -346,7 +341,7 @@ describe('useAccessRequests', () => {
     expect(mockDeleteAccessRequest).toHaveBeenCalled();
   });
 
-  it('approve handles non-Error thrown with String(err) (line 110)', async () => {
+  it('approve handles non-Error thrown by converting to string via String(err)', async () => {
     const request = {
       messageUri: 'https://pod.example/inbox/msg11',
       requesterWebId: 'https://alice.example/profile/card#me',
@@ -367,7 +362,7 @@ describe('useAccessRequests', () => {
     expect(result.current.busyMessageUri).toBeNull();
   });
 
-  it('deny sets error with err.message when Error is thrown (line 129)', async () => {
+  it('deny sets error with err.message when an Error instance is thrown', async () => {
     const request = {
       messageUri: 'https://pod.example/inbox/msg12',
       requesterWebId: 'https://alice.example/profile/card#me',

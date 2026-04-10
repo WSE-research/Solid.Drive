@@ -18,10 +18,6 @@ describe('ErrorBoundary', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('is defined', () => {
-    expect(ErrorBoundary).toBeDefined();
-  });
-
   it('renders children when there is no error', () => {
     render(
       <ErrorBoundary>
@@ -69,7 +65,7 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByText('Child content')).not.toBeInTheDocument();
   });
 
-  it('calls console.error via componentDidCatch', () => {
+  it('logs the caught error with an [ErrorBoundary] prefix via componentDidCatch', () => {
     render(
       <ErrorBoundary>
         <ThrowingChild />

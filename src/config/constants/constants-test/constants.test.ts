@@ -171,7 +171,7 @@ describe("DEFAULT_CATALOG_FILENAME", () => {
 // ─── SYSTEM_FILES ─────────────────────────────────────────────────────────────
 
 describe("SYSTEM_FILES", () => {
-  it("is a Set", () => {
+  it("is a Set instance for efficient lookup of system filenames", () => {
     expect(SYSTEM_FILES instanceof Set).toBe(true);
   });
 

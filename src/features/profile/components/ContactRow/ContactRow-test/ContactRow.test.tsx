@@ -31,9 +31,9 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
 }));
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
-  discoverInboxUri: (...args: any[]) => mockDiscoverInboxUri(...args),
-  postCatalogAccessRequest: (...args: any[]) => mockPostCatalogAccessRequest(...args),
-  deleteAccessRequest: (...args: any[]) => mockDeleteAccessRequest(...args),
+  discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
+  postCatalogAccessRequest: (...args: unknown[]) => mockPostCatalogAccessRequest(...args),
+  deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
 }));
 
 vi.mock('@/config', () => ({
@@ -41,12 +41,12 @@ vi.mock('@/config', () => ({
 }));
 
 vi.mock('@/shared/components/Avatar', () => ({
-  Avatar: ({ alt }: any) => <div data-testid="avatar">{alt}</div>,
+  Avatar: ({ alt }: { alt: string }) => <div data-testid="avatar">{alt}</div>,
 }));
 
 vi.mock('@/shared/utils', () => ({
   getInitial: (name: string) => name.charAt(0).toUpperCase(),
-  getProfileDisplayName: vi.fn((contact: any, webId: string) => contact?.name ?? webId),
+  getProfileDisplayName: vi.fn((contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId),
 }));
 
 const solidFetch = vi.fn();
@@ -57,7 +57,7 @@ const baseProps = {
   webId: 'https://alice.example/profile/card#me',
   ownerWebId: 'https://owner.example/profile/card#me',
   solidFetch,
-  rejection: undefined as any,
+  rejection: undefined,
   onClearRejection,
   onRemove,
 };
@@ -78,12 +78,12 @@ describe('ContactRow', () => {
     expect(document.querySelector('.contact-row__name')).toHaveTextContent('Alice');
   });
 
-  it('renders request access button', () => {
+  it('renders request access button with translated label', () => {
     render(<ContactRow {...baseProps} />);
     expect(screen.getByText('profileSidebar.requestAccess')).toBeInTheDocument();
   });
 
-  it('renders remove button', () => {
+  it('renders remove button with translated label', () => {
     render(<ContactRow {...baseProps} />);
     expect(screen.getByText('profileSidebar.remove')).toBeInTheDocument();
   });
@@ -125,7 +125,7 @@ describe('ContactRow', () => {
     render(
       <ContactRow
         {...baseProps}
-        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1', sender: baseProps.webId }}
+        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' }}
       />
     );
     expect(screen.getByText('profileSidebar.requestDenied')).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('ContactRow', () => {
     render(
       <ContactRow
         {...baseProps}
-        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1', sender: baseProps.webId }}
+        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' }}
       />
     );
     await act(async () => {
@@ -151,7 +151,7 @@ describe('ContactRow', () => {
     render(
       <ContactRow
         {...baseProps}
-        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1', sender: baseProps.webId }}
+        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' }}
       />
     );
     await act(async () => {
@@ -168,12 +168,12 @@ describe('ContactRow', () => {
     const nameEl = document.querySelector('.contact-row__name');
     expect(nameEl?.textContent).toContain('...');
     // Restore default mock
-    vi.mocked(getProfileDisplayName).mockImplementation((contact: any, webId: string) => contact?.name ?? webId);
+    vi.mocked(getProfileDisplayName).mockImplementation((contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId);
   });
 
   it('shows "sending" state while request is in progress', async () => {
     // Make discoverInboxUri hang so the request stays in "sending" state
-    let resolveInbox: any;
+    let resolveInbox!: (value: string) => void;
     mockDiscoverInboxUri.mockReturnValue(new Promise((r) => { resolveInbox = r; }));
     render(<ContactRow {...baseProps} />);
     await act(async () => {
@@ -184,7 +184,7 @@ describe('ContactRow', () => {
     resolveInbox('https://alice.example/inbox/');
   });
 
-  it('shows loading text when resource is loading', () => {
+  it('shows loading text instead of contact name when profile resource is still loading', () => {
     mockResourceLoading = true;
     render(<ContactRow {...baseProps} />);
     const nameEl = document.querySelector('.contact-row__name');

@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useFileTypes } from '../useFileTypes-file/useFileTypes';
-import { resetFileTypeCache } from "@/infrastructure/validation/fileTypeRegistry";
 
 // Track cache state for mocking getFileTypesSync
-let cachedTypes: any[] | null = null;
+let cachedTypes: { uri: string; id: string; label: string; description: string; parentTypes: string[] }[] | null = null;
 
 const FALLBACK_TYPES = [
   { uri: "http://schema.org/DigitalDocument", id: "DigitalDocument", label: "Document", description: "A digital document", parentTypes: [] },
@@ -24,7 +23,7 @@ vi.mock("@/infrastructure/validation/fileTypeRegistry", async () => {
   };
 });
 
-import { loadFileTypes, resetFileTypeCache } from "@/infrastructure/validation/fileTypeRegistry";
+import { loadFileTypes } from "@/infrastructure/validation/fileTypeRegistry";
 
 const mockLoadFileTypes = vi.mocked(loadFileTypes);
 
@@ -40,12 +39,12 @@ describe("useFileTypes", () => {
     mockLoadFileTypes.mockResolvedValue(MOCK_TYPES);
   });
 
-  it("returns loading state initially", () => {
+  it("returns loading=true and loaded=false before TBox fetch completes", () => {
     const { result } = renderHook(() => useFileTypes());
     expect(result.current.loading).toBe(true);
   });
 
-  it("loads file types from TBox", async () => {
+  it("returns loaded file types and sets loaded=true after TBox fetch completes", async () => {
     const { result } = renderHook(() => useFileTypes());
 
     await waitFor(() => {
@@ -65,7 +64,7 @@ describe("useFileTypes", () => {
     expect(result.current.fileTypes.some((t) => t.id === "DigitalDocument")).toBe(true);
   });
 
-  it("handles loading errors gracefully", async () => {
+  it("sets error message and keeps fallback types when TBox fetch fails", async () => {
     mockLoadFileTypes.mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useFileTypes());
@@ -113,7 +112,7 @@ describe("useFileTypes", () => {
     expect(mockLoadFileTypes).not.toHaveBeenCalled();
   });
 
-  it("handles non-Error rejection", async () => {
+  it("wraps non-Error rejection values in a generic Error object", async () => {
     mockLoadFileTypes.mockRejectedValue("string error");
 
     const { result } = renderHook(() => useFileTypes());

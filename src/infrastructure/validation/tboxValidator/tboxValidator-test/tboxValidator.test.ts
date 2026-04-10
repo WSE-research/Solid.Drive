@@ -102,7 +102,7 @@ schema:test-contentSize
 `.trim();
 
 describe("parseTBox", () => {
-  it("parses shapes from Turtle", () => {
+  it("parses SHACL node shapes and their property constraints from Turtle input", () => {
     const { shapes } = parseTBox(TEST_TBOX);
     expect(shapes.size).toBeGreaterThan(0);
   });
@@ -138,7 +138,7 @@ describe("parseTBox", () => {
     expect(optionalPaths).toContain("http://schema.org/description");
   });
 
-  it("parses property labels", () => {
+  it("extracts human-readable labels for each SHACL property shape", () => {
     const { shapes } = parseTBox(TEST_TBOX);
     const doc = shapes.get("http://schema.org/DigitalDocument")!;
     const nameProp = doc.requiredProperties.find(
@@ -266,7 +266,7 @@ describe("validateMetadata", () => {
     expect(result.violations).toHaveLength(0);
   });
 
-  it("detects missing name", () => {
+  it("returns valid=false with a 'name' violation when the name field is absent", () => {
     const result = validateMetadata(
       {
         uploadDate: new Date().toISOString(),
@@ -282,7 +282,7 @@ describe("validateMetadata", () => {
     expect(nameViolation!.label).toBe("name");
   });
 
-  it("detects missing uploadDate", () => {
+  it("returns valid=false with an 'uploadDate' violation when the uploadDate field is absent", () => {
     const result = validateMetadata(
       {
         name: "My File",
@@ -299,7 +299,7 @@ describe("validateMetadata", () => {
     expect(violation).toBeDefined();
   });
 
-  it("detects missing publisher", () => {
+  it("returns valid=false with a 'publisher' violation when the publisher field is absent", () => {
     const result = validateMetadata(
       {
         name: "My File",
@@ -316,7 +316,7 @@ describe("validateMetadata", () => {
     expect(violation).toBeDefined();
   });
 
-  it("detects multiple missing fields at once", () => {
+  it("returns valid=false with at least three violations when all required fields are absent", () => {
     const result = validateMetadata(
       {},
       "http://schema.org/DigitalDocument",

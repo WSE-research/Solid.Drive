@@ -74,7 +74,7 @@ describe("discoverInboxUriFromProfile", () => {
     ).toThrow("No ldp:inbox found");
   });
 
-  it("resolves a literal inbox value as relative URI (line 91 else branch)", () => {
+  it("resolves a literal inbox value as relative URI against the profile document", () => {
     // When the inbox value is a literal (not a NamedNode), isAbsoluteUri returns false
     // and new URL(raw, profileDocUri) resolves it
     const turtle = `

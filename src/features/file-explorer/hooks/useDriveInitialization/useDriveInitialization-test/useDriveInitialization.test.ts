@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-let mockProfileValue: any = {
+let mockProfileValue: Record<string, unknown> | null = {
   storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
   knows: { toArray: () => [{ '@id': 'https://alice.example/profile/card#me' }] },
 };
-let mockWebIdResource: any = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
+let mockWebIdResource: Record<string, unknown> = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
 const mockGetResource = vi.fn();
 
 vi.mock('@ldo/solid-react', () => ({
@@ -24,8 +24,8 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isLoadable: (res: any) => res && typeof res.isLoading === 'function',
-  isReloadable: (res: any) => res && typeof res.reload === 'function',
+  isLoadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).isLoading === 'function',
+  isReloadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).reload === 'function',
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -54,7 +54,7 @@ describe('useDriveInitialization', () => {
     vi.useRealTimers();
   });
 
-  it('returns expected shape', () => {
+  it('exposes storage URIs, navigation state, retry handler, and contacts', () => {
     const { result } = renderHook(() => useDriveInitialization());
     expect(result.current).toHaveProperty('appContainerUri');
     expect(result.current).toHaveProperty('storageRootUri');
@@ -151,7 +151,7 @@ describe('useDriveInitialization', () => {
     expect(result.current.contacts).toEqual([]);
   });
 
-  it('handleRetryStorage returns early when webIdResource is not reloadable (line 92)', async () => {
+  it('handleRetryStorage returns early when webIdResource is not reloadable', async () => {
     // Remove reload method to make isReloadable return false
     mockWebIdResource = { isLoading: () => false };
     const { result } = renderHook(() => useDriveInitialization());

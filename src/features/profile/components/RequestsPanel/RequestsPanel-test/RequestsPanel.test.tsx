@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import type { AccessRequest } from '@/infrastructure/inbox/inboxAccess';
 import { RequestsPanel } from '../RequestsPanel-file/RequestsPanel';
 
 const mockLoadRequests = vi.fn();
@@ -7,7 +8,7 @@ const mockApprove = vi.fn();
 const mockDeny = vi.fn();
 
 let hookReturnValue = {
-  requests: [] as any[],
+  requests: [] as AccessRequest[],
   loading: false,
   error: null as string | null,
   busyMessageUri: null as string | null,
@@ -17,14 +18,14 @@ let hookReturnValue = {
 };
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => [(key: string, params?: any) => {
+  useTranslation: () => [(key: string, params?: Record<string, string>) => {
     if (params?.resource) return `${key}:${params.resource}`;
     return key;
   }],
 }));
 
 let mockResourceLoading = false;
-let mockSubjectValue: any = {
+let mockSubjectValue: Record<string, unknown> | null = {
   name: 'Requester',
   fn: null,
   img: { '@id': 'https://req.example/avatar.png' },
@@ -54,12 +55,12 @@ vi.mock('@/config', () => ({
 }));
 
 vi.mock('@/shared/components/Avatar', () => ({
-  Avatar: ({ alt }: any) => <div data-testid="avatar">{alt}</div>,
+  Avatar: ({ alt }: { alt: string }) => <div data-testid="avatar">{alt}</div>,
 }));
 
 vi.mock('@/shared/utils', () => ({
   getInitial: (name: string) => name.charAt(0).toUpperCase(),
-  getProfileDisplayName: (contact: any, webId: string) => contact?.name ?? webId,
+  getProfileDisplayName: (contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId,
 }));
 
 const baseProps = {
@@ -96,7 +97,7 @@ describe('RequestsPanel', () => {
     expect(screen.getByText('requestsPanel.heading')).toBeInTheDocument();
   });
 
-  it('renders chevron in toggle button', () => {
+  it('renders a chevron icon inside the toggle button for expand/collapse indication', () => {
     render(<RequestsPanel {...baseProps} />);
     expect(document.querySelector('.requests-panel__chevron')).toBeInTheDocument();
   });
@@ -118,7 +119,7 @@ describe('RequestsPanel', () => {
     expect(mockLoadRequests).toHaveBeenCalled();
   });
 
-  it('shows loading spinner when loading', () => {
+  it('shows loading spinner and text while access requests are being fetched', () => {
     hookReturnValue = { ...hookReturnValue, loading: true };
     render(<RequestsPanel {...baseProps} />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
@@ -126,7 +127,7 @@ describe('RequestsPanel', () => {
     expect(screen.getByText('requestsPanel.loading')).toBeInTheDocument();
   });
 
-  it('shows error message', () => {
+  it('shows error message when loading requests fails', () => {
     hookReturnValue = { ...hookReturnValue, error: 'Failed to load' };
     render(<RequestsPanel {...baseProps} />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));

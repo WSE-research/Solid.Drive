@@ -10,7 +10,7 @@ describe("getInitial", () => {
     expect(getInitial("Bob")).toBe("B");
   });
 
-  it("works with a single character", () => {
+  it("returns the uppercased character when input is a single letter", () => {
     expect(getInitial("x")).toBe("X");
   });
 
