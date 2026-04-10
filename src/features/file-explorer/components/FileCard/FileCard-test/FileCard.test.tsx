@@ -106,8 +106,8 @@ const baseFileMeta = {
   encodingFormat: 'application/pdf',
   contentSize: '12345',
   publisher: { '@id': 'https://publisher.example/card#me' },
-  type: { toArray: () => [] },
-  image: undefined,
+  type: { toArray: () => [] as { '@id': string }[] },
+  image: undefined as { '@id': string } | undefined,
   isPartOf: undefined,
 };
 

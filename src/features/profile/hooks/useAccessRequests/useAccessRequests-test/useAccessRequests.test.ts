@@ -97,11 +97,12 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockFetch.mockResolvedValue({ ok: false }); // ensureEmptySharedCatalog HEAD check fails
 
-    mockFetch.mockImplementation(async (url: string, opts?: Record<string, unknown>) => {
+    mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
       if (opts?.method === 'HEAD') return { ok: false };
       if (opts?.method === 'PUT') return { ok: true };
       return { ok: true };
@@ -124,6 +125,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'file' as const,
       accessTo: 'https://pod.example/files/doc/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
 
@@ -144,6 +146,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
 
@@ -165,6 +168,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockDiscoverInboxUri.mockImplementation(async (webId: string) => {
@@ -189,6 +193,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'file' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockDiscoverAclUri.mockRejectedValue(new Error('ACL error'));
@@ -214,6 +219,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     // HEAD returns ok → ensureEmptySharedCatalog should return immediately without PUT
@@ -240,6 +246,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
@@ -264,6 +271,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     // deleteAccessRequest throws a non-Error value
@@ -297,6 +305,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
@@ -326,6 +335,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'file' as const,
       accessTo: 'https://pod.example/files/doc/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
@@ -347,6 +357,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'file' as const,
       accessTo: 'https://pod.example/files/doc/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockDiscoverAclUri.mockRejectedValue(99);
@@ -368,6 +379,7 @@ describe('useAccessRequests', () => {
       requesterWebId: 'https://alice.example/profile/card#me',
       requestType: 'catalog' as const,
       accessTo: 'https://pod.example/files/',
+      timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
     mockDeleteAccessRequest.mockRejectedValue(new Error('Delete failed'));

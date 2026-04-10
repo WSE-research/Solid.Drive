@@ -67,7 +67,7 @@ describe('isVisibleLeaf', () => {
 
   it('falls back to empty string when split/pop yields undefined', () => {
     // Force the ?? "" fallback by providing a uri whose split().pop() returns undefined
-    const leaf = { uri: '' } as SolidLeaf;
+    const leaf = { uri: '' } as unknown as SolidLeaf;
     const original = Array.prototype.pop;
     Array.prototype.pop = function () { return undefined; };
     try {

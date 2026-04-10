@@ -78,7 +78,7 @@ describe('ErrorBoundary', () => {
     );
     expect(errorBoundaryCall).toBeDefined();
     expect(errorBoundaryCall![1]).toBeInstanceOf(Error);
-    expect(errorBoundaryCall![1].message).toBe('Test error');
+    expect((errorBoundaryCall![1] as Error).message).toBe('Test error');
   });
 
   it('getDerivedStateFromError sets hasError and error', () => {
