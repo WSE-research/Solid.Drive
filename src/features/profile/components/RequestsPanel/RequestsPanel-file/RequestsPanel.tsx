@@ -30,7 +30,7 @@ const RequesterRow: FunctionComponent<{ webId: string }> = ({ webId }) => {
   const initial = getInitial(displayName);
 
   return (
-    <div className="requests-panel__requester">
+    <requests-panel-requester>
       <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
       <span className="requests-panel__requester-name">
         {isLoading
@@ -39,7 +39,7 @@ const RequesterRow: FunctionComponent<{ webId: string }> = ({ webId }) => {
             ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}…`
             : displayName}
       </span>
-    </div>
+    </requests-panel-requester>
   );
 };
 
@@ -69,21 +69,21 @@ const RequestItem: FunctionComponent<{
     : undefined;
 
   return (
-    <div className="requests-panel__item">
+    <requests-panel-item>
       <RequesterRow webId={request.requesterWebId} />
       <p className="requests-panel__description">
         {translate(descriptionKey, { resource: resourceLabel })}
       </p>
       {formattedDate && <p className="requests-panel__timestamp">{formattedDate}</p>}
-      <div className="requests-panel__actions">
+      <requests-panel-actions>
         <button className="btn btn--primary btn--small" onClick={() => onApprove(request)} disabled={isBusy}>
           {translate("requestsPanel.approve")}
         </button>
         <button className="btn btn--delete btn--small" onClick={() => onDeny(request)} disabled={isBusy}>
           {translate("requestsPanel.deny")}
         </button>
-      </div>
-    </div>
+      </requests-panel-actions>
+    </requests-panel-item>
   );
 };
 
@@ -118,7 +118,7 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
   }
 
   return (
-    <div className="requests-panel">
+    <requests-panel>
       <button className="requests-panel__toggle" onClick={handleToggle}>
         <span>{translate("requestsPanel.heading")}</span>
         {requests.length > 0 && <span className="requests-panel__badge">{requests.length}</span>}
@@ -126,12 +126,12 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
       </button>
 
       {isOpen && (
-        <div className="requests-panel__body">
+        <requests-panel-body>
           {loading && (
-            <div className="requests-panel__loading">
+            <requests-panel-loading>
               <div className="spinner spinner--small" />
               {translate("requestsPanel.loading")}
-            </div>
+            </requests-panel-loading>
           )}
           {error && <p className="requests-panel__error">{error}</p>}
           {!loading && !error && requests.length === 0 && (
@@ -151,8 +151,8 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
               {translate("requestsPanel.refresh")}
             </button>
           )}
-        </div>
+        </requests-panel-body>
       )}
-    </div>
+    </requests-panel>
   );
 };

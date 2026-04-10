@@ -77,12 +77,12 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
   }, [rejection, solidFetch, onClearRejection, handleRequestAccess]);
 
   return (
-    <div className="contact-row">
+    <contact-row>
       <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
       <span className="contact-row__name">
         {isLoading ? translate("profileSidebar.loading") : (displayName.length > MAX_DISPLAY_NAME_LENGTH ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}...` : displayName)}
       </span>
-      <div className="contact-row__actions">
+      <contact-row-actions>
         {rejection ? (
           <>
             <span className="contact-row__denied">{translate("profileSidebar.requestDenied")}</span>
@@ -108,7 +108,7 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
         <button className="btn btn--delete btn--small" onClick={onRemove}>
           {translate("profileSidebar.remove")}
         </button>
-      </div>
-    </div>
+      </contact-row-actions>
+    </contact-row>
   );
 };

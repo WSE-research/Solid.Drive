@@ -37,12 +37,12 @@ export const Header: FunctionComponent = () => {
 
   return (
     <header className="site-header">
-      <div className="site-header__brand">
+      <site-header-brand>
         {APP_NAME}
-      </div>
+      </site-header-brand>
 
       {session.isLoggedIn ? (
-        <div className="auth-logged-in">
+        <auth-logged-in>
           <p className="auth-webid">
             {translate("header.loggedInAs")} <strong>{displayName}</strong>
           </p>
@@ -50,13 +50,13 @@ export const Header: FunctionComponent = () => {
           <button className="btn btn--ghost" onClick={logout}>
             {translate("header.logOut")}
           </button>
-        </div>
+        </auth-logged-in>
       ) : (
-        <div className="auth-logged-out">
-          <div className="auth-input-row">
-            <div className="auth-field">
+        <auth-logged-out>
+          <auth-input-row>
+            <auth-field>
               <label className="auth-provider-label">{translate("header.provider")}</label>
-              <div className="auth-provider-row">
+              <auth-provider-row>
                 <select
                   value={selectedProvider}
                   onChange={(event) => setSelectedProvider(event.target.value)}
@@ -74,8 +74,8 @@ export const Header: FunctionComponent = () => {
                     placeholder={translate("header.customProviderPlaceholder")}
                   />
                 )}
-              </div>
-            </div>
+              </auth-provider-row>
+            </auth-field>
             <LanguageSwitcher />
             <button
               className="btn btn--primary"
@@ -84,7 +84,7 @@ export const Header: FunctionComponent = () => {
             >
               {translate("header.logIn")}
             </button>
-          </div>
+          </auth-input-row>
           <span className="auth-signup">
             <span className="auth-signup-text">
               {translate("header.podDescription")}{" "}
@@ -102,7 +102,7 @@ export const Header: FunctionComponent = () => {
               {translate("header.createPod")}
             </a>
           </span>
-        </div>
+        </auth-logged-out>
       )}
     </header>
   );

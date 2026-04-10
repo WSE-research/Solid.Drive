@@ -84,7 +84,7 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
         {translate("profileSidebar.contacts")}
       </p>
 
-      <div className="contacts__input-row">
+      <contacts-input-row>
         <input
           type="text"
           className="contacts__input"
@@ -103,7 +103,7 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
         >
           {isAdding ? "..." : translate("profileSidebar.add")}
         </button>
-      </div>
+      </contacts-input-row>
 
       {contacts.length === 0 ? (
         <p className="contacts__placeholder">{translate("profileSidebar.noContacts")}</p>

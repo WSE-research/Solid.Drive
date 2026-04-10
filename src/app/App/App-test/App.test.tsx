@@ -30,9 +30,9 @@ vi.mock('../App-file/App.css', () => ({}));
 import { useSolidAuth } from '@ldo/solid-react';
 
 describe('App', () => {
-  it('renders the app wrapper div', () => {
+  it('renders the app-root element', () => {
     const { container } = render(<App />);
-    expect(container.querySelector('.App')).toBeInTheDocument();
+    expect(container.querySelector('app-root')).toBeInTheDocument();
   });
 
   it('renders BrowserSolidLdoProvider', () => {
@@ -67,16 +67,16 @@ describe('App', () => {
     expect(screen.getByTestId('file-explorer')).toBeInTheDocument();
   });
 
-  it('renders app-layout class when logged in', () => {
+  it('renders app-layout element when logged in', () => {
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as ReturnType<typeof useSolidAuth>);
     const { container } = render(<App />);
-    expect(container.querySelector('.app-layout')).toBeInTheDocument();
+    expect(container.querySelector('app-layout')).toBeInTheDocument();
     expect(container.querySelector('.app-main')).toBeInTheDocument();
   });
 
-  it('does not render app-layout class when logged out', () => {
+  it('does not render app-layout element when logged out', () => {
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     const { container } = render(<App />);
-    expect(container.querySelector('.app-layout')).not.toBeInTheDocument();
+    expect(container.querySelector('app-layout')).not.toBeInTheDocument();
   });
 });

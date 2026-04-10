@@ -45,7 +45,7 @@ describe('Header â€” logged out', () => {
 
   it('renders the brand name', () => {
     render(<Header />);
-    expect(screen.getByText(/solid/i, { selector: '.site-header__brand' })).toBeInTheDocument();
+    expect(screen.getByText(/solid/i, { selector: 'site-header-brand' })).toBeInTheDocument();
   });
 
   it('renders the provider select dropdown', () => {

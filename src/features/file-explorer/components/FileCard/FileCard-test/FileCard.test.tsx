@@ -416,7 +416,7 @@ describe('FileCard — classUri branch coverage', () => {
     withFileMeta({ encodingFormat: undefined, type: { toArray: () => [] } });
     renderCard();
     // classUri falls through to DEFAULT_FILE_TYPE_URI because mime is ""
-    expect(document.querySelector('.file-card')).toBeInTheDocument();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 
   it('prefixes non-absolute type URI with SCHEMA namespace', () => {
@@ -424,7 +424,7 @@ describe('FileCard — classUri branch coverage', () => {
     vi.mocked(isAbsoluteUri).mockReturnValue(false);
     withFileMeta({ type: { toArray: () => [{ '@id': 'DigitalDocument' }] } });
     renderCard();
-    expect(document.querySelector('.file-card')).toBeInTheDocument();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 });
 
@@ -486,7 +486,7 @@ describe('FileCard — date branch coverage', () => {
     withFileMeta({ dateModified: undefined });
     renderCard();
     // dateModified = "" — rendered in FileCardInfoPanel (mocked), so we verify it doesn't crash
-    expect(document.querySelector('.file-card')).toBeInTheDocument();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 
   it('renders formatted uploadedAt when uploadDate is present', () => {
@@ -520,6 +520,6 @@ describe('FileCard — date branch coverage', () => {
     withFileMeta();
     renderCard();
     // binaryUri should be childLeaf.uri (not index.ttl, not a container)
-    expect(document.querySelector('.file-card')).toBeInTheDocument();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 });

@@ -70,7 +70,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       {tboxError && (
         <p className="file-upload__validation-error">{translate("fileUpload.tboxError")} {tboxError}</p>
       )}
-      <div className="file-upload__row">
+      <file-upload-row>
         <label className="file-upload__label" htmlFor="file-upload-input">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -88,7 +88,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         {pendingFile && (
           <span className="file-upload__selected">{pendingFile.name}</span>
         )}
-      </div>
+      </file-upload-row>
 
       {pendingFile && (
         <>
@@ -120,7 +120,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           <div className="file-upload__divider" />
 
           {autoViolations.length > 0 && (
-            <div className="file-upload__validation-errors">
+            <file-upload-errors>
               <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
               {autoViolations.map((violation) => (
                 <p key={violation.path} className="file-upload__validation-item">
@@ -128,10 +128,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
                   {violation.description && <span> — {violation.description}</span>}
                 </p>
               ))}
-            </div>
+            </file-upload-errors>
           )}
 
-          <div className="file-upload__footer">
+          <file-upload-footer>
             <span className="file-upload__meta">
               {pendingFile.type || translate("fileUpload.unknownType")} · {(pendingFile.size / 1024).toFixed(1)} KB
               {validation?.shape && (
@@ -145,7 +145,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
                   ? translate("fileUpload.fillRequired")
                   : translate("fileUpload.upload")}
             </button>
-          </div>
+          </file-upload-footer>
         </>
       )}
     </form>

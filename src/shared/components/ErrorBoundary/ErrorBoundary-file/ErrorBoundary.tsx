@@ -47,9 +47,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.hasError) {
       return this.props.fallback ?? (
-        <div className="error-boundary">
+        <error-boundary>
           <p className="error-boundary__message">Something went wrong.</p>
-        </div>
+        </error-boundary>
       );
     }
     return this.props.children;

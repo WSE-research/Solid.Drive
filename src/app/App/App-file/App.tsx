@@ -21,12 +21,12 @@ import './App.css';
 const AppContent: FunctionComponent = () => {
   const { session } = useSolidAuth();
   return session.isLoggedIn ? (
-    <div className="app-layout">
+    <app-layout>
       <ProfileSidebar />
       <main className="app-main">
         <FileExplorer />
       </main>
-    </div>
+    </app-layout>
   ) : (
     <FileExplorer />
   );
@@ -40,14 +40,14 @@ const AppContent: FunctionComponent = () => {
  * @public
  */
 const App: FunctionComponent = () => (
-  <div className="App">
+  <app-root>
     <BrowserSolidLdoProvider>
       <NotificationProvider>
         <Header />
         <AppContent />
       </NotificationProvider>
     </BrowserSolidLdoProvider>
-  </div>
+  </app-root>
 );
 
 export default App;

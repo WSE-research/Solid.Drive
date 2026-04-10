@@ -104,13 +104,13 @@ describe('RequestsPanel', () => {
 
   it('does not show body when collapsed', () => {
     render(<RequestsPanel {...baseProps} />);
-    expect(document.querySelector('.requests-panel__body')).not.toBeInTheDocument();
+    expect(document.querySelector('requests-panel-body')).not.toBeInTheDocument();
   });
 
   it('shows body when toggle is clicked', () => {
     render(<RequestsPanel {...baseProps} />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
-    expect(document.querySelector('.requests-panel__body')).toBeInTheDocument();
+    expect(document.querySelector('requests-panel-body')).toBeInTheDocument();
   });
 
   it('calls loadRequests when opened', () => {
@@ -123,7 +123,7 @@ describe('RequestsPanel', () => {
     hookReturnValue = { ...hookReturnValue, loading: true };
     render(<RequestsPanel {...baseProps} />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
-    expect(document.querySelector('.requests-panel__loading')).toBeInTheDocument();
+    expect(document.querySelector('requests-panel-loading')).toBeInTheDocument();
     expect(screen.getByText('requestsPanel.loading')).toBeInTheDocument();
   });
 
@@ -260,9 +260,9 @@ describe('RequestsPanel', () => {
   it('collapses panel when toggle is clicked again', () => {
     render(<RequestsPanel {...baseProps} />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
-    expect(document.querySelector('.requests-panel__body')).toBeInTheDocument();
+    expect(document.querySelector('requests-panel-body')).toBeInTheDocument();
     fireEvent.click(screen.getByText('requestsPanel.heading'));
-    expect(document.querySelector('.requests-panel__body')).not.toBeInTheDocument();
+    expect(document.querySelector('requests-panel-body')).not.toBeInTheDocument();
   });
 
   it('shows loading text in RequesterRow when contact resource is loading', () => {

@@ -89,8 +89,8 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
   }, [solidFetch, onClearRejection, handleRequestFile]);
 
   return (
-    <div className="type-folder">
-      <div className="type-folder__header">
+    <type-folder>
+      <type-folder-header>
         <button
           className="type-folder__toggle"
           onClick={() => setIsOpen((value) => !value)}
@@ -111,10 +111,10 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
             ? translate("sharedWithMe.requestError")
             : translate("sharedWithMe.requestAll", { type: typeInfo.label })}
         </button>
-      </div>
+      </type-folder-header>
 
       {isOpen && (
-        <div className="type-folder__body">
+        <type-folder-body>
           {entries.map((entry) => {
             const containerUri = toContainerUri(entry.uri);
             const rejection = rejections.get(containerUri);
@@ -123,10 +123,10 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
               entry.uri.replace(/\/index\.ttl$/, "").split("/").pop() ?? entry.uri
             );
             return (
-              <div key={entry.uri} className="type-folder__file-row">
+              <type-folder-file-row key={entry.uri}>
                 <span className="type-folder__file-name">{label}</span>
                 {rejection ? (
-                  <div className="type-folder__file-actions">
+                  <type-folder-file-actions>
                     <span className="contact-row__denied">{translate("sharedWithMe.requestDenied")}</span>
                     <button
                       className="btn btn--ghost btn--small"
@@ -134,7 +134,7 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
                     >
                       {translate("sharedWithMe.requestAgain")}
                     </button>
-                  </div>
+                  </type-folder-file-actions>
                 ) : (
                   <button
                     className="btn btn--ghost btn--small"
@@ -148,11 +148,11 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
                       : translate("sharedWithMe.requestFile")}
                   </button>
                 )}
-              </div>
+              </type-folder-file-row>
             );
           })}
-        </div>
+        </type-folder-body>
       )}
-    </div>
+    </type-folder>
   );
 };

@@ -50,8 +50,8 @@ export const FileCardInfoPanel: FunctionComponent<FileCardInfoPanelProps> = ({
   const [translate] = useTranslation();
 
   return (
-    <div className="file-card__schema">
-      <div className="file-card__schema-row">
+    <file-card-schema>
+      <file-card-schema-row>
         <span className="file-card__schema-label">{translate("fileCard.fileType")}</span>
         <span className="file-card__schema-value">
           <span className="file-card__type-badge">{fileType.label}</span>
@@ -59,58 +59,58 @@ export const FileCardInfoPanel: FunctionComponent<FileCardInfoPanelProps> = ({
             <span className="file-card__type-note">{fileType.description}</span>
           )}
         </span>
-      </div>
+      </file-card-schema-row>
 
       {name && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.title")}</span>
           <span className="file-card__schema-value">{name}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {description && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.description")}</span>
           <span className="file-card__schema-value">{description}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {encodingFormat && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.format")}</span>
           <span className="file-card__schema-value">{encodingFormat}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {contentSize && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.size")}</span>
           <span className="file-card__schema-value">{formatBytes(contentSize)}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {uploadedAt && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.uploadedOn")}</span>
           <span className="file-card__schema-value">{uploadedAt}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {dateModified && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.lastUpdated")}</span>
           <span className="file-card__schema-value">{dateModified}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {publisherWebId && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.uploadedBy")}</span>
           <span className="file-card__schema-value">{publisherName}</span>
-        </div>
+        </file-card-schema-row>
       )}
       {isPartOf?.["@id"] && (
-        <div className="file-card__schema-row">
+        <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.partOf")}</span>
           <span className="file-card__schema-value file-card__schema-value--uri">
             {isPartOf["@id"]}
           </span>
-        </div>
+        </file-card-schema-row>
       )}
-    </div>
+    </file-card-schema>
   );
 };

@@ -79,9 +79,9 @@ describe('ProfileSidebar', () => {
     expect(dividers.length).toBe(2);
   });
 
-  it('renders the .profile-sidebar__card wrapper around ProfileCard', () => {
+  it('renders the profile-sidebar-card wrapper around ProfileCard', () => {
     render(<ProfileSidebar />);
-    expect(document.querySelector('.profile-sidebar__card')).toBeInTheDocument();
+    expect(document.querySelector('profile-sidebar-card')).toBeInTheDocument();
   });
 
   it('falls back to webId-derived storageRoot when profile has no storage', () => {

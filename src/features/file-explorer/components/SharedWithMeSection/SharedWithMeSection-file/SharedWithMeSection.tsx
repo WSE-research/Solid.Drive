@@ -208,7 +208,7 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
       ))}
 
       {typeGroups.size > 0 && (
-        <div className="type-folders">
+        <type-folders>
           <p className="type-folders__heading">{translate("sharedWithMe.browseHeading")}</p>
           {[...typeGroups.entries()].map(([classUri, entries]) => (
             <TypeFolder
@@ -227,7 +227,7 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
               }
             />
           ))}
-        </div>
+        </type-folders>
       )}
     </>
   );
@@ -254,9 +254,9 @@ export const SharedWithMeSection: FunctionComponent<SharedWithMeSectionProps> = 
 
   return (
     <section>
-      <div className="files-section-header">
+      <files-section-header>
         <p className="files-section-label">{translate("sharedWithMe.heading")}</p>
-      </div>
+      </files-section-header>
       {otherContacts.map((contactWebId) => (
         <ContactSharedFiles key={contactWebId} contactWebId={contactWebId} viewerWebId={ownerWebId} />
       ))}

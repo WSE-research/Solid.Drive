@@ -87,9 +87,9 @@ describe('ProfileCard', () => {
     };
   });
 
-  it('renders the .profile-card root container element', () => {
+  it('renders the profile-card root element', () => {
     render(<ProfileCard />);
-    expect(document.querySelector('.profile-card')).toBeInTheDocument();
+    expect(document.querySelector('profile-card')).toBeInTheDocument();
   });
 
   it('renders display name in non-editing mode', () => {

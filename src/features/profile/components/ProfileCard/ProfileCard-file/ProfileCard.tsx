@@ -37,7 +37,7 @@ const ProfileInput: FunctionComponent<ProfileInputProps> = ({
   disabled, 
   placeholder 
 }) => (
-  <div className="profile-input">
+  <profile-field>
     <label className="profile-input__label">{label}</label>
     <input
       type="text"
@@ -47,7 +47,7 @@ const ProfileInput: FunctionComponent<ProfileInputProps> = ({
       disabled={disabled}
       placeholder={placeholder}
     />
-  </div>
+  </profile-field>
 );
 
 /**
@@ -130,9 +130,9 @@ export const ProfileCard: FunctionComponent = () => {
   };
 
   return (
-    <div className="profile-card">
+    <profile-card>
       {/* Avatar + name row */}
-      <div className="profile-card__header">
+      <profile-card-header>
         {editing ? (
           <label className="avatar avatar--upload">
             <input
@@ -177,21 +177,21 @@ export const ProfileCard: FunctionComponent = () => {
             isLoading={isLoading}
           />
         )}
-        <div className="profile-card__info">
+        <profile-card-info>
           <p className="profile-card__name">
             {isLoading ? translate("profileSidebar.loading") : (currentDisplayName || <span className="profile-card__muted">{translate("profileSidebar.nameNotSet")}</span>)}
           </p>
           <p className="profile-card__webid">
             {session.webId}
           </p>
-        </div>
-      </div>
+        </profile-card-info>
+      </profile-card-header>
 
       {/* Edit form */}
       {editing && (
-        <div className="profile-card__edit">
+        <profile-card-edit>
           <ProfileInput label={translate("profileSidebar.name")} value={name} onChange={setName} disabled={saving} />
-          <div className="profile-card__actions">
+          <profile-card-actions>
             <button
               className="btn btn--primary btn--small"
               onClick={handleSave}
@@ -206,8 +206,8 @@ export const ProfileCard: FunctionComponent = () => {
             >
               {translate("profileSidebar.cancel")}
             </button>
-          </div>
-        </div>
+          </profile-card-actions>
+        </profile-card-edit>
       )}
 
       {!editing && (
@@ -218,6 +218,6 @@ export const ProfileCard: FunctionComponent = () => {
           {translate("profileSidebar.editProfile")}
         </button>
       )}
-    </div>
+    </profile-card>
   );
 };

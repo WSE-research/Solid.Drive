@@ -94,10 +94,10 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   if (isMetaLoading) {
     return (
-      <div className="file-card file-card--loading">
+      <file-card className="file-card--loading">
         <div className="spinner spinner--medium" />
         {translate("fileCard.loading")}
-      </div>
+      </file-card>
     );
   }
 
@@ -108,17 +108,17 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   if (!fileMeta) {
     const folderName = decodeURIComponent(containerUri.replace(/\/$/, "").split("/").pop() ?? containerUri);
     return (
-      <div className="file-card">
+      <file-card>
         <p className="file-card__name">{folderName}</p>
         {binaryUri && (
-          <div className="file-card__meta">
+          <file-card-meta>
             <span className="file-card__date">{translate("fileCard.noMetadata")}</span>
             <a className="btn btn--ghost btn--small" href={binaryUri} download={binaryUri.split("/").pop()}>
               {translate("fileCard.download")}
             </a>
-          </div>
+          </file-card-meta>
         )}
-      </div>
+      </file-card>
     );
   }
 
@@ -138,10 +138,9 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const fileType = getFileTypeInfo(classUri);
 
   return (
-    //todo: custom 
-    <div className="file-card">
+    <file-card>
       {fileMeta.name && (
-        <div className="file-card__header">
+        <file-card-header>
           <p className="file-card__name">{fileMeta.name}</p>
           {isShared && (
             <span title="Shared" className="file-card__shared">
@@ -151,29 +150,31 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
               </svg>
             </span>
           )}
-        </div>
+        </file-card-header>
       )}
 
-      {previewUrl && (
-        <FileMediaPreview
-          previewUrl={previewUrl}
-          mimeType={fileMeta.encodingFormat ?? ""}
-          name={fileMeta.name}
-        />
-      )}
+      <file-card-body>
+        {previewUrl && (
+          <FileMediaPreview
+            previewUrl={previewUrl}
+            mimeType={fileMeta.encodingFormat ?? ""}
+            name={fileMeta.name}
+          />
+        )}
 
-      {fileMeta.description && (
-        <p className="file-card__description">{fileMeta.description}</p>
-      )}
+        {fileMeta.description && (
+          <p className="file-card__description">{fileMeta.description}</p>
+        )}
 
-      <div className="file-card__info">
-        {fileMeta.encodingFormat && <span className="file-card__type">{fileMeta.encodingFormat}</span>}
-        {fileMeta.contentSize && <span className="file-card__size">{formatBytes(fileMeta.contentSize)}</span>}
-      </div>
+        <file-card-info>
+          {fileMeta.encodingFormat && <span className="file-card__type">{fileMeta.encodingFormat}</span>}
+          {fileMeta.contentSize && <span className="file-card__size">{formatBytes(fileMeta.contentSize)}</span>}
+        </file-card-info>
+      </file-card-body>
 
-      <div className="file-card__meta">
+      <file-card-meta>
         <span className="file-card__date">{uploadedAt}</span>
-        <div className="file-card__actions">
+        <file-card-actions>
           <button className="btn btn--ghost btn--small" onClick={() => setShowInfo((v) => !v)}>
             {showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info")}
           </button>
@@ -194,8 +195,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
           {!readOnly && (
             <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
           )}
-        </div>
-      </div>
+        </file-card-actions>
+      </file-card-meta>
 
       {!readOnly && showShare && (
         <SharePanel
@@ -229,6 +230,6 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
           publisherWebId={publisherWebId}
         />
       )}
-    </div>
+    </file-card>
   );
 };

@@ -120,7 +120,7 @@ export const NotificationProvider: FunctionComponent<NotificationProviderProps> 
       {children}
       
       {/* Toast container */}
-      <div className="toast-container">
+      <toast-container>
         {toasts.map((toast) => (
           <Toast
             key={toast.id}
@@ -129,14 +129,14 @@ export const NotificationProvider: FunctionComponent<NotificationProviderProps> 
             onDismiss={() => dismissToast(toast.id)}
           />
         ))}
-      </div>
+      </toast-container>
 
       {/* Confirmation dialog */}
       {confirmDialog && (
-        <div className="confirm-overlay" onClick={() => handleConfirm(false)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+        <confirm-overlay onClick={() => handleConfirm(false)}>
+          <confirm-dialog onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog__message">{confirmDialog.message}</p>
-            <div className="confirm-dialog__actions">
+            <confirm-dialog-actions>
               <button
                 className="btn btn--primary"
                 onClick={() => handleConfirm(true)}
@@ -149,9 +149,9 @@ export const NotificationProvider: FunctionComponent<NotificationProviderProps> 
               >
                 Cancel
               </button>
-            </div>
-          </div>
-        </div>
+            </confirm-dialog-actions>
+          </confirm-dialog>
+        </confirm-overlay>
       )}
     </NotificationContext.Provider>
   );

@@ -36,13 +36,13 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
   });
 
-  it('renders default fallback inside error-boundary div', () => {
+  it('renders default fallback inside error-boundary element', () => {
     const { container } = render(
       <ErrorBoundary>
         <ThrowingChild />
       </ErrorBoundary>
     );
-    expect(container.querySelector('.error-boundary')).toBeInTheDocument();
+    expect(container.querySelector('error-boundary')).toBeInTheDocument();
     expect(container.querySelector('.error-boundary__message')).toBeInTheDocument();
   });
 

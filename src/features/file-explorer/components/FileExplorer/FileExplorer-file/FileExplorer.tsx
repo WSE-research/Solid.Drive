@@ -103,31 +103,31 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   if (!session.isLoggedIn) {
     return (
-      <div className="drive-gate">
-        <div className="drive-gate__icon">✦</div>
+      <drive-gate>
+        <drive-gate-icon>✦</drive-gate-icon>
         <p>{translate("fileExplorer.loginPrompt")}</p>
-      </div>
+      </drive-gate>
     );
   }
 
   if (noStorageDetected) {
     return (
-      <div className="drive-error">
-        <div className="drive-error__icon">⚠</div>
+      <drive-error>
+        <drive-error-icon>⚠</drive-error-icon>
         <p>{translate("fileExplorer.noStorageFound")}</p>
         <button className="btn btn--ghost btn--small" onClick={handleRetryStorage}>
           {translate("fileExplorer.retry")}
         </button>
-      </div>
+      </drive-error>
     );
   }
 
   if (!currentContainer) {
     return (
-      <div className="drive-loading">
+      <drive-loading>
         <div className="spinner" />
         <span>{translate("fileExplorer.connecting")}</span>
-      </div>
+      </drive-loading>
     );
   }
 
@@ -164,7 +164,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
         </nav>
       )}
 
-      <div className="files-section-header">
+      <files-section-header>
         <p className="files-section-label">
           {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
         </p>
@@ -185,7 +185,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             </>
           )}
         </button>
-      </div>
+      </files-section-header>
 
       <DriveFileList
         folderEntries={folderEntries}

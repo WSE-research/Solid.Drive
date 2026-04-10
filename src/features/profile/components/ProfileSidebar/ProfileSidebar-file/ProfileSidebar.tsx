@@ -28,7 +28,7 @@ export const ProfileSidebar: FunctionComponent = () => {
 
   return (
     <aside className="profile-sidebar">
-      <div className="profile-sidebar__card">
+      <profile-sidebar-card>
         <ProfileCard />
         <hr className="profile-sidebar__divider" />
         <ContactsList ownerWebId={ownerWebId} />
@@ -42,7 +42,7 @@ export const ProfileSidebar: FunctionComponent = () => {
             />
           </>
         )}
-      </div>
+      </profile-sidebar-card>
     </aside>
   );
 };

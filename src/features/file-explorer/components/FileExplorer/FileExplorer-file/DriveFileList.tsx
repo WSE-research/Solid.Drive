@@ -42,10 +42,10 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
 
   if (isEmpty) {
     return (
-      <div className="empty-state">
-        <div className="empty-state__icon">◌</div>
+      <empty-state>
+        <empty-state-icon>◌</empty-state-icon>
         <p>{isInAppFolder ? translate("fileExplorer.noFilesYet") : translate("fileExplorer.emptyFolder")}</p>
-      </div>
+      </empty-state>
     );
   }
 
@@ -61,12 +61,12 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
       {leafEntries.map((entry) => {
         const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? entry.uri);
         return (
-          <div key={entry.uri} className="file-entry">
+          <file-entry key={entry.uri}>
             <span className="file-entry__name">{fileName}</span>
             <button className="btn btn--ghost btn--small" onClick={() => onDownload(entry, fileName)}>
               {translate("fileExplorer.download")}
             </button>
-          </div>
+          </file-entry>
         );
       })}
     </>

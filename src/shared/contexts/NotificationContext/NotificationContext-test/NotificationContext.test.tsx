@@ -149,7 +149,7 @@ describe('NotificationContext', () => {
     act(() => {
       fireEvent.click(screen.getByText('confirm'));
     });
-    const overlay = document.querySelector('.confirm-overlay')!;
+    const overlay = document.querySelector('confirm-overlay')!;
     await act(async () => {
       fireEvent.click(overlay);
     });
@@ -161,7 +161,7 @@ describe('NotificationContext', () => {
     act(() => {
       fireEvent.click(screen.getByText('confirm'));
     });
-    const dialog = document.querySelector('.confirm-dialog')!;
+    const dialog = document.querySelector('confirm-dialog')!;
     await act(async () => {
       fireEvent.click(dialog);
     });

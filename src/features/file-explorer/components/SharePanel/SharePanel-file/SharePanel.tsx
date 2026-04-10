@@ -36,18 +36,18 @@ const GranteeRow: FunctionComponent<{ webId: string; onRevoke: () => void; disab
   const displayName = contact?.name ?? contact?.fn ?? webIdFallbackName;
 
   return (
-    <div className="share-panel__row">
+    <share-panel-row>
       <div className="share-panel__avatar share-panel__avatar--grantee">
         {isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName)}
       </div>
-      <div className="share-panel__name">
+      <share-panel-name>
         <span className="share-panel__name-text">
           {isLoading ? translate("sharePanel.loading") : displayName}
         </span>
         <span className="share-panel__mode">
           {translate("sharePanel.accessMode")}
         </span>
-      </div>
+      </share-panel-name>
       <button
         className="btn btn--delete btn--small share-panel__revoke"
         onClick={onRevoke}
@@ -55,7 +55,7 @@ const GranteeRow: FunctionComponent<{ webId: string; onRevoke: () => void; disab
       >
         {translate("sharePanel.revoke")}
       </button>
-    </div>
+    </share-panel-row>
   );
 };
 
@@ -82,7 +82,7 @@ const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; 
   const displayName = contact?.name ?? contact?.fn ?? webIdFallbackName;
 
   return (
-    <div className="share-panel__row--available">
+    <share-panel-row className="share-panel__row--available">
       <div className="share-panel__avatar share-panel__avatar--pending">
         {isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName)}
       </div>
@@ -96,7 +96,7 @@ const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; 
       >
         {translate("sharePanel.grant")}
       </button>
-    </div>
+    </share-panel-row>
   );
 };
 
@@ -151,14 +151,14 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
   if (!ownerWebId) return null;
 
   return (
-    <div className="share-panel">
+    <share-panel>
       <p className="share-panel__heading">{translate("sharePanel.access")}</p>
 
       {loading && (
-        <div className="share-panel__loading">
+        <share-panel-loading>
           <div className="spinner spinner--xs" />
           {translate("sharePanel.loadingAccessList")}
-        </div>
+        </share-panel-loading>
       )}
 
       {displayError && (
@@ -208,6 +208,6 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
           )}
         </>
       )}
-    </div>
+    </share-panel>
   );
 };
