@@ -33,10 +33,10 @@ describe('FolderEntry', () => {
     expect(screen.getByText('folder')).toBeInTheDocument();
   });
 
-  it('renders the folder icon SVG', () => {
+  it('renders the folder icon and arrow as CSS icon spans', () => {
     const { container } = render(<FolderEntry uri="https://pod.example.com/test/" onNavigate={vi.fn()} />);
-    const svgs = container.querySelectorAll('svg');
-    expect(svgs.length).toBe(2); // folder icon + arrow icon
+    expect(container.querySelector('.icon--folder')).toBeInTheDocument();
+    expect(container.querySelector('.folder-entry__arrow')).toBeInTheDocument();
   });
 
   it('renders a clickable button even when URI is an empty string', () => {
