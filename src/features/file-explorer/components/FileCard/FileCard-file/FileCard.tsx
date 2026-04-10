@@ -122,6 +122,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     );
   }
 
+  const handleToggleInfo = () => setShowInfo((current) => !current);
+  const handleToggleShare = () => setShowShare((current) => !current);
+  const downloadHref = previewUrl ?? binaryUri;
+  const downloadFileName = fileMeta.name ?? binaryUri?.split("/").pop();
+
   const uploadedAt = fileMeta.uploadDate
     ? new Date(fileMeta.uploadDate).toLocaleDateString(DEFAULT_LOCALE, DATE_FORMAT_OPTIONS)
     : "";
@@ -170,19 +175,19 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       <file-card-meta>
         <span className="file-card__date">{uploadedAt}</span>
         <file-card-actions>
-          <button className="btn btn--ghost btn--small" onClick={() => setShowInfo((v) => !v)}>
+          <button className="btn btn--ghost btn--small" onClick={handleToggleInfo}>
             {showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info")}
           </button>
           {!readOnly && (
-            <button className="btn btn--ghost btn--small" onClick={() => setShowShare((v) => !v)}>
+            <button className="btn btn--ghost btn--small" onClick={handleToggleShare}>
               {showShare ? translate("fileCard.hideShare") : translate("fileCard.share")}
             </button>
           )}
-          {(previewUrl ?? binaryUri) && (
+          {downloadHref && (
             <a
               className="btn btn--ghost btn--small"
-              href={previewUrl ?? binaryUri}
-              download={fileMeta.name ?? binaryUri?.split("/").pop()}
+              href={downloadHref}
+              download={downloadFileName}
             >
               {translate("fileCard.download")}
             </a>

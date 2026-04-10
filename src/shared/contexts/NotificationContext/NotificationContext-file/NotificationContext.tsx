@@ -107,6 +107,10 @@ export const NotificationProvider: FunctionComponent<NotificationProviderProps> 
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
+  const handleConfirmYes = () => handleConfirm(true);
+  const handleConfirmNo = () => handleConfirm(false);
+  const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
+
   const value: NotificationContextType = {
     showToast,
     showError,
@@ -133,19 +137,19 @@ export const NotificationProvider: FunctionComponent<NotificationProviderProps> 
 
       {/* Confirmation dialog */}
       {confirmDialog && (
-        <confirm-overlay onClick={() => handleConfirm(false)}>
-          <confirm-dialog onClick={(e) => e.stopPropagation()}>
+        <confirm-overlay onClick={handleConfirmNo}>
+          <confirm-dialog onClick={handleDialogClick}>
             <p className="confirm-dialog__message">{confirmDialog.message}</p>
             <confirm-dialog-actions>
               <button
                 className="btn btn--primary"
-                onClick={() => handleConfirm(true)}
+                onClick={handleConfirmYes}
               >
                 Confirm
               </button>
               <button
                 className="btn btn--ghost"
-                onClick={() => handleConfirm(false)}
+                onClick={handleConfirmNo}
               >
                 Cancel
               </button>

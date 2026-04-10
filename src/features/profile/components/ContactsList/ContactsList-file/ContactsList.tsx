@@ -42,11 +42,11 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
     void (async () => {
       try {
         const inboxUri = await discoverInboxUri(ownerWebId, solidFetch);
-        const found = await listRejectionNotifications(inboxUri, solidFetch);
+        const rejectionNotifications = await listRejectionNotifications(inboxUri, solidFetch);
         if (cancelled) return;
         // For catalog requests, accessTo is the contact's WebID
-        const map = new Map(found.map((r) => [r.accessTo, r]));
-        setRejections(map);
+        const rejectionMap = new Map(rejectionNotifications.map((rejection) => [rejection.accessTo, rejection]));
+        setRejections(rejectionMap);
       } catch {
         // Ignore missing or inaccessible inboxes
       }
@@ -78,6 +78,19 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
     }
   };
 
+  const handleWebIdChange = (event: React.ChangeEvent<HTMLInputElement>) =>
+    setNewWebId(event.target.value);
+  const handleWebIdKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") handleAdd();
+  };
+  const handleClearRejection = (contactWebId: string) => {
+    setRejections((prev) => {
+      const next = new Map(prev);
+      next.delete(contactWebId);
+      return next;
+    });
+  };
+
   return (
     <div>
       <p className="contacts__heading">
@@ -90,10 +103,8 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
           className="contacts__input"
           placeholder={translate("profileSidebar.webIdPlaceholder")}
           value={newWebId}
-          onChange={(event) => setNewWebId(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") handleAdd();
-          }}
+          onChange={handleWebIdChange}
+          onKeyDown={handleWebIdKeyDown}
           disabled={isAdding}
         />
         <button
@@ -115,11 +126,7 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
             ownerWebId={ownerWebId}
             solidFetch={solidFetch}
             rejection={rejections.get(contactWebId)}
-            onClearRejection={() => setRejections((prev) => {
-              const next = new Map(prev);
-              next.delete(contactWebId);
-              return next;
-            })}
+            onClearRejection={() => handleClearRejection(contactWebId)}
             onRemove={() => handleRemove(contactWebId)}
           />
         ))

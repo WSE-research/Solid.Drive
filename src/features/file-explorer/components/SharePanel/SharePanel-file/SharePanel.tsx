@@ -147,6 +147,9 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
   const availableContacts = contacts.filter(
     (contactWebId) => contactWebId !== ownerWebId && !grantees.includes(contactWebId)
   );
+  const otherContacts = contacts.filter((contactWebId) => contactWebId !== ownerWebId);
+  const hasNoOtherContacts = otherContacts.length === 0;
+  const allContactsHaveAccess = availableContacts.length === 0 && !hasNoOtherContacts;
 
   if (!ownerWebId) return null;
 
@@ -196,12 +199,12 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
             </>
           )}
 
-          {contacts.filter((contactWebId) => contactWebId !== ownerWebId).length === 0 && (
+          {hasNoOtherContacts && (
             <p className="share-panel__placeholder">
               {translate("sharePanel.addContacts")}
             </p>
           )}
-          {availableContacts.length === 0 && contacts.filter((contactWebId) => contactWebId !== ownerWebId).length > 0 && (
+          {allContactsHaveAccess && (
             <p className="share-panel__placeholder">
               {translate("sharePanel.allHaveAccess")}
             </p>

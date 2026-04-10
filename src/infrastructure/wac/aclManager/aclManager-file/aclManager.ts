@@ -143,15 +143,15 @@ export async function readAclAgents(aclUri: string, fetch: FetchFn): Promise<str
 
   const authSubjects = new Set(
     quads
-      .filter((q) => q.predicate.equals(RDF_TYPE) && q.object.equals(ACL.Authorization))
-      .map((q) => q.subject.value)
+      .filter((parsedQuad) => parsedQuad.predicate.equals(RDF_TYPE) && parsedQuad.object.equals(ACL.Authorization))
+      .map((parsedQuad) => parsedQuad.subject.value)
   );
 
   const agents: string[] = [];
   for (const subject of authSubjects) {
     const modes = quads
-      .filter((q) => q.subject.value === subject && q.predicate.equals(ACL.mode))
-      .map((q) => q.object.value);
+      .filter((parsedQuad) => parsedQuad.subject.value === subject && parsedQuad.predicate.equals(ACL.mode))
+      .map((parsedQuad) => parsedQuad.object.value);
 
     const hasRead = modes.includes(`${RDF_NAMESPACES.ACL}Read`);
     const hasWrite = modes.includes(`${RDF_NAMESPACES.ACL}Write`);
@@ -159,8 +159,8 @@ export async function readAclAgents(aclUri: string, fetch: FetchFn): Promise<str
     if (!hasRead || hasWrite) continue;
 
     quads
-      .filter((q) => q.subject.value === subject && q.predicate.equals(ACL.agent))
-      .forEach((q) => agents.push(q.object.value));
+      .filter((parsedQuad) => parsedQuad.subject.value === subject && parsedQuad.predicate.equals(ACL.agent))
+      .forEach((parsedQuad) => agents.push(parsedQuad.object.value));
   }
 
   return agents;

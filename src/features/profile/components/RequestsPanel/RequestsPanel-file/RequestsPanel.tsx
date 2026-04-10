@@ -22,22 +22,21 @@ import { getInitial, getProfileDisplayName } from "@/shared/utils";
  */
 const RequesterRow: FunctionComponent<{ webId: string }> = ({ webId }) => {
   const [translate] = useTranslation();
-  const contactResource = useResource(webId.split("#")[0]);
-  const contact = useSubject(SolidProfileShapeType, webId);
-  const isLoading = isLoadable(contactResource) && contactResource.isLoading();
-  const displayName = getProfileDisplayName(contact, webId);
-  const avatarUrl = contact?.img?.["@id"];
+  const requesterResource = useResource(webId.split("#")[0]);
+  const requester = useSubject(SolidProfileShapeType, webId);
+  const isLoading = isLoadable(requesterResource) && requesterResource.isLoading();
+  const displayName = getProfileDisplayName(requester, webId);
+  const avatarUrl = requester?.img?.["@id"];
   const initial = getInitial(displayName);
+  const truncatedName = displayName.length > MAX_DISPLAY_NAME_LENGTH
+    ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}…`
+    : displayName;
 
   return (
     <requests-panel-requester>
       <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
       <span className="requests-panel__requester-name">
-        {isLoading
-          ? translate("requestsPanel.loading")
-          : displayName.length > MAX_DISPLAY_NAME_LENGTH
-            ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}…`
-            : displayName}
+        {isLoading ? translate("requestsPanel.loading") : truncatedName}
       </span>
     </requests-panel-requester>
   );
@@ -68,6 +67,9 @@ const RequestItem: FunctionComponent<{
     ? decodeURIComponent(request.accessTo.replace(/\/$/, "").split("/").pop() ?? request.accessTo)
     : undefined;
 
+  const handleApprove = () => onApprove(request);
+  const handleDeny = () => onDeny(request);
+
   return (
     <requests-panel-item>
       <RequesterRow webId={request.requesterWebId} />
@@ -76,10 +78,10 @@ const RequestItem: FunctionComponent<{
       </p>
       {formattedDate && <p className="requests-panel__timestamp">{formattedDate}</p>}
       <requests-panel-actions>
-        <button className="btn btn--primary btn--small" onClick={() => onApprove(request)} disabled={isBusy}>
+        <button className="btn btn--primary btn--small" onClick={handleApprove} disabled={isBusy}>
           {translate("requestsPanel.approve")}
         </button>
-        <button className="btn btn--delete btn--small" onClick={() => onDeny(request)} disabled={isBusy}>
+        <button className="btn btn--delete btn--small" onClick={handleDeny} disabled={isBusy}>
           {translate("requestsPanel.deny")}
         </button>
       </requests-panel-actions>
@@ -117,12 +119,14 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
     setIsOpen((prev) => !prev);
   }
 
+  const chevronStyle = { transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" };
+
   return (
     <requests-panel>
       <button className="requests-panel__toggle" onClick={handleToggle}>
         <span>{translate("requestsPanel.heading")}</span>
         {requests.length > 0 && <span className="requests-panel__badge">{requests.length}</span>}
-        <span className="requests-panel__chevron" style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▼</span>
+        <span className="requests-panel__chevron" style={chevronStyle}>▼</span>
       </button>
 
       {isOpen && (

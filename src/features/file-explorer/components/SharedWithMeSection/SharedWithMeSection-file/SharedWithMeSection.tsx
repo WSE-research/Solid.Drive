@@ -177,6 +177,14 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
     return () => { cancelled = true; };
   }, [catalogUris, mainCatalogUri, solidFetch, viewerWebId]);
 
+  const handleClearRejection = (containerUri: string) => {
+    setFileRejections((prev) => {
+      const next = new Map(prev);
+      next.delete(containerUri);
+      return next;
+    });
+  };
+
   const displayName =
     profile?.fn ??
     profile?.name ??
@@ -184,7 +192,7 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
       .replace(/#.*$/, "")
       .split("/")
       .filter(Boolean)
-      .find((string) => string !== "profile" && string !== "card" && !string.startsWith("http")) ??
+      .find((pathSegment) => pathSegment !== "profile" && pathSegment !== "card" && !pathSegment.startsWith("http")) ??
     contactWebId;
 
   if (!catalogAccessible && !isProfileLoading) return null;
@@ -218,13 +226,7 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
               contactWebId={contactWebId}
               viewerWebId={viewerWebId}
               rejections={fileRejections}
-              onClearRejection={(containerUri) =>
-                setFileRejections((prev) => {
-                  const next = new Map(prev);
-                  next.delete(containerUri);
-                  return next;
-                })
-              }
+              onClearRejection={handleClearRejection}
             />
           ))}
         </type-folders>

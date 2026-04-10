@@ -53,7 +53,7 @@ export function useContacts(ownerWebId: string): UseContactsReturn {
 
   const removeContact = async (webId: string) => {
     await removeProfileContact(ownerWebId, webId, solidFetch);
-    setContacts((prev) => prev.filter((c) => c !== webId));
+    setContacts((prev) => prev.filter((contactWebId) => contactWebId !== webId));
     if (isReloadable(webIdResource)) webIdResource.reload();
   };
 

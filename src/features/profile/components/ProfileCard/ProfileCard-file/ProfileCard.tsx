@@ -80,6 +80,9 @@ export const ProfileCard: FunctionComponent = () => {
   const avatarUrl = editing ? (imgUrl || profile?.img?.["@id"]) : profile?.img?.["@id"];
   const currentDisplayName = editing ? name : displayName;
   const initial = getInitial(currentDisplayName);
+  const nameDisplay = isLoading
+    ? translate("profileSidebar.loading")
+    : currentDisplayName || <span className="profile-card__muted">{translate("profileSidebar.nameNotSet")}</span>;
 
   const handleAvatarUpload = async (file: File) => {
     if (!session.webId) return;
@@ -103,6 +106,11 @@ export const ProfileCard: FunctionComponent = () => {
     } finally {
       setUploadingAvatar(false);
     }
+  };
+
+  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) handleAvatarUpload(selectedFile);
   };
 
   const handleEditStart = () => {
@@ -140,10 +148,7 @@ export const ProfileCard: FunctionComponent = () => {
               accept="image/*"
               style={{ display: "none" }}
               disabled={saving || uploadingAvatar}
-              onChange={(event) => {
-                const selectedFile = event.target.files?.[0];
-                if (selectedFile) handleAvatarUpload(selectedFile);
-              }}
+              onChange={handleAvatarFileChange}
             />
             <Avatar
               src={avatarUrl}
@@ -165,7 +170,7 @@ export const ProfileCard: FunctionComponent = () => {
         )}
         <profile-card-info>
           <p className="profile-card__name">
-            {isLoading ? translate("profileSidebar.loading") : (currentDisplayName || <span className="profile-card__muted">{translate("profileSidebar.nameNotSet")}</span>)}
+            {nameDisplay}
           </p>
           <p className="profile-card__webid">
             {session.webId}

@@ -105,7 +105,7 @@ export function useAccessRequests(
       }
 
       await deleteAccessRequest(request.messageUri, solidFetch);
-      setRequests((prev) => prev.filter((r) => r.messageUri !== request.messageUri));
+      setRequests((prev) => prev.filter((existingRequest) => existingRequest.messageUri !== request.messageUri));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -124,7 +124,7 @@ export function useAccessRequests(
         // best-effort
       }
       await deleteAccessRequest(request.messageUri, solidFetch);
-      setRequests((prev) => prev.filter((r) => r.messageUri !== request.messageUri));
+      setRequests((prev) => prev.filter((existingRequest) => existingRequest.messageUri !== request.messageUri));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

@@ -135,7 +135,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const isInAppFolder = currentUri === appContainerUri;
   const entries = isSolidContainer(currentContainer) ? currentContainer.children() : [];
   const folderEntries = entries.filter(isSolidContainer);
-  const leafEntries = entries.filter((e) => !isSolidContainer(e)).filter(isVisibleLeaf) as SolidLeaf[];
+  const leafEntries = entries.filter((entry) => !isSolidContainer(entry)).filter(isVisibleLeaf) as SolidLeaf[];
 
   return (
     <main>

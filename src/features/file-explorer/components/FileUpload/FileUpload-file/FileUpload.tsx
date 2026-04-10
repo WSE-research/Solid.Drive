@@ -43,9 +43,17 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   const { validation, tboxError } = useFileValidation(pendingFile, title, description, session.webId);
   const { isUploading, upload } = useFileUpload();
 
-  const titleViolation = validation?.violations.find((v) => v.localName === "name");
-  const autoViolations = validation?.violations.filter((v) => v.localName !== "name") ?? [];
+  const titleViolation = validation?.violations.find((violation) => violation.localName === "name");
+  const nonTitleViolations = validation?.violations.filter((violation) => violation.localName !== "name") ?? [];
   const canUpload = !validation || validation.valid;
+
+  const titleClassName = `file-upload__title${titleViolation ? " file-upload__title--error" : ""}`;
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) =>
+    setPendingFile(event.target.files?.[0]);
+  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) =>
+    setTitle(event.target.value);
+  const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+    setDescription(event.target.value);
 
   const handleSubmit = useCallback(async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,7 +86,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           id="file-upload-input"
           ref={fileInputRef}
           type="file"
-          onChange={(event) => setPendingFile(event.target.files?.[0])}
+          onChange={handleFileChange}
         />
         {pendingFile && (
           <span className="file-upload__selected">{pendingFile.name}</span>
@@ -98,26 +106,26 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           </label>
           <input
             id="file-upload-title"
-            className={`file-upload__title${titleViolation ? " file-upload__title--error" : ""}`}
+            className={titleClassName}
             type="text"
             placeholder={translate("fileUpload.titlePlaceholder")}
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={handleTitleChange}
             required
           />
           <textarea
             className="file-upload__body"
             placeholder={translate("fileUpload.descriptionPlaceholder")}
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={handleDescriptionChange}
             rows={2}
           />
           <div className="file-upload__divider" />
 
-          {autoViolations.length > 0 && (
+          {nonTitleViolations.length > 0 && (
             <file-upload-errors>
               <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
-              {autoViolations.map((violation) => (
+              {nonTitleViolations.map((violation) => (
                 <p key={violation.path} className="file-upload__validation-item">
                   <strong>{violation.label}</strong>
                   {violation.description && <span> — {violation.description}</span>}

@@ -109,10 +109,10 @@ export async function loadFileTypes(
     const turtle = await response.text();
     const types = parseFileTypesFromTurtle(turtle);
     cachedFileTypes = types;
-    cachedTypeMap = new Map(types.map((t) => [t.uri, t]));
+    cachedTypeMap = new Map(types.map((fileType) => [fileType.uri, fileType]));
     // Also index by ID for quick lookup
-    for (const t of types) {
-      cachedTypeMap.set(t.id, t);
+    for (const fileType of types) {
+      cachedTypeMap.set(fileType.id, fileType);
     }
     return types;
   })();
@@ -172,7 +172,7 @@ export function parseFileTypesFromTurtle(turtle: string): FileTypeDef[] {
 
     // Get parent types from rdfs:subClassOf
     const parentQuads = store.getObjects(uri, `${RDFS}subClassOf`, null);
-    const parentTypes = parentQuads.map((p) => p.value);
+    const parentTypes = parentQuads.map((parentQuad) => parentQuad.value);
 
     types.push({ uri, id, label, description, parentTypes });
   }
@@ -208,7 +208,7 @@ export function getFileType(uriOrId: string): FileTypeDef | undefined {
   // Fallback to array search
   const types = cachedFileTypes ?? getDefaultFileTypes();
   return types.find(
-    (t) => t.uri === uriOrId || t.id === uriOrId || t.uri.endsWith(`/${uriOrId}`)
+    (fileType) => fileType.uri === uriOrId || fileType.id === uriOrId || fileType.uri.endsWith(`/${uriOrId}`)
   );
 }
 
@@ -316,7 +316,7 @@ export function resolveClass(contentType: string): string {
  * @internal
  */
 function getDefaultFileTypes(): FileTypeDef[] {
-  return DEFAULT_FILE_TYPES.map((t) => ({ ...t }));
+  return DEFAULT_FILE_TYPES.map((fileType) => ({ ...fileType }));
 }
 
 /**

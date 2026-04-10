@@ -48,6 +48,7 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
   const [fileStatuses, setFileStatuses] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
 
   const typeInfo = getFileTypeInfo(classUri);
+  const handleToggle = () => setIsOpen((value) => !value);
 
   const handleRequestAll = useCallback(async () => {
     setBulkStatus("sending");
@@ -93,7 +94,7 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
       <type-folder-header>
         <button
           className="type-folder__toggle"
-          onClick={() => setIsOpen((value) => !value)}
+          onClick={handleToggle}
         >
           <span className="type-folder__icon">{isOpen ? "📂" : "📁"}</span>
           <span className="type-folder__label">{typeInfo.label}</span>

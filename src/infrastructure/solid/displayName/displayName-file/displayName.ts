@@ -31,9 +31,9 @@ export async function resolveDisplayName(webId: string, fetchFn: FetchFn): Promi
     const turtle = await response.text();
     const quads = new Parser({ baseIRI: profileDocUri }).parse(turtle);
     const subject = webId;
-    const fn = quads.find((q) => q.subject.value === subject && q.predicate.value === VCARD_FN)?.object.value;
+    const fn = quads.find((quad) => quad.subject.value === subject && quad.predicate.value === VCARD_FN)?.object.value;
     if (fn) return fn;
-    const name = quads.find((q) => q.subject.value === subject && q.predicate.value === FOAF_NAME)?.object.value;
+    const name = quads.find((quad) => quad.subject.value === subject && quad.predicate.value === FOAF_NAME)?.object.value;
     if (name) return name;
   } catch {
     // Network or parse errors — fall back silently

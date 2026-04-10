@@ -35,6 +35,15 @@ export const Header: FunctionComponent = () => {
   const issuerUrl = selectedProvider === CUSTOM_PROVIDER_VALUE ? customIssuerUrl : selectedProvider;
   const registerUrl = SOLID_PROVIDERS.find((provider) => provider.value === selectedProvider)?.registerUrl;
 
+  const isCustomProvider = selectedProvider === CUSTOM_PROVIDER_VALUE;
+  const podRegistrationUrl = registerUrl ?? EXTERNAL_LINKS.defaultGetPod;
+
+  const handleLogin = () => login(issuerUrl);
+  const handleProviderChange = (event: React.ChangeEvent<HTMLSelectElement>) =>
+    setSelectedProvider(event.target.value);
+  const handleCustomUrlChange = (event: React.ChangeEvent<HTMLInputElement>) =>
+    setCustomIssuerUrl(event.target.value);
+
   return (
     <header className="site-header">
       <site-header-brand>
@@ -59,18 +68,18 @@ export const Header: FunctionComponent = () => {
               <auth-provider-row>
                 <select
                   value={selectedProvider}
-                  onChange={(event) => setSelectedProvider(event.target.value)}
+                  onChange={handleProviderChange}
                 >
                   <option value="" disabled>{translate("header.selectProvider")}</option>
                   {SOLID_PROVIDERS.map((provider) => (
                     <option key={provider.value} value={provider.value}>{provider.label}</option>
                   ))}
                 </select>
-                {selectedProvider === CUSTOM_PROVIDER_VALUE && (
+                {isCustomProvider && (
                   <input
                     type="text"
                     value={customIssuerUrl}
-                    onChange={(event) => setCustomIssuerUrl(event.target.value)}
+                    onChange={handleCustomUrlChange}
                     placeholder={translate("header.customProviderPlaceholder")}
                   />
                 )}
@@ -79,7 +88,7 @@ export const Header: FunctionComponent = () => {
             <LanguageSwitcher />
             <button
               className="btn btn--primary"
-              onClick={() => login(issuerUrl)}
+              onClick={handleLogin}
               disabled={!issuerUrl}
             >
               {translate("header.logIn")}
@@ -94,7 +103,7 @@ export const Header: FunctionComponent = () => {
             </span>
             <span className="auth-signup-text">·</span>
             <a
-              href={registerUrl ?? EXTERNAL_LINKS.defaultGetPod}
+              href={podRegistrationUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="auth-hint-link"
