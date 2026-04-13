@@ -19,3 +19,4 @@ export type {
 } from "./solid";
 export type { CatalogEntry } from "./catalog";
 export type { AccessMode } from "./access";
+export type { SharedEntry } from "./sharing";

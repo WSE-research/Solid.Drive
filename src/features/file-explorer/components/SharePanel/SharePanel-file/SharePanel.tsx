@@ -13,6 +13,7 @@ import { isLoadable } from "@/infrastructure/solid/resourceGuards";
 import { useAclManager } from "@/features/sharing/hooks/useAclManager";
 import { getInitial } from "@/shared/utils";
 import { getProfileDisplayName } from "@/shared/utils/getProfileDisplayName";
+import type { SharedEntry } from "@/types";
 
 /**
  * Row displaying a user who has been granted access.
@@ -100,16 +101,7 @@ type SharePanelProps = {
   containerUri: string;
   catalogUri: string;
   contacts: string[];
-  sharedEntry: {
-    metadataUri: string;
-    binaryUri: string;
-    classUri: string;
-    mediaType: string;
-    byteSize: number;
-    title: string;
-    description: string;
-    modified: string;
-  };
+  sharedEntry: SharedEntry;
 };
 
 /**

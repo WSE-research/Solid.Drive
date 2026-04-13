@@ -8,17 +8,7 @@ import { useSolidAuth } from "@ldo/solid-react";
 import { discoverAclUri, readAclAgents, writeAcl, writeListOnlyAcl, writeResourceAcl } from "@/infrastructure/wac/aclManager";
 import { appendToCatalog, removeFromCatalog } from "@/infrastructure/solid/catalog";
 import { getCandidateSharedCatalogUris, getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
-
-interface SharedEntry {
-  metadataUri: string;
-  binaryUri: string;
-  classUri: string;
-  mediaType: string;
-  byteSize: number;
-  title: string;
-  description: string;
-  modified: string;
-}
+import type { SharedEntry } from "@/types";
 
 interface UseAclManagerReturn {
   aclUri: string | null;
