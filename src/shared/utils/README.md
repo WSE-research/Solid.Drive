@@ -1,0 +1,14 @@
+# shared/utils
+
+## Overview
+
+Pure utility functions. No React, no side effects. All exported from `@/shared/utils` index for convenience.
+
+## Exports
+
+| Name | Description |
+|---|---|
+| `formatBytes(bytes)` | Formats a byte count string to `"1.2 KB"` / `"3.4 MB"` |
+| `getInitial(name)` | Returns the first character of a name, uppercased |
+| `getProfileDisplayName(profile, webId)` | Picks the best display name from a Solid profile |
+| `isAbsoluteUri(value)` | Returns `true` if the value starts with `http://` or `https://` |

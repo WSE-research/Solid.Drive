@@ -1,0 +1,11 @@
+# generateShape
+
+## Overview
+
+Inspects arbitrary Turtle data and infers RDF shapes from it.
+
+`discoverShapesFromTurtle(turtleText)` parses Turtle with N3, groups subjects by `rdf:type`, and returns `DiscoveredShape[]` — each with a type name and a list of observed properties, value types, and occurrence counts.
+
+## Usage
+
+Useful for tooling and debugging: if you are not sure what shape an unknown Solid resource has, pass its Turtle content here to see a summary.
