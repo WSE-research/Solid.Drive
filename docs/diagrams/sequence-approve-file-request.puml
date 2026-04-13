@@ -1,0 +1,28 @@
+@startuml sequence-approve-file-request
+title Approve File Access Request
+skinparam sequenceParticipantPadding 5
+skinparam sequenceMessageAlign left
+hide footbox
+
+actor User
+participant "RequestsPanel" as RP <<component>>
+participant "useAccessRequests" as UAR <<hook>>
+participant "aclManager" as ACL <<module>>
+participant "inboxAccess" as IA <<module>>
+participant "Solid Pod" as POD <<external>>
+
+User -> RP : click Approve (file)
+RP -> UAR : approve(request)
+activate UAR
+
+note over UAR, ACL : grant read on file container
+UAR -> ACL : discoverAclUri + readAclAgents + writeAcl\n(fileContainerUri, [requesterWebId])
+ACL -> POD : HEAD → GET → PUT file.acl
+
+UAR -> IA : deleteAccessRequest(messageUri)
+IA -> POD : DELETE messageUri
+
+UAR --> RP : requests updated
+deactivate UAR
+
+@enduml

@@ -1,0 +1,162 @@
+@startuml class-diagram
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+package "types" {
+  interface CatalogEntry {
+    +uri: string
+    +title: string
+    +description: string
+    +modified: string
+    +publisher: string
+    +mediaType: string
+    +byteSize: number
+    +accessURL: string
+  }
+  interface AccessRequest {
+    +messageUri: string
+    +requesterWebId: string
+    +accessTo: string
+    +requestType: "catalog" | "file"
+    +timestamp: string
+  }
+  interface AccessRejection {
+    +messageUri: string
+    +accessTo: string
+  }
+  interface FileTypeDef {
+    +uri: string
+    +id: string
+    +label: string
+    +description: string
+    +parentTypes: string[]
+  }
+}
+
+package "infrastructure/wac" {
+  class aclManager <<module>> {
+    +discoverAclUri(containerUri, fetch): Promise<string>
+    +readAclAgents(aclUri, fetch): Promise<string[]>
+    +writeAcl(aclUri, containerUri, ownerWebId, grantees, fetch): Promise<void>
+    +writeListOnlyAcl(aclUri, containerUri, ownerWebId, grantees, fetch): Promise<void>
+    +writeResourceAcl(aclUri, resourceUri, ownerWebId, grantees, fetch): Promise<void>
+  }
+}
+
+package "infrastructure/inbox" {
+  class inboxAccess <<module>> {
+    +discoverInboxUri(webId, fetch): Promise<string>
+    +postCatalogAccessRequest(inboxUri, requesterWebId, contactWebId, fetch): Promise<void>
+    +postFileAccessRequest(inboxUri, requesterWebId, fileUri, fetch): Promise<void>
+    +postRejectionNotification(inboxUri, accessTo, fetch): Promise<void>
+    +listAccessRequests(inboxUri, fetch): Promise<AccessRequest[]>
+    +listRejectionNotifications(inboxUri, fetch): Promise<AccessRejection[]>
+    +deleteAccessRequest(messageUri, fetch): Promise<void>
+  }
+  class inboxMessages <<module>> {
+    +buildAccessRequestMessage(type, requesterWebId, accessTo): string
+    +buildAccessRejectionMessage(accessTo): string
+    +parseAccessRequestMessage(messageUri, turtle): AccessRequest | null
+    +parseAccessRejectionMessage(messageUri, turtle): AccessRejection | null
+    +parseContainedResourceUris(inboxUri, turtle): string[]
+    +discoverInboxUriFromProfile(profileDocUri, webId, turtle): string
+  }
+  inboxAccess ..> inboxMessages : uses
+}
+
+package "infrastructure/solid" {
+  class catalog <<module>> {
+    +resolveCatalogUri(profile, storageRoot): string
+    +appendToCatalog(catalogUri, instanceUri, ...): Promise<void>
+    +removeFromCatalog(catalogUri, instanceUri, fetch): Promise<void>
+    +parseCatalog(turtleText, baseUri?): CatalogEntry[]
+    +linkCatalogToProfile(catalogUri, webId, fetch): Promise<void>
+  }
+  class profile <<module>> {
+    +saveProfileFields(webId, original, fields, fetch): Promise<void>
+    +addContact(webId, contactWebId, fetch): Promise<void>
+    +removeContact(webId, contactWebId, fetch): Promise<void>
+    +ensureProfileDocType(webId, fetch): Promise<void>
+  }
+}
+
+package "infrastructure/validation" {
+  class fileTypeRegistry <<module>> {
+    +loadFileTypes(tboxUri?, fetch?): Promise<FileTypeDef[]>
+    +getFileTypeInfo(uriOrId): { label, description }
+    +resolveClass(contentType): string
+    +isKnownFileType(uriOrId): boolean
+    +getAllFileTypes(): FileTypeDef[]
+  }
+  class tboxValidator <<module>> {
+    +loadTBox(tboxUri?, fetch?): Promise<{ shapes, parents }>
+    +validateMetadata(metadata, typeUri, shapes, parents): ValidationResult
+    +getShapeForType(typeUri, shapes, parents): ShapeDefinition | null
+  }
+}
+
+package "features/sharing" {
+  interface UseAclManagerReturn {
+    +aclUri: string
+    +grantees: string[]
+    +loading: boolean
+    +isSaving: boolean
+    +error: string | null
+    +loadAcl(): Promise<void>
+    +grant(contactWebId): Promise<void>
+    +revoke(contactWebId): Promise<void>
+  }
+  class useAclManager <<hook>> {
+    +useAclManager(containerUri, catalogUri,\n  appContainerUri, ownerWebId, sharedEntry): UseAclManagerReturn
+  }
+  useAclManager --> UseAclManagerReturn : returns
+  useAclManager ..> aclManager : calls
+  useAclManager ..> catalog : calls
+}
+
+package "features/profile" {
+  interface UseAccessRequestsReturn {
+    +requests: AccessRequest[]
+    +loading: boolean
+    +error: string | null
+    +busyMessageUri: string | null
+    +loadRequests(): Promise<void>
+    +approve(request): Promise<void>
+    +deny(request): Promise<void>
+  }
+  class useAccessRequests <<hook>> {
+    +useAccessRequests(ownerWebId, storageRoot, catalogUri): UseAccessRequestsReturn
+  }
+  class RequestsPanel <<component>> {
+    -ownerWebId: string
+    -storageRoot: string
+    -catalogUri: string
+  }
+  useAccessRequests --> UseAccessRequestsReturn : returns
+  useAccessRequests ..> inboxAccess : calls
+  useAccessRequests ..> aclManager : calls
+  RequestsPanel ..> useAccessRequests : uses
+}
+
+package "features/file-explorer" {
+  class SharePanel <<component>> {
+    -containerUri: string
+    -catalogUri: string
+    -contacts: string[]
+    -sharedEntry: SharedEntry
+  }
+  class useFileSharing <<hook>> {
+    +useFileSharing(containerUri, fetch): boolean
+  }
+  SharePanel ..> useAclManager : uses
+  useFileSharing ..> aclManager : calls
+}
+
+catalog ..> CatalogEntry : returns
+inboxAccess ..> AccessRequest : returns
+inboxAccess ..> AccessRejection : returns
+fileTypeRegistry ..> FileTypeDef : returns
+
+@enduml

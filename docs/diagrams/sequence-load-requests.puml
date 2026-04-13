@@ -1,0 +1,32 @@
+@startuml sequence-load-requests
+title Load Access Requests
+skinparam sequenceParticipantPadding 5
+skinparam sequenceMessageAlign left
+hide footbox
+
+actor User
+participant "RequestsPanel" as RP <<component>>
+participant "useAccessRequests" as UAR <<hook>>
+participant "inboxAccess" as IA <<module>>
+participant "Solid Pod" as POD <<external>>
+
+User -> RP : open panel
+RP -> UAR : loadRequests()
+
+UAR -> IA : discoverInboxUri(ownerWebId, fetch)
+IA -> POD : GET profile document
+POD --> IA : inboxUri (from ldp:inbox triple)
+IA --> UAR : inboxUri
+
+UAR -> IA : listAccessRequests(inboxUri, fetch)
+IA -> POD : GET inboxUri
+POD --> IA : [messageUri, ...]
+loop for each message
+  IA -> POD : GET messageUri
+  POD --> IA : AccessRequest (parsed from Turtle)
+end
+IA --> UAR : AccessRequest[]
+
+UAR --> RP : requests
+
+@enduml

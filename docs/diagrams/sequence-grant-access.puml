@@ -1,0 +1,31 @@
+@startuml sequence-grant-access
+title Grant File Access
+skinparam sequenceParticipantPadding 5
+skinparam sequenceMessageAlign left
+hide footbox
+
+actor User
+participant "SharePanel" as SP <<component>>
+participant "useAclManager" as UAM <<hook>>
+participant "aclManager" as ACL <<module>>
+participant "catalog" as CAT <<module>>
+participant "Solid Pod" as POD <<external>>
+
+User -> SP : click Grant (contactWebId)
+SP -> UAM : grant(contactWebId)
+activate UAM
+
+UAM -> ACL : writeAcl(aclUri, containerUri, ownerWebId, [contactWebId], fetch)
+ACL -> POD : PUT container.acl
+
+note over UAM : syncSharedCatalog(contactWebId)
+UAM -> CAT : appendToCatalog(sharedCatalogUri, ...)
+CAT -> POD : PATCH catalog.ttl (SPARQL UPDATE)
+
+UAM -> ACL : discoverAclUri + writeResourceAcl\n(sharedCatalogUri, [contactWebId])
+ACL -> POD : HEAD → PUT sharedCatalog.acl
+
+UAM --> SP : grantees updated
+deactivate UAM
+
+@enduml
