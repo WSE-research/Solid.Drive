@@ -58,7 +58,7 @@ const ProfileInput: FunctionComponent<ProfileInputProps> = ({
  */
 export const ProfileCard: FunctionComponent = () => {
   const [translate] = useTranslation();
-  const { session, fetch: solidFetch } = useSolidAuth();
+  const { session } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const { showError, showSuccess } = useNotifications();
   const [editing, setEditing] = useState(false);
@@ -67,14 +67,15 @@ export const ProfileCard: FunctionComponent = () => {
     name,
     imgUrl,
     displayName,
-    isLoading, 
+    isLoading,
+    isUploadingAvatar,
     setName,
     setImgUrl,
-    save
+    save,
+    uploadAvatar,
   } = useProfile({ suspendSync: editing });
-  
+
   const [saving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const originalRef = useRef({ name: "", imgUrl: "" });
 
   const avatarUrl = editing ? (imgUrl || profile?.img?.["@id"]) : profile?.img?.["@id"];
@@ -84,33 +85,15 @@ export const ProfileCard: FunctionComponent = () => {
     ? translate("profileSidebar.loading")
     : currentDisplayName || <span className="profile-card__muted">{translate("profileSidebar.nameNotSet")}</span>;
 
-  const handleAvatarUpload = async (file: File) => {
-    if (!session.webId) return;
-    const storageRoot =
-      profile?.storage?.toArray()[0]?.["@id"] ??
-      session.webId.replace(/\/profile\/card.*/, "/");
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const avatarUri = `${storageRoot}public/avatar.${ext}`;
-    setUploadingAvatar(true);
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
     try {
-      const res = await solidFetch(avatarUri, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      setImgUrl(avatarUri);
+      await uploadAvatar(selectedFile);
       showSuccess("Avatar uploaded successfully");
     } catch (error) {
       showError(`Avatar upload failed: ${(error as Error).message}`);
-    } finally {
-      setUploadingAvatar(false);
     }
-  };
-
-  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) handleAvatarUpload(selectedFile);
   };
 
   const handleEditStart = () => {
@@ -137,6 +120,11 @@ export const ProfileCard: FunctionComponent = () => {
     }
   };
 
+  const isBusy = saving || isUploadingAvatar;
+  const avatarAlt = currentDisplayName || "avatar";
+  const saveButtonLabel = saving ? translate("profileSidebar.saving") : translate("profileSidebar.save");
+  const showAvatarOverlay = !isUploadingAvatar;
+
   return (
     <profile-card>
       {/* Avatar + name row */}
@@ -147,23 +135,23 @@ export const ProfileCard: FunctionComponent = () => {
               type="file"
               accept="image/*"
               style={{ display: "none" }}
-              disabled={saving || uploadingAvatar}
+              disabled={isBusy}
               onChange={handleAvatarFileChange}
             />
             <Avatar
               src={avatarUrl}
-              alt={currentDisplayName || "avatar"}
+              alt={avatarAlt}
               initial={initial}
-              isLoading={uploadingAvatar}
+              isLoading={isUploadingAvatar}
             />
-            {!uploadingAvatar && (
+            {showAvatarOverlay && (
               <div className="avatar--overlay" />
             )}
           </label>
         ) : (
           <Avatar
             src={avatarUrl}
-            alt={currentDisplayName || "avatar"}
+            alt={avatarAlt}
             initial={initial}
             isLoading={isLoading}
           />
@@ -186,14 +174,14 @@ export const ProfileCard: FunctionComponent = () => {
             <button
               className="btn btn--primary btn--small"
               onClick={handleSave}
-              disabled={saving || uploadingAvatar}
+              disabled={isBusy}
             >
-              {saving ? translate("profileSidebar.saving") : translate("profileSidebar.save")}
+              {saveButtonLabel}
             </button>
             <button
               className="btn btn--ghost btn--small"
               onClick={handleEditCancel}
-              disabled={saving || uploadingAvatar}
+              disabled={isBusy}
             >
               {translate("profileSidebar.cancel")}
             </button>

@@ -5,18 +5,20 @@ import { ProfileCard } from '../ProfileCard-file/ProfileCard';
 const mockSave = vi.fn();
 const mockSetName = vi.fn();
 const mockSetImgUrl = vi.fn();
+const mockUploadAvatar = vi.fn();
 const mockShowError = vi.fn();
 const mockShowSuccess = vi.fn();
-const mockSolidFetch = vi.fn();
 
 let profileReturnValue = {
   name: 'Bob',
   imgUrl: 'https://pod.example/avatar.png',
   displayName: 'Bob Builder',
   isLoading: false,
+  isUploadingAvatar: false,
   setName: mockSetName,
   setImgUrl: mockSetImgUrl,
   save: mockSave,
+  uploadAvatar: mockUploadAvatar,
   reload: vi.fn(),
 };
 
@@ -34,7 +36,6 @@ let mockSessionWebId: string | undefined = 'https://pod.example/profile/card#me'
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({
     session: { webId: mockSessionWebId },
-    fetch: mockSolidFetch,
   }),
   useSubject: () => mockSubjectValue,
 }));
@@ -70,6 +71,7 @@ describe('ProfileCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSave.mockResolvedValue(undefined);
+    mockUploadAvatar.mockResolvedValue(undefined);
     mockSessionWebId = 'https://pod.example/profile/card#me';
     mockSubjectValue = {
       img: { '@id': 'https://pod.example/avatar.png' },
@@ -80,9 +82,11 @@ describe('ProfileCard', () => {
       imgUrl: 'https://pod.example/avatar.png',
       displayName: 'Bob Builder',
       isLoading: false,
+      isUploadingAvatar: false,
       setName: mockSetName,
       setImgUrl: mockSetImgUrl,
       save: mockSave,
+      uploadAvatar: mockUploadAvatar,
       reload: vi.fn(),
     };
   });
@@ -186,8 +190,7 @@ describe('ProfileCard', () => {
     expect(document.querySelector('.avatar--overlay')).toBeInTheDocument();
   });
 
-  it('uploads avatar via PUT and calls setImgUrl and shows success toast when a file is selected', async () => {
-    mockSolidFetch.mockResolvedValue({ ok: true });
+  it('calls uploadAvatar and shows success toast when a file is selected', async () => {
     render(<ProfileCard />);
     fireEvent.click(screen.getByText('profileSidebar.editProfile'));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -195,16 +198,12 @@ describe('ProfileCard', () => {
     await act(async () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
     });
-    expect(mockSolidFetch).toHaveBeenCalledWith(
-      'https://pod.example/public/avatar.png',
-      expect.objectContaining({ method: 'PUT' })
-    );
-    expect(mockSetImgUrl).toHaveBeenCalledWith('https://pod.example/public/avatar.png');
+    expect(mockUploadAvatar).toHaveBeenCalledWith(file);
     expect(mockShowSuccess).toHaveBeenCalledWith('Avatar uploaded successfully');
   });
 
-  it('shows error when avatar upload fails (non-ok response)', async () => {
-    mockSolidFetch.mockResolvedValue({ ok: false, status: 403, statusText: 'Forbidden' });
+  it('shows error when uploadAvatar throws', async () => {
+    mockUploadAvatar.mockRejectedValue(new Error('Upload failed'));
     render(<ProfileCard />);
     fireEvent.click(screen.getByText('profileSidebar.editProfile'));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -212,19 +211,7 @@ describe('ProfileCard', () => {
     await act(async () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
     });
-    expect(mockShowError).toHaveBeenCalledWith('Avatar upload failed: 403 Forbidden');
-  });
-
-  it('shows error when avatar upload throws', async () => {
-    mockSolidFetch.mockRejectedValue(new Error('Network error'));
-    render(<ProfileCard />);
-    fireEvent.click(screen.getByText('profileSidebar.editProfile'));
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['img'], 'avatar.webp', { type: 'image/webp' });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-    expect(mockShowError).toHaveBeenCalledWith('Avatar upload failed: Network error');
+    expect(mockShowError).toHaveBeenCalledWith('Avatar upload failed: Upload failed');
   });
 
   it('does nothing if no file is selected', () => {
@@ -232,68 +219,13 @@ describe('ProfileCard', () => {
     fireEvent.click(screen.getByText('profileSidebar.editProfile'));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [] } });
-    expect(mockSolidFetch).not.toHaveBeenCalled();
+    expect(mockUploadAvatar).not.toHaveBeenCalled();
   });
 
   it('renders Avatar component when profile data is available', () => {
     render(<ProfileCard />);
     const avatar = screen.getByTestId('avatar');
     expect(avatar).toBeInTheDocument();
-  });
-
-  it('uses webId-derived storageRoot when profile has no storage', async () => {
-    // Override useSubject to return profile without storage
-    mockSubjectValue = {
-      img: { '@id': 'https://pod.example/avatar.png' },
-      storage: { toArray: () => [] },
-    };
-
-    mockSolidFetch.mockResolvedValue({ ok: true });
-    render(<ProfileCard />);
-    fireEvent.click(screen.getByText('profileSidebar.editProfile'));
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['img'], 'avatar.png', { type: 'image/png' });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-    // storageRoot falls back to webId.replace(/\/profile\/card.*/, "/") = "https://pod.example/"
-    expect(mockSolidFetch).toHaveBeenCalledWith(
-      'https://pod.example/public/avatar.png',
-      expect.objectContaining({ method: 'PUT' })
-    );
-  });
-
-  it('does not upload avatar when session.webId is undefined', async () => {
-    mockSessionWebId = undefined;
-    mockSolidFetch.mockResolvedValue({ ok: true });
-    render(<ProfileCard />);
-    fireEvent.click(screen.getByText('profileSidebar.editProfile'));
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['img'], 'avatar.png', { type: 'image/png' });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-    // handleAvatarUpload early-returns when webId is falsy
-    expect(mockSolidFetch).not.toHaveBeenCalled();
-  });
-
-  it('defaults to jpg extension when file has no extension', async () => {
-    mockSolidFetch.mockResolvedValue({ ok: true });
-    render(<ProfileCard />);
-    fireEvent.click(screen.getByText('profileSidebar.editProfile'));
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    // File with no extension
-    const file = new File(['img'], 'avatar', { type: 'image/png' });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-    // ext = "avatar".split(".").pop() → "avatar", not undefined, so ?? "jpg" doesn't apply
-    // Actually "avatar" has no dot, so split(".") → ["avatar"], pop() → "avatar"
-    // The ext is "avatar" not "jpg". The ?? only triggers when pop() returns undefined.
-    expect(mockSolidFetch).toHaveBeenCalledWith(
-      'https://pod.example/public/avatar.avatar',
-      expect.objectContaining({ method: 'PUT' })
-    );
   });
 
   it('shows "avatar" alt text when displayName is empty in edit mode', () => {

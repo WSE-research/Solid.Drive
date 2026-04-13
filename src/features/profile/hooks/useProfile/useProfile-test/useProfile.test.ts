@@ -48,15 +48,17 @@ describe('useProfile', () => {
     mockSession.webId = 'https://pod.example/profile/card#me';
   });
 
-  it('exposes name, imgUrl, displayName, isLoading, setName, setImgUrl, save, and reload', () => {
+  it('exposes name, imgUrl, displayName, isLoading, isUploadingAvatar, setName, setImgUrl, save, uploadAvatar, and reload', () => {
     const { result } = renderHook(() => useProfile());
     expect(result.current).toHaveProperty('name');
     expect(result.current).toHaveProperty('imgUrl');
     expect(result.current).toHaveProperty('displayName');
     expect(result.current).toHaveProperty('isLoading');
+    expect(result.current).toHaveProperty('isUploadingAvatar');
     expect(result.current).toHaveProperty('setName');
     expect(result.current).toHaveProperty('setImgUrl');
     expect(result.current).toHaveProperty('save');
+    expect(result.current).toHaveProperty('uploadAvatar');
     expect(result.current).toHaveProperty('reload');
   });
 
@@ -186,5 +188,63 @@ describe('useProfile', () => {
       await result.current.reload();
     });
     // No error thrown
+  });
+
+  it('uploadAvatar PUTs file to storageRoot/public/avatar.<ext> and sets imgUrl on success', async () => {
+    mockProfile = { ...mockProfile, storage: { toArray: () => [{ '@id': 'https://pod.example/' }] } };
+    mockFetch.mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useProfile());
+    const file = new File(['data'], 'photo.png', { type: 'image/png' });
+    await act(async () => { await result.current.uploadAvatar(file); });
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://pod.example/public/avatar.png',
+      expect.objectContaining({ method: 'PUT', body: file })
+    );
+    expect(result.current.imgUrl).toBe('https://pod.example/public/avatar.png');
+  });
+
+  it('uploadAvatar falls back to webId-derived storageRoot when profile has no storage', async () => {
+    mockProfile = { ...mockProfile, storage: { toArray: () => [] } };
+    mockFetch.mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useProfile());
+    const file = new File(['data'], 'photo.png', { type: 'image/png' });
+    await act(async () => { await result.current.uploadAvatar(file); });
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://pod.example/public/avatar.png',
+      expect.objectContaining({ method: 'PUT' })
+    );
+  });
+
+  it('uploadAvatar does nothing when webId is empty', async () => {
+    mockSession.webId = '';
+    const { result } = renderHook(() => useProfile());
+    const file = new File(['data'], 'photo.png', { type: 'image/png' });
+    await act(async () => { await result.current.uploadAvatar(file); });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('uploadAvatar throws when response is not ok', async () => {
+    mockProfile = { ...mockProfile, storage: { toArray: () => [{ '@id': 'https://pod.example/' }] } };
+    mockFetch.mockResolvedValue({ ok: false, status: 403, statusText: 'Forbidden' });
+    const { result } = renderHook(() => useProfile());
+    const file = new File(['data'], 'photo.png', { type: 'image/png' });
+    await expect(
+      act(async () => { await result.current.uploadAvatar(file); })
+    ).rejects.toThrow('403 Forbidden');
+  });
+
+  it('uploadAvatar sets isUploadingAvatar true during upload and false after', async () => {
+    mockProfile = { ...mockProfile, storage: { toArray: () => [{ '@id': 'https://pod.example/' }] } };
+    let resolveFetch!: () => void;
+    mockFetch.mockReturnValue(
+      new Promise<{ ok: boolean }>((resolve) => { resolveFetch = () => resolve({ ok: true }); })
+    );
+    const { result } = renderHook(() => useProfile());
+    const file = new File(['data'], 'photo.png', { type: 'image/png' });
+    let uploadPromise: Promise<void>;
+    act(() => { uploadPromise = result.current.uploadAvatar(file); });
+    expect(result.current.isUploadingAvatar).toBe(true);
+    await act(async () => { resolveFetch(); await uploadPromise; });
+    expect(result.current.isUploadingAvatar).toBe(false);
   });
 });

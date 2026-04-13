@@ -76,12 +76,23 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
     void handleRequestAccess();
   }, [rejection, solidFetch, onClearRejection, handleRequestAccess]);
 
+  const truncatedName = displayName.length > MAX_DISPLAY_NAME_LENGTH
+    ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}...`
+    : displayName;
+  const nameDisplay = isLoading ? translate("profileSidebar.loading") : truncatedName;
+  const isRequestDisabled = requestStatus === "sending" || requestStatus === "sent";
+  const requestButtonLabel = requestStatus === "sending"
+    ? "..."
+    : requestStatus === "sent"
+    ? translate("profileSidebar.requestSent")
+    : requestStatus === "error"
+    ? translate("profileSidebar.requestError")
+    : translate("profileSidebar.requestAccess");
+
   return (
     <contact-row>
       <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
-      <span className="contact-row__name">
-        {isLoading ? translate("profileSidebar.loading") : (displayName.length > MAX_DISPLAY_NAME_LENGTH ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}...` : displayName)}
-      </span>
+      <span className="contact-row__name">{nameDisplay}</span>
       <contact-row-actions>
         {rejection ? (
           <>
@@ -94,15 +105,9 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
           <button
             className="btn btn--ghost btn--small"
             onClick={handleRequestAccess}
-            disabled={requestStatus === "sending" || requestStatus === "sent"}
+            disabled={isRequestDisabled}
           >
-            {requestStatus === "sending"
-              ? "..."
-              : requestStatus === "sent"
-              ? translate("profileSidebar.requestSent")
-              : requestStatus === "error"
-              ? translate("profileSidebar.requestError")
-              : translate("profileSidebar.requestAccess")}
+            {requestButtonLabel}
           </button>
         )}
         <button className="btn btn--delete btn--small" onClick={onRemove}>

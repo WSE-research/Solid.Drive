@@ -15,9 +15,11 @@ interface UseProfileReturn {
   imgUrl: string;
   displayName: string;
   isLoading: boolean;
+  isUploadingAvatar: boolean;
   setName: (value: string) => void;
   setImgUrl: (value: string) => void;
   save: (original: ProfileFields) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
   reload: () => Promise<void>;
 }
 
@@ -36,6 +38,7 @@ export function useProfile({ suspendSync = false }: UseProfileOptions = {}): Use
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const [name, setName] = useState("");
   const [imgUrl, setImgUrl] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (suspendSync) return;
@@ -55,9 +58,30 @@ export function useProfile({ suspendSync = false }: UseProfileOptions = {}): Use
     if (isReloadable(webIdResource)) await webIdResource.reload();
   };
 
+  const uploadAvatar = async (file: File) => {
+    if (!session.webId) return;
+    const storageRoot =
+      profile?.storage?.toArray()[0]?.["@id"] ??
+      session.webId.replace(/\/profile\/card.*/, "/");
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const avatarUri = `${storageRoot}public/avatar.${ext}`;
+    setIsUploadingAvatar(true);
+    try {
+      const res = await solidFetch(avatarUri, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      setImgUrl(avatarUri);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const reload = async () => {
     if (isReloadable(webIdResource)) await webIdResource.reload();
   };
 
-  return { name, imgUrl, displayName, isLoading, setName, setImgUrl, save, reload };
+  return { name, imgUrl, displayName, isLoading, isUploadingAvatar, setName, setImgUrl, save, uploadAvatar, reload };
 }

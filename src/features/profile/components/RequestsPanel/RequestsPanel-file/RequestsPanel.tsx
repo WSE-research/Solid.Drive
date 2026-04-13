@@ -32,12 +32,12 @@ const RequesterRow: FunctionComponent<{ webId: string }> = ({ webId }) => {
     ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}…`
     : displayName;
 
+  const nameDisplay = isLoading ? translate("requestsPanel.loading") : truncatedName;
+
   return (
     <requests-panel-requester>
       <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
-      <span className="requests-panel__requester-name">
-        {isLoading ? translate("requestsPanel.loading") : truncatedName}
-      </span>
+      <span className="requests-panel__requester-name">{nameDisplay}</span>
     </requests-panel-requester>
   );
 };
@@ -120,12 +120,23 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
   }
 
   const chevronStyle = { transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" };
+  const hasPendingRequests = requests.length > 0;
+  const showEmpty = !loading && !error && requests.length === 0;
+  const requestItems = requests.map((request) => (
+    <RequestItem
+      key={request.messageUri}
+      request={request}
+      onApprove={approve}
+      onDeny={deny}
+      isBusy={busyMessageUri === request.messageUri}
+    />
+  ));
 
   return (
     <requests-panel>
       <button className="requests-panel__toggle" onClick={handleToggle}>
         <span>{translate("requestsPanel.heading")}</span>
-        {requests.length > 0 && <span className="requests-panel__badge">{requests.length}</span>}
+        {hasPendingRequests && <span className="requests-panel__badge">{requests.length}</span>}
         <span className="requests-panel__chevron" style={chevronStyle}>▼</span>
       </button>
 
@@ -138,20 +149,12 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
             </requests-panel-loading>
           )}
           {error && <p className="requests-panel__error">{error}</p>}
-          {!loading && !error && requests.length === 0 && (
+          {showEmpty && (
             <p className="requests-panel__empty">{translate("requestsPanel.noRequests")}</p>
           )}
-          {!loading && requests.map((request) => (
-            <RequestItem
-              key={request.messageUri}
-              request={request}
-              onApprove={approve}
-              onDeny={deny}
-              isBusy={busyMessageUri === request.messageUri}
-            />
-          ))}
+          {!loading && requestItems}
           {!loading && (
-            <button className="btn btn--ghost btn--small requests-panel__refresh" onClick={loadRequests} disabled={loading}>
+            <button className="btn btn--ghost btn--small requests-panel__refresh" onClick={loadRequests}>
               {translate("requestsPanel.refresh")}
             </button>
           )}
