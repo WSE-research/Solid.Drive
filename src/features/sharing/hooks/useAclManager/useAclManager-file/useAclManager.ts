@@ -75,29 +75,32 @@ export function useAclManager(
     await writeResourceAcl(sharedCatalogAclUri, sharedCatalogUri, ownerWebId, [contactWebId], solidFetch);
   }, [appContainerUri, ownerWebId, sharedEntry, solidFetch]);
 
+  const removeAgentsFromAcl = useCallback(async (
+    resourceUri: string,
+    agents: string[],
+    writeFn: (aclUri: string, resourceUri: string, owner: string, remaining: string[], fetch: typeof solidFetch) => Promise<void>
+  ) => {
+    const aclUri = await discoverAclUri(resourceUri, solidFetch);
+    const existing = await readAclAgents(aclUri, solidFetch);
+    const remaining = existing.filter((webId) => !agents.includes(webId));
+    if (remaining.length !== existing.length) {
+      await writeFn(aclUri, resourceUri, ownerWebId, remaining, solidFetch);
+    }
+  }, [ownerWebId, solidFetch]);
+
   const removeLegacyDiscoveryAccess = useCallback(async (agents: string[]) => {
     if (agents.length === 0 || !ownerWebId) return;
     try {
-      const appAclUri = await discoverAclUri(appContainerUri, solidFetch);
-      const existingAppAgents = await readAclAgents(appAclUri, solidFetch);
-      const remainingAppAgents = existingAppAgents.filter((webId) => !agents.includes(webId));
-      if (remainingAppAgents.length !== existingAppAgents.length) {
-        await writeListOnlyAcl(appAclUri, appContainerUri, ownerWebId, remainingAppAgents, solidFetch);
-      }
+      await removeAgentsFromAcl(appContainerUri, agents, writeListOnlyAcl);
     } catch {
       // legacy cleanup should not block the current share operation
     }
     try {
-      const catalogAclUri = await discoverAclUri(catalogUri, solidFetch);
-      const existingCatalogAgents = await readAclAgents(catalogAclUri, solidFetch);
-      const remainingCatalogAgents = existingCatalogAgents.filter((webId) => !agents.includes(webId));
-      if (remainingCatalogAgents.length !== existingCatalogAgents.length) {
-        await writeResourceAcl(catalogAclUri, catalogUri, ownerWebId, remainingCatalogAgents, solidFetch);
-      }
+      await removeAgentsFromAcl(catalogUri, agents, writeResourceAcl);
     } catch {
       // legacy cleanup should not block the current share operation
     }
-  }, [appContainerUri, catalogUri, ownerWebId, solidFetch]);
+  }, [appContainerUri, catalogUri, ownerWebId, removeAgentsFromAcl]);
 
   const loadAcl = useCallback(async () => {
     setLoading(true);

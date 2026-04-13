@@ -49,6 +49,13 @@ const sharedEntry = {
   modified: '2024-01-01T00:00:00Z',
 };
 
+const renderAclManager = () =>
+  renderHook(() => useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry));
+
+const doLoadAcl = async (result: ReturnType<typeof renderAclManager>['result']) => {
+  await act(async () => { await result.current.loadAcl(); });
+};
+
 describe('useAclManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,9 +69,7 @@ describe('useAclManager', () => {
   });
 
   it('exposes all expected properties: aclUri, grantees, loading, error, isSaving, loadAcl, grant, and revoke', () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
+    const { result } = renderAclManager();
     expect(result.current).toHaveProperty('aclUri');
     expect(result.current).toHaveProperty('grantees');
     expect(result.current).toHaveProperty('loading');
@@ -76,22 +81,14 @@ describe('useAclManager', () => {
   });
 
   it('returns loading as true before loadAcl is called', () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
+    const { result } = renderAclManager();
     expect(result.current.loading).toBe(true);
   });
 
   it('loadAcl discovers ACL URI and reads grantees', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(result.current.aclUri).toBe('https://pod.example/my-solid-app/files/doc/.acl');
     expect(result.current.grantees).toEqual(['https://alice.example/profile/card#me']);
     expect(result.current.loading).toBe(false);
@@ -100,127 +97,65 @@ describe('useAclManager', () => {
 
   it('loadAcl calls appendToCatalog for each grantee to sync the shared catalog', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(mockAppendToCatalog).toHaveBeenCalled();
   });
 
   it('loadAcl sets error message when ACL discovery fails', async () => {
     mockDiscoverAclUri.mockRejectedValue(new Error('ACL not found'));
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(result.current.error).toBe('ACL not found');
     expect(result.current.loading).toBe(false);
   });
 
   it('grant adds a grantee and writes ACL', async () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    // First load the ACL
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
-    await act(async () => {
-      await result.current.grant('https://bob.example/profile/card#me');
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
+    await act(async () => { await result.current.grant('https://bob.example/profile/card#me'); });
     expect(mockWriteAcl).toHaveBeenCalled();
     expect(result.current.grantees).toContain('https://bob.example/profile/card#me');
     expect(result.current.isSaving).toBe(false);
   });
 
   it('grant does nothing when aclUri is null', async () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    // Don't load ACL, so aclUri is null
-    await act(async () => {
-      await result.current.grant('https://bob.example/profile/card#me');
-    });
-
+    const { result } = renderAclManager();
+    await act(async () => { await result.current.grant('https://bob.example/profile/card#me'); });
     expect(mockWriteAcl).not.toHaveBeenCalled();
   });
 
   it('grant sets error message when writeAcl throws', async () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     mockWriteAcl.mockRejectedValue(new Error('Write failed'));
-    await act(async () => {
-      await result.current.grant('https://bob.example/profile/card#me');
-    });
-
+    await act(async () => { await result.current.grant('https://bob.example/profile/card#me'); });
     expect(result.current.error).toBe('Write failed');
     expect(result.current.isSaving).toBe(false);
   });
 
   it('revoke removes a grantee and writes ACL', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
-    await act(async () => {
-      await result.current.revoke('https://alice.example/profile/card#me');
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
+    await act(async () => { await result.current.revoke('https://alice.example/profile/card#me'); });
     expect(mockWriteAcl).toHaveBeenCalled();
     expect(result.current.grantees).not.toContain('https://alice.example/profile/card#me');
     expect(mockRemoveFromCatalog).toHaveBeenCalled();
   });
 
   it('revoke does nothing when aclUri is null', async () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.revoke('https://alice.example/profile/card#me');
-    });
-
+    const { result } = renderAclManager();
+    await act(async () => { await result.current.revoke('https://alice.example/profile/card#me'); });
     expect(mockWriteAcl).not.toHaveBeenCalled();
   });
 
   it('revoke sets error message when writeAcl throws', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     mockWriteAcl.mockRejectedValue(new Error('Revoke failed'));
-    await act(async () => {
-      await result.current.revoke('https://alice.example/profile/card#me');
-    });
-
+    await act(async () => { await result.current.revoke('https://alice.example/profile/card#me'); });
     expect(result.current.error).toBe('Revoke failed');
     expect(result.current.isSaving).toBe(false);
   });
@@ -233,15 +168,8 @@ describe('useAclManager', () => {
       .mockResolvedValueOnce('https://pod.example/my-solid-app/files/doc/.acl')
       .mockResolvedValueOnce('https://pod.example/my-solid-app/.shared.acl')
       .mockRejectedValueOnce(new Error('app acl fail'));
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
-    // Should succeed despite the error in app ACL discovery
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(result.current.error).toBeNull();
     expect(result.current.grantees).toEqual([contactWebId]);
   });
@@ -256,14 +184,8 @@ describe('useAclManager', () => {
       .mockResolvedValueOnce('https://pod.example/my-solid-app/.acl')           // shared catalog ACL for syncSharedCatalog
       .mockResolvedValueOnce('https://pod.example/my-solid-app/.acl')           // app ACL
       .mockRejectedValueOnce(new Error('catalog acl fail'));                     // catalog ACL → throw
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(result.current.error).toBeNull();
     expect(result.current.grantees).toEqual([contactWebId]);
   });
@@ -271,27 +193,17 @@ describe('useAclManager', () => {
   it('loadAcl does not rewrite app or catalog ACLs when no legacy agents need removal', async () => {
     const contactWebId = 'https://alice.example/profile/card#me';
     mockReadAclAgents
-      .mockResolvedValueOnce([contactWebId])   // container grantees
-      .mockResolvedValueOnce([]);              // app ACL agents — none match contactWebId, so filter removes nothing
+      .mockResolvedValueOnce([contactWebId])  // container grantees
+      .mockResolvedValueOnce([])              // app ACL agents — none match, filter removes nothing
+      .mockResolvedValueOnce([]);             // catalog ACL agents — same
     mockDiscoverAclUri
       .mockResolvedValueOnce('https://pod.example/my-solid-app/files/doc/.acl')
-      .mockResolvedValueOnce('https://pod.example/my-solid-app/.shared.acl')   // shared catalog ACL
-      .mockResolvedValueOnce('https://pod.example/my-solid-app/.acl')          // app ACL
-      .mockResolvedValueOnce('https://pod.example/my-solid-app/catalog.acl');  // catalog ACL
-
-    // catalog agents also empty — no match
-    mockReadAclAgents.mockResolvedValueOnce([]);
-
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+      .mockResolvedValueOnce('https://pod.example/my-solid-app/.shared.acl')
+      .mockResolvedValueOnce('https://pod.example/my-solid-app/.acl')
+      .mockResolvedValueOnce('https://pod.example/my-solid-app/catalog.acl');
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(mockWriteListOnlyAcl).not.toHaveBeenCalled();
-    // writeResourceAcl is called for sharedCatalog but NOT for catalog legacy cleanup
     const catalogLegacyCalls = mockWriteResourceAcl.mock.calls.filter(
       (call: unknown[]) => call[1] === catalogUri
     );
@@ -300,43 +212,25 @@ describe('useAclManager', () => {
 
   it('loadAcl sets error as String for non-Error thrown', async () => {
     mockDiscoverAclUri.mockRejectedValue('string error');
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-
-    await act(async () => {
-      await result.current.loadAcl();
-    });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     expect(result.current.error).toBe('string error');
   });
 
   it('grant sets error as String for non-Error thrown', async () => {
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-    await act(async () => { await result.current.loadAcl(); });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     mockWriteAcl.mockRejectedValue(42);
-    await act(async () => {
-      await result.current.grant('https://bob.example/profile/card#me');
-    });
-
+    await act(async () => { await result.current.grant('https://bob.example/profile/card#me'); });
     expect(result.current.error).toBe('42');
   });
 
   it('revoke sets error as String for non-Error thrown', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-    const { result } = renderHook(() =>
-      useAclManager(containerUri, catalogUri, appContainerUri, ownerWebId, sharedEntry)
-    );
-    await act(async () => { await result.current.loadAcl(); });
-
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
     mockWriteAcl.mockRejectedValue({ code: 403 });
-    await act(async () => {
-      await result.current.revoke('https://alice.example/profile/card#me');
-    });
-
+    await act(async () => { await result.current.revoke('https://alice.example/profile/card#me'); });
     expect(result.current.error).toBe('[object Object]');
   });
 });
