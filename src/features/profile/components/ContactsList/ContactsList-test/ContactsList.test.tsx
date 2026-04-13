@@ -182,4 +182,11 @@ describe('ContactsList', () => {
     // Re-render verification: the component should still render the contact
     expect(screen.getByTestId('contact-row')).toBeInTheDocument();
   });
+
+  it('skips inbox fetch when ownerWebId is empty', async () => {
+    const { discoverInboxUri } = await import('@/infrastructure/inbox/inboxAccess');
+    render(<ContactsList ownerWebId="" />);
+    // useEffect early return fires — discoverInboxUri must not be called
+    expect(vi.mocked(discoverInboxUri)).not.toHaveBeenCalled();
+  });
 });
