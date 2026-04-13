@@ -42,8 +42,7 @@ export function useFileSharing(
           dispatch({ type: "SET_SHARED", payload: sharedAgents.length > 0 });
         }
       })
-      .catch((err) => {
-        console.warn("[useFileSharing] ACL discovery failed for", containerUri, err);
+      .catch(() => {
         if (!cancelled) {
           dispatch({ type: "SET_SHARED", payload: false });
         }

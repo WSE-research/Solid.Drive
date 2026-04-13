@@ -91,7 +91,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       setDescription("");
       setPendingFile(undefined);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      showSuccess("File uploaded successfully");
+      showSuccess(translate("fileUpload.uploadSuccess"));
     } catch (err) {
       showError(`Upload failed: ${(err as Error).message}`);
     }
@@ -106,8 +106,9 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     catalogUri, 
     profileHasCatalog, 
     onUploadSuccess, 
-    showError, 
-    showSuccess
+    showError,
+    showSuccess,
+    translate,
   ]);
 
   return (

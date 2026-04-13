@@ -103,7 +103,7 @@ describe('ContactsList', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('profileSidebar.add'));
     });
-    expect(mockShowError).toHaveBeenCalledWith(expect.stringContaining('valid http'));
+    expect(mockShowError).toHaveBeenCalledWith('profileSidebar.invalidWebId');
     expect(mockAddContact).not.toHaveBeenCalled();
   });
 

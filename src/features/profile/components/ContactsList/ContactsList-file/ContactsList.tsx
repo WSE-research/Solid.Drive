@@ -13,6 +13,9 @@ import { useContactRejections } from "@/shared/hooks/useContactRejections";
 import { ContactRow } from "@/features/profile/components/ContactRow";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
 
+/** Accepts any http/https URL that contains no whitespace or reserved URI characters. */
+const WEBID_URL_PATTERN = /^https?:\/\/[^\s<>"{}|\\^`[\]]*$/;
+
 /**
  * Props for the ContactsList component.
  */
@@ -37,8 +40,8 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
 
   const handleAdd = async () => {
     const trimmed = newWebId.trim();
-    if (!/^https?:\/\/[^\s<>"{}|\\^`[\]]*$/.test(trimmed)) {
-      showError("WebID must be a valid http(s):// URL without special characters");
+    if (!WEBID_URL_PATTERN.test(trimmed)) {
+      showError(translate("profileSidebar.invalidWebId"));
       return;
     }
     try {

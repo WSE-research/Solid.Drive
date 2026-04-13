@@ -90,7 +90,7 @@ export const ProfileCard: FunctionComponent = () => {
     if (!selectedFile) return;
     try {
       await uploadAvatar(selectedFile);
-      showSuccess("Avatar uploaded successfully");
+      showSuccess(translate("profileSidebar.avatarUploaded"));
     } catch (error) {
       showError(`Avatar upload failed: ${(error as Error).message}`);
     }
@@ -112,7 +112,7 @@ export const ProfileCard: FunctionComponent = () => {
     try {
       await save(originalRef.current);
       setEditing(false);
-      showSuccess("Profile saved successfully");
+      showSuccess(translate("profileSidebar.profileSaved"));
     } catch (error) {
       showError(`Save failed: ${(error as Error).message}`);
     } finally {

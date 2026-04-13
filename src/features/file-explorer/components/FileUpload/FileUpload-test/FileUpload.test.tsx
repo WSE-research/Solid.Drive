@@ -182,7 +182,7 @@ describe('FileUpload', () => {
       catalogUri: 'https://pod.example/catalog.ttl',
       profileHasCatalog: true,
     }));
-    expect(mockShowSuccess).toHaveBeenCalledWith('File uploaded successfully');
+    expect(mockShowSuccess).toHaveBeenCalledWith('fileUpload.uploadSuccess');
     expect(onSuccess).toHaveBeenCalled();
   });
 

@@ -57,7 +57,8 @@
     "fillRequired": "Fill required fields",
     "missingRequired": "Missing required fields:",
     "fieldRequired": "\u2014 {label} is required",
-    "tboxError": "TBox could not be loaded:"
+    "tboxError": "TBox could not be loaded:",
+    "uploadSuccess": "File uploaded successfully"
   },
   "profileSidebar": {
     "loading": "Loading…",
@@ -72,6 +73,9 @@
     "noContacts": "No contacts yet.",
     "remove": "Remove",
     "name": "Name",
+    "avatarUploaded": "Avatar uploaded successfully",
+    "profileSaved": "Profile saved successfully",
+    "invalidWebId": "WebID must be a valid http(s):// URL",
     "requestAccess": "Request Access",
     "requestSent": "Requested",
     "requestError": "Retry",

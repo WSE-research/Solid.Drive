@@ -162,7 +162,7 @@ describe('ProfileCard', () => {
       fireEvent.click(screen.getByText('profileSidebar.save'));
     });
     expect(mockSave).toHaveBeenCalled();
-    expect(mockShowSuccess).toHaveBeenCalledWith('Profile saved successfully');
+    expect(mockShowSuccess).toHaveBeenCalledWith('profileSidebar.profileSaved');
     expect(screen.getByText('profileSidebar.editProfile')).toBeInTheDocument();
   });
 
@@ -199,7 +199,7 @@ describe('ProfileCard', () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
     });
     expect(mockUploadAvatar).toHaveBeenCalledWith(file);
-    expect(mockShowSuccess).toHaveBeenCalledWith('Avatar uploaded successfully');
+    expect(mockShowSuccess).toHaveBeenCalledWith('profileSidebar.avatarUploaded');
   });
 
   it('shows error when uploadAvatar throws', async () => {
