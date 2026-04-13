@@ -8,7 +8,7 @@ React hooks for the file explorer feature.
 
 | Name | Description |
 |---|---|
-| **useAccessRequests** | Sends access requests to a contact's inbox for individual files or all files at once |
+| **useFileAccessRequests** | Sends access requests to a contact's inbox for individual files or all files at once |
 | **useDriveInitialization** | Discovers Pod storage, creates app container, sets up navigation state |
 | **useFilePreview** | Creates a blob URL for previewing a binary resource; revokes on cleanup |
 | **useFileSharing** | Checks if a resource has been shared (has non-owner ACL agents) |

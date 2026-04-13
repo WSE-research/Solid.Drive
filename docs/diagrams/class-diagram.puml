@@ -99,7 +99,7 @@ package "infrastructure/validation" {
 
 package "features/sharing" {
   interface UseAclManagerReturn {
-    +aclUri: string
+    +aclUri: string | null
     +grantees: string[]
     +loading: boolean
     +isSaving: boolean
@@ -150,8 +150,20 @@ package "features/file-explorer" {
   class useFileSharing <<hook>> {
     +useFileSharing(containerUri, fetch): boolean
   }
+  interface UseFileAccessRequestsReturn {
+    +bulkStatus: RequestStatus
+    +fileStatuses: Record<string, RequestStatus>
+    +handleRequestAll(): Promise<void>
+    +handleRequestFile(entry): Promise<void>
+    +handleRequestAgain(entry, rejection): Promise<void>
+  }
+  class useFileAccessRequests <<hook>> {
+    +useFileAccessRequests(params): UseFileAccessRequestsReturn
+  }
   SharePanel ..> useAclManager : uses
   useFileSharing ..> aclManager : calls
+  useFileAccessRequests --> UseFileAccessRequestsReturn : returns
+  useFileAccessRequests ..> inboxAccess : calls
 }
 
 catalog ..> CatalogEntry : returns

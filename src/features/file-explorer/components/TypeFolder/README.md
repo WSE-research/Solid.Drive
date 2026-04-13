@@ -17,4 +17,4 @@ A collapsible folder that groups a contact's files by schema.org type, shown for
 
 | Hook | Purpose |
 |---|---|
-| `useAccessRequests` | Manages bulk and perfile request state, inbox discovery, and send/retry/delete operations |
+| `useFileAccessRequests` | Manages bulk and per-file request state, inbox discovery, and send/retry/delete operations |
