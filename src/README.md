@@ -7,28 +7,25 @@ The entire application lives here. The structure follows a layered architecture.
 ## Architecture
 
 ```mermaid
-graph TD
-    app["app/\nentry point, i18n"]
-    features["features/\nauth · file-explorer · profile · sharing"]
-    infrastructure["infrastructure/\nsolid · inbox · validation · wac"]
-    shared["shared/\ncomponents · contexts · hooks · utils"]
-    config["config/\nconstants · env"]
-    types["types/\nshared TypeScript types"]
+flowchart TD
+    classDef app   fill:#7c3aed,stroke:none,color:#fff
+    classDef feat  fill:#0369a1,stroke:none,color:#fff
+    classDef infra fill:#b45309,stroke:none,color:#fff
+    classDef base  fill:#334155,stroke:none,color:#fff
+
+    app(["🟣  app/   ·   entry point · i18n · locales"]):::app
+    features(["🔵  features/   ·   auth · file-explorer · profile · sharing"]):::feat
+    infrastructure(["🟠  infrastructure/   ·   solid · inbox · validation · wac"]):::infra
+    foundation(["⚫  foundation   ·   shared/ · config/ · types/"]):::base
 
     app --> features
+    app --> foundation
     features --> infrastructure
-    features --> shared
-    infrastructure --> shared
-    app --> shared
-    features --> config
-    infrastructure --> config
-    shared --> config
-    features --> types
-    infrastructure --> types
-    shared --> types
+    features --> foundation
+    infrastructure --> foundation
 ```
 
-**Key rule:** `infrastructure/` never imports from `features/`. The `sharing` feature is the only cross-feature dependency (`file-explorer` uses `features/sharing/hooks/useAclManager`).
+**Key rule:** `infrastructure/` never imports from `features/`. The only cross-feature dependency is `file-explorer` → `features/sharing/hooks/useAclManager`.
 
 ## Contents
 
