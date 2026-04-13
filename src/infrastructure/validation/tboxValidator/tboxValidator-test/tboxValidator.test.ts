@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  parseTBox,
   getShapeForType,
   validateMetadata,
   resetTBoxCache,
   loadTBox,
 } from '../tboxValidator-file/tboxValidator';
+import { parseTBox } from '../../tboxParser';
 
 beforeEach(() => resetTBoxCache());
 
@@ -100,77 +100,6 @@ schema:test-contentSize
   sh:description "File size." ;
 .
 `.trim();
-
-describe("parseTBox", () => {
-  it("parses SHACL node shapes and their property constraints from Turtle input", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    expect(shapes.size).toBeGreaterThan(0);
-  });
-
-  it("identifies DigitalDocument as a NodeShape", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    expect(shapes.has("http://schema.org/DigitalDocument")).toBe(true);
-  });
-
-  it("identifies MediaObject as a NodeShape", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    expect(shapes.has("http://schema.org/MediaObject")).toBe(true);
-  });
-
-  it("identifies ImageObject as a NodeShape", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    expect(shapes.has("http://schema.org/ImageObject")).toBe(true);
-  });
-
-  it("parses required properties (minCount > 0)", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    const doc = shapes.get("http://schema.org/DigitalDocument")!;
-    const requiredPaths = doc.requiredProperties.map((p) => p.path);
-    expect(requiredPaths).toContain("http://schema.org/name");
-    expect(requiredPaths).toContain("http://schema.org/uploadDate");
-    expect(requiredPaths).toContain("http://schema.org/publisher");
-  });
-
-  it("parses optional properties (no minCount)", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    const doc = shapes.get("http://schema.org/DigitalDocument")!;
-    const optionalPaths = doc.optionalProperties.map((p) => p.path);
-    expect(optionalPaths).toContain("http://schema.org/description");
-  });
-
-  it("extracts human-readable labels for each SHACL property shape", () => {
-    const { shapes } = parseTBox(TEST_TBOX);
-    const doc = shapes.get("http://schema.org/DigitalDocument")!;
-    const nameProp = doc.requiredProperties.find(
-      (p) => p.localName === "name"
-    );
-    expect(nameProp?.label).toBe("name");
-    expect(nameProp?.description).toBe("The name of the item.");
-  });
-
-  it("parses inheritance from rdfs:subClassOf", () => {
-    const { parents } = parseTBox(TEST_TBOX);
-    expect(parents.get("http://schema.org/ImageObject")).toContain(
-      "http://schema.org/MediaObject"
-    );
-    expect(parents.get("http://schema.org/DigitalDocument")).toContain(
-      "http://schema.org/CreativeWork"
-    );
-  });
-
-  it("returns empty maps for invalid Turtle", () => {
-    const { shapes, parents } = parseTBox("this is not turtle @@@@");
-    expect(shapes.size).toBe(0);
-    expect(parents.size).toBe(0);
-  });
-
-  it("returns empty maps for empty string", () => {
-    const { shapes, parents } = parseTBox("");
-    expect(shapes.size).toBe(0);
-    expect(parents.size).toBe(0);
-  });
-});
-
 
 describe("getShapeForType", () => {
   const { shapes, parents } = parseTBox(TEST_TBOX);
@@ -502,6 +431,20 @@ describe("validateMetadata", () => {
       realShapes,
       realParents
     );
+    expect(shape).not.toBeNull();
+  });
+
+  it("handles circular parent relationships without infinite looping", () => {
+    // TypeA → TypeB → TypeA (circular)
+    const circularParents = new Map<string, string[]>([
+      ["http://schema.org/TypeA", ["http://schema.org/TypeB"]],
+      ["http://schema.org/TypeB", ["http://schema.org/TypeA"]],
+    ]);
+    const circularShapes = new Map([
+      ["http://schema.org/TypeA", { uri: "http://schema.org/TypeA", label: "Type A", requiredProperties: [], optionalProperties: [] }],
+    ]) as Parameters<typeof getShapeForType>[1];
+    // Should not throw or infinite-loop; visited.has(current) guard fires
+    const shape = getShapeForType("http://schema.org/TypeA", circularShapes, circularParents);
     expect(shape).not.toBeNull();
   });
 });

@@ -9,7 +9,7 @@
 
 import { Parser as N3Parser, Store as N3Store } from "n3";
 import { RDF_NAMESPACES } from "@/config";
-import type { ShapeDefinition, PropertyConstraint } from "./tboxTypes";
+import type { ShapeDefinition, PropertyConstraint } from "../../tboxTypes";
 
 const SH = RDF_NAMESPACES.SHACL;
 const RDF = RDF_NAMESPACES.RDF;

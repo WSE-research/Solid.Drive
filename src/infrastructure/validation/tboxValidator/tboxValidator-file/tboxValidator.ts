@@ -20,6 +20,7 @@ import type {
 export type { PropertyConstraint, ShapeDefinition, ValidationResult, PropertyViolation };
 export { parseTBox } from "../../tboxParser";
 
+
 let cachedShapes: Map<string, ShapeDefinition> | null = null;
 let cachedParents: Map<string, string[]> | null = null;
 
@@ -42,6 +43,7 @@ export function resetTBoxCache(): void {
  * @param tboxUri - URI of the TBox file
  * @param fetchFn - Fetch function to use
  * @returns Object with shapes map and parents map
+ * @throws Error if the HTTP request fails
  *
  * @public
  */
