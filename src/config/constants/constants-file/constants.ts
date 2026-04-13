@@ -3,7 +3,7 @@
  *
  * @remarks
  * All customizable values are defined here. This module is the single source
- * of truth for branding, providers, namespaces, and other app-wide settings.
+ * of truth for branding, providers, namespaces, and other app wide settings.
  *
  * @packageDocumentation
  */
@@ -117,7 +117,7 @@ export const EXTERNAL_LINKS = {
 // ============================================================================
 
 /**
- * File type definitions are now loaded dynamically from the TBox TTL file.
+ * File type definitions are loaded dynamically from the TBox TTL file.
  *
  * @remarks
  * See: `src/infrastructure/validation/fileTypeRegistry.ts`
@@ -174,7 +174,7 @@ export const DEFAULT_CATALOG_FILENAME = "catalog.ttl";
  * System files that should be hidden from the user in the file explorer.
  *
  * @remarks
- * These are typically Solid system files or app-specific metadata files.
+ * These are typically Solid system files or app specific metadata files.
  *
  * @public
  */

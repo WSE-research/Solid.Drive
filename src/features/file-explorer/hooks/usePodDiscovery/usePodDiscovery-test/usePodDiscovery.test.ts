@@ -24,6 +24,7 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isLoadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).isLoading === 'function',
+  isReloadable: (res: unknown) => res != null && typeof (res as Record<string, unknown>).reload === 'function',
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -47,12 +48,12 @@ describe('usePodDiscovery', () => {
     vi.useRealTimers();
   });
 
-  it('exposes appContainerUri, storageRootUri, noStorageDetected, and initial navigation state', () => {
+  it('exposes appContainerUri, storageRootUri, noStorageDetected, handleRetryStorage, and initial navigation state', () => {
     const { result } = renderHook(() => usePodDiscovery(10000));
     expect(result.current).toHaveProperty('appContainerUri');
     expect(result.current).toHaveProperty('storageRootUri');
     expect(result.current).toHaveProperty('noStorageDetected');
-    expect(result.current).toHaveProperty('setNoStorageDetected');
+    expect(result.current).toHaveProperty('handleRetryStorage');
     expect(result.current).toHaveProperty('initialCurrentUri');
     expect(result.current).toHaveProperty('initialBreadcrumbLabel');
   });
@@ -95,29 +96,36 @@ describe('usePodDiscovery', () => {
     expect(result.current.noStorageDetected).toBe(false);
   });
 
-  it('retry timer resets noStorageDetected after delay', () => {
+  it('retry timer calls handleRetryStorage after delay', async () => {
+    const mockReload = vi.fn().mockResolvedValue(undefined);
     mockProfileValue = { storage: { toArray: () => [] } };
-    mockWebIdResource = { isLoading: () => false };
-    const { result } = renderHook(() => usePodDiscovery(5000));
-    expect(result.current.noStorageDetected).toBe(true);
+    mockWebIdResource = { isLoading: () => false, reload: mockReload };
+    renderHook(() => usePodDiscovery(5000));
 
-    // After the timer fires, noStorageDetected is set to false and initialized is reset.
-    // But since the profile still has no storage, the effect re-runs and sets it back to true.
-    // The key behavior is that the timeout fires and resets the initialized ref (allowing retry).
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(5000);
     });
 
-    // It will be re-set to true because profile still has no storage,
-    // which proves the timer DID fire (initialized was reset)
-    expect(result.current.noStorageDetected).toBe(true);
+    expect(mockReload).toHaveBeenCalled();
   });
 
-  it('setNoStorageDetected can be called manually', () => {
+  it('handleRetryStorage resets state and reloads the webId resource', async () => {
+    const mockReload = vi.fn().mockResolvedValue(undefined);
+    mockWebIdResource = { isLoading: () => false, reload: mockReload };
     const { result } = renderHook(() => usePodDiscovery(10000));
-    act(() => {
-      result.current.setNoStorageDetected(true);
+    await act(async () => {
+      await result.current.handleRetryStorage();
     });
-    expect(result.current.noStorageDetected).toBe(true);
+    expect(mockReload).toHaveBeenCalled();
+  });
+
+  it('handleRetryStorage returns early when webIdResource is not reloadable', async () => {
+    mockWebIdResource = { isLoading: () => false };
+    const { result } = renderHook(() => usePodDiscovery(10000));
+    await act(async () => {
+      await result.current.handleRetryStorage();
+    });
+    // No error — just a no-op
+    expect(result.current.noStorageDetected).toBe(false);
   });
 });

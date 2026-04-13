@@ -27,13 +27,16 @@ export const FileMediaPreview: FunctionComponent<FileMediaPreviewProps> = ({
   mimeType,
   name,
 }) => {
+  const previewLabel = name ?? "Preview";
+  const isDocument = mimeType === CONTENT_TYPES.PDF || mimeType.startsWith(MIME_PREFIXES.TEXT);
+
   if (mimeType.startsWith(MIME_PREFIXES.IMAGE))
-    return <img className="file-card__preview" src={previewUrl} alt={name ?? "Preview"} />;
+    return <img className="file-card__preview" src={previewUrl} alt={previewLabel} />;
   if (mimeType.startsWith(MIME_PREFIXES.VIDEO))
     return <video className="file-card__preview" src={previewUrl} controls />;
   if (mimeType.startsWith(MIME_PREFIXES.AUDIO))
     return <audio className="file-card__preview--audio" src={previewUrl} controls />;
-  if (mimeType === CONTENT_TYPES.PDF || mimeType.startsWith(MIME_PREFIXES.TEXT))
-    return <iframe className="file-card__preview--doc" src={previewUrl} title={name ?? "Preview"} />;
+  if (isDocument)
+    return <iframe className="file-card__preview--doc" src={previewUrl} title={previewLabel} />;
   return null;
 };

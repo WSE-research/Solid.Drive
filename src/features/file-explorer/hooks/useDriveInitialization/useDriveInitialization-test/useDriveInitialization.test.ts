@@ -54,7 +54,7 @@ describe('useDriveInitialization', () => {
     vi.useRealTimers();
   });
 
-  it('exposes storage URIs, navigation state, retry handler, and contacts', () => {
+  it('exposes storage URIs, navigation state, retry handler, navigation handlers, and contacts', () => {
     const { result } = renderHook(() => useDriveInitialization());
     expect(result.current).toHaveProperty('appContainerUri');
     expect(result.current).toHaveProperty('storageRootUri');
@@ -64,6 +64,8 @@ describe('useDriveInitialization', () => {
     expect(result.current).toHaveProperty('setBreadcrumbs');
     expect(result.current).toHaveProperty('noStorageDetected');
     expect(result.current).toHaveProperty('handleRetryStorage');
+    expect(result.current).toHaveProperty('handleNavigate');
+    expect(result.current).toHaveProperty('handleBreadcrumbClick');
     expect(result.current).toHaveProperty('contacts');
   });
 
@@ -161,5 +163,32 @@ describe('useDriveInitialization', () => {
     // Since webIdResource has no reload method, isReloadable returns false, so reload is never called
     // No error should occur — the function just returns early
     expect(result.current.noStorageDetected).toBe(false);
+  });
+
+  it('handleNavigate pushes a new folder onto the breadcrumb trail and updates currentUri', () => {
+    const { result } = renderHook(() => useDriveInitialization());
+    act(() => {
+      result.current.handleNavigate('https://pod.example/my-solid-app/photos/');
+    });
+    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
+    expect(result.current.breadcrumbs).toHaveLength(2);
+    expect(result.current.breadcrumbs[1].uri).toBe('https://pod.example/my-solid-app/photos/');
+    expect(result.current.breadcrumbs[1].label).toBe('photos');
+  });
+
+  it('handleBreadcrumbClick trims the breadcrumb trail and updates currentUri', () => {
+    const { result } = renderHook(() => useDriveInitialization());
+    act(() => {
+      result.current.handleNavigate('https://pod.example/my-solid-app/photos/');
+      result.current.handleNavigate('https://pod.example/my-solid-app/photos/vacation/');
+    });
+    expect(result.current.breadcrumbs).toHaveLength(3);
+
+    act(() => {
+      result.current.handleBreadcrumbClick(1, 'https://pod.example/my-solid-app/photos/' as import('@ldo/connected-solid').SolidContainerUri);
+    });
+    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
+    expect(result.current.breadcrumbs).toHaveLength(2);
+    expect(result.current.breadcrumbs[1].uri).toBe('https://pod.example/my-solid-app/photos/');
   });
 });

@@ -48,6 +48,24 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   const canUpload = !validation || validation.valid;
 
   const titleClassName = `file-upload__title${titleViolation ? " file-upload__title--error" : ""}`;
+  const titleViolationMessage = titleViolation
+    ? translate("fileUpload.fieldRequired", { label: titleViolation.label })
+    : undefined;
+
+  const fileSizeKb = pendingFile ? `${(pendingFile.size / 1024).toFixed(1)} KB` : "";
+  const fileTypeLabel = pendingFile?.type || translate("fileUpload.unknownType");
+
+  const submitButtonLabel = isUploading
+    ? translate("fileUpload.uploading")
+    : !canUpload
+      ? translate("fileUpload.fillRequired")
+      : translate("fileUpload.upload");
+
+  const violationsWithDetail = nonTitleViolations.map((violation) => ({
+    ...violation,
+    detail: violation.description ? ` — ${violation.description}` : "",
+  }));
+  
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) =>
     setPendingFile(event.target.files?.[0]);
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -61,7 +79,13 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     if (validation && !validation.valid) return;
 
     try {
-      await upload({ file: pendingFile, title, description, mainContainer, catalogUri, profileHasCatalog });
+      await upload({ 
+        file: pendingFile, 
+        title, description, 
+        mainContainer, 
+        catalogUri, 
+        profileHasCatalog 
+      });
       onUploadSuccess?.();
       setTitle("");
       setDescription("");
@@ -71,7 +95,20 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     } catch (err) {
       showError(`Upload failed: ${(err as Error).message}`);
     }
-  }, [session.webId, pendingFile, validation, upload, title, description, mainContainer, catalogUri, profileHasCatalog, onUploadSuccess, showError, showSuccess]);
+  }, [
+    session.webId, 
+    pendingFile, 
+    validation, 
+    upload, 
+    title, 
+    description, 
+    mainContainer, 
+    catalogUri, 
+    profileHasCatalog, 
+    onUploadSuccess, 
+    showError, 
+    showSuccess
+  ]);
 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
@@ -98,10 +135,8 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           <div className="file-upload__divider" />
           <label className="file-upload__field-label" htmlFor="file-upload-title">
             {translate("fileUpload.title")}{" "}
-            {titleViolation && (
-              <span className="file-upload__field-error">
-                {translate("fileUpload.fieldRequired", { label: titleViolation.label })}
-              </span>
+            {titleViolationMessage && (
+              <span className="file-upload__field-error">{titleViolationMessage}</span>
             )}
           </label>
           <input
@@ -125,10 +160,10 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           {nonTitleViolations.length > 0 && (
             <file-upload-errors>
               <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
-              {nonTitleViolations.map((violation) => (
+              {violationsWithDetail.map((violation) => (
                 <p key={violation.path} className="file-upload__validation-item">
                   <strong>{violation.label}</strong>
-                  {violation.description && <span> — {violation.description}</span>}
+                  {violation.detail && <span>{violation.detail}</span>}
                 </p>
               ))}
             </file-upload-errors>
@@ -136,17 +171,13 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
           <file-upload-footer>
             <span className="file-upload__meta">
-              {pendingFile.type || translate("fileUpload.unknownType")} · {(pendingFile.size / 1024).toFixed(1)} KB
+              {fileTypeLabel} · {fileSizeKb}
               {validation?.shape && (
                 <span className="file-upload__type-label"> · {validation.shape.label}</span>
               )}
             </span>
             <button className="btn btn--primary" type="submit" disabled={isUploading || !canUpload}>
-              {isUploading
-                ? translate("fileUpload.uploading")
-                : !canUpload
-                  ? translate("fileUpload.fillRequired")
-                  : translate("fileUpload.upload")}
+              {submitButtonLabel}
             </button>
           </file-upload-footer>
         </>

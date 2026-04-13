@@ -49,14 +49,18 @@ export const FileCardInfoPanel: FunctionComponent<FileCardInfoPanelProps> = ({
 }) => {
   const [translate] = useTranslation();
 
+  const formattedSize = contentSize ? formatBytes(contentSize) : undefined;
+  const partOfUri = isPartOf?.["@id"];
+  const fileTypeDescription = fileType.description || undefined;
+
   return (
     <file-card-schema>
       <file-card-schema-row>
         <span className="file-card__schema-label">{translate("fileCard.fileType")}</span>
         <span className="file-card__schema-value">
           <span className="file-card__type-badge">{fileType.label}</span>
-          {fileType.description && (
-            <span className="file-card__type-note">{fileType.description}</span>
+          {fileTypeDescription && (
+            <span className="file-card__type-note">{fileTypeDescription}</span>
           )}
         </span>
       </file-card-schema-row>
@@ -79,10 +83,10 @@ export const FileCardInfoPanel: FunctionComponent<FileCardInfoPanelProps> = ({
           <span className="file-card__schema-value">{encodingFormat}</span>
         </file-card-schema-row>
       )}
-      {contentSize && (
+      {formattedSize && (
         <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.size")}</span>
-          <span className="file-card__schema-value">{formatBytes(contentSize)}</span>
+          <span className="file-card__schema-value">{formattedSize}</span>
         </file-card-schema-row>
       )}
       {uploadedAt && (
@@ -103,11 +107,11 @@ export const FileCardInfoPanel: FunctionComponent<FileCardInfoPanelProps> = ({
           <span className="file-card__schema-value">{publisherName}</span>
         </file-card-schema-row>
       )}
-      {isPartOf?.["@id"] && (
+      {partOfUri && (
         <file-card-schema-row>
           <span className="file-card__schema-label">{translate("fileCard.partOf")}</span>
           <span className="file-card__schema-value file-card__schema-value--uri">
-            {isPartOf["@id"]}
+            {partOfUri}
           </span>
         </file-card-schema-row>
       )}

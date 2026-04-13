@@ -23,16 +23,16 @@ function getModesForAgent(turtle: string, agentWebId: string, baseIRI?: string):
   const quads = parseAclTurtle(turtle, baseIRI);
   const authSubjects = new Set(
     quads
-      .filter((q) => q.predicate.value === RDF_TYPE && q.object.value === `${ACL_NS}Authorization`)
-      .map((q) => q.subject.value)
+      .filter((quad) => quad.predicate.value === RDF_TYPE && quad.object.value === `${ACL_NS}Authorization`)
+      .map((quad) => quad.subject.value)
   );
   const modes: string[] = [];
   for (const subject of authSubjects) {
-    const hasAgent = quads.some((q) => q.subject.value === subject && q.predicate.value === `${ACL_NS}agent` && q.object.value === agentWebId);
+    const hasAgent = quads.some((quad) => quad.subject.value === subject && quad.predicate.value === `${ACL_NS}agent` && quad.object.value === agentWebId);
     if (!hasAgent) continue;
     quads
-      .filter((q) => q.subject.value === subject && q.predicate.value === `${ACL_NS}mode`)
-      .forEach((q) => modes.push(q.object.value));
+      .filter((quad) => quad.subject.value === subject && quad.predicate.value === `${ACL_NS}mode`)
+      .forEach((quad) => modes.push(quad.object.value));
   }
   return modes;
 }
@@ -118,7 +118,7 @@ describe("readAclAgents", () => {
 });
 
 describe("buildAclTurtle", () => {
-  it("includes owner with Read Write Control", () => {
+  it("grants the owner Read, Write, and Control over the container", () => {
     const turtle = buildAclTurtle("https://pod.example/file/", "https://owner.example/#me", []);
     const ownerModes = getModesForAgent(turtle, "https://owner.example/#me");
     expect(ownerModes).toContain(`${ACL_NS}Read`);
@@ -126,7 +126,7 @@ describe("buildAclTurtle", () => {
     expect(ownerModes).toContain(`${ACL_NS}Control`);
   });
 
-  it("includes each agent with Read only", () => {
+  it("grants shared agents Read-only access without Write or Control", () => {
     const turtle = buildAclTurtle("https://pod.example/file/", "https://owner.example/#me", ["https://alice.example/#me"]);
     const aliceModes = getModesForAgent(turtle, "https://alice.example/#me");
     expect(aliceModes).toContain(`${ACL_NS}Read`);
@@ -136,17 +136,17 @@ describe("buildAclTurtle", () => {
 });
 
 describe("buildResourceAclTurtle", () => {
-  it("does not include acl:default for leaf resources", () => {
+  it("omits acl:default so access does not inherit to child resources, while still granting agents Read", () => {
     const turtle = buildResourceAclTurtle("https://pod.example/catalog.ttl", "https://owner.example/#me", ["https://alice.example/#me"]);
     const quads = parseAclTurtle(turtle);
-    expect(quads.some((q) => q.predicate.value === `${ACL_NS}default`)).toBe(false);
+    expect(quads.some((quad) => quad.predicate.value === `${ACL_NS}default`)).toBe(false);
     const aliceModes = getModesForAgent(turtle, "https://alice.example/#me");
     expect(aliceModes).toContain(`${ACL_NS}Read`);
   });
 });
 
 describe("writeAcl", () => {
-  it("writeAcl PUTs turtle to ACL URI with text/turtle content-type", async () => {
+  it("sends a PUT request to the ACL URI with text/turtle content-type header", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/file/.acl": { status: 201 } });
     await expect(
       writeAcl("https://pod.example/file/.acl", "https://pod.example/file/", "https://owner.example/#me", [], mockFetch)
@@ -166,7 +166,7 @@ describe("writeAcl", () => {
 });
 
 describe("writeResourceAcl", () => {
-  it("writeResourceAcl PUTs turtle to ACL URI with text/turtle content-type", async () => {
+  it("sends a PUT request to the resource ACL URI with text/turtle content-type header", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/catalog.ttl.acl": { status: 201 } });
     await expect(
       writeResourceAcl("https://pod.example/catalog.ttl.acl", "https://pod.example/catalog.ttl", "https://owner.example/#me", [], mockFetch)
@@ -219,27 +219,27 @@ describe("buildListOnlyAclTurtle", () => {
     expect(agentModes).not.toContain(`${ACL_NS}Control`);
   });
 
-  it("does NOT set acl:default for the agent (list-only, no child inheritance)", () => {
+  it("does NOT set acl:default for the agent so shared access does not inherit into child resources", () => {
     const turtle = buildListOnlyAclTurtle(containerUri, ownerWebId, [agentWebId]);
     const quads = parseAclTurtle(turtle, containerUri);
     const agentQuads = quads.filter(
-      (q) => q.object.value === agentWebId
+      (quad) => quad.object.value === agentWebId
     );
-    const agentSubjects = new Set(agentQuads.map((q) => q.subject.value));
+    const agentSubjects = new Set(agentQuads.map((quad) => quad.subject.value));
     const hasDefault = quads.some(
-      (q) => agentSubjects.has(q.subject.value) && q.predicate.value === `${ACL_NS}default`
+      (quad) => agentSubjects.has(quad.subject.value) && quad.predicate.value === `${ACL_NS}default`
     );
     expect(hasDefault).toBe(false);
   });
 
-  it("sets acl:default for the owner authorization", () => {
+  it("sets acl:default on the owner authorization so the owner retains access to child resources", () => {
     const turtle = buildListOnlyAclTurtle(containerUri, ownerWebId, []);
     const quads = parseAclTurtle(turtle, containerUri);
     const ownerSubjects = new Set(
-      quads.filter((q) => q.object.value === ownerWebId).map((q) => q.subject.value)
+      quads.filter((quad) => quad.object.value === ownerWebId).map((quad) => quad.subject.value)
     );
     const hasDefault = quads.some(
-      (q) => ownerSubjects.has(q.subject.value) && q.predicate.value === `${ACL_NS}default`
+      (quad) => ownerSubjects.has(quad.subject.value) && quad.predicate.value === `${ACL_NS}default`
     );
     expect(hasDefault).toBe(true);
   });
@@ -255,7 +255,7 @@ describe("buildListOnlyAclTurtle", () => {
 // ─── writeListOnlyAcl ─────────────────────────────────────────────────────────
 
 describe("writeListOnlyAcl", () => {
-  it("writeListOnlyAcl PUTs turtle to the ACL URI with text/turtle content-type", async () => {
+  it("sends a PUT request to the list-only ACL URI with text/turtle content-type header", async () => {
     const mockFetch = makeFetch({ "PUT https://pod.example/my-app/.acl": { status: 201 } });
     await expect(
       writeListOnlyAcl(

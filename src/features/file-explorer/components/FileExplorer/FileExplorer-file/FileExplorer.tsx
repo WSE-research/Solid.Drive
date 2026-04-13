@@ -18,7 +18,7 @@ import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
 import { DriveFileList } from "./DriveFileList";
-import type { SolidContainerUri, SolidLeaf } from "@ldo/connected-solid";
+import type { SolidLeaf } from "@ldo/connected-solid";
 
 /**
  * Props for the FileExplorer component.
@@ -48,28 +48,15 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     appContainerUri,
     storageRootUri,
     currentUri,
-    setCurrentUri,
     breadcrumbs,
-    setBreadcrumbs,
     noStorageDetected,
     handleRetryStorage,
+    handleNavigate,
+    handleBreadcrumbClick,
     contacts,
   } = useDriveInitialization(storageRetryDelayMs);
 
   const currentContainer = useResource(currentUri);
-
-  /** Navigate into a subfolder and push it onto the breadcrumb trail. */
-  const handleNavigate = useCallback((uri: string) => {
-    const label = decodeURIComponent(uri.replace(/\/$/, "").split("/").pop() ?? uri);
-    setBreadcrumbs((prev) => [...prev, { label, uri: uri as SolidContainerUri }]);
-    setCurrentUri(uri as SolidContainerUri);
-  }, [setBreadcrumbs, setCurrentUri]);
-
-  /** Jump back to a breadcrumb at the given index and trim the trail. */
-  const handleBreadcrumbClick = useCallback((index: number, uri: SolidContainerUri) => {
-    setBreadcrumbs((prev) => prev.slice(0, index + 1));
-    setCurrentUri(uri);
-  }, [setBreadcrumbs, setCurrentUri]);
 
   /** Download a file via the session and trigger a browser save. */
   const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {

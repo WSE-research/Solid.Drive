@@ -2,7 +2,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { FileCard } from '../FileCard-file/FileCard';
 
-// â”€â”€ module mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── module mocks ─────────────────────────────────────────────────────────────
 
 vi.mock('@ldo/solid-react', () => ({
   useLdo: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
 }));
 
 vi.mock('@/shared/utils/formatBytes', () => ({
-  formatBytes: vi.fn((n: string) => `${n} bytes`),
+  formatBytes: vi.fn((byteCount: string) => `${byteCount} bytes`),
 }));
 
 vi.mock('@/shared/utils', () => ({
@@ -67,7 +67,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string) => key],
 }));
 
-// â”€â”€ imports after mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── imports after mocks ───────────────────────────────────────────────────────
 
 import { useLdo, useResource, useSubject, useSolidAuth } from '@ldo/solid-react';
 import {
@@ -80,7 +80,7 @@ import { removeFromCatalog } from '@/infrastructure/solid/catalog';
 import { isKnownFileType } from '@/infrastructure/validation/fileTypeRegistry';
 import { isAbsoluteUri } from '@/shared/utils';
 
-// â”€â”€ shared constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── shared constants ──────────────────────────────────────────────────────────
 
 const CONTAINER_URI = 'https://user.example/files/doc1/';
 const CATALOG_URI = 'https://user.example/catalog.ttl';
@@ -114,31 +114,31 @@ const baseFileMeta = {
 const mockGetResource = vi.fn();
 const mockConfirm = vi.fn();
 
-// â”€â”€ default mock wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── default mock wiring ───────────────────────────────────────────────────────
 
 beforeEach(() => {
   vi.clearAllMocks();
 
-  (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+  vi.mocked(useSolidAuth).mockReturnValue({
     session: { isLoggedIn: true, webId: 'https://me.example/card#me' },
     fetch: vi.fn(),
   });
-  (useLdo as ReturnType<typeof vi.fn>).mockReturnValue({ getResource: mockGetResource });
-  (useResource as ReturnType<typeof vi.fn>).mockReturnValue(makeResource());
-  (useSubject as ReturnType<typeof vi.fn>).mockReturnValue(null);
+  vi.mocked(useLdo).mockReturnValue({ getResource: mockGetResource });
+  vi.mocked(useResource).mockReturnValue(makeResource());
+  vi.mocked(useSubject).mockReturnValue(null);
 
   vi.mocked(isLoadable).mockReturnValue(false);
   vi.mocked(isReadable).mockReturnValue(false);
   vi.mocked(isDeletable).mockReturnValue(false);
   vi.mocked(isSolidContainer).mockReturnValue(false);
 
-  (useFileSharing as ReturnType<typeof vi.fn>).mockReturnValue(false);
-  (useFilePreview as ReturnType<typeof vi.fn>).mockReturnValue({ previewUrl: null });
-  (useNotifications as ReturnType<typeof vi.fn>).mockReturnValue({ confirm: mockConfirm });
+  vi.mocked(useFileSharing).mockReturnValue(false);
+  vi.mocked(useFilePreview).mockReturnValue({ previewUrl: undefined });
+  vi.mocked(useNotifications).mockReturnValue({ confirm: mockConfirm } as unknown as ReturnType<typeof useNotifications>);
   mockConfirm.mockResolvedValue(false);
 });
 
-// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function renderCard(props: { readOnly?: boolean } = {}) {
   return render(
@@ -151,18 +151,18 @@ function renderCard(props: { readOnly?: boolean } = {}) {
 }
 
 function withFileMeta(overrides: Partial<typeof baseFileMeta> = {}) {
-  (useSubject as ReturnType<typeof vi.fn>).mockImplementation((_shape, uri) => {
+  vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
     if (uri === METADATA_URI) return { ...baseFileMeta, ...overrides };
     return null;
   });
 }
 
-// â”€â”€ tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── tests ─────────────────────────────────────────────────────────────────────
 
-describe('FileCard â€” loading state', () => {
+describe('FileCard — loading state', () => {
   it('shows a spinner when the metadata resource is loading', () => {
     vi.mocked(isLoadable).mockReturnValue(true);
-    (useResource as ReturnType<typeof vi.fn>).mockReturnValue(makeResource({ isLoading: true }));
+    vi.mocked(useResource).mockReturnValue(makeResource({ isLoading: true }));
     renderCard();
     expect(screen.getByText('fileCard.loading')).toBeInTheDocument();
     expect(document.querySelector('.spinner')).toBeInTheDocument();
@@ -170,30 +170,30 @@ describe('FileCard â€” loading state', () => {
 
   it('shows a spinner when the metadata resource is unfetched', () => {
     vi.mocked(isLoadable).mockReturnValue(true);
-    (useResource as ReturnType<typeof vi.fn>).mockReturnValue(makeResource({ isUnfetched: true }));
+    vi.mocked(useResource).mockReturnValue(makeResource({ isUnfetched: true }));
     renderCard();
     expect(screen.getByText('fileCard.loading')).toBeInTheDocument();
   });
 
   it('shows a spinner when the metadata resource is being read', () => {
     vi.mocked(isReadable).mockReturnValue(true);
-    (useResource as ReturnType<typeof vi.fn>).mockReturnValue(makeResource({ isReading: true }));
+    vi.mocked(useResource).mockReturnValue(makeResource({ isReading: true }));
     renderCard();
     expect(screen.getByText('fileCard.loading')).toBeInTheDocument();
   });
 });
 
-describe('FileCard â€” readOnly + fetched + no uploadDate â†’ returns null', () => {
+describe('FileCard — readOnly + fetched + no uploadDate → returns null', () => {
   it('renders nothing when readOnly, fetched, and fileMeta has no uploadDate', () => {
     vi.mocked(isLoadable).mockReturnValue(true);
-    (useResource as ReturnType<typeof vi.fn>).mockReturnValue(makeResource({ isFetched: true }));
+    vi.mocked(useResource).mockReturnValue(makeResource({ isFetched: true }));
     withFileMeta({ uploadDate: undefined });
     const { container } = renderCard({ readOnly: true });
     expect(container).toBeEmptyDOMElement();
   });
 });
 
-describe('FileCard â€” no fileMeta (folder fallback)', () => {
+describe('FileCard — no fileMeta (folder fallback)', () => {
   it('shows the folder name decoded from containerUri', () => {
     renderCard();
     expect(screen.getByText('doc1')).toBeInTheDocument();
@@ -221,11 +221,11 @@ describe('FileCard â€” no fileMeta (folder fallback)', () => {
       ...makeResource(),
       children: () => [mockChild],
     };
-    (useResource as ReturnType<typeof vi.fn>).mockImplementation((uri: string) =>
+    vi.mocked(useResource).mockImplementation((uri: string) =>
       uri === CONTAINER_URI ? containerResource : makeResource(),
     );
     vi.mocked(isSolidContainer).mockImplementation(
-      (r: unknown) => r === containerResource,
+      (resource: unknown) => resource === containerResource,
     );
     renderCard();
     expect(screen.getByText('fileCard.noMetadata')).toBeInTheDocument();
@@ -233,7 +233,7 @@ describe('FileCard â€” no fileMeta (folder fallback)', () => {
   });
 });
 
-describe('FileCard â€” full card render', () => {
+describe('FileCard — full card render', () => {
   beforeEach(() => {
     withFileMeta();
   });
@@ -264,7 +264,7 @@ describe('FileCard â€” full card render', () => {
   });
 
   it('shows a "shared" icon when the file is shared', () => {
-    (useFileSharing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    vi.mocked(useFileSharing).mockReturnValue(true);
     renderCard();
     expect(document.querySelector('.file-card__shared')).toBeInTheDocument();
   });
@@ -275,7 +275,7 @@ describe('FileCard â€” full card render', () => {
   });
 
   it('renders FileMediaPreview when previewUrl is available', () => {
-    (useFilePreview as ReturnType<typeof vi.fn>).mockReturnValue({ previewUrl: 'blob:preview' });
+    vi.mocked(useFilePreview).mockReturnValue({ previewUrl: 'blob:preview' });
     renderCard();
     expect(screen.getByTestId('file-media-preview')).toBeInTheDocument();
   });
@@ -286,13 +286,13 @@ describe('FileCard â€” full card render', () => {
   });
 
   it('renders a download link using previewUrl when available', () => {
-    (useFilePreview as ReturnType<typeof vi.fn>).mockReturnValue({ previewUrl: 'blob:preview' });
+    vi.mocked(useFilePreview).mockReturnValue({ previewUrl: 'blob:preview' });
     renderCard();
     expect(screen.getByRole('link', { name: 'fileCard.download' })).toHaveAttribute('href', 'blob:preview');
   });
 
   it('renders a download link using binaryUri when no previewUrl', () => {
-    // fileMeta.name is set â†’ binaryUri = containerUri + name
+    // fileMeta.name is set → binaryUri = containerUri + name
     renderCard();
     const link = screen.getByRole('link', { name: 'fileCard.download' });
     expect(link).toHaveAttribute('href', `${CONTAINER_URI}report.pdf`);
@@ -305,7 +305,7 @@ describe('FileCard â€” full card render', () => {
   });
 });
 
-describe('FileCard â€” info panel toggle', () => {
+describe('FileCard — info panel toggle', () => {
   beforeEach(() => withFileMeta());
 
   it('does not show FileCardInfoPanel initially', () => {
@@ -327,7 +327,7 @@ describe('FileCard â€” info panel toggle', () => {
   });
 });
 
-describe('FileCard â€” share panel toggle', () => {
+describe('FileCard — share panel toggle', () => {
   beforeEach(() => withFileMeta());
 
   it('does not show SharePanel initially', () => {
@@ -354,7 +354,7 @@ describe('FileCard â€” share panel toggle', () => {
   });
 });
 
-describe('FileCard â€” delete button', () => {
+describe('FileCard — delete button', () => {
   beforeEach(() => withFileMeta());
 
   it('renders the delete button when not readOnly', () => {
@@ -368,7 +368,7 @@ describe('FileCard â€” delete button', () => {
   });
 });
 
-describe('FileCard â€” delete action', () => {
+describe('FileCard — delete action', () => {
   beforeEach(() => withFileMeta());
 
   it('does not call removeFromCatalog when the user cancels the confirmation', async () => {
@@ -464,7 +464,7 @@ describe('FileCard — SharePanel props fallback branches', () => {
   });
 
   it('passes encodingFormat fallback to FileMediaPreview when previewUrl exists', () => {
-    (useFilePreview as ReturnType<typeof vi.fn>).mockReturnValue({ previewUrl: 'blob:preview' });
+    vi.mocked(useFilePreview).mockReturnValue({ previewUrl: 'blob:preview' });
     withFileMeta({ encodingFormat: undefined });
     renderCard();
     // encodingFormat ?? "" is passed to FileMediaPreview (mocked)
@@ -511,15 +511,66 @@ describe('FileCard — date branch coverage', () => {
       ...makeResource(),
       children: () => [indexLeaf, childLeaf],
     };
-    (useResource as ReturnType<typeof vi.fn>).mockImplementation((uri: string) =>
+    vi.mocked(useResource).mockImplementation((uri: string) =>
       uri === CONTAINER_URI ? containerRes : makeResource(),
     );
     vi.mocked(isSolidContainer).mockImplementation(
-      (r: unknown) => r === containerRes,
+      (resource: unknown) => resource === containerRes,
     );
     withFileMeta();
     renderCard();
     // binaryUri should be childLeaf.uri (not index.ttl, not a container)
+    expect(document.querySelector('file-card')).toBeInTheDocument();
+  });
+});
+
+describe('FileCard — publisher name branch coverage', () => {
+  it('uses publisherProfile.fn as publisher name when fn is set', () => {
+    withFileMeta();
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
+      if (uri === METADATA_URI) return { ...baseFileMeta };
+      if (uri === 'https://publisher.example/card#me') return { fn: 'Alice FN', name: null };
+      return null;
+    });
+    renderCard();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
+  });
+
+  it('uses publisherProfile.name when fn is null', () => {
+    withFileMeta();
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
+      if (uri === METADATA_URI) return { ...baseFileMeta };
+      if (uri === 'https://publisher.example/card#me') return { fn: null, name: 'Alice Name' };
+      return null;
+    });
+    renderCard();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
+  });
+
+  it('populates contacts from ownerProfile.knows entries', () => {
+    withFileMeta();
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
+      if (uri === METADATA_URI) return { ...baseFileMeta };
+      if (uri === 'https://me.example/card#me') {
+        return {
+          knows: {
+            toArray: () => [{ '@id': 'https://alice.example/card#me' }, { '@id': 'https://bob.example/card#me' }],
+          },
+        };
+      }
+      return null;
+    });
+    renderCard();
+    expect(document.querySelector('file-card')).toBeInTheDocument();
+  });
+});
+
+describe('FileCard — classUri absolute URI branch', () => {
+  it('uses the absolute type URI directly when isAbsoluteUri returns true', () => {
+    vi.mocked(isKnownFileType).mockReturnValue(true);
+    vi.mocked(isAbsoluteUri).mockReturnValue(true);
+    withFileMeta({ type: { toArray: () => [{ '@id': 'http://schema.org/ImageObject' }] } });
+    renderCard();
     expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 });

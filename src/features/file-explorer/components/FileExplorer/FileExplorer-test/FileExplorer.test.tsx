@@ -27,6 +27,8 @@ const mockUseDriveInit = {
   setBreadcrumbs: vi.fn(),
   noStorageDetected: false,
   handleRetryStorage: vi.fn(),
+  handleNavigate: vi.fn(),
+  handleBreadcrumbClick: vi.fn(),
   contacts: ['https://alice.example/profile/card#me'],
 };
 
@@ -43,8 +45,10 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isReloadable: vi.fn((r: unknown) => !!(r as Record<string, unknown>)?.reload),
 }));
 
+const mockResolveCatalogUri = vi.fn(() => 'https://pod.example/my-solid-app/catalog.ttl');
+
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  resolveCatalogUri: () => 'https://pod.example/my-solid-app/catalog.ttl',
+  resolveCatalogUri: () => mockResolveCatalogUri(),
 }));
 
 vi.mock('@/features/file-explorer/services/fileFilter', () => ({
@@ -171,15 +175,14 @@ describe('FileExplorer', () => {
     expect(lastBreadcrumb).toBeDisabled();
   });
 
-  it('clicking a breadcrumb calls setBreadcrumbs and setCurrentUri', () => {
+  it('clicking a breadcrumb calls handleBreadcrumbClick with index and uri', () => {
     mockUseDriveInit.breadcrumbs = [
       { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
       { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
     ];
     render(<FileExplorer />);
     fireEvent.click(screen.getByText('My Drive'));
-    expect(mockUseDriveInit.setBreadcrumbs).toHaveBeenCalled();
-    expect(mockUseDriveInit.setCurrentUri).toHaveBeenCalledWith('https://pod.example/my-solid-app/');
+    expect(mockUseDriveInit.handleBreadcrumbClick).toHaveBeenCalledWith(0, 'https://pod.example/my-solid-app/');
   });
 
   it('refresh button calls reload on container', async () => {
@@ -201,13 +204,12 @@ describe('FileExplorer', () => {
     expect(section.getAttribute('data-contacts')).toBe('https://alice.example/profile/card#me');
   });
 
-  it('handleNavigate sets breadcrumbs and currentUri', () => {
+  it('handleNavigate delegates to the hook handler', () => {
     render(<FileExplorer />);
     act(() => {
       capturedDriveFileListProps.onNavigate('https://pod.example/my-solid-app/photos/');
     });
-    expect(mockUseDriveInit.setBreadcrumbs).toHaveBeenCalled();
-    expect(mockUseDriveInit.setCurrentUri).toHaveBeenCalledWith('https://pod.example/my-solid-app/photos/');
+    expect(mockUseDriveInit.handleNavigate).toHaveBeenCalledWith('https://pod.example/my-solid-app/photos/');
   });
 
   it('handleDownload triggers file download on success', async () => {
@@ -316,5 +318,12 @@ describe('FileExplorer', () => {
     const sharedSection = screen.getByTestId('shared-section');
     // ownerWebId should be "" because session.webId ?? "" triggers the fallback
     expect(sharedSection).toBeInTheDocument();
+  });
+
+  it('passes empty string as catalogUri to DriveFileList when resolveCatalogUri returns undefined', () => {
+    mockResolveCatalogUri.mockReturnValueOnce(undefined as unknown as string);
+    render(<FileExplorer />);
+    // catalogUri ?? "" fires — DriveFileList still renders
+    expect(capturedDriveFileListProps.catalogUri).toBe('');
   });
 });

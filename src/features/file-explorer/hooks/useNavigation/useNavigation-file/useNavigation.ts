@@ -6,7 +6,7 @@
 import { useState, useCallback } from "react";
 import type { SolidContainerUri } from "@ldo/connected-solid";
 
-type Breadcrumb = { label: string; uri: SolidContainerUri };
+export type Breadcrumb = { label: string; uri: SolidContainerUri };
 
 interface UseNavigationReturn {
   currentUri: SolidContainerUri | undefined;

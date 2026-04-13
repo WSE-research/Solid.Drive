@@ -3,11 +3,11 @@
  * Discovers the user's Pod storage root and app container.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useLdo, useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
-import { isLoadable } from "@/infrastructure/solid/resourceGuards";
+import { isLoadable, isReloadable } from "@/infrastructure/solid/resourceGuards";
 import { getAppContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import type { SolidContainer, SolidContainerUri } from "@ldo/connected-solid";
 
@@ -15,7 +15,7 @@ interface UsePodDiscoveryReturn {
   appContainerUri: SolidContainerUri | undefined;
   storageRootUri: string | undefined;
   noStorageDetected: boolean;
-  setNoStorageDetected: (value: boolean) => void;
+  handleRetryStorage: () => Promise<void>;
   initialCurrentUri: SolidContainerUri | undefined;
   initialBreadcrumbLabel: string;
 }
@@ -70,20 +70,24 @@ export function usePodDiscovery(storageRetryDelayMs: number): UsePodDiscoveryRet
     })();
   }, [profile, webIdResource, getResource, translate]);
 
+  const handleRetryStorage = useCallback(async () => {
+    if (!isReloadable(webIdResource)) return;
+    setNoStorageDetected(false);
+    initialized.current = false;
+    await webIdResource.reload();
+  }, [webIdResource]);
+
   useEffect(() => {
     if (!noStorageDetected) return;
-    const timer = setTimeout(() => {
-      setNoStorageDetected(false);
-      initialized.current = false;
-    }, storageRetryDelayMs);
+    const timer = setTimeout(handleRetryStorage, storageRetryDelayMs);
     return () => clearTimeout(timer);
-  }, [noStorageDetected, storageRetryDelayMs]);
+  }, [noStorageDetected, handleRetryStorage, storageRetryDelayMs]);
 
   return {
     appContainerUri,
     storageRootUri,
     noStorageDetected,
-    setNoStorageDetected,
+    handleRetryStorage,
     initialCurrentUri,
     initialBreadcrumbLabel,
   };

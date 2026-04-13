@@ -107,13 +107,14 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   if (!fileMeta) {
     const folderName = decodeURIComponent(containerUri.replace(/\/$/, "").split("/").pop() ?? containerUri);
+    const fallbackDownloadName = binaryUri?.split("/").pop();
     return (
       <file-card>
         <p className="file-card__name">{folderName}</p>
         {binaryUri && (
           <file-card-meta>
             <span className="file-card__date">{translate("fileCard.noMetadata")}</span>
-            <a className="btn btn--ghost btn--small" href={binaryUri} download={binaryUri.split("/").pop()}>
+            <a className="btn btn--ghost btn--small" href={binaryUri} download={fallbackDownloadName}>
               {translate("fileCard.download")}
             </a>
           </file-card-meta>
@@ -142,13 +143,29 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   })();
   const fileType = getFileTypeInfo(classUri);
 
+  const infoButtonLabel = showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info");
+  const shareButtonLabel = showShare ? translate("fileCard.hideShare") : translate("fileCard.share");
+  const sharedIconTitle = translate("fileCard.shared");
+  const mimeType = fileMeta.encodingFormat ?? "";
+
+  const sharedEntry = {
+    metadataUri,
+    binaryUri: binaryUri ?? metadataUri,
+    classUri,
+    mediaType: fileMeta.encodingFormat ?? CONTENT_TYPES.OCTET_STREAM,
+    byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
+    title: fileMeta.name ?? metadataUri.split("/").pop() ?? "Shared file",
+    description: fileMeta.description ?? "",
+    modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
+  };
+
   return (
     <file-card>
       {fileMeta.name && (
         <file-card-header>
           <p className="file-card__name">{fileMeta.name}</p>
           {isShared && (
-            <span title="Shared" className="file-card__shared" />
+            <span title={sharedIconTitle} className="file-card__shared" />
           )}
         </file-card-header>
       )}
@@ -157,7 +174,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         {previewUrl && (
           <FileMediaPreview
             previewUrl={previewUrl}
-            mimeType={fileMeta.encodingFormat ?? ""}
+            mimeType={mimeType}
             name={fileMeta.name}
           />
         )}
@@ -176,11 +193,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         <span className="file-card__date">{uploadedAt}</span>
         <file-card-actions>
           <button className="btn btn--ghost btn--small" onClick={handleToggleInfo}>
-            {showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info")}
+            {infoButtonLabel}
           </button>
           {!readOnly && (
             <button className="btn btn--ghost btn--small" onClick={handleToggleShare}>
-              {showShare ? translate("fileCard.hideShare") : translate("fileCard.share")}
+              {shareButtonLabel}
             </button>
           )}
           {downloadHref && (
@@ -203,16 +220,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
           containerUri={containerUri}
           catalogUri={catalogUri}
           contacts={contacts}
-          sharedEntry={{
-            metadataUri,
-            binaryUri: binaryUri ?? metadataUri,
-            classUri,
-            mediaType: fileMeta.encodingFormat ?? CONTENT_TYPES.OCTET_STREAM,
-            byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
-            title: fileMeta.name ?? metadataUri.split("/").pop() ?? "Shared file",
-            description: fileMeta.description ?? "",
-            modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
-          }}
+          sharedEntry={sharedEntry}
         />
       )}
 

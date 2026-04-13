@@ -192,6 +192,7 @@ export function buildListOnlyAclTurtle(containerUri: string, ownerWebId: string,
  * @param ownerWebId - WebID of the owner
  * @param agentWebIds - WebIDs of agents to grant list access
  * @param fetch - Authenticated fetch function
+ * @throws Error if the PUT request fails
  *
  * @public
  */
@@ -261,6 +262,7 @@ export function buildAclTurtle(containerUri: string, ownerWebId: string, agentWe
  * @param ownerWebId - WebID of the owner
  * @param agentWebIds - WebIDs of agents to grant read access
  * @param fetch - Authenticated fetch function
+ * @throws Error if the PUT request fails
  *
  * @public
  */
@@ -293,6 +295,7 @@ export async function writeAcl(
  * @param ownerWebId - WebID of the owner
  * @param agentWebIds - WebIDs of agents to grant read access
  * @param fetch - Authenticated fetch function
+ * @throws Error if the PUT request fails
  *
  * @public
  */

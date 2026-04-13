@@ -37,6 +37,7 @@ export const Header: FunctionComponent = () => {
 
   const isCustomProvider = selectedProvider === CUSTOM_PROVIDER_VALUE;
   const podRegistrationUrl = registerUrl ?? EXTERNAL_LINKS.defaultGetPod;
+  const isLoginDisabled = !issuerUrl;
 
   const handleLogin = () => login(issuerUrl);
   const handleProviderChange = (event: React.ChangeEvent<HTMLSelectElement>) =>
@@ -53,7 +54,7 @@ export const Header: FunctionComponent = () => {
       {session.isLoggedIn ? (
         <auth-logged-in>
           <p className="auth-webid">
-            {translate("header.loggedInAs")} <strong>{displayName}</strong>
+            {translate("header.loggedInAs")} <span className="auth-webid__name">{displayName}</span>
           </p>
           <LanguageSwitcher />
           <button className="btn btn--ghost" onClick={logout}>
@@ -89,7 +90,7 @@ export const Header: FunctionComponent = () => {
             <button
               className="btn btn--primary"
               onClick={handleLogin}
-              disabled={!issuerUrl}
+              disabled={isLoginDisabled}
             >
               {translate("header.logIn")}
             </button>
@@ -101,12 +102,11 @@ export const Header: FunctionComponent = () => {
                 {translate("header.learnMore")}
               </a>
             </span>
-            <span className="auth-signup-text">·</span>
             <a
               href={podRegistrationUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="auth-hint-link"
+              className="auth-hint-link auth-signup__create"
             >
               {translate("header.createPod")}
             </a>

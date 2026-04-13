@@ -12,6 +12,7 @@ import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "@/infrastructure/solid/resourceGuards";
 import { useAclManager } from "@/features/sharing/hooks/useAclManager";
 import { getInitial } from "@/shared/utils";
+import { getProfileDisplayName } from "@/shared/utils/getProfileDisplayName";
 
 /**
  * Row displaying a user who has been granted access.
@@ -27,22 +28,18 @@ const GranteeRow: FunctionComponent<{ webId: string; onRevoke: () => void; disab
   const contactResource = useResource(webId.split("#")[0]);
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
-  const webIdFallbackName =
-    webId
-      .replace(/#.*$/, "")
-      .split("/")
-      .filter(Boolean)
-      .find((pathSegment) => pathSegment !== "profile" && pathSegment !== "card" && !pathSegment.startsWith("http")) ?? webId;
-  const displayName = contact?.name ?? contact?.fn ?? webIdFallbackName;
+  const displayName = getProfileDisplayName(contact ?? undefined, webId);
+  const avatarContent = isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName);
+  const nameContent = isLoading ? translate("sharePanel.loading") : displayName;
 
   return (
     <share-panel-row>
       <div className="share-panel__avatar share-panel__avatar--grantee">
-        {isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName)}
+        {avatarContent}
       </div>
       <share-panel-name>
         <span className="share-panel__name-text">
-          {isLoading ? translate("sharePanel.loading") : displayName}
+          {nameContent}
         </span>
         <span className="share-panel__mode">
           {translate("sharePanel.accessMode")}
@@ -73,21 +70,17 @@ const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; 
   const contactResource = useResource(webId.split("#")[0]);
   const contact = useSubject(SolidProfileShapeType, webId);
   const isLoading = isLoadable(contactResource) && contactResource.isLoading();
-  const webIdFallbackName =
-    webId
-      .replace(/#.*$/, "")
-      .split("/")
-      .filter(Boolean)
-      .find((pathSegment) => pathSegment !== "profile" && pathSegment !== "card" && !pathSegment.startsWith("http")) ?? webId;
-  const displayName = contact?.name ?? contact?.fn ?? webIdFallbackName;
+  const displayName = getProfileDisplayName(contact ?? undefined, webId);
+  const avatarContent = isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName);
+  const nameContent = isLoading ? translate("sharePanel.loading") : displayName;
 
   return (
     <share-panel-row className="share-panel__row--available">
       <div className="share-panel__avatar share-panel__avatar--pending">
-        {isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName)}
+        {avatarContent}
       </div>
       <span className="share-panel__name-text--pending">
-        {isLoading ? translate("sharePanel.loading") : displayName}
+        {nameContent}
       </span>
       <button
         className="btn btn--ghost btn--small"
@@ -150,6 +143,11 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
   const otherContacts = contacts.filter((contactWebId) => contactWebId !== ownerWebId);
   const hasNoOtherContacts = otherContacts.length === 0;
   const allContactsHaveAccess = availableContacts.length === 0 && !hasNoOtherContacts;
+  const validGrantees = grantees.filter(Boolean);
+  const validAvailableContacts = availableContacts.filter(Boolean);
+  const hasAvailableContacts = validAvailableContacts.length > 0;
+  const isReady = !loading && !displayError;
+  const hasNoGrantees = validGrantees.length === 0;
 
   if (!ownerWebId) return null;
 
@@ -168,14 +166,14 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
         <p className="share-panel__error">{displayError}</p>
       )}
 
-      {!loading && !displayError && (
+      {isReady && (
         <>
-          {grantees.length === 0 ? (
+          {hasNoGrantees ? (
             <p className="share-panel__placeholder">
               {translate("sharePanel.notShared")}
             </p>
           ) : (
-            grantees.filter(Boolean).map((webId) => (
+            validGrantees.map((webId) => (
               <GranteeRow
                 key={webId}
                 webId={webId}
@@ -185,10 +183,10 @@ export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, c
             ))
           )}
 
-          {availableContacts.length > 0 && (
+          {hasAvailableContacts && (
             <>
               <p className="share-panel__subheading">{translate("sharePanel.shareWith")}</p>
-              {availableContacts.filter(Boolean).map((webId) => (
+              {validAvailableContacts.map((webId) => (
                 <ContactPickerRow
                   key={webId}
                   webId={webId}

@@ -95,11 +95,11 @@ describe("fileTypeRegistry", () => {
 
   describe("parseFileTypesFromTurtle", () => {
     it("returns parsed file types including uri, label, and HTML-stripped description from valid turtle", () => {
-      const types = parseFileTypesFromTurtle(SAMPLE_TURTLE);
+      const parsedTypes = parseFileTypesFromTurtle(SAMPLE_TURTLE);
 
-      expect(types.length).toBeGreaterThanOrEqual(6);
-      
-      const imageType = types.find((t) => t.id === "ImageObject");
+      expect(parsedTypes.length).toBeGreaterThanOrEqual(6);
+
+      const imageType = parsedTypes.find((fileType) => fileType.id === "ImageObject");
       expect(imageType).toBeDefined();
       expect(imageType?.uri).toBe("http://schema.org/ImageObject");
       expect(imageType?.label).toBe("Image");
@@ -107,9 +107,9 @@ describe("fileTypeRegistry", () => {
       expect(imageType?.description).toBe("An image file, such as a photo.");
     });
 
-    it("strips HTML tags from descriptions", () => {
-      const types = parseFileTypesFromTurtle(SAMPLE_TURTLE);
-      const imageType = types.find((t) => t.id === "ImageObject");
+    it("strips HTML bold tags from rdfs:comment so descriptions contain plain text only", () => {
+      const parsedTypes = parseFileTypesFromTurtle(SAMPLE_TURTLE);
+      const imageType = parsedTypes.find((fileType) => fileType.id === "ImageObject");
       expect(imageType?.description).not.toContain("<b>");
       expect(imageType?.description).not.toContain("</b>");
     });
@@ -184,22 +184,44 @@ schema:HTMLDocument
       //           .replace(/^\w/, c => c.toUpperCase()) → "Html document"
       expect(htmlType!.label).toBe("Html document");
     });
+
+    it("skips a schema.org class whose URI is exactly the schema namespace (empty local name)", () => {
+      const turtle = `
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix schema: <http://schema.org/> .
+
+<http://schema.org/>
+  a rdfs:Class ;
+  rdfs:label "Schema.org" ;
+.
+
+schema:ImageObject
+  a rdfs:Class ;
+  rdfs:label "Image" ;
+.
+`;
+      const types = parseFileTypesFromTurtle(turtle);
+      const emptyIdType = types.find((typeEntry) => typeEntry.id === "");
+      expect(emptyIdType).toBeUndefined();
+      const imageType = types.find((typeEntry) => typeEntry.id === "ImageObject");
+      expect(imageType).toBeDefined();
+    });
   });
 
   describe("loadFileTypes", () => {
-    it("fetches file types from TBox and returns the same cached instance on repeated calls", async () => {
+    it("fetches file types from TBox and returns the same cached instance on repeated calls without re-fetching", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(SAMPLE_TURTLE),
       });
 
-      const types = await loadFileTypes("/tbox.ttl", mockFetch);
-      expect(types.length).toBeGreaterThan(0);
+      const firstResult = await loadFileTypes("/tbox.ttl", mockFetch);
+      expect(firstResult.length).toBeGreaterThan(0);
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      // Second call should use cache
-      const types2 = await loadFileTypes("/tbox.ttl", mockFetch);
-      expect(types2).toBe(types);
+      const secondResult = await loadFileTypes("/tbox.ttl", mockFetch);
+      expect(secondResult).toBe(firstResult);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -215,22 +237,21 @@ schema:HTMLDocument
       );
     });
 
-    it("deduplicates concurrent requests", async () => {
+    it("issues only one fetch when multiple calls are made concurrently and returns the same array instance to all callers", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(SAMPLE_TURTLE),
       });
 
-      // Start multiple concurrent requests
-      const [types1, types2, types3] = await Promise.all([
+      const [firstResult, secondResult, thirdResult] = await Promise.all([
         loadFileTypes("/tbox.ttl", mockFetch),
         loadFileTypes("/tbox.ttl", mockFetch),
         loadFileTypes("/tbox.ttl", mockFetch),
       ]);
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(types1).toBe(types2);
-      expect(types2).toBe(types3);
+      expect(firstResult).toBe(secondResult);
+      expect(secondResult).toBe(thirdResult);
     });
   });
 
@@ -278,12 +299,12 @@ schema:HTMLDocument
   });
 
   describe("isKnownFileType", () => {
-    it("returns true for known types", () => {
+    it("returns true for ImageObject by short ID and VideoObject by full URI", () => {
       expect(isKnownFileType("ImageObject")).toBe(true);
       expect(isKnownFileType("http://schema.org/VideoObject")).toBe(true);
     });
 
-    it("returns false for unknown types", () => {
+    it("returns false for an ID that does not exist in the registry", () => {
       expect(isKnownFileType("RandomThing")).toBe(false);
     });
   });
@@ -346,24 +367,23 @@ schema:HTMLDocument
       });
       await loadFileTypes("/tbox.ttl", mockFetch);
 
-      const types = getAllFileTypes();
-      expect(types.length).toBeGreaterThan(0);
-      expect(types.some((t) => t.id === "ImageObject")).toBe(true);
-      expect(types.some((t) => t.id === "VideoObject")).toBe(true);
+      const allTypes = getAllFileTypes();
+      expect(allTypes.length).toBeGreaterThan(0);
+      expect(allTypes.some((fileType) => fileType.id === "ImageObject")).toBe(true);
+      expect(allTypes.some((fileType) => fileType.id === "VideoObject")).toBe(true);
     });
 
-    it("discovers ALL schema.org classes from TTL, not just a predefined list", async () => {
+    it("discovers ALL schema.org classes from TTL including non-file-type classes like Person and CreativeWork", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(SAMPLE_TURTLE),
       });
       await loadFileTypes("/tbox.ttl", mockFetch);
 
-      const types = getAllFileTypes();
-      // Should find all classes in the sample, including Person (not a "file type")
-      expect(types.some((t) => t.id === "Person")).toBe(true);
-      expect(types.some((t) => t.id === "CreativeWork")).toBe(true);
-      expect(types.some((t) => t.id === "MediaObject")).toBe(true);
+      const allTypes = getAllFileTypes();
+      expect(allTypes.some((fileType) => fileType.id === "Person")).toBe(true);
+      expect(allTypes.some((fileType) => fileType.id === "CreativeWork")).toBe(true);
+      expect(allTypes.some((fileType) => fileType.id === "MediaObject")).toBe(true);
     });
   });
 
@@ -458,12 +478,11 @@ schema:HTMLDocument
   });
 
   describe("getAllFileTypes with no cache", () => {
-    it("returns default file types when cache is null", () => {
+    it("returns default file types including DigitalDocument when cache has been reset", () => {
       resetFileTypeCache();
-      const types = getAllFileTypes();
-      expect(types.length).toBeGreaterThan(0);
-      // Should include at least DigitalDocument from defaults
-      expect(types.some((t) => t.id === "DigitalDocument")).toBe(true);
+      const defaultTypes = getAllFileTypes();
+      expect(defaultTypes.length).toBeGreaterThan(0);
+      expect(defaultTypes.some((fileType) => fileType.id === "DigitalDocument")).toBe(true);
     });
   });
 });

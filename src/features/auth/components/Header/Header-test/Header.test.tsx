@@ -30,13 +30,13 @@ const mockLogout = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(isLoadable).mockReturnValue(false);
-  (useResource as ReturnType<typeof vi.fn>).mockReturnValue(null);
-  (useSubject as ReturnType<typeof vi.fn>).mockReturnValue(null);
+  vi.mocked(useResource).mockReturnValue(null);
+  vi.mocked(useSubject).mockReturnValue(null);
 });
 
-describe('Header â€” logged out', () => {
+describe('Header — logged out', () => {
   beforeEach(() => {
-    (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+    vi.mocked(useSolidAuth).mockReturnValue({
       session: { isLoggedIn: false, webId: undefined },
       login: mockLogin,
       logout: mockLogout,
@@ -80,7 +80,7 @@ describe('Header â€” logged out', () => {
     expect(mockLogin).toHaveBeenCalledWith('https://solidcommunity.net');
   });
 
-  it('shows a custom URL input when "Customâ€¦" is selected', () => {
+  it('shows a custom URL input when "Custom…" is selected', () => {
     render(<Header />);
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
     expect(screen.getByPlaceholderText('header.customProviderPlaceholder')).toBeInTheDocument();
@@ -109,7 +109,7 @@ describe('Header â€” logged out', () => {
   });
 
   it('renders a "create pod" link with the provider registerUrl when a provider is selected', () => {
-    const provider = SOLID_PROVIDERS.find((p) => p.registerUrl);
+    const provider = SOLID_PROVIDERS.find((solidProvider) => solidProvider.registerUrl);
     if (!provider) return; // skip if no provider has a registerUrl
     render(<Header />);
     fireEvent.change(screen.getByRole('combobox'), { target: { value: provider.value } });
@@ -118,9 +118,9 @@ describe('Header â€” logged out', () => {
   });
 });
 
-describe('Header â€” logged in', () => {
+describe('Header — logged in', () => {
   beforeEach(() => {
-    (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+    vi.mocked(useSolidAuth).mockReturnValue({
       session: { isLoggedIn: true, webId: 'https://user.solidcommunity.net/profile/card#me' },
       login: mockLogin,
       logout: mockLogout,
@@ -154,19 +154,19 @@ describe('Header â€” logged in', () => {
   });
 
   it('displays profile.fn as display name when available', () => {
-    (useSubject as ReturnType<typeof vi.fn>).mockReturnValue({ fn: 'Alice Doe' });
+    vi.mocked(useSubject).mockReturnValue({ fn: 'Alice Doe' });
     render(<Header />);
     expect(screen.getByText('Alice Doe')).toBeInTheDocument();
   });
 
   it('displays profile.name as display name when fn is absent', () => {
-    (useSubject as ReturnType<typeof vi.fn>).mockReturnValue({ name: 'Bob Smith' });
+    vi.mocked(useSubject).mockReturnValue({ name: 'Bob Smith' });
     render(<Header />);
     expect(screen.getByText('Bob Smith')).toBeInTheDocument();
   });
 
   it('displays loading text while the profile resource is loading', () => {
-    (useResource as ReturnType<typeof vi.fn>).mockReturnValue({
+    vi.mocked(useResource).mockReturnValue({
       isLoading: () => true,
       isUnfetched: () => false,
       isFetched: () => false,

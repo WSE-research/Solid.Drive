@@ -208,6 +208,15 @@ describe('SharePanel', () => {
     expect(spinners.length).toBeGreaterThan(0);
   });
 
+  it('uses contact.name as display name when it is set', () => {
+    mockSubjectMap = {
+      'https://alice.example/profile/card#me': { name: 'Alice Name', fn: null },
+    };
+    mockAclState.grantees = ['https://alice.example/profile/card#me'];
+    render(<SharePanel {...baseProps} />);
+    expect(screen.getByText('Alice Name')).toBeInTheDocument();
+  });
+
   it('displays contact.fn fallback when contact.name is null', () => {
     mockSubjectMap = {
       'https://alice.example/profile/card#me': { name: null, fn: 'Alice FN' },

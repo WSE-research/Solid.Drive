@@ -62,7 +62,7 @@ describe('TypeFolder', () => {
     expect(screen.getByText(String(entries.length))).toBeInTheDocument();
   });
 
-  it('shows closed folder icon when collapsed', () => {
+  it('does not show file list when collapsed', () => {
     render(<TypeFolder {...baseProps} />);
     expect(screen.queryByText('doc1')).not.toBeInTheDocument();
   });

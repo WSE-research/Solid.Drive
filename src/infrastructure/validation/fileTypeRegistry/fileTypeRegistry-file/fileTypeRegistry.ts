@@ -85,6 +85,7 @@ export function getFileTypesSync(): FileTypeDef[] | null {
  * @param tboxUri - URI of the TBox file
  * @param fetchFn - Fetch function to use
  * @returns Array of file type definitions
+ * @throws Error if the HTTP request fails
  *
  * @public
  */

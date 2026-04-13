@@ -32,6 +32,8 @@ function assertSafeUri(uri: string): void {
   if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
 }
 
+const DISTRIBUTION_FRAGMENT = "#dist";
+
 const CATALOG_SPARQL_PREFIXES = `
 PREFIX dcat: <${RDF_NAMESPACES.DCAT}>
 PREFIX dcterms: <${RDF_NAMESPACES.DCTERMS}>
@@ -126,8 +128,8 @@ export async function appendToCatalog(
       dcterms:title "${escapeTurtleLiteral(title)}" ;${descriptionTriple}
       dcterms:modified "${modified}"^^xsd:dateTime ;
       dcterms:publisher <${publisherWebId}> ;
-      dcat:distribution <${instanceUri}#dist> .
-    <${instanceUri}#dist> a dcat:Distribution ;
+      dcat:distribution <${instanceUri}${DISTRIBUTION_FRAGMENT}> .
+    <${instanceUri}${DISTRIBUTION_FRAGMENT}> a dcat:Distribution ;
       dcat:accessURL <${binaryUri}> ;
       dcat:mediaType "${escapeTurtleLiteral(mediaType)}" ;
       dcat:byteSize ${byteSize} .
@@ -186,7 +188,7 @@ export async function removeFromCatalog(
   const sparqlUpdate = `${CATALOG_SPARQL_PREFIXES}
 
   DELETE WHERE { <${catalogUri}> dcat:dataset <${instanceUri}> . <${instanceUri}> ?p ?v . } ;
-  DELETE WHERE { <${instanceUri}#dist> ?p ?v . }
+  DELETE WHERE { <${instanceUri}${DISTRIBUTION_FRAGMENT}> ?p ?v . }
 `.trim();
 
   const patchResponse = await fetch(catalogUri, {
