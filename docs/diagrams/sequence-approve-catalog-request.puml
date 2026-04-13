@@ -1,0 +1,38 @@
+@startuml sequence-approve-catalog-request
+title Approve Catalog Access Request
+skinparam sequenceParticipantPadding 5
+skinparam sequenceMessageAlign left
+hide footbox
+
+actor User
+participant "RequestsPanel" as RP <<component>>
+participant "useAccessRequests" as UAR <<hook>>
+participant "aclManager" as ACL <<module>>
+participant "inboxAccess" as IA <<module>>
+participant "Solid Pod" as POD <<external>>
+
+User -> RP : click Approve (catalog)
+RP -> UAR : approve(request)
+activate UAR
+
+UAR -> POD : PUT sharedCatalog.ttl (empty)
+
+note over UAR, ACL : secure shared catalog
+UAR -> ACL : discoverAclUri + writeResourceAcl\n(sharedCatalogUri, [requesterWebId])
+ACL -> POD : HEAD → PUT sharedCatalog.acl
+
+note over UAR, ACL : grant read on main catalog
+UAR -> ACL : discoverAclUri + readAclAgents + writeResourceAcl\n(catalogUri, [requesterWebId])
+ACL -> POD : HEAD → GET → PUT catalog.acl
+
+note over UAR, ACL : grant list-only on app container
+UAR -> ACL : discoverAclUri + writeListOnlyAcl\n(appContainerUri, [requesterWebId])
+ACL -> POD : HEAD → PUT appContainer.acl
+
+UAR -> IA : deleteAccessRequest(messageUri)
+IA -> POD : DELETE messageUri
+
+UAR --> RP : requests updated
+deactivate UAR
+
+@enduml
