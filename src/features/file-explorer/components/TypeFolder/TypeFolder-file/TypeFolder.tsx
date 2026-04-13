@@ -12,7 +12,7 @@ import { getFileTypeInfo } from "@/infrastructure/validation/fileTypeRegistry";
 import type { CatalogEntry } from "@/types";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import type { AccessRejection } from "@/infrastructure/inbox/inboxAccess";
-import { useAccessRequests } from "@/features/file-explorer/hooks/useAccessRequests";
+import { useFileAccessRequests } from "@/features/file-explorer/hooks/useAccessRequests";
 import type { RequestStatus } from "@/features/file-explorer/hooks/useAccessRequests";
 
 /**
@@ -115,7 +115,7 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
   const typeInfo = getFileTypeInfo(classUri);
 
   const { bulkStatus, fileStatuses, handleRequestAll, handleRequestFile, handleRequestAgain } =
-    useAccessRequests({ contactWebId, viewerWebId, solidFetch, entries, onClearRejection });
+    useFileAccessRequests({ contactWebId, viewerWebId, solidFetch, entries, onClearRejection });
 
   const isBulkDisabled = bulkStatus === "sending" || bulkStatus === "sent";
   const bulkButtonLabel =

@@ -35,7 +35,7 @@ type UseAccessRequestsResult = {
  *
  * @public
  */
-export function useAccessRequests({
+export function useFileAccessRequests({
   contactWebId,
   viewerWebId,
   solidFetch,

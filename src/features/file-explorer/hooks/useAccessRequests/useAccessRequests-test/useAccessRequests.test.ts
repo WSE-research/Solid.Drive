@@ -17,7 +17,7 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
   toContainerUri: (uri: string) => uri.replace(/index\.ttl$/, ''),
 }));
 
-import { useAccessRequests } from '../useAccessRequests-file/useAccessRequests';
+import { useFileAccessRequests } from '../useAccessRequests-file/useAccessRequests';
 
 const solidFetch = vi.fn() as unknown as typeof fetch;
 const onClearRejection = vi.fn();
@@ -54,7 +54,7 @@ const baseParams = {
   onClearRejection,
 };
 
-describe('useAccessRequests', () => {
+describe('useFileAccessRequests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDiscoverInboxUri.mockResolvedValue('https://contact.example/inbox/');
@@ -63,7 +63,7 @@ describe('useAccessRequests', () => {
   });
 
   it('initialises with idle bulk status and empty file statuses', () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
     expect(result.current.bulkStatus).toBe('idle');
     expect(result.current.fileStatuses).toEqual({});
   });
@@ -74,7 +74,7 @@ describe('useAccessRequests', () => {
     let resolveInbox!: (value: string) => void;
     mockDiscoverInboxUri.mockReturnValue(new Promise<string>((resolve) => { resolveInbox = resolve; }));
 
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     act(() => { void result.current.handleRequestAll(); });
     expect(result.current.bulkStatus).toBe('sending');
@@ -83,7 +83,7 @@ describe('useAccessRequests', () => {
   });
 
   it('sets bulkStatus to "sent" after all requests succeed', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });
 
@@ -92,7 +92,7 @@ describe('useAccessRequests', () => {
   });
 
   it('sends each entry to the inbox when requesting all', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });
 
@@ -116,7 +116,7 @@ describe('useAccessRequests', () => {
 
   it('sets bulkStatus to "error" when inbox discovery fails', async () => {
     mockDiscoverInboxUri.mockRejectedValue(new Error('network error'));
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });
 
@@ -125,7 +125,7 @@ describe('useAccessRequests', () => {
 
   it('sets bulkStatus to "error" when posting a request fails', async () => {
     mockPostFileAccessRequest.mockRejectedValue(new Error('post failed'));
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });
 
@@ -135,7 +135,7 @@ describe('useAccessRequests', () => {
   // --- handleRequestFile ---
 
   it('sets file status to "sending" then "sent" on success', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestFile(entryA); });
 
@@ -144,7 +144,7 @@ describe('useAccessRequests', () => {
   });
 
   it('sends the correct container URI for the file', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestFile(entryA); });
 
@@ -158,7 +158,7 @@ describe('useAccessRequests', () => {
 
   it('sets file status to "error" when the request fails', async () => {
     mockDiscoverInboxUri.mockRejectedValue(new Error('inbox error'));
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestFile(entryA); });
 
@@ -170,7 +170,7 @@ describe('useAccessRequests', () => {
       .mockResolvedValueOnce('https://contact.example/inbox/')
       .mockRejectedValueOnce(new Error('fail'));
 
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestFile(entryA); });
     await act(async () => { await result.current.handleRequestFile(entryB); });
@@ -187,7 +187,7 @@ describe('useAccessRequests', () => {
   };
 
   it('deletes the old rejection message before re-requesting', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
 
@@ -198,7 +198,7 @@ describe('useAccessRequests', () => {
   });
 
   it('calls onClearRejection with the container URI', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
 
@@ -206,7 +206,7 @@ describe('useAccessRequests', () => {
   });
 
   it('sends a new access request after clearing the rejection', async () => {
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
 
@@ -216,7 +216,7 @@ describe('useAccessRequests', () => {
 
   it('still clears and re-requests even when deleteAccessRequest throws', async () => {
     mockDeleteAccessRequest.mockRejectedValue(new Error('delete failed'));
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
 
@@ -226,7 +226,7 @@ describe('useAccessRequests', () => {
 
   it('sets file status to "error" when the re-request fails after clearing', async () => {
     mockPostFileAccessRequest.mockRejectedValue(new Error('post failed'));
-    const { result } = renderHook(() => useAccessRequests(baseParams));
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
 
