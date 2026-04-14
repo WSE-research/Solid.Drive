@@ -4,19 +4,21 @@
  * @packageDocumentation
  */
 
-import { useState, Fragment, useCallback } from "react";
+import { useState, Fragment, useCallback, useEffect } from "react";
 import type { FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "@/infrastructure/solid/resourceGuards";
-import { resolveCatalogUri } from "@/infrastructure/solid/catalog";
+import { resolveCatalogUri, parseCatalog } from "@/infrastructure/solid/catalog";
+import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { SharedWithMeSection } from "@/features/file-explorer/components/SharedWithMeSection";
 import { FileUpload } from "@/features/file-explorer/components/FileUpload";
 import { isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
+import { NewFolderInput } from "@/features/file-explorer/components/NewFolderInput";
 import { DriveFileList } from "./DriveFileList";
 import type { SolidLeaf } from "@ldo/connected-solid";
 
@@ -41,6 +43,10 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const { session, fetch: solidFetch } = useSolidAuth();
   const { showError } = useNotifications();
   const [isReloading, setIsReloading] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [catalogContainerUris, setCatalogContainerUris] = useState<Set<string>>(new Set());
 
   const profile = useSubject(SolidProfileShapeType, session.webId);
 
@@ -55,6 +61,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     handleBreadcrumbClick,
     contacts,
   } = useDriveInitialization(storageRetryDelayMs);
+
+  const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
   const currentContainer = useResource(currentUri);
 
@@ -88,6 +96,68 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     }
   }, [currentContainer]);
 
+  const handleNewFolderDone = useCallback(() => {
+    setShowNewFolder(false);
+    setShowAddMenu(false);
+  }, []);
+
+  const handleToggleAddMenu = useCallback(() => {
+    setShowAddMenu((prev) => !prev);
+  }, []);
+
+  const handleSelectNewFolder = useCallback(() => {
+    setShowNewFolder(true);
+    setShowAddMenu(false);
+  }, []);
+
+  const handleSelectUploadFiles = useCallback(() => {
+    setShowUpload(true);
+    setShowAddMenu(false);
+  }, []);
+
+  const handleUploadDone = useCallback(() => {
+    setShowUpload(false);
+  }, []);
+
+  useEffect(() => {
+    if (!showAddMenu) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowAddMenu(false);
+    };
+    const handleMouseDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("add-menu")) setShowAddMenu(false);
+    };
+    document.addEventListener("keydown", handleKey);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, [showAddMenu]);
+
+  useEffect(() => {
+    if (!catalogUri) {
+      setCatalogContainerUris(new Set());
+      return;
+    }
+    let cancelled = false;
+    void solidFetch(catalogUri)
+      .then((res: Response) => (res.ok ? res.text() : ""))
+      .then((text: string) => {
+        if (cancelled || !text) return;
+        const entries = parseCatalog(text, catalogUri);
+        setCatalogContainerUris(new Set(entries.map((e) => toContainerUri(e.uri))));
+      })
+      .catch(() => { if (!cancelled) setCatalogContainerUris(new Set()); });
+    return () => { cancelled = true; };
+  }, [catalogUri, solidFetch]);
+
+  useEffect(() => {
+    setShowNewFolder(false);
+    setShowUpload(false);
+    setShowAddMenu(false);
+  }, [currentUri]);
+
   if (!session.isLoggedIn) {
     return (
       <drive-gate>
@@ -118,7 +188,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     );
   }
 
-  const catalogUri = resolveCatalogUri(profile, storageRootUri);
   const isInAppFolder = currentUri === appContainerUri;
   const entries = isSolidContainer(currentContainer) ? currentContainer.children() : [];
   const folderEntries = entries.filter(isSolidContainer);
@@ -126,11 +195,12 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   return (
     <main>
-      {isSolidContainer(currentContainer) && catalogUri && (
+      {showUpload && isSolidContainer(currentContainer) && catalogUri && (
         <FileUpload
           mainContainer={currentContainer}
           catalogUri={catalogUri}
           profileHasCatalog={!!profile?.catalog?.["@id"]}
+          onUploadSuccess={handleUploadDone}
         />
       )}
 
@@ -155,26 +225,54 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
         <p className="files-section-label">
           {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
         </p>
-        <button className="btn btn--ghost btn--small" onClick={handleReload} disabled={isReloading}>
-          {isReloading ? (
-            <>
-              <div className="spinner spinner--small" />
-              {translate("fileExplorer.reloading")}
-            </>
-          ) : (
-            <>
-              <span className="icon--refresh" />
-              {translate("fileExplorer.refresh")}
-            </>
-          )}
-        </button>
+        <div className="files-section-actions">
+          <button className="btn btn--ghost btn--small" onClick={handleReload} disabled={isReloading}>
+            {isReloading ? (
+              <>
+                <div className="spinner spinner--small" />
+                {translate("fileExplorer.reloading")}
+              </>
+            ) : (
+              <>
+                <span className="icon--refresh" />
+                {translate("fileExplorer.refresh")}
+              </>
+            )}
+          </button>
+          <add-menu>
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              onClick={handleToggleAddMenu}
+              aria-haspopup="menu"
+              aria-expanded={showAddMenu}
+            >
+              {translate("fileExplorer.add")} ▾
+            </button>
+            {showAddMenu && (
+              <add-menu-dropdown>
+                <button type="button" className="add-menu__item" onClick={handleSelectNewFolder}>
+                  {translate("fileExplorer.newFolder")}
+                </button>
+                <button type="button" className="add-menu__item" onClick={handleSelectUploadFiles}>
+                  {translate("fileExplorer.uploadFiles")}
+                </button>
+              </add-menu-dropdown>
+            )}
+          </add-menu>
+        </div>
       </files-section-header>
+
+      {showNewFolder && isSolidContainer(currentContainer) && (
+        <NewFolderInput parentContainer={currentContainer} onDone={handleNewFolderDone} />
+      )}
 
       <DriveFileList
         folderEntries={folderEntries}
         leafEntries={leafEntries}
         isInAppFolder={isInAppFolder}
         catalogUri={catalogUri ?? ""}
+        catalogContainerUris={catalogContainerUris}
         onNavigate={handleNavigate}
         onDownload={handleDownload}
       />
