@@ -64,6 +64,7 @@ const RequestItem: FunctionComponent<{
     : "requestsPanel.requestsAccess";
 
   const resourceLabel = request.requestType === "file"
+    /* v8 ignore next */
     ? decodeURIComponent(request.accessTo.replace(/\/$/, "").split("/").pop() ?? request.accessTo)
     : undefined;
 

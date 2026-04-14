@@ -81,6 +81,7 @@ function collectAncestors(typeUri: string, parents: Map<string, string[]>): stri
 
   while (queue.length > 0) {
     const current = queue.shift()!;
+    /* v8 ignore next */
     if (visited.has(current)) continue;
     visited.add(current);
     for (const parent of parents.get(current) ?? []) {

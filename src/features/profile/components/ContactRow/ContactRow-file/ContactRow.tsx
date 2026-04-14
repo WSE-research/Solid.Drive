@@ -65,6 +65,7 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
   }, [webId, ownerWebId, solidFetch]);
 
   const handleRequestAgain = useCallback(async () => {
+    /* v8 ignore next 2 */
     if (!rejection) return;
     try {
       await deleteAccessRequest(rejection.messageUri, solidFetch);

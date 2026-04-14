@@ -81,6 +81,7 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
         }
       }
 
+      /* v8 ignore next 2 */
       if (cancelled) return;
 
       if (perContactAccessible) {

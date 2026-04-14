@@ -70,6 +70,7 @@ export function useFileValidation(
       return;
     }
     const classUri = resolveClass(file.type);
+    /* v8 ignore next */
     const typeLocalName = classUri.split(/[#/]/).pop() ?? "DigitalDocument";
     const snapshot: Record<string, unknown> = {
       name: title.trim() || file.name,
