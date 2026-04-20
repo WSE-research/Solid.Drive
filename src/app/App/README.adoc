@@ -1,0 +1,26 @@
+= App
+
+Root component that bootstraps the application.
+Wraps everything in the Solid authentication provider and notification provider, then renders the header and main layout.
+
+== Layout
+
+[cols="1,2", options="header"]
+|===
+| Condition | Renders
+
+| Always | `<BrowserSolidLdoProvider>` wrapping `<NotificationProvider>` wrapping `<Header />`
+| Logged in | `<ProfileSidebar />` and `<FileExplorer />`
+| Logged out | `<FileExplorer />` only
+|===
+
+== Navigation
+
+.Parent
+link:../README.adoc[app]
+
+.Uses
+* link:../../features/auth/components/Header/README.adoc[Header]
+* link:../../features/file-explorer/components/FileExplorer/README.adoc[FileExplorer]
+* link:../../features/profile/components/ProfileSidebar/README.adoc[ProfileSidebar]
+* link:../../shared/contexts/NotificationContext/README.adoc[NotificationContext]

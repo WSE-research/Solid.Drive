@@ -1,0 +1,17 @@
+= infrastructure/solid
+
+Core Solid protocol utilities. All exports are pure async functions and type guards; no React hooks.
+
+== Contents
+
+link:catalog/README.adoc[catalog/]:: DCAT catalog CRUD: append, remove, parse, resolve URI, link to profile
+link:displayName/README.adoc[displayName/]:: Resolve a display name from a Solid profile document
+link:profile/README.adoc[profile/]:: Patch profile fields (`foaf:name`, `foaf:img`, `foaf:knows`) via N3 Solid Patch
+link:rdfUtils/README.adoc[rdfUtils/]:: Serialize N3 quads to Turtle
+link:resourceGuards/README.adoc[resourceGuards/]:: Type guard functions for LDO resource shapes
+link:sharedCatalog/README.adoc[sharedCatalog/]:: Per-contact shared catalog naming, URI helpers, and access checks
+
+== Navigation
+
+.Parent
+link:../README.adoc[infrastructure]

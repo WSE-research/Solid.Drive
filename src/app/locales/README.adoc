@@ -1,0 +1,21 @@
+= locales
+
+Translation files for the UI.
+
+== Contents
+
+- `en.json`: English (default)
+- `de.json`: German
+
+== Adding a new language
+
+. Create a new JSON file here with the language code as its name (e.g. `fr.json`).
+. Add the language code to `SUPPORTED_LANGUAGES` in `@/config/constants`.
+. Import the file in `@/app/i18n`.
+
+Keys are dot-separated and match the `t('key')` calls in components.
+
+== Navigation
+
+.Parent
+link:../README.adoc[app]

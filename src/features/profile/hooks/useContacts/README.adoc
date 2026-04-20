@@ -1,0 +1,30 @@
+= useContacts
+
+Manages the `foaf:knows` contact list in a Solid profile.
+Reads contacts from the LDO-subscribed profile and keeps local state in sync.
+
+== Actions
+
+`addContact`:: Validates for duplicates, patches the profile document, and reloads it
+`removeContact`:: Patches the profile to delete the triple
+
+== Returns
+
+`contacts`:: Current list of contact WebIDs
+`addContact`:: Function to add a contact
+`removeContact`:: Function to remove a contact
+`isAdding`:: `true` while an add operation is in progress
+
+== See also
+
+* link:../../../../infrastructure/solid/profile/README.adoc[profile] provides `addContact` and `removeContact`, the SPARQL Patch operations this hook delegates to.
+* link:../../components/ContactsList/README.adoc[ContactsList] is the component that calls this hook to display and manage the contact list.
+
+== Navigation
+
+.Parent
+link:../README.adoc[profile/hooks]
+
+.Uses
+* link:../../../../infrastructure/solid/profile/README.adoc[profile]
+* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]

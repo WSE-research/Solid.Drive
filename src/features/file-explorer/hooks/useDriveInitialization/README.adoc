@@ -1,0 +1,28 @@
+= useDriveInitialization
+
+Composes `usePodDiscovery` and `useNavigation` to set up everything the file explorer needs on login: storage root, app container, navigation state, and the user's contact list.
+
+== Features
+
+Pod setup:: Delegates to `usePodDiscovery` for storage root discovery and app container creation
+Navigation state:: Delegates to `useNavigation`; syncs initial URI and breadcrumb label once storage is discovered
+Contact list:: Reads the user's `foaf:knows` list and exposes it so `SharedWithMeSection` can load shared files
+Storage retry:: Exposes `handleRetryStorage` (from `usePodDiscovery`) for both manual and auto-retry
+
+== Returns
+
+All values from `usePodDiscovery` and `useNavigation` are re-exported directly.
+
+link:../usePodDiscovery/README.adoc[usePodDiscovery]:: `appContainerUri`, `storageRootUri`, `noStorageDetected`, `handleRetryStorage`
+link:../useNavigation/README.adoc[useNavigation]:: `currentUri`, `setCurrentUri`, `breadcrumbs`, `setBreadcrumbs`, `handleNavigate`, `handleBreadcrumbClick`
+`contacts`:: WebIDs from the user's `foaf:knows` list
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../useNavigation/README.adoc[useNavigation]
+* link:../usePodDiscovery/README.adoc[usePodDiscovery]

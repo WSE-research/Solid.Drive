@@ -1,0 +1,28 @@
+= ProfileCard
+
+Displays the logged-in user's avatar, display name, and WebID.
+Entering edit mode lets the user change their display name and upload a new avatar.
+
+== Features
+
+View profile:: Shows avatar, display name, and WebID in read-only mode
+Edit mode:: Toggled via "Edit Profile" button; snapshot-and-restore on cancel
+Name editing:: Inline text input; saved via `useProfile.save`
+Avatar upload:: File picker uploads to `{storageRoot}public/avatar.{ext}` via `useProfile.uploadAvatar`
+
+== Hooks
+
+link:../../hooks/useProfile/README.adoc[useProfile]:: Owns name, imgUrl, displayName, isLoading, isUploadingAvatar, save, and uploadAvatar
+link:../../../../shared/contexts/NotificationContext/README.adoc[useNotifications]:: Shows success and error toasts after save and avatar upload
+
+== Navigation
+
+.Parent
+link:../README.adoc[profile/components]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../../hooks/useProfile/README.adoc[useProfile]
+* link:../../../../shared/components/Avatar/README.adoc[Avatar]
+* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
+* link:../../../../shared/utils/README.adoc[utils]

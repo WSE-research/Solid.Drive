@@ -1,0 +1,16 @@
+= config
+
+Single source of truth for all application configuration.
+Nothing should be hardcoded in components or services, it belongs here.
+
+== Contents
+
+*constants/*:: All application wide constants (providers, namespaces, file types, UI limits, etc.)
+*env/*:: Typed wrapper around `import.meta.env` values
+
+Import from `@/config`, it re-exports everything from both submodules.
+
+== Navigation
+
+.Parent
+link:../README.adoc[src]

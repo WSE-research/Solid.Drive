@@ -1,0 +1,19 @@
+= inbox
+
+Handles Solid LDP inbox operations for access request messaging.
+
+== Contents
+
+link:inboxAccess/README.adoc[inboxAccess]:: High-level functions: discover inbox URI, post requests/rejections, list and delete messages
+link:inboxMessages/README.adoc[inboxMessages]:: Low-level: parse Turtle messages, build Turtle message bodies, extract contained resource URIs
+
+== Message types
+
+`solid-access:CatalogAccessRequest`:: Catalog-level sharing request
+`solid-access:FileAccessRequest`:: Request to access a specific file
+`solid-access:AccessRejected`:: Denial notification
+
+== Navigation
+
+.Parent
+link:../README.adoc[infrastructure]

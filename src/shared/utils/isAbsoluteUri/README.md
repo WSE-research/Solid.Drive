@@ -1,7 +1,0 @@
-# isAbsoluteUri
-
-## Overview
-
-`isAbsoluteUri(value: string): boolean`
-
-Returns `true` if the value starts with `http://` or `https://`. Used to distinguish absolute URIs from relative ones in RDF parsing and inbox message construction.

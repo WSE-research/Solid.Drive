@@ -1,0 +1,61 @@
+= useAccessRequests
+
+Lists, approves, and denies access requests from the user's LDP inbox.
+Loads requests on mount and on manual refresh.
+
+== Actions
+
+Catalog approval:: Creates a shared catalog, grants read access to it, the main catalog, and the app container listing
+File approval:: Grants read access directly to the file container
+Denial:: Sends a rejection notification to the requester's inbox before removing the message
+
+== Returns
+
+`requests`:: Current list of access requests
+`loading`:: Boolean loading state
+`error`:: Error message or `null`
+`busyMessageUri`:: URI of the message currently being processed
+`loadRequests`:: Function to manually refresh the request list
+`approve`:: Function to approve a request
+`deny`:: Function to deny a request
+
+== Approve catalog request sequence
+
+----
+User: click Approve (catalog)
+  -> approve(request)
+    -> PUT sharedCatalog.ttl (empty)
+    -> HEAD -> PUT sharedCatalog.acl  (secure shared catalog)
+    -> HEAD -> GET -> PUT catalog.acl  (grant read on main catalog)
+    -> HEAD -> PUT appContainer.acl   (grant list-only on app container)
+    -> DELETE messageUri
+----
+
+== Approve file request sequence
+
+----
+User: click Approve (file)
+  -> approve(request)
+    -> HEAD -> GET -> PUT file.acl  (grant read on file container)
+    -> DELETE messageUri
+----
+
+== See also
+
+* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess] reads the inbox and provides the raw list of messages for processing.
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] provides the ACL read/write operations called during file and catalog approval.
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] is used to create the per-contact shared catalog when a catalog request is approved.
+* link:../../../file-explorer/components/TypeFolder/README.adoc[TypeFolder] is the component that triggers requests; its corresponding hook is link:../../../file-explorer/hooks/useAccessRequests/README.adoc[useFileAccessRequests]
+* link:../../components/RequestsPanel/README.adoc[RequestsPanel] is the UI component that drives this hook.
+
+== Navigation
+
+.Parent
+link:../README.adoc[profile/hooks]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager]

@@ -1,0 +1,13 @@
+= sharing
+
+Low-level ACL management for file sharing.
+Kept as a separate feature to isolate the WAC protocol details from the file explorer UI logic.
+
+== Contents
+
+link:hooks/useAclManager/README.adoc[hooks/useAclManager]:: Handles all the WAC ACL operations needed to grant and revoke file access. Consumer: link:../file-explorer/components/SharePanel/README.adoc[SharePanel]
+
+== Navigation
+
+.Parent
+link:../README.adoc[features]

@@ -1,0 +1,27 @@
+= useFileTypes
+
+Loads and caches file type definitions from the TBox ontology (`tbox.ttl`).
+Falls back to the default file types from `@/config` if loading fails.
+
+Use this when you need the full list of types for a selector or display.
+To look up a single type by URI, use `getFileTypeInfo` from `@/infrastructure/validation/fileTypeRegistry` directly.
+
+== Returns
+
+`fileTypes`:: Array of all known file type definitions
+`loading`:: `true` while the TBox is being fetched
+`error`:: Error message string if the fetch failed, otherwise `null`
+`loaded`:: `true` once the TBox has been fetched at least once
+
+== See also
+
+* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry] is the underlying registry this hook wraps; call `getFileTypeInfo` directly from there when you only need a single type by URI.
+* link:../useFileValidation/README.adoc[useFileValidation] validates upload form data against the same TBox that this hook reads.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]
+
+.Uses
+* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]

@@ -1,0 +1,14 @@
+= shared/components
+
+Generic UI components with no feature-specific dependencies.
+
+== Contents
+
+*Avatar*:: Shows a profile image or a letter initial fallback; has a spinner state for loading
+*ErrorBoundary*:: Catches uncaught React render errors and shows a fallback UI
+*Toast*:: Notification message with type styling (`info`, `error`, `success`) and an optional dismiss button
+
+== Navigation
+
+.Parent
+link:../README.adoc[shared]

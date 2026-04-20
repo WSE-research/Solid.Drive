@@ -1,0 +1,17 @@
+= useAuth
+
+Thin wrapper around `useSolidAuth` that exposes the fields most components actually need: `isLoggedIn`, `webId`, `session`, `login(issuerUrl)`, and `logout()`.
+
+== Usage
+
+Most components use this hook instead of calling `useSolidAuth` directly.
+This makes the intent clearer and helps keep coupling to the LDO library contained.
+
+== See also
+
+* link:../../components/Header/README.adoc[Header] is the main consumer of this hook, driving the login and logout UI.
+
+== Navigation
+
+.Parent
+link:../README.adoc[auth/hooks]

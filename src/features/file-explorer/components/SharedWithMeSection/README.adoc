@@ -1,0 +1,40 @@
+= SharedWithMeSection
+
+Shows files that contacts have shared with the current user.
+For each contact in the user's `foaf:knows` list, tries per-contact shared catalogs first, then falls back to the contact's main catalog.
+
+== Behavior
+
+[cols="1,3", options="header"]
+|===
+| Behavior | Description
+
+| Per-contact catalogs | Checks `.shared-{webid}.ttl` files first
+| Type folders | Files not yet accessible are grouped by schema.org class and shown with request access buttons
+| Main catalog fallback | Falls back to the contact's main catalog when no per-contact shared catalog exists
+| Rejection tracking | Reads the viewer's inbox for access rejections and exposes a dismiss action
+| Hidden when inaccessible | Renders nothing for a contact whose catalog cannot be reached
+|===
+
+== Hooks
+
+[cols="1,3", options="header"]
+|===
+| Hook | Purpose
+
+| link:../../hooks/useSharedCatalog/README.adoc[useSharedCatalog] | Resolves shared entries and type groups for a contact
+| link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections] | Fetches and manages file access rejection notifications
+|===
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/components]
+
+.Uses
+* link:../FileCard/README.adoc[FileCard]
+* link:../TypeFolder/README.adoc[TypeFolder]
+* link:../../hooks/useSharedCatalog/README.adoc[useSharedCatalog]
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections]
+* link:../../../../shared/utils/getProfileDisplayName/README.adoc[getProfileDisplayName]

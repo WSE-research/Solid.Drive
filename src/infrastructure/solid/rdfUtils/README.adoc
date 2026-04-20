@@ -1,0 +1,18 @@
+= rdfUtils
+
+Small utility for serializing RDF data.
+
+Converts an array of N3 `Quad` objects into a Turtle string.
+Accepts an optional prefix map for cleaner output.
+Used by `aclManager` and `inboxMessages` to build HTTP request bodies.
+
+
+== See also
+
+* link:../../wac/aclManager/README.adoc[aclManager] uses `serializeTurtle` to build the bodies of all ACL documents it writes.
+* link:../inbox/inboxMessages/README.adoc[inboxMessages] uses `serializeTurtle` to build the Turtle bodies of access request and rejection messages.
+
+== Navigation
+
+.Parent
+link:../README.adoc[infrastructure/solid]

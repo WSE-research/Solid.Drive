@@ -1,9 +1,0 @@
-# ErrorBoundary
-
-## Overview
-
-Class component that catches uncaught JavaScript errors thrown during rendering. Shows a generic "Something went wrong" message by default, or a custom `fallback` node if provided.
-
-## Usage
-
-Wrap any subtree that might throw (e.g., a feature that loads external data) to prevent the whole app from crashing. Errors are logged to `console.error`.

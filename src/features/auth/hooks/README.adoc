@@ -1,0 +1,12 @@
+= auth/hooks
+
+React hooks for authentication logic.
+
+== Contents
+
+*useAuth*:: Exposes `isLoggedIn`, `webId`, `session`, `login(issuerUrl)`, and `logout()`. A thin convenience wrapper over `useSolidAuth` from `@ldo/solid-react`
+
+== Navigation
+
+.Parent
+link:../README.adoc[auth]

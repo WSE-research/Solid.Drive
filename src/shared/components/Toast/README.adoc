@@ -1,0 +1,15 @@
+= Toast
+
+A single notification message. Styled by type (`info`, `error`, `success`) via CSS classes.
+
+== Usage
+
+Rendered by `NotificationProvider` inside a `<toast-container>`.
+Don't render `Toast` directly. Use the `useNotifications` hook's `showError`, `showSuccess`, or `showInfo` helpers instead, and let the provider manage the lifecycle.
+
+The optional `onDismiss` callback is called when the user clicks the dismiss button.
+
+== Navigation
+
+.Parent
+link:../README.adoc[shared/components]

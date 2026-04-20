@@ -1,0 +1,47 @@
+= FileExplorer
+
+Root component of the file explorer feature.
+Coordinates everything: Pod discovery, navigation, file listing, upload, and shared files.
+
+== Features
+
+* *Pod setup*: on mount discovers the user's Pod storage root and creates `my-solid-app/` if needed
+* *Breadcrumb navigation*: push on navigate, trim on breadcrumb click
+* *File listing*: folders as `FolderEntry`, app-managed files as `FileCard`
+* *Upload*: delegates to `FileUpload`
+* *Refresh*: reloads the current container from the Pod
+* *Shared files*: renders `SharedWithMeSection` below the main browser
+
+Shows a login prompt, a storage error message, or a connecting spinner before the main UI is ready.
+
+== Hooks
+
+[cols="1,3", options="header"]
+|===
+| Hook | Purpose
+
+| link:../../hooks/useDriveInitialization/README.adoc[useDriveInitialization] | Discovers the Pod storage root, creates the app container, and manages breadcrumb navigation state
+|===
+
+== See also
+
+* link:../SharedWithMeSection/README.adoc[SharedWithMeSection] is rendered below the main browser and shows files that contacts have shared with the current user.
+* link:../FileCard/README.adoc[FileCard] renders each app-managed file inside the current container.
+* link:../FolderEntry/README.adoc[FolderEntry] renders non-app subfolders as navigable entries.
+* link:../FileUpload/README.adoc[FileUpload] is the upload dialog this component opens.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/components]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../FileUpload/README.adoc[FileUpload]
+* link:../SharedWithMeSection/README.adoc[SharedWithMeSection]
+* link:../../hooks/useDriveInitialization/README.adoc[useDriveInitialization]
+* link:../../services/fileFilter/README.adoc[fileFilter]
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
+* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
