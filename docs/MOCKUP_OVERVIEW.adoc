@@ -1,0 +1,345 @@
+= Solid.drive UI Design — OneDrive Inspired Mockup
+:toc: macro
+:toc-title: Contents
+:toclevels: 2
+:imagesdir: images
+
+++++
+<style>
+.imageblock img { width:100%; height:340px; object-fit:contain; background:#1a1a1a; }
+</style>
+++++
+
+toc::[]
+
+This document presents the UI mockup for Solid.drive, designed with inspiration from Microsoft OneDrive. Each section places the OneDrive reference and the Solid.drive mockup side by side, followed by callouts explaining each numbered element in the Solid.drive design.
+
+== Navigation Sidebar
+
+The left sidebar is present in every view and provides global navigation throughout the application. The icons map closely to OneDrive's sidebar, with one addition specific to Solid.drive.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_Homepage.png[OneDrive Sidebar, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_Homepage.png[Solid.drive Sidebar, 520]
+|===
+
+[NOTE]
+.➕ New
+====
+Opens a menu to upload a file or create a new folder inside the current Pod location.
+====
+
+[NOTE]
+.Recent / Home (first icon)
+====
+Shows recently accessed files across all Pod containers, sorted by last opened time.
+====
+
+[NOTE]
+.My Files (second icon)
+====
+Navigates to the root of the user's personal Solid Pod, listing all stored containers and files.
+====
+
+[NOTE]
+.Shared (third icon)
+====
+Displays files and folders that others have shared with you, or that you have shared with others.
+====
+
+[NOTE]
+.Requests (fourth icon -> Solid.drive specific)
+====
+Lists incoming access requests from other Solid users who are asking permission to view or edit resources in your Pod.
+====
+
+[NOTE]
+.Recycle Bin (fifth icon)
+====
+Shows deleted files that can still be restored before they are permanently removed.
+====
+
+[NOTE]
+.People (bottom icon)
+====
+Shows your contacts and the files they have shared with you, grouped by person.
+====
+
+== Homepage / Recent Files
+
+The homepage greets the user with a list of recently opened files. OneDrive shows Microsoft Office format filters because it is tightly coupled to that ecosystem. Solid.drive generalises this to file types stored in any Pod, derived from RDF type metadata.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_Homepage.png[OneDrive Homepage, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_Homepage.png[Solid.drive Homepage, 520]
+|===
+
+[NOTE]
+.Filter tabs (All / Text / Image / …)
+====
+These tabs narrow the recent file list by type. In Solid.drive the categories come from the RDF type metadata stored in the Pod rather than fixed formats.
+====
+
+[NOTE]
+.Filter by name or person
+====
+A text input that filters the file list by file name or by the display name of the file owner, resolved from their Solid WebID profile.
+====
+
+[NOTE]
+."⚙" Settings icon
+====
+Opens the application settings panel where the user can manage their Pod connection, language, and display preferences.
+====
+
+[NOTE]
+.Avatar / Initials
+====
+Displays the user's profile picture or initials. Clicking it opens a dropdown with account information and a logout option.
+====
+
+== Create
+
+The ➕ New button opens a creation menu that lets the user upload a file or create a new folder inside the current Pod location. While Microsoft OneDrive offers extra shortcuts for document types like Word and Excel through Microsoft 365, Solid.drive keeps its menu generic because it is not tied to any office suite
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_create_selected.png[OneDrive Create, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_create_selected.png[Solid.drive Create, 520]
+|===
+
+. *➕ Creation*: This is the main action button at the top of the sidebar. When you click it, a small dropdown opens with the available options: create a folder or upload files. This menu can expand later to include more features.
+. *Recent section*: Shows all recently opened or edited files across the entire Pod, sorted by last access time. This gives users quick access to their most relevant resources without navigating through folders.
+. *File filter*: The Recent section can be filtered by type using the tabs (All / Text / Image / …) or by typing in the “Filter by name or person” field. This helps users quickly find a specific file among their recent activity, even when their Pod contains many resources.
+. *File section*: Files are listed by their display names, along with a short description (if available), the last opened time, and their owners (resolved from WebID profiles).
+. *Avatar / Initials*: Displays the user's profile picture or initials resolved from their Solid WebID profile. Clicking the avatar opens account information and a logout option.
+
+== My Files
+
+The _My Files_ view shows the root of the user's Solid Pod. Folders and files are listed with metadata columns, mirroring OneDrive's file browser.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_Myfiles_selected.png[OneDrive My Files, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_MyFiles_selected.png[Solid.drive My Files, 520]
+|===
+
+[NOTE]
+.Sort
+====
+Reorders the file list by name, modification date, file size, or sharing status. The sort state is kept for the duration of the session.
+====
+
+[NOTE]
+.Details
+====
+Toggles the detail side panel. When a file or folder is selected the panel slides in from the right, showing metadata and access information without navigating away from the current directory.
+====
+
+[NOTE]
+.Modified column
+====
+Shows when the resource was last changed.
+====
+
+[NOTE]
+.File size column
+====
+Displays the byte size of the resource, or the number of contained items for a folder.
+====
+
+[NOTE]
+.Sharing column
+====
+Reflects the WAC (Web Access Control) permissions stored in the Pod. Values such as "Private", "Public", or a person's name indicate who currently has access to the resource.
+====
+
+== Inside a Folder
+
+Navigating into a folder shows its contents within the same file browser layout. The breadcrumb trail at the top updates to reflect the current container path, and the file list refreshes to show only the resources inside that container.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_inside_a_folder.png[OneDrive Inside a Folder, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_inside_a_folder.png[Solid.drive Inside a Folder, 520]
+|===
+
+[NOTE]
+.Breadcrumb navigation
+====
+Shows the full path from the Pod root to the current container. Each segment is a clickable link that jumps back up the hierarchy without reloading the page.
+====
+
+[NOTE]
+.Folder contents list
+====
+Lists all LDP resources (files and subcontainers) inside the current container. The same sort and filter controls from the My Files view are available here.
+====
+
+[NOTE]
+.Back navigation
+====
+The browser's back button and the breadcrumb both work to navigate up. The application maintains scroll position and selection state so the user returns to exactly where they were in the parent folder.
+====
+
+== File Selected 
+
+When a single file is selected, the toolbar at the top reveals contextual action buttons and the detail panel slides in on the right to preview the file and display its metadata.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_single_file_selected.png[OneDrive File Selected, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_single_file_selected.png[Solid.drive File Selected, 520]
+|===
+
+. *Selected file*: When you click a file in the list and open the details view, a side panel appears with all relevant information about the selected file.
+. *Details button*: Toggles the detail panel open and closed. When active the panel slides in from the right showing the file's metadata and access information.
+. *File preview and name*: The detail panel header shows the resource name and a thumbnail preview of the file content fetched directly from the Pod.
+. *Add a description*: An optional free text annotation stored as metadata on the resource in the Pod. It can be used to give context to collaborators who have access.
+. *Has access*: Avatar thumbnails for each WebID that has been granted access to this file via WAC permissions. Hovering over an avatar shows the person's display name.
+. *More details*: Expands the full file configuration.
+. *File metadata*: Displays the resource type (e.g. PDF File), size, created and modified timestamps, and the file’s URI in the Pod.
+
+== Folder Selected
+
+Selecting a folder surfaces the same toolbar actions as file selection. The detail panel shows the folder's access list and editable description.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_folder_selected.png[OneDrive Folder Selected, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_folder_selected.png[Solid.drive Folder Selected, 520]
+|===
+
+. *Move To*: Moves the selected folder to a different container in the Pod. Also available for a single file.
+. *Rename*: Renames the folder by copying it to a new URL and deleting the original. Also available for single files.
+. *Selected folder*: The highlighted row shows which folder is currently active. Like a selected file, the detail panel on the right displays the folder’s description, access list, and metadata.
+
+[NOTE]
+.download
+====
+The user can also download a selected file or an entire folder directly to their local device.
+====
+
+[NOTE]
+.Links
+====
+If the user wants to share a resource directly, the “Link” button in the top panel displays the resource URI and includes a “Copy link” option to copy it to the clipboard.
+====
+
+[NOTE]
+.Share
+====
+The “Share” button opens a sharing configuration panel where the user can grant access to other WebIDs by setting WAC permissions on the resource in the Pod. This is available for both files and folders.
+====
+
+== Shared 
+
+The Shared view is split into two tabs. "With you" lists files that other users have shared with you. "By you" shows files from your own Pod that you have granted access to others.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_shared_selected.png[OneDrive Shared, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_shared_selected.png[Solid.drive Shared, 520]
+|===
+
+. *Shared section*: Shows the list of shared resources. The "With you" tab is selected by default, showing resources from other Pods shared with your WebID. Switching to "By you" lists resources from your own Pod that you have shared with others.
+
+The filter tabs (All / Documents / Videos / Others) narrow the list by resource type using RDF type metadata. The "Filter by name or person" input further narrows results by file name or the display name of the person who shared the resource.
+
+== Recycle Bin
+
+The Recycle Bin shows deleted resources. In OneDrive this is a server managed feature with automatic expiry. In Solid.drive deletion is a hard DELETE on the Pod, so this view tracks resources that the application has marked as deleted within the user's session.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_bin_selected.png[OneDrive Recycle Bin, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_bin_selected.png[Solid.drive Recycle Bin, 520]
+|===
+
+. *Recycle bin section*: The view lists deleted resources with their name, deletion date, who deleted them, and file size.
+
+The "Empty recycle bin" button at the top permanently purges all records from the deleted items tracking state.
+
+=== Deleted Item Selected
+
+When a deleted item is selected, two action buttons appear in the top toolbar.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_deleted_file_selected.png[OneDrive Deleted File Selected, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_deleted_file_selected.png[Solid.drive Deleted File Selected, 520]
+|===
+
+. *Action toolbar*: Appears when a deleted item is selected, revealing two buttons. *Restore* reuploads the resource to its original Pod location. *Delete* permanently removes the record from the application's deleted items tracking state.
+
+== People
+
+The People view groups your contacts by their WebID profiles and shows the files they have shared with you.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *OneDrive*
+
+image::Onedrive_people_selected.png[OneDrive People, 520]
+
+a| *Solid.drive*
+
+image::Solid.drive_people_selected.png[Solid.drive People, 520]
+|===
+
+. *Expanded sidebar section*: The chevron arrow expands the lower part of the sidebar to reveal additional icons. The People icon opens a view of your contacts and the files they have shared with you.
+. *People section*: Lists your contacts by their display name and profile picture, resolved from their WebID profiles, along with the files they have shared with you. 
+
+
