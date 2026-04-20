@@ -5,6 +5,7 @@ React hooks for the file explorer feature.
 == Contents
 
 link:useAccessRequests/README.adoc[useFileAccessRequests]:: Sends access requests to a contact's inbox for individual files or all files at once
+link:useCreateFolder/README.adoc[useCreateFolder]:: Validates folder names and creates new LDP BasicContainers on a Solid pod
 link:useDriveInitialization/README.adoc[useDriveInitialization]:: Discovers Pod storage, creates app container, sets up navigation state
 link:useFilePreview/README.adoc[useFilePreview]:: Creates a blob URL for previewing a binary resource; revokes on cleanup
 link:useFileSharing/README.adoc[useFileSharing]:: Checks if a resource has been shared (has non-owner ACL agents)

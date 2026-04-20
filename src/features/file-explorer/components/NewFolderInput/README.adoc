@@ -1,0 +1,44 @@
+= NewFolderInput
+
+Inline input form shown when the user clicks "New Folder" in the file explorer.
+Validates the name on blur and on submit, then creates the folder as an LDP BasicContainer.
+
+== Behaviour
+
+. The user types a folder name into the text field.
+. On blur, the name is validated and an inline error is shown if invalid.
+. Pressing Enter or clicking the create button re-validates and, if the name is valid, calls `createFolder`.
+. When creation succeeds, `onDone` is called to dismiss the input.
+. On failure, a toast error notification is shown and `onDone` is *not* called.
+
+== Props
+
+[cols="1,1,3", options="header"]
+|===
+| Prop | Type | Description
+
+| `parentContainer` | `SolidContainer` | The container in which the new folder will be created
+| `onDone` | `() => void` | Callback invoked after a successful creation or when the user cancels
+|===
+
+== Hooks
+
+[cols="1,3", options="header"]
+|===
+| Hook | Purpose
+
+| link:../../hooks/useCreateFolder/README.adoc[useCreateFolder] | Name validation and LDP BasicContainer creation
+|===
+
+== See also
+
+* link:../FileExplorer/README.adoc[FileExplorer] is the parent component that mounts `NewFolderInput` when the user triggers the "New Folder" action.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/components]
+
+.Uses
+* link:../../hooks/useCreateFolder/README.adoc[useCreateFolder]
+* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]

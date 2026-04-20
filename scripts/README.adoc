@@ -1,0 +1,35 @@
+= scripts
+
+Build time and development utility scripts.
+Run with Node.js directly.
+
+== Contents
+
+`extract-tbox.mjs`::
+Downloads the SHACL TBox from datashapes.org and writes it to `public/tbox.ttl`.
++
+----
+node scripts/extract-tbox.mjs
+node scripts/extract-tbox.mjs --source https://datashapes.org/schema.ttl
+node scripts/extract-tbox.mjs --output public/tbox.ttl
+----
++
+The generated file carries a DO NOT EDIT header — re-run the script to refresh it.
+
+`fix-ldo-types.mjs`::
+Patches auto-generated LDO files in `src/.ldo/` to use `import type` instead of `import`.
+Required after running `@ldo/cli` because the generator emits value imports where TypeScript's `--isolatedModules` expects type-only imports.
++
+----
+node scripts/fix-ldo-types.mjs
+----
+
+== See also
+
+* link:../public/README.adoc[public] — `tbox.ttl` is written here by `extract-tbox.mjs`
+* link:../src/.ldo/README.adoc[src/.ldo] — patched by `fix-ldo-types.mjs`
+
+== Navigation
+
+.Parent
+link:../README.adoc[root]

@@ -10,6 +10,7 @@ link:FileUpload/README.adoc[FileUpload]:: Upload form with TBox validation; crea
 link:FolderEntry/README.adoc[FolderEntry]:: Clickable row for navigating into a Pod container that is not managed by this app
 link:SharePanel/README.adoc[SharePanel]:: Grant/revoke per-file access to contacts via WAC ACLs and shared catalogs
 link:SharedWithMeSection/README.adoc[SharedWithMeSection]:: Shows files shared by contacts; reads per-contact shared catalogs and checks accessibility
+link:NewFolderInput/README.adoc[NewFolderInput]:: Inline input form for creating a new folder as an LDP BasicContainer
 link:TypeFolder/README.adoc[TypeFolder]:: Collapsible folder grouped by schema.org type, with request access buttons per-file
 
 == Navigation
