@@ -3,7 +3,7 @@
  * Initializes the file explorer with Pod storage and app container.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useSolidAuth, useSubject } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
@@ -70,10 +70,12 @@ export function useDriveInitialization(
     setBreadcrumbs([{ label: initialBreadcrumbLabel, uri: initialCurrentUri }]);
   }, [initialCurrentUri, initialBreadcrumbLabel, setCurrentUri, setBreadcrumbs]);
 
-  const contacts = useMemo(
-    () => profile?.knows?.toArray().map((contact: { "@id": string }) => contact["@id"]) ?? [],
-    [profile]
-  );
+  const [contacts, setContacts] = useState<string[]>([]);
+  useEffect(() => {
+    if (!profile) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setContacts(profile.knows?.toArray().map((contact: { "@id": string }) => contact["@id"]) ?? []);
+  }, [profile]);
 
   return {
     appContainerUri,

@@ -42,7 +42,6 @@ import { useFileUpload } from '../useFileUpload-file/useFileUpload';
 describe('useFileUpload', () => {
   const mockFile = new File(['test'], 'photo.png', { type: 'image/png' });
   const mockMetadata = {
-    type: { add: vi.fn() },
     name: '',
     encodingFormat: '',
     contentSize: '',

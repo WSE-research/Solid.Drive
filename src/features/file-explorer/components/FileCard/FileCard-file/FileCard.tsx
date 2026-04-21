@@ -14,30 +14,19 @@ import { isLoadable, isReadable, isDeletable, isSolidContainer } from "@/infrast
 import { formatBytes } from "@/shared/utils/formatBytes";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { removeFromCatalog } from "@/infrastructure/solid/catalog";
-import { getFileTypeInfo, resolveClass, isKnownFileType } from "@/infrastructure/validation/fileTypeRegistry";
+import { getFileTypeInfo, resolveClass } from "@/infrastructure/validation/fileTypeRegistry";
 import { SharePanel } from "@/features/file-explorer/components/SharePanel";
 import { useFileSharing } from "@/features/file-explorer/hooks/useFileSharing";
 import { useFilePreview } from "@/features/file-explorer/hooks/useFilePreview";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
-import { DEFAULT_LOCALE, DATE_FORMAT_OPTIONS, DEFAULT_FILE_TYPE_URI, RDF_NAMESPACES, CONTENT_TYPES } from "@/config";
-import { isAbsoluteUri } from "@/shared/utils";
+import { DEFAULT_LOCALE, DATE_FORMAT_OPTIONS, DEFAULT_FILE_TYPE_URI, CONTENT_TYPES } from "@/config";
 import type { SharedEntry } from "@/types";
 import { FileMediaPreview } from "./FileMediaPreview";
 import { FileCardInfoPanel } from "./FileCardInfoPanel";
 
-/**
- * Resolves the schema.org class URI for a file given its metadata.
- * Prefers an explicit `type` triple on the metadata, falls back to MIME→class
- * mapping, and finally defaults to the generic file type URI.
- */
-function resolveFileClassUri(
-  types: { toArray(): Array<{ "@id": string }> } | null | undefined,
-  encodingFormat: string | null | undefined
-): string {
-  const fromType = types?.toArray().map((t: { "@id": string }) => t["@id"]).find(isKnownFileType);
-  if (fromType) return isAbsoluteUri(fromType) ? fromType : `${RDF_NAMESPACES.SCHEMA}${fromType}`;
-  const mime = encodingFormat ?? "";
-  return mime ? resolveClass(mime) : DEFAULT_FILE_TYPE_URI;
+function resolveFileClassUri(encodingFormat: string | null | undefined): string {
+  const mimeType = encodingFormat ?? "";
+  return mimeType ? resolveClass(mimeType) : DEFAULT_FILE_TYPE_URI;
 }
 
 /**
@@ -151,7 +140,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     ? new Date(fileMeta.dateModified).toLocaleDateString(DEFAULT_LOCALE, DATE_FORMAT_OPTIONS)
     : "";
 
-  const classUri = resolveFileClassUri(fileMeta.type, fileMeta.encodingFormat);
+  const classUri = resolveFileClassUri(fileMeta.encodingFormat);
   const fileType = getFileTypeInfo(classUri);
 
   const infoButtonLabel = showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info");
