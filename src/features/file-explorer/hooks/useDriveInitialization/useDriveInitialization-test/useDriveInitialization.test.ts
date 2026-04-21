@@ -144,6 +144,12 @@ describe('useDriveInitialization', () => {
     expect(mockWebIdResource.reload).toHaveBeenCalled();
   });
 
+  it('returns empty contacts when profile is null', () => {
+    mockProfileValue = null;
+    const { result } = renderHook(() => useDriveInitialization());
+    expect(result.current.contacts).toEqual([]);
+  });
+
   it('returns empty contacts when profile has no knows', () => {
     mockProfileValue = {
       storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },

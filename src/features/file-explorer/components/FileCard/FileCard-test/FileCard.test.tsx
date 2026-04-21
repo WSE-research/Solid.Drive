@@ -25,18 +25,13 @@ vi.mock('@/shared/utils/formatBytes', () => ({
   formatBytes: vi.fn((byteCount: string) => `${byteCount} bytes`),
 }));
 
-vi.mock('@/shared/utils', () => ({
-  isAbsoluteUri: vi.fn((uri: string) => uri.startsWith('http')),
-}));
-
 vi.mock('@/infrastructure/solid/catalog', () => ({
   removeFromCatalog: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
-  getFileTypeInfo: vi.fn(() => ({ label: 'PDF', icon: 'ðŸ“„' })),
+  getFileTypeInfo: vi.fn(() => ({ label: 'PDF', icon: 'ðŸ”„' })),
   resolveClass: vi.fn(() => 'https://schema.org/DigitalDocument'),
-  isKnownFileType: vi.fn(() => false),
 }));
 
 vi.mock('@/features/file-explorer/components/SharePanel/SharePanel-file/SharePanel', () => ({
@@ -77,8 +72,7 @@ import { useFileSharing } from '@/features/file-explorer/hooks/useFileSharing';
 import { useFilePreview } from '@/features/file-explorer/hooks/useFilePreview';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
 import { removeFromCatalog } from '@/infrastructure/solid/catalog';
-import { isKnownFileType } from '@/infrastructure/validation/fileTypeRegistry';
-import { isAbsoluteUri } from '@/shared/utils';
+import { resolveClass } from '@/infrastructure/validation/fileTypeRegistry';
 
 // ── shared constants ──────────────────────────────────────────────────────────
 
@@ -106,7 +100,6 @@ const baseFileMeta = {
   encodingFormat: 'application/pdf',
   contentSize: '12345',
   publisher: { '@id': 'https://publisher.example/card#me' },
-  type: { toArray: () => [] as { '@id': string }[] },
   image: undefined as { '@id': string } | undefined,
   isPartOf: undefined,
 };
@@ -412,18 +405,16 @@ describe('FileCard — delete action', () => {
 });
 
 describe('FileCard — classUri branch coverage', () => {
-  it('falls back to default file type class when no type annotations or encoding format exist', () => {
-    withFileMeta({ encodingFormat: undefined, type: { toArray: () => [] } });
+  it('falls back to default file type class when no encoding format exists', () => {
+    withFileMeta({ encodingFormat: undefined });
     renderCard();
-    // classUri falls through to DEFAULT_FILE_TYPE_URI because mime is ""
     expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 
-  it('prefixes non-absolute type URI with SCHEMA namespace', () => {
-    vi.mocked(isKnownFileType).mockReturnValue(true);
-    vi.mocked(isAbsoluteUri).mockReturnValue(false);
-    withFileMeta({ type: { toArray: () => [{ '@id': 'DigitalDocument' }] } });
+  it('resolves class URI from MIME type via resolveClass', () => {
+    withFileMeta({ encodingFormat: 'image/jpeg' });
     renderCard();
+    expect(vi.mocked(resolveClass)).toHaveBeenCalledWith('image/jpeg');
     expect(document.querySelector('file-card')).toBeInTheDocument();
   });
 });
@@ -565,12 +556,3 @@ describe('FileCard — publisher name branch coverage', () => {
   });
 });
 
-describe('FileCard — classUri absolute URI branch', () => {
-  it('uses the absolute type URI directly when isAbsoluteUri returns true', () => {
-    vi.mocked(isKnownFileType).mockReturnValue(true);
-    vi.mocked(isAbsoluteUri).mockReturnValue(true);
-    withFileMeta({ type: { toArray: () => [{ '@id': 'http://schema.org/ImageObject' }] } });
-    renderCard();
-    expect(document.querySelector('file-card')).toBeInTheDocument();
-  });
-});

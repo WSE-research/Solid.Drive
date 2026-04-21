@@ -99,9 +99,6 @@ export function useFileUpload(): UseFileUploadReturn {
       }
 
       const metadata = createData(CatalogEntryShShapeType, indexResource.uri, indexResource);
-      // Always use DigitalDocument as the ShEx type — actual classification is
-      // stored in encodingFormat and in the catalog's conformsTo field.
-      metadata.type.add({ "@id": "DigitalDocument" });
       metadata.name = title.trim() || file.name;
       metadata.encodingFormat = file.type || undefined;
       metadata.contentSize = file.size.toString();
