@@ -4,7 +4,7 @@
 
 Manages the full lifecycle of sending file access requests to a contact's inbox. Tracks send status for individual files and for the entire type folder independently.
 
-Status is tracked at two granularities — per-file and bulk — because a user may request a single file without affecting the group button, or request all files at once. Keeping them separate avoids having to reset individual statuses when the bulk action fires.
+Status is tracked at two granularities — per-file and bulk. `handleRequestAll` synchronises both: it sets every entry in `fileStatuses` to `sending` at the start, then to `sent` on success or clears them on error. Individual `handleRequestFile` calls update only their own entry and leave `bulkStatus` untouched.
 
 ## Actions
 

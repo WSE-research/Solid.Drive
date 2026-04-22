@@ -39,7 +39,6 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
     containerUri: toContainerUri(entry.uri),
   }));
 
-  if (!catalogAccessible && !isProfileLoading) return null;
   if (!catalogAccessible) return null;
 
   return (

@@ -10,7 +10,7 @@ Resolves which files a contact has shared with the current user. Tries per-conta
 |---|---|
 | Per-contact catalog | Fetches `.shared-{viewerWebId}.ttl` from the contact's app container |
 | Access check | For entries in the main catalog not in the shared catalog, does a HEAD request to see if the viewer can read them |
-| Main catalog fallback | Falls back to the contact's main `catalog.ttl` when no per-contact catalog exists |
+| Main catalog fallback | Falls back to the contact's main `catalog.ttl` when no per-contact catalog exists; performs the same HEAD-based access checks and populates `typeGroups` for inaccessible entries |
 
 ## Returns
 

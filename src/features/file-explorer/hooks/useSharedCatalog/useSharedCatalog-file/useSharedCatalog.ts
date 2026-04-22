@@ -140,10 +140,32 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
           if (response.ok) {
             const text = await response.text();
             const parsed = parseCatalog(text, mainCatalogUri);
-            if (!cancelled && parsed.length > 0) {
-              setSharedEntries(parsed);
+            if (cancelled) return;
+            if (parsed.length > 0) {
+              const accessChecks = await Promise.all(
+                parsed.map(async (entry) => ({
+                  entry,
+                  accessible: await hasAccess(toContainerUri(entry.uri), solidFetch),
+                }))
+              );
+              if (cancelled) return;
+
+              const accessible = accessChecks.filter((c) => c.accessible).map((c) => c.entry);
+              const browsable = accessChecks.filter((c) => !c.accessible).map((c) => c.entry);
+
+              setSharedEntries(accessible);
               setResolvedCatalogUri(mainCatalogUri);
               setCatalogAccessible(true);
+
+              if (browsable.length > 0) {
+                const groups = new Map<string, CatalogEntry[]>();
+                for (const entry of browsable) {
+                  const key = entry.conformsTo || DEFAULT_FILE_TYPE_URI;
+                  const existing = groups.get(key) ?? [];
+                  groups.set(key, [...existing, entry]);
+                }
+                setTypeGroups(groups);
+              }
               return;
             }
           }

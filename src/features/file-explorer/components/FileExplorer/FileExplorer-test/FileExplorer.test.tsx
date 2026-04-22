@@ -89,12 +89,20 @@ vi.mock('@/features/file-explorer/components/SharedWithMeSection', () => ({
   ),
 }));
 
+let capturedUploadDone: (() => void) | null = null;
 vi.mock('@/features/file-explorer/components/FileUpload', () => ({
-  FileUpload: () => <div data-testid="file-upload" />,
+  FileUpload: ({ onUploadSuccess }: { onUploadSuccess: () => void }) => {
+    capturedUploadDone = onUploadSuccess;
+    return <div data-testid="file-upload" />;
+  },
 }));
 
+let capturedNewFolderDone: (() => void) | null = null;
 vi.mock('@/features/file-explorer/components/NewFolderInput', () => ({
-  NewFolderInput: () => <div data-testid="new-folder-input" />,
+  NewFolderInput: ({ onDone }: { onDone: () => void }) => {
+    capturedNewFolderDone = onDone;
+    return <div data-testid="new-folder-input" />;
+  },
 }));
 
 import { useResource, useSubject } from '@ldo/solid-react';
@@ -112,6 +120,9 @@ describe('FileExplorer', () => {
     mockSession.isLoggedIn = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockFetch.mockResolvedValue({ ok: false });
+    mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
+    capturedUploadDone = null;
+    capturedNewFolderDone = null;
     mockUseDriveInit.noStorageDetected = false;
     mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
     mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
@@ -342,5 +353,57 @@ describe('FileExplorer', () => {
     render(<FileExplorer />);
     // catalogUri ?? "" fires — DriveFileList still renders
     expect(capturedDriveFileListProps.catalogUri).toBe('');
+  });
+
+  it('shows NewFolderInput after clicking New Folder in add-menu', () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    fireEvent.click(screen.getByText('fileExplorer.newFolder'));
+    expect(screen.getByTestId('new-folder-input')).toBeInTheDocument();
+  });
+
+  it('hides NewFolderInput when onDone is called', () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    fireEvent.click(screen.getByText('fileExplorer.newFolder'));
+    expect(screen.getByTestId('new-folder-input')).toBeInTheDocument();
+    act(() => { capturedNewFolderDone?.(); });
+    expect(screen.queryByTestId('new-folder-input')).not.toBeInTheDocument();
+  });
+
+  it('hides FileUpload when onUploadSuccess fires', async () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    fireEvent.click(screen.getByText('fileExplorer.uploadFiles'));
+    expect(screen.getByTestId('file-upload')).toBeInTheDocument();
+    act(() => { capturedUploadDone?.(); });
+    expect(screen.queryByTestId('file-upload')).not.toBeInTheDocument();
+  });
+
+  it('pressing Escape closes the add-menu', () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    expect(screen.getByText('fileExplorer.newFolder')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
+  });
+
+  it('clicking outside add-menu closes it', () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    expect(screen.getByText('fileExplorer.newFolder')).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
+  });
+
+  it('populates catalogContainerUris when catalog fetch returns entries', async () => {
+    const { parseCatalog } = await import('@/infrastructure/solid/catalog');
+    vi.mocked(parseCatalog).mockReturnValue([
+      { uri: 'https://pod.example/my-solid-app/file/index.ttl', title: '', conformsTo: '', description: '', modified: '', publisher: '', mediaType: '', byteSize: 0, accessURL: '' },
+    ]);
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('turtle content') });
+    render(<FileExplorer />);
+    await act(async () => {});
+    expect(capturedDriveFileListProps.catalogContainerUris).toBeDefined();
   });
 });
