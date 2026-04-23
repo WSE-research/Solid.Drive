@@ -186,6 +186,26 @@ describe('DriveFileList', () => {
     expect(mockOnDownload).toHaveBeenCalledWith(leaves[0], 'file.txt');
   });
 
+  it('renders FolderEntry when resource is loaded but is not a SolidContainer', () => {
+    const folderUri = 'https://pod.example/public/docs/';
+    const folders = makeFolders([folderUri]);
+    const mockNonContainerResource = { uri: folderUri };
+    vi.mocked(useResource).mockReturnValueOnce(mockNonContainerResource as unknown as ReturnType<typeof useResource>);
+
+    render(
+      <DriveFileList
+        folderEntries={folders}
+        leafEntries={[]}
+        isInAppFolder={false}
+        catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
+        onNavigate={mockOnNavigate}
+        onDownload={mockOnDownload}
+      />
+    );
+    expect(screen.getByTestId('folder-entry')).toBeInTheDocument();
+  });
+
   it('renders both folders and leaves together', () => {
     const folders = makeFolders(['https://pod.example/app/folder/']);
     const leaves = makeLeaves(['https://pod.example/app/file.txt']);

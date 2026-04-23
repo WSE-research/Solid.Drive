@@ -94,4 +94,18 @@ describe('NewFolderInput', () => {
 
     expect(screen.getByText('fileExplorer.createFolderEmpty')).toBeInTheDocument();
   });
+
+  it('submits when Enter is pressed on the input', async () => {
+    const onDone = vi.fn();
+    render(<NewFolderInput parentContainer={mockContainer} onDone={onDone} />);
+
+    const nameInput = screen.getByRole('textbox');
+    fireEvent.change(nameInput, { target: { value: 'My Folder' } });
+    fireEvent.keyDown(nameInput, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mockCreateFolder).toHaveBeenCalledWith(mockContainer, 'My Folder');
+      expect(onDone).toHaveBeenCalledOnce();
+    });
+  });
 });

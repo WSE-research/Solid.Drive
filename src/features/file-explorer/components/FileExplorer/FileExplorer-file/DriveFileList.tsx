@@ -105,7 +105,7 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
         />
       ))}
       {leafEntries.map((entry) => {
-        const fileName = decodeURIComponent(entry.uri.split("/").pop() ?? entry.uri);
+        const fileName = decodeURIComponent(entry.uri.split("/").pop()!);
         return (
           <file-entry key={entry.uri}>
             <span className="file-entry__name">{fileName}</span>
