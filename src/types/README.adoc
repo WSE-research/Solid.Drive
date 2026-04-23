@@ -14,4 +14,4 @@ Types live here instead of inside a specific feature or module because multiple 
 == Navigation
 
 .Parent
-link:../README.adoc[src]
+link:../[src]

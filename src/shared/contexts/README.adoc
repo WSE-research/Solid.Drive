@@ -11,4 +11,4 @@ Wrap the app with `NotificationProvider` and call `useNotifications()` in compon
 == Navigation
 
 .Parent
-link:../README.adoc[shared]
+link:../[shared]

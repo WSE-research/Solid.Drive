@@ -18,17 +18,17 @@ All ACL documents are serialized using N3 via `rdfUtils.serializeTurtle`.
 
 == See also
 
-* link:../solid/rdfUtils/README.adoc[rdfUtils] provides `serializeTurtle`, which this module uses to build every ACL document body.
-* link:../../features/sharing/hooks/useAclManager/README.adoc[useAclManager] is the React hook that orchestrates these low-level ACL operations for a specific file container.
-* link:../../features/file-explorer/hooks/useFileSharing/README.adoc[useFileSharing] calls `discoverAclUri` and `readAclAgents` from here to detect whether a container has been shared.
-* link:../../features/profile/hooks/useAccessRequests/README.adoc[useAccessRequests] calls `writeAcl` and `writeListOnlyAcl` from here when approving file and catalog access requests.
+* link:../solid/rdfUtils/[rdfUtils] provides `serializeTurtle`, which this module uses to build every ACL document body.
+* link:../../features/sharing/hooks/useAclManager/[useAclManager] is the React hook that orchestrates these low-level ACL operations for a specific file container.
+* link:../../features/file-explorer/hooks/useFileSharing/[useFileSharing] calls `discoverAclUri` and `readAclAgents` from here to detect whether a container has been shared.
+* link:../../features/profile/hooks/useAccessRequests/[useAccessRequests] calls `writeAcl` and `writeListOnlyAcl` from here when approving file and catalog access requests.
 
 == Navigation
 
 .Parent
-link:../README.adoc[wac]
+link:../[wac]
 
 .Uses
-* link:../../../config/README.adoc[config]
-* link:../../solid/rdfUtils/README.adoc[rdfUtils]
-* link:../../../shared/utils/README.adoc[utils]
+* link:../../../config/[config]
+* link:../../solid/rdfUtils/[rdfUtils]
+* link:../../../shared/utils/[utils]

@@ -28,12 +28,12 @@ An error is thrown if the server returns an error result; the caller is responsi
 
 == See also
 
-* link:../../components/NewFolderInput/README.adoc[NewFolderInput] is the component that calls this hook and renders the inline input form.
+* link:../../components/NewFolderInput/[NewFolderInput] is the component that calls this hook and renders the inline input form.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../types/README.adoc[types] — `ContainerCreationResult`
+* link:../../../../types/[types] — `ContainerCreationResult`

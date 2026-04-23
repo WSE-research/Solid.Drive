@@ -17,4 +17,4 @@ Displays a user's profile image or an initial letter fallback.
 == Navigation
 
 .Parent
-link:../README.adoc[shared/components]
+link:../[shared/components]

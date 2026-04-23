@@ -20,13 +20,13 @@ URIs passed to SPARQL operations are validated for unsafe characters before inte
 
 == See also
 
-* link:../../features/file-explorer/hooks/useFileUpload/README.adoc[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
-* link:../../features/file-explorer/hooks/useSharedCatalog/README.adoc[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
+* link:../../features/file-explorer/hooks/useFileUpload/[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
+* link:../../features/file-explorer/hooks/useSharedCatalog/[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
 
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure/solid]
+link:../[infrastructure/solid]
 
 .Uses
-* link:../../../config/README.adoc[config]
+* link:../../../config/[config]

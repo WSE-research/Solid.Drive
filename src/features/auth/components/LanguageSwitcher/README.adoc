@@ -16,4 +16,4 @@ Uses `i18n.changeLanguage` from i18next.
 == Navigation
 
 .Parent
-link:../README.adoc[auth/components]
+link:../[auth/components]

@@ -8,12 +8,12 @@ They never import from `@/features` or `@/shared/contexts`.
 
 == Contents
 
-link:inbox/README.adoc[inbox/]:: Solid LDP inbox: access request messages, rejection notifications
-link:solid/README.adoc[solid/]:: Core Solid operations: catalog CRUD, profile patches, display name resolution, resource type guards, shared catalog naming, RDF utilities
-link:validation/README.adoc[validation/]:: TBox loading, SHACL shape validation, file type registry
-link:wac/README.adoc[wac/]:: Web Access Control: ACL discovery, reading, and writing
+link:inbox/[inbox/]:: Solid LDP inbox: access request messages, rejection notifications
+link:solid/[solid/]:: Core Solid operations: catalog CRUD, profile patches, display name resolution, resource type guards, shared catalog naming, RDF utilities
+link:validation/[validation/]:: TBox loading, SHACL shape validation, file type registry
+link:wac/[wac/]:: Web Access Control: ACL discovery, reading, and writing
 
 == Navigation
 
 .Parent
-link:../README.adoc[src]
+link:../[src]

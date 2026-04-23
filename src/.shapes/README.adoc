@@ -21,4 +21,4 @@ NOTE: These shapes are intentionally minimal; they declare only the fields the a
 == Navigation
 
 .Parent
-link:../README.adoc[src]
+link:../[src]

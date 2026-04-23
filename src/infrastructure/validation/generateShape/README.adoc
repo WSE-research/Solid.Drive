@@ -11,7 +11,7 @@ Useful for tooling and debugging: if you are not sure what shape an unknown Soli
 == Navigation
 
 .Parent
-link:../README.adoc[validation]
+link:../[validation]
 
 .Uses
-* link:../../../config/README.adoc[config]
+* link:../../../config/[config]

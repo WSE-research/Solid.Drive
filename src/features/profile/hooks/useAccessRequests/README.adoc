@@ -42,20 +42,20 @@ User: click Approve (file)
 
 == See also
 
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess] reads the inbox and provides the raw list of messages for processing.
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] provides the ACL read/write operations called during file and catalog approval.
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] is used to create the per-contact shared catalog when a catalog request is approved.
-* link:../../../file-explorer/components/TypeFolder/README.adoc[TypeFolder] is the component that triggers requests; its corresponding hook is link:../../../file-explorer/hooks/useAccessRequests/README.adoc[useFileAccessRequests]
-* link:../../components/RequestsPanel/README.adoc[RequestsPanel] is the UI component that drives this hook.
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess] reads the inbox and provides the raw list of messages for processing.
+* link:../../../../infrastructure/wac/aclManager/[aclManager] provides the ACL read/write operations called during file and catalog approval.
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog] is used to create the per-contact shared catalog when a catalog request is approved.
+* link:../../../file-explorer/components/TypeFolder/[TypeFolder] is the component that triggers requests; its corresponding hook is link:../../../file-explorer/hooks/useAccessRequests/[useFileAccessRequests]
+* link:../../components/RequestsPanel/[RequestsPanel] is the UI component that drives this hook.
 
 == Navigation
 
 .Parent
-link:../README.adoc[profile/hooks]
+link:../[profile/hooks]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager]
+* link:../../../../config/[config]
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]
+* link:../../../../infrastructure/wac/aclManager/[aclManager]

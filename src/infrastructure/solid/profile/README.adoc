@@ -19,14 +19,14 @@ String literals are escaped to prevent injection.
 
 == See also
 
-* link:../../features/profile/hooks/useProfile/README.adoc[useProfile] calls `saveProfileFields` and `ensureProfileDocType` to read and update the logged-in user's profile.
-* link:../../features/profile/hooks/useContacts/README.adoc[useContacts] calls `addContact` and `removeContact` to manage the user's contact list.
-* link:../../features/file-explorer/hooks/usePodDiscovery/README.adoc[usePodDiscovery] reads the Solid profile document to locate the `pim:storage` root.
+* link:../../features/profile/hooks/useProfile/[useProfile] calls `saveProfileFields` and `ensureProfileDocType` to read and update the logged-in user's profile.
+* link:../../features/profile/hooks/useContacts/[useContacts] calls `addContact` and `removeContact` to manage the user's contact list.
+* link:../../features/file-explorer/hooks/usePodDiscovery/[usePodDiscovery] reads the Solid profile document to locate the `pim:storage` root.
 
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure/solid]
+link:../[infrastructure/solid]
 
 .Uses
-* link:../../../config/README.adoc[config]
+* link:../../../config/[config]

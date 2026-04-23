@@ -10,4 +10,4 @@ Components and services should import from here rather than reading `import.meta
 == Navigation
 
 .Parent
-link:../README.adoc[config]
+link:../[config]

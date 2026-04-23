@@ -19,7 +19,7 @@ For React components, prefer `useSubject(SolidProfileShapeType, webId)` + `getPr
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure/solid]
+link:../[infrastructure/solid]
 
 .Uses
-* link:../../../config/README.adoc[config]
+* link:../../../config/[config]

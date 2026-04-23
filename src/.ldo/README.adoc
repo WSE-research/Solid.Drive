@@ -19,4 +19,4 @@ npm run build:ldo
 == Navigation
 
 .Parent
-link:../README.adoc[src]
+link:../[src]

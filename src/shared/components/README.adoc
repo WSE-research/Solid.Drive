@@ -11,4 +11,4 @@ Generic UI components with no feature-specific dependencies.
 == Navigation
 
 .Parent
-link:../README.adoc[shared]
+link:../[shared]

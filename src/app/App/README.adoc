@@ -17,10 +17,10 @@ Wraps everything in the Solid authentication provider and notification provider,
 == Navigation
 
 .Parent
-link:../README.adoc[app]
+link:../[app]
 
 .Uses
-* link:../../features/auth/components/Header/README.adoc[Header]
-* link:../../features/file-explorer/components/FileExplorer/README.adoc[FileExplorer]
-* link:../../features/profile/components/ProfileSidebar/README.adoc[ProfileSidebar]
-* link:../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
+* link:../../features/auth/components/Header/[Header]
+* link:../../features/file-explorer/components/FileExplorer/[FileExplorer]
+* link:../../features/profile/components/ProfileSidebar/[ProfileSidebar]
+* link:../../shared/contexts/NotificationContext/[NotificationContext]

@@ -9,4 +9,4 @@ React hooks for WAC/ACL management.
 == Navigation
 
 .Parent
-link:../README.adoc[sharing]
+link:../[sharing]

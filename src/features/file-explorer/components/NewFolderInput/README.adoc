@@ -27,18 +27,18 @@ Validates the name on blur and on submit, then creates the folder as an LDP Basi
 |===
 | Hook | Purpose
 
-| link:../../hooks/useCreateFolder/README.adoc[useCreateFolder] | Name validation and LDP BasicContainer creation
+| link:../../hooks/useCreateFolder/[useCreateFolder] | Name validation and LDP BasicContainer creation
 |===
 
 == See also
 
-* link:../FileExplorer/README.adoc[FileExplorer] is the parent component that mounts `NewFolderInput` when the user triggers the "New Folder" action.
+* link:../FileExplorer/[FileExplorer] is the parent component that mounts `NewFolderInput` when the user triggers the "New Folder" action.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]
 
 .Uses
-* link:../../hooks/useCreateFolder/README.adoc[useCreateFolder]
-* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
+* link:../../hooks/useCreateFolder/[useCreateFolder]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]

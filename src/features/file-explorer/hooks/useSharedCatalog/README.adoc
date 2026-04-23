@@ -19,17 +19,17 @@ Tries per-contact shared catalogs first, then falls back to the contact's main c
 
 == See also
 
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] provides the URI helpers and `hasAccess` function this hook calls when resolving which files are accessible.
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog] provides `parseCatalog`, which this hook uses to parse both the per-contact shared catalog and the main catalog fallback.
-* link:../../components/SharedWithMeSection/README.adoc[SharedWithMeSection] is the component that calls this hook once per contact.
-* link:../../components/TypeFolder/README.adoc[TypeFolder] renders the `typeGroups` that this hook returns for files not yet accessible.
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog] provides the URI helpers and `hasAccess` function this hook calls when resolving which files are accessible.
+* link:../../../../infrastructure/solid/catalog/[catalog] provides `parseCatalog`, which this hook uses to parse both the per-contact shared catalog and the main catalog fallback.
+* link:../../components/SharedWithMeSection/[SharedWithMeSection] is the component that calls this hook once per contact.
+* link:../../components/TypeFolder/[TypeFolder] renders the `typeGroups` that this hook returns for files not yet accessible.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../config/[config]
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]

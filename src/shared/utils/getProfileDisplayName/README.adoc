@@ -13,4 +13,4 @@ Used by `ContactRow`, `RequesterRow`, and anywhere a pure text name is needed fr
 == Navigation
 
 .Parent
-link:../README.adoc[shared/utils]
+link:../[shared/utils]

@@ -10,7 +10,7 @@ Revoke:: Removes the contact from the container ACL and deletes the mirrored ent
 
 == Hooks
 
-link:../../../sharing/hooks/useAclManager/README.adoc[useAclManager]:: Reads the container ACL, exposes current grantees, and handles grant / revoke operations including shared catalog sync
+link:../../../sharing/hooks/useAclManager/[useAclManager]:: Reads the container ACL, exposes current grantees, and handles grant / revoke operations including shared catalog sync
 
 == Grant sequence
 
@@ -27,11 +27,11 @@ User: click Grant (contactWebId)
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../../sharing/hooks/useAclManager/README.adoc[useAclManager]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
-* link:../../../../shared/utils/README.adoc[utils]
-* link:../../../../shared/utils/getProfileDisplayName/README.adoc[getProfileDisplayName]
+* link:../../../../config/[config]
+* link:../../../sharing/hooks/useAclManager/[useAclManager]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../shared/utils/[utils]
+* link:../../../../shared/utils/getProfileDisplayName/[getProfileDisplayName]

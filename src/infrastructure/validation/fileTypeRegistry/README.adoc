@@ -28,13 +28,13 @@ Fallback:: `DigitalDocument`
 
 == See also
 
-* link:../tboxParser/README.adoc[tboxParser] parses the raw TBox Turtle document to extract the type definitions loaded by this registry.
-* link:../../../features/file-explorer/hooks/useFileTypes/README.adoc[useFileTypes] is the React hook that wraps this registry and exposes its types to components.
+* link:../tboxParser/[tboxParser] parses the raw TBox Turtle document to extract the type definitions loaded by this registry.
+* link:../../../features/file-explorer/hooks/useFileTypes/[useFileTypes] is the React hook that wraps this registry and exposes its types to components.
 
 == Navigation
 
 .Parent
-link:../README.adoc[validation]
+link:../[validation]
 
 .Uses
-* link:../../../config/README.adoc[config]
+* link:../../../config/[config]

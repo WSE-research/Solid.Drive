@@ -20,15 +20,15 @@ Message types are identified by `rdf:type` using the `solid-access:` vocabulary.
 
 == See also
 
-* link:../inboxAccess/README.adoc[inboxAccess] is the high-level wrapper that calls the parsing functions defined here.
-* link:../../solid/rdfUtils/README.adoc[rdfUtils] provides the shared N3 serialization utilities used by this module to build message bodies.
+* link:../inboxAccess/[inboxAccess] is the high-level wrapper that calls the parsing functions defined here.
+* link:../../solid/rdfUtils/[rdfUtils] provides the shared N3 serialization utilities used by this module to build message bodies.
 
 == Navigation
 
 .Parent
-link:../README.adoc[inbox]
+link:../[inbox]
 
 .Uses
-* link:../../../config/README.adoc[config]
-* link:../../solid/rdfUtils/README.adoc[rdfUtils]
-* link:../../../shared/utils/README.adoc[utils]
+* link:../../../config/[config]
+* link:../../solid/rdfUtils/[rdfUtils]
+* link:../../../shared/utils/[utils]

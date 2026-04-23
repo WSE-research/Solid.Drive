@@ -13,7 +13,7 @@ Requester profile:: Each row shows the requester's avatar and display name via `
 
 == Hooks
 
-link:../../hooks/useAccessRequests/README.adoc[useAccessRequests]:: Loads inbox requests, tracks busy state, and handles approve/deny actions
+link:../../hooks/useAccessRequests/[useAccessRequests]:: Loads inbox requests, tracks busy state, and handles approve/deny actions
 
 == Load sequence
 
@@ -29,19 +29,19 @@ User: open panel
 
 == See also
 
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess] provides the inbox discovery and message listing functions that `useAccessRequests` calls internally.
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] handles the ACL writes that occur when a request is approved.
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] is used to create the per-viewer shared catalog when a catalog request is approved.
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess] provides the inbox discovery and message listing functions that `useAccessRequests` calls internally.
+* link:../../../../infrastructure/wac/aclManager/[aclManager] handles the ACL writes that occur when a request is approved.
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog] is used to create the per-viewer shared catalog when a catalog request is approved.
 
 == Navigation
 
 .Parent
-link:../README.adoc[profile/components]
+link:../[profile/components]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../hooks/useAccessRequests/README.adoc[useAccessRequests]
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
-* link:../../../../shared/components/Avatar/README.adoc[Avatar]
-* link:../../../../shared/utils/README.adoc[utils]
+* link:../../../../config/[config]
+* link:../../hooks/useAccessRequests/[useAccessRequests]
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../shared/components/Avatar/[Avatar]
+* link:../../../../shared/utils/[utils]

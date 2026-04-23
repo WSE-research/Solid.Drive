@@ -12,16 +12,16 @@ Status tracking:: Each file and the bulk action independently track idle / sendi
 
 == Hooks
 
-link:../../hooks/useAccessRequests/README.adoc[useFileAccessRequests]:: Manages bulk and per file request state, inbox discovery, and send/retry/delete operations
+link:../../hooks/useAccessRequests/[useFileAccessRequests]:: Manages bulk and per file request state, inbox discovery, and send/retry/delete operations
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../hooks/useAccessRequests/README.adoc[useAccessRequests]
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
-* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]
+* link:../../../../config/[config]
+* link:../../hooks/useAccessRequests/[useAccessRequests]
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]
+* link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry]

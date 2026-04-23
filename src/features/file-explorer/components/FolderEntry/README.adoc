@@ -6,4 +6,4 @@ Displays the folder name and navigates into it when clicked.
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]

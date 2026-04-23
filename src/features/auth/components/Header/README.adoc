@@ -14,14 +14,14 @@ The site header. Manages Solid authentication UI for both login and logout state
 
 == See also
 
-* link:../../hooks/useAuth/README.adoc[useAuth] is the hook this component uses to read authentication state and trigger login and logout.
+* link:../../hooks/useAuth/[useAuth] is the hook this component uses to read authentication state and trigger login and logout.
 
 == Navigation
 
 .Parent
-link:../README.adoc[auth/components]
+link:../[auth/components]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../LanguageSwitcher/README.adoc[LanguageSwitcher]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../config/[config]
+* link:../LanguageSwitcher/[LanguageSwitcher]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]

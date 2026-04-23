@@ -10,4 +10,4 @@ UI components for authentication and site level controls.
 == Navigation
 
 .Parent
-link:../README.adoc[auth]
+link:../[auth]

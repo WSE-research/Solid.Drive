@@ -21,15 +21,15 @@ Status is tracked at two granularities — per-file and bulk. `handleRequestAll`
 
 == See also
 
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess] handles inbox discovery to locate the contact's inbox URI before any request is sent.
-* link:../../../../infrastructure/inbox/inboxMessages/README.adoc[inboxMessages] provides the message serialization helpers that are called for each individual access request.
-* link:../../components/TypeFolder/README.adoc[TypeFolder] is the component that renders the grouped file entries and calls this hook.
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess] handles inbox discovery to locate the contact's inbox URI before any request is sent.
+* link:../../../../infrastructure/inbox/inboxMessages/[inboxMessages] provides the message serialization helpers that are called for each individual access request.
+* link:../../components/TypeFolder/[TypeFolder] is the component that renders the grouped file entries and calls this hook.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]

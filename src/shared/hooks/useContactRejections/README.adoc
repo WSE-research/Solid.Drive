@@ -10,14 +10,14 @@ Used by both `SharedWithMeSection` (file-explorer) and `ContactsList` (profile).
 
 == See also
 
-* link:../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess] reads the inbox to find and parse rejection notification messages.
-* link:../../../features/file-explorer/components/SharedWithMeSection/README.adoc[SharedWithMeSection] receives the rejection state from this hook for the file-explorer shared-with-me view.
-* link:../../../features/profile/components/ContactsList/README.adoc[ContactsList] receives the rejection state from this hook for the contacts list view.
+* link:../../../infrastructure/inbox/inboxAccess/[inboxAccess] reads the inbox to find and parse rejection notification messages.
+* link:../../../features/file-explorer/components/SharedWithMeSection/[SharedWithMeSection] receives the rejection state from this hook for the file-explorer shared-with-me view.
+* link:../../../features/profile/components/ContactsList/[ContactsList] receives the rejection state from this hook for the contacts list view.
 
 == Navigation
 
 .Parent
-link:../README.adoc[shared/hooks]
+link:../[shared/hooks]
 
 .Uses
-* link:../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
+* link:../../../infrastructure/inbox/inboxAccess/[inboxAccess]

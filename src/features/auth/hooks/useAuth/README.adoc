@@ -9,9 +9,9 @@ This makes the intent clearer and helps keep coupling to the LDO library contain
 
 == See also
 
-* link:../../components/Header/README.adoc[Header] is the main consumer of this hook, driving the login and logout UI.
+* link:../../components/Header/[Header] is the main consumer of this hook, driving the login and logout UI.
 
 == Navigation
 
 .Parent
-link:../README.adoc[auth/hooks]
+link:../[auth/hooks]

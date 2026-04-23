@@ -9,8 +9,8 @@ Determines which leaf resources should be visible in the file explorer.
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/services]
+link:../[file-explorer/services]
 
 .Uses
-* link:../../../../config/constants/README.adoc[constants]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../config/constants/[constants]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]

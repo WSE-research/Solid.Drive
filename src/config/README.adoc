@@ -13,4 +13,4 @@ Import from `@/config`, it re-exports everything from both submodules.
 == Navigation
 
 .Parent
-link:../README.adoc[src]
+link:../[src]

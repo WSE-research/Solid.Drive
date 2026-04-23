@@ -20,16 +20,16 @@ All message parsing and serialization is delegated to `inboxMessages`.
 
 == See also
 
-* link:../inboxMessages/README.adoc[inboxMessages] handles all message parsing and serialization that this module delegates to.
-* link:../../features/file-explorer/hooks/useAccessRequests/README.adoc[useFileAccessRequests] is the React hook that sends access requests using the functions here.
-* link:../../features/profile/hooks/useAccessRequests/README.adoc[useAccessRequests] reads and processes inbox messages using the functions provided here.
-* link:../../shared/hooks/useContactRejections/README.adoc[useContactRejections] reads rejection notifications by calling `listRejectionNotifications` from this module.
+* link:../inboxMessages/[inboxMessages] handles all message parsing and serialization that this module delegates to.
+* link:../../features/file-explorer/hooks/useAccessRequests/[useFileAccessRequests] is the React hook that sends access requests using the functions here.
+* link:../../features/profile/hooks/useAccessRequests/[useAccessRequests] reads and processes inbox messages using the functions provided here.
+* link:../../shared/hooks/useContactRejections/[useContactRejections] reads rejection notifications by calling `listRejectionNotifications` from this module.
 
 == Navigation
 
 .Parent
-link:../README.adoc[inbox]
+link:../[inbox]
 
 .Uses
-* link:../../../config/README.adoc[config]
-* link:../inboxMessages/README.adoc[inboxMessages]
+* link:../../../config/[config]
+* link:../inboxMessages/[inboxMessages]

@@ -6,12 +6,12 @@ Cross feature imports are not allowed except that `file-explorer` imports from `
 
 == Contents
 
-link:auth/README.adoc[auth/]:: Login/logout, provider selection, language switching
-link:file-explorer/README.adoc[file-explorer/]:: Browse Pod files, upload, download, share, navigate folders
-link:profile/README.adoc[profile/]:: View and edit user profile, manage contacts, handle access requests
-link:sharing/README.adoc[sharing/]:: Low level WAC ACL hooks; consumed by `file-explorer/SharePanel`
+link:auth/[auth/]:: Login/logout, provider selection, language switching
+link:file-explorer/[file-explorer/]:: Browse Pod files, upload, download, share, navigate folders
+link:profile/[profile/]:: View and edit user profile, manage contacts, handle access requests
+link:sharing/[sharing/]:: Low level WAC ACL hooks; consumed by `file-explorer/SharePanel`
 
 == Navigation
 
 .Parent
-link:../README.adoc[src]
+link:../[src]

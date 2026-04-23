@@ -3,13 +3,13 @@
 Web Access Control (WAC) implementation for Solid resources.
 WAC is the Solid authorization protocol where permissions are stored in `.acl` files alongside resources.
 
-The link:../../features/sharing/hooks/useAclManager/README.adoc[useAclManager] hook in `features/sharing` provides the React interface on top of this module.
+The link:../../features/sharing/hooks/useAclManager/[useAclManager] hook in `features/sharing` provides the React interface on top of this module.
 
 == Contents
 
-link:aclManager/README.adoc[aclManager]:: Discover ACL document URIs from `Link` headers, read current agents, and write new ACL documents
+link:aclManager/[aclManager]:: Discover ACL document URIs from `Link` headers, read current agents, and write new ACL documents
 
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure]
+link:../[infrastructure]

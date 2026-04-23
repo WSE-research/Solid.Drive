@@ -17,14 +17,14 @@ Use it directly when you only need the storage root without navigation state or 
 
 == See also
 
-* link:../../../../infrastructure/solid/profile/README.adoc[profile] reads the `pim:storage` triple from the user's WebID profile document.
-* link:../useDriveInitialization/README.adoc[useDriveInitialization] composes this hook together with `useNavigation` to set up the full file explorer on login.
+* link:../../../../infrastructure/solid/profile/[profile] reads the `pim:storage` triple from the user's WebID profile document.
+* link:../useDriveInitialization/[useDriveInitialization] composes this hook together with `useNavigation` to set up the full file explorer on login.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]
