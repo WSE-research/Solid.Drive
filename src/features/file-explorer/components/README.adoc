@@ -1,0 +1,19 @@
+= file-explorer/components
+
+UI components for the file explorer feature.
+
+== Contents
+
+link:FileExplorer/README.adoc[FileExplorer]:: Root coordinator: navigation state, breadcrumbs, file listing, upload, shared files section
+link:FileCard/README.adoc[FileCard]:: Displays a single uploaded file: preview, metadata, info panel, share panel, delete
+link:FileUpload/README.adoc[FileUpload]:: Upload form with TBox validation; creates container, writes binary + `index.ttl`, updates catalog
+link:FolderEntry/README.adoc[FolderEntry]:: Clickable row for navigating into a Pod container that is not managed by this app
+link:SharePanel/README.adoc[SharePanel]:: Grant/revoke per-file access to contacts via WAC ACLs and shared catalogs
+link:SharedWithMeSection/README.adoc[SharedWithMeSection]:: Shows files shared by contacts; reads per-contact shared catalogs and checks accessibility
+link:NewFolderInput/README.adoc[NewFolderInput]:: Inline input form for creating a new folder as an LDP BasicContainer
+link:TypeFolder/README.adoc[TypeFolder]:: Collapsible folder grouped by schema.org type, with request access buttons per-file
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer]

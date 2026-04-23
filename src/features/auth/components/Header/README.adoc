@@ -1,0 +1,27 @@
+= Header
+
+The site header. Manages Solid authentication UI for both login and logout states.
+
+== States
+
+[cols="1,3", options="header"]
+|===
+| State | Renders
+
+| Logged out | Provider dropdown (`SOLID_PROVIDERS`), optional custom URL input, login button (disabled until a provider is selected), link to get a Pod
+| Logged in | Display name (resolved via `vcard:fn` or `foaf:name`), logout button, language switcher
+|===
+
+== See also
+
+* link:../../hooks/useAuth/README.adoc[useAuth] is the hook this component uses to read authentication state and trigger login and logout.
+
+== Navigation
+
+.Parent
+link:../README.adoc[auth/components]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../LanguageSwitcher/README.adoc[LanguageSwitcher]
+* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]

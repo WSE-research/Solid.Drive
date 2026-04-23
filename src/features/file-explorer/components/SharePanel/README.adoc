@@ -1,0 +1,37 @@
+= SharePanel
+
+Manage per file access sharing from within a `FileCard`.
+Loads the file container's WAC ACL to discover current grantees, then lets the owner grant or revoke access for contacts from their profile.
+
+== Actions
+
+Grant:: Updates the container ACL, writes the file metadata into a per-contact shared catalog, and secures that catalog with its own ACL so only the intended contact can read it
+Revoke:: Removes the contact from the container ACL and deletes the mirrored entry from their shared catalog
+
+== Hooks
+
+link:../../../sharing/hooks/useAclManager/README.adoc[useAclManager]:: Reads the container ACL, exposes current grantees, and handles grant / revoke operations including shared catalog sync
+
+== Grant sequence
+
+----
+User: click Grant (contactWebId)
+  -> SharePanel: grant(contactWebId)
+    -> useAclManager: writeAcl(aclUri, containerUri, ownerWebId, [contactWebId])
+      -> PUT container.acl
+    -> syncSharedCatalog(contactWebId)
+      -> PATCH catalog.ttl (SPARQL UPDATE)
+      -> HEAD -> PUT sharedCatalog.acl
+----
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/components]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../../../sharing/hooks/useAclManager/README.adoc[useAclManager]
+* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../shared/utils/README.adoc[utils]
+* link:../../../../shared/utils/getProfileDisplayName/README.adoc[getProfileDisplayName]

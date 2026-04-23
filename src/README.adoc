@@ -1,0 +1,36 @@
+= src
+
+The entire application lives here.
+The structure follows a layered architecture: features depend on infrastructure, and both may use shared.
+Infrastructure never imports from features.
+
+== Architecture
+
+----
+app/                                 (entry point · i18n · locales)
+ │
+ ├──▶ features/                     (auth · file-explorer · profile · sharing)
+ │         │
+ │         └──▶ infrastructure/     (solid · inbox · validation · wac)
+ │
+ └──▶ foundation/                   (shared · config · types)
+----
+
+*Key rule:* `infrastructure/` never imports from `features/`.
+The only cross feature dependency is `file-explorer` -> `features/sharing/hooks/useAclManager`.
+
+== Contents
+
+link:app/README.adoc[app/]:: Entry point, i18n setup, and locale files
+link:config/README.adoc[config/]:: Constants and environment variables (single source of truth)
+link:features/README.adoc[features/]:: UI features grouped by domain (`auth`, `file-explorer`, `profile`, `sharing`)
+link:infrastructure/README.adoc[infrastructure/]:: Service layer: Solid protocol, RDF utilities, inbox, validation, WAC
+link:shared/README.adoc[shared/]:: Reusable components, contexts, and utilities used across features
+link:types/README.adoc[types/]:: Shared TypeScript types
+link:.ldo/README.adoc[.ldo/]:: Auto generated LDO typed data objects (do not edit by hand)
+link:.shapes/README.adoc[.shapes/]:: ShEx shape files used to generate the LDO types
+
+== Navigation
+
+.Parent
+link:../README.adoc[solid.drive]

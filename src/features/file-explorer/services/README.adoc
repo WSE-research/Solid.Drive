@@ -1,0 +1,12 @@
+= file-explorer/services
+
+Pure utility functions used by the file explorer (no React hooks).
+
+== Contents
+
+*fileFilter*:: `isVisibleLeaf(entry)` determines whether a leaf resource should be shown to the user. Filters out known system files and per-contact shared catalog files
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer]

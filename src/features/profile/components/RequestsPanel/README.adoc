@@ -1,0 +1,47 @@
+= RequestsPanel
+
+Collapsible panel for managing incoming access requests.
+Loads pending requests from the user's LDP inbox on open.
+
+== Features
+
+Approve (catalog):: Creates a per-viewer shared catalog, grants read access to it, the main catalog, and the app container. Deletes the inbox message on success
+Approve (file):: Grants the requester read access to the specific file container. Deletes the inbox message on success
+Deny:: Sends a rejection notification to the requester's inbox, then deletes the message
+Badge:: Shows the count of pending requests on the toggle button
+Requester profile:: Each row shows the requester's avatar and display name via `RequesterRow`
+
+== Hooks
+
+link:../../hooks/useAccessRequests/README.adoc[useAccessRequests]:: Loads inbox requests, tracks busy state, and handles approve/deny actions
+
+== Load sequence
+
+----
+User: open panel
+  -> RequestsPanel: loadRequests()
+    -> useAccessRequests: discoverInboxUri(ownerWebId)
+      -> GET profile document -> inboxUri (from ldp:inbox)
+    -> listAccessRequests(inboxUri)
+      -> GET inboxUri -> [messageUri, ...]
+      -> GET each messageUri -> AccessRequest[]
+----
+
+== See also
+
+* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess] provides the inbox discovery and message listing functions that `useAccessRequests` calls internally.
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] handles the ACL writes that occur when a request is approved.
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] is used to create the per-viewer shared catalog when a catalog request is approved.
+
+== Navigation
+
+.Parent
+link:../README.adoc[profile/components]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../../hooks/useAccessRequests/README.adoc[useAccessRequests]
+* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
+* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../shared/components/Avatar/README.adoc[Avatar]
+* link:../../../../shared/utils/README.adoc[utils]

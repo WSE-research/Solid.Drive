@@ -1,0 +1,15 @@
+= formatBytes
+
+Converts a raw byte count into a formatted file size string (B, KB, MB, or GB).
+
+== Returns
+
+Zero or undefined:: `""`
+Under 1 KB:: `"512 B"`
+Under 1 MB:: `"1.5 KB"`
+1 MB or larger:: `"2.3 MB"`
+
+== Navigation
+
+.Parent
+link:../README.adoc[shared/utils]

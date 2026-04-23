@@ -1,0 +1,24 @@
+= public
+
+Static assets served at the root of the application by Vite.
+Files here are copied verbatim to `dist/` at build time and are not processed by the bundler.
+
+== Contents
+
+`tbox.ttl`::
+SHACL TBox (Turtle format) downloaded from datashapes.org.
+Used at runtime by the validation layer to look up type definitions and generate SHACL shapes.
+*Do not edit by hand* — regenerate with:
++
+----
+node scripts/extract-tbox.mjs
+----
+
+== Navigation
+
+.Parent
+link:../README.adoc[root]
+
+.Related
+* link:../scripts/README.adoc[scripts/extract-tbox.mjs] generates `tbox.ttl`
+* link:../src/infrastructure/validation/README.adoc[infrastructure/validation] consumes `tbox.ttl` at runtime

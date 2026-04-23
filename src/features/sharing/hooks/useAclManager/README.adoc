@@ -1,0 +1,47 @@
+= useAclManager
+
+Manages WAC/ACL permissions for a specific file container.
+Handles granting and revoking access, syncing shared catalogs, and cleaning up legacy broader discovery access.
+
+== Actions
+
+[cols="1,3", options="header"]
+|===
+| Action | Description
+
+| `loadAcl()` | Discovers the ACL URI, reads current grantees, syncs their shared catalogs, and removes legacy discovery access
+| `grant(contactWebId)` | Adds the contact to the container ACL, writes their shared catalog entry, and removes legacy discovery access
+| `revoke(contactWebId)` | Removes the contact from the ACL and deletes their entry from all candidate shared catalog files
+|===
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Value | Description
+
+| `aclUri` | Discovered ACL URI for the container (`null` until `loadAcl` completes)
+| `grantees` | WebIDs of contacts currently granted access
+| `loading` | `true` while `loadAcl` is in progress
+| `error` | Error message string if the last operation failed, otherwise `null`
+| `isSaving` | `true` while a `grant` or `revoke` is in progress
+| `loadAcl` | Loads current ACL state
+| `grant` | Grants access to a contact
+| `revoke` | Revokes access from a contact
+|===
+
+== See also
+
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] provides the low-level ACL discovery and write functions that this hook orchestrates.
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] provides the URI helpers and catalog write operations called during every grant and revoke.
+* link:../../../file-explorer/components/SharePanel/README.adoc[SharePanel] is the component that calls this hook and renders the current grantee list.
+
+== Navigation
+
+.Parent
+link:../README.adoc[sharing/hooks]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager]

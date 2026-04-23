@@ -1,0 +1,29 @@
+= FileUpload
+
+Upload form for adding files to the user's Pod.
+Validates metadata against SHACL shapes before submit and keeps the button disabled until all required fields are filled.
+
+== Upload sequence
+
+. Creates a container for the file
+. Uploads the binary inside it
+. Writes `index.ttl` with DCAT metadata (title, publisher, MIME type, size, upload date)
+. Appends a DCAT dataset entry to `catalog.ttl`
+. Links the catalog to the user's profile (if not already linked)
+
+NOTE: If any step after the binary upload fails, the newly created container is deleted so there is no orphaned data.
+
+== Hooks
+
+link:../../hooks/useFileValidation/README.adoc[useFileValidation]:: Validates the selected file and metadata against SHACL shapes from `tbox.ttl`
+link:../../hooks/useFileUpload/README.adoc[useFileUpload]:: Handles the multi step upload sequence and exposes an `isUploading` flag
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/components]
+
+.Uses
+* link:../../hooks/useFileUpload/README.adoc[useFileUpload]
+* link:../../hooks/useFileValidation/README.adoc[useFileValidation]
+* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]

@@ -1,0 +1,32 @@
+= catalog
+
+DCAT catalog operations for Solid Pods.
+All communication goes through raw `fetch`; LDO is not used.
+URIs passed to SPARQL operations are validated for unsafe characters before interpolation.
+
+== Exports
+
+[cols="1,3", options="header"]
+|===
+| Name | Description
+
+| `resolveCatalogUri(profile, storageRoot)` | Returns `profile.catalog["@id"]` or falls back to `{storageRoot}catalog.ttl`
+| `appendToCatalog(...)` | Adds a dataset + distribution entry via SPARQL PATCH; auto-creates the catalog on 404
+| `removeFromCatalog(...)` | Removes a dataset entry via SPARQL DELETE WHERE; no-ops if the catalog is not reachable
+| `parseCatalog(turtleText, baseUri?)` | Parses a Turtle catalog into `CatalogEntry[]` objects
+| `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document
+| `EMPTY_CATALOG_TURTLE` | Minimal Turtle template for creating a new empty catalog
+|===
+
+== See also
+
+* link:../../features/file-explorer/hooks/useFileUpload/README.adoc[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
+* link:../../features/file-explorer/hooks/useSharedCatalog/README.adoc[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
+
+== Navigation
+
+.Parent
+link:../README.adoc[infrastructure/solid]
+
+.Uses
+* link:../../../config/README.adoc[config]

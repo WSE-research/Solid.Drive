@@ -1,0 +1,22 @@
+= app
+
+Application bootstrap and setup.
+Contains the root React component, i18n configuration, and locale translation files.
+
+== Contents
+
+[cols="1,3", options="header"]
+|===
+| Name | Description
+
+| *App/* | The root React component that wires together providers and layout
+| *i18n/* | i18next configuration (language detection, supported languages, fallback)
+| *locales/* | Translation JSON files (`en.json`, `de.json`)
+|===
+
+`main.tsx` renders `<App />` into the DOM. Everything else flows from there.
+
+== Navigation
+
+.Parent
+link:../README.adoc[src]

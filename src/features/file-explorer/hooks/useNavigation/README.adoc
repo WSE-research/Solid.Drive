@@ -1,0 +1,19 @@
+= useNavigation
+
+Manages the current folder URI and breadcrumb trail for the file explorer.
+Used internally by `useDriveInitialization`, which syncs the initial storage root into it once Pod discovery completes.
+
+== Actions
+
+`handleNavigate(uri)`:: Pushes a new folder onto the breadcrumb stack and sets it as the current URI
+`handleBreadcrumbClick(index, uri)`:: Jumps back to a previous location and trims the breadcrumb trail
+
+== See also
+
+* link:../useDriveInitialization/README.adoc[useDriveInitialization] composes this hook with `usePodDiscovery`; prefer it over calling `useNavigation` directly in most cases.
+* link:../../components/FileExplorer/README.adoc[FileExplorer] is the root component that renders the folder tree and breadcrumb trail driven by this hook.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]

@@ -1,0 +1,16 @@
+= getProfileDisplayName
+
+`getProfileDisplayName(profile, webId): string`, picks the best available display name from a Solid profile.
+Used by `ContactRow`, `RequesterRow`, and anywhere a pure text name is needed from a profile object.
+
+== Priority
+
+. `vcard:fn` (`profile.fn`)
+. `foaf:name` (`profile.name`)
+. Domain-derived fallback from the WebID (e.g. `anna.example`)
+. The full WebID as last resort
+
+== Navigation
+
+.Parent
+link:../README.adoc[shared/utils]

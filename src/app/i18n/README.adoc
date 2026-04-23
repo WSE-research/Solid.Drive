@@ -1,0 +1,18 @@
+= i18n
+
+Configures i18next with browser language detection and React integration.
+Loads translation files from `../locales/`, falls back to English if the user's language isn't supported, and caches the selected language in `localStorage`.
+
+== Usage
+
+All language constants (supported codes, fallback, detection order) come from `@/config`.
+Import the configured instance directly when you need `i18n.changeLanguage()`, but most components should use the `useTranslation` hook instead.
+
+== Navigation
+
+.Parent
+link:../README.adoc[app]
+
+.Uses
+* link:../locales/README.adoc[locales]
+* link:../../config/README.adoc[config]

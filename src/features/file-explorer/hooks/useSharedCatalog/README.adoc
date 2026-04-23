@@ -1,0 +1,35 @@
+= useSharedCatalog
+
+Resolves which files a contact has shared with the current user.
+Tries per-contact shared catalogs first, then falls back to the contact's main catalog.
+
+== Resolution strategy
+
+. Per-contact catalog: fetches `.shared-{viewerWebId}.ttl` from the contact's app container
+. Access check: for entries in the main catalog not in the shared catalog, does a HEAD request to see if the viewer can read them
+. Main catalog fallback: falls back to the contact's main `catalog.ttl` when no per-contact catalog exists; performs the same HEAD-based access checks and populates `typeGroups` for inaccessible entries
+
+== Returns
+
+`sharedEntries`:: Files explicitly shared or confirmed accessible via HEAD check
+`typeGroups`:: Files not yet accessible, grouped by schema.org class for the `TypeFolder` component
+`resolvedCatalogUri`:: URI of whichever catalog was successfully read
+`catalogAccessible`:: `true` when at least one catalog was reachable
+`isProfileLoading`:: `true` while the contact's Solid profile is still loading
+
+== See also
+
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] provides the URI helpers and `hasAccess` function this hook calls when resolving which files are accessible.
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog] provides `parseCatalog`, which this hook uses to parse both the per-contact shared catalog and the main catalog fallback.
+* link:../../components/SharedWithMeSection/README.adoc[SharedWithMeSection] is the component that calls this hook once per contact.
+* link:../../components/TypeFolder/README.adoc[TypeFolder] renders the `typeGroups` that this hook returns for files not yet accessible.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]

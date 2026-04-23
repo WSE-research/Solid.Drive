@@ -1,0 +1,34 @@
+= aclManager
+
+Low-level WAC ACL discovery, reading, and writing.
+All ACL documents are serialized using N3 via `rdfUtils.serializeTurtle`.
+
+== Functions
+
+[cols="1,3", options="header"]
+|===
+| Function | Description
+
+| `discoverAclUri(resourceUri, fetch)` | Reads the `Link` header for `rel="acl"` and returns the absolute ACL URI
+| `readAclAgents(aclUri, fetch)` | Parses an ACL Turtle document and returns agent WebIDs with read (but not write) access
+| `writeAcl(aclUri, resourceUri, ownerWebId, grantees, fetch)` | Writes a full ACL: owner with Read/Write/Control + `acl:default`; grantees with Read + `acl:default`
+| `writeListOnlyAcl(...)` | Writes an ACL where grantees can list the container but do not inherit access to child resources
+| `writeResourceAcl(...)` | Writes an ACL for a single resource (no `acl:default` propagation)
+|===
+
+== See also
+
+* link:../solid/rdfUtils/README.adoc[rdfUtils] provides `serializeTurtle`, which this module uses to build every ACL document body.
+* link:../../features/sharing/hooks/useAclManager/README.adoc[useAclManager] is the React hook that orchestrates these low-level ACL operations for a specific file container.
+* link:../../features/file-explorer/hooks/useFileSharing/README.adoc[useFileSharing] calls `discoverAclUri` and `readAclAgents` from here to detect whether a container has been shared.
+* link:../../features/profile/hooks/useAccessRequests/README.adoc[useAccessRequests] calls `writeAcl` and `writeListOnlyAcl` from here when approving file and catalog access requests.
+
+== Navigation
+
+.Parent
+link:../README.adoc[wac]
+
+.Uses
+* link:../../../config/README.adoc[config]
+* link:../../solid/rdfUtils/README.adoc[rdfUtils]
+* link:../../../shared/utils/README.adoc[utils]

@@ -1,0 +1,22 @@
+= file-explorer/hooks
+
+React hooks for the file explorer feature.
+
+== Contents
+
+link:useAccessRequests/README.adoc[useFileAccessRequests]:: Sends access requests to a contact's inbox for individual files or all files at once
+link:useCreateFolder/README.adoc[useCreateFolder]:: Validates folder names and creates new LDP BasicContainers on a Solid pod
+link:useDriveInitialization/README.adoc[useDriveInitialization]:: Discovers Pod storage, creates app container, sets up navigation state
+link:useFilePreview/README.adoc[useFilePreview]:: Creates a blob URL for previewing a binary resource; revokes on cleanup
+link:useFileSharing/README.adoc[useFileSharing]:: Checks if a resource has been shared (has non-owner ACL agents)
+link:useFileTypes/README.adoc[useFileTypes]:: Loads and caches file type definitions from `tbox.ttl`
+link:useFileUpload/README.adoc[useFileUpload]:: Executes the full upload sequence (container, binary, metadata, catalog)
+link:useFileValidation/README.adoc[useFileValidation]:: Validates upload form fields against SHACL shapes
+link:useNavigation/README.adoc[useNavigation]:: Manages current folder URI and breadcrumb trail
+link:usePodDiscovery/README.adoc[usePodDiscovery]:: Finds `pim:storage` in the user's profile
+link:useSharedCatalog/README.adoc[useSharedCatalog]:: Resolves shared files from a contact's Pod
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer]
