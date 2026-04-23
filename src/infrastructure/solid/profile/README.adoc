@@ -1,0 +1,32 @@
+= profile
+
+SPARQL/N3 Patch operations for modifying Solid profile documents.
+All WebID and image URL parameters are validated to be safe `http(s)://` URIs before being inserted into patch bodies.
+String literals are escaped to prevent injection.
+
+== Functions
+
+[cols="1,3", options="header"]
+|===
+| Function | Description
+
+| `saveProfileFields(webId, original, fields, fetch)` | Patches `foaf:name` and `foaf:img` (deletes old values, inserts new ones)
+| `ensureProfileDocType(webId, fetch)` | Adds `foaf:PersonalProfileDocument` and `foaf:Person` type triples if missing
+| `addContact(webId, contactWebId, fetch)` | Inserts a `foaf:knows` triple
+| `removeContact(webId, contactWebId, fetch)` | Deletes a `foaf:knows` triple
+|===
+
+
+== See also
+
+* link:../../features/profile/hooks/useProfile/README.adoc[useProfile] calls `saveProfileFields` and `ensureProfileDocType` to read and update the logged-in user's profile.
+* link:../../features/profile/hooks/useContacts/README.adoc[useContacts] calls `addContact` and `removeContact` to manage the user's contact list.
+* link:../../features/file-explorer/hooks/usePodDiscovery/README.adoc[usePodDiscovery] reads the Solid profile document to locate the `pim:storage` root.
+
+== Navigation
+
+.Parent
+link:../README.adoc[infrastructure/solid]
+
+.Uses
+* link:../../../config/README.adoc[config]

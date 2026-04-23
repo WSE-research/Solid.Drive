@@ -1,0 +1,294 @@
+:app-name: solid.drive
+:app-url: http://demos.swe.htwk-leipzig.de:3000/
+:github-repository: https://github.com/WSE-research/Solid-Hello-World-Frontend-React
+:toc:
+:toclevels: 3
+:toc-placement!:
+:source-highlighter: highlight.js
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+= Tester Guide: {app-name}
+
+TIP: Use *Google Chrome* for the smoothest experience. Firefox and Edge work, but Chrome is preferred.
+
+---
+
+toc::[]
+
+---
+
+== Getting the App Running
+
+=== Option A: Run Locally
+
+*Prerequisites:* Node.js >= 18
+
+[source,bash]
+----
+# 1. Clone the repository
+git clone https://github.com/WSE-research/Solid-Hello-World-Frontend-React.git
+cd Solid-Hello-World-Frontend-React
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the development server
+npm run dev
+----
+
+The app will be available at `http://localhost:5173` (or the port Vite prints in the terminal).
+
+IMPORTANT: When running on `localhost`, use `solidcommunity.net` or `solidweb.org` as your identity provider. `inrupt.net` blocks localhost redirects.
+
+=== Option B: Production Build
+
+[source,bash]
+----
+npm run build     # compiles TypeScript and bundles assets
+npm run preview   # serves the /dist folder locally to verify the build
+----
+
+=== Option C: Docker
+
+[source,bash]
+----
+# Build the image
+docker build -t solid-hello-world-frontend-react .
+
+# Run the container (serves on port 3000)
+docker run -p 3000:80 solid-hello-world-frontend-react
+----
+
+The app will be available at `http://localhost:3000`.
+The Docker image uses a two-stage build: Node 20 compiles the app, then nginx serves the static files on port 80.
+
+=== Option D: Live Demo
+
+A hosted instance is available with no installation required:
+
+*{app-url}*
+
+=== Other npm Scripts
+
+`npm test`:: Run the test suite once
+`npm run test:watch`:: Run tests in watch mode
+`npm run lint`:: Run ESLint
+`npm run build:ldo`:: Regenerate TypeScript bindings from ShEx shapes (dev only)
+`npm run tbox:extract`:: Re-fetch SHACL shapes from datashapes.org (dev only)
+
+== Before You Start
+
+=== Get a Solid Pod
+
+Before using {app-name} you need a Solid Pod and a *WebID* (your Solid identity address).
+
+[cols="1,2,2", options="header"]
+|===
+| Provider | Sign-up URL | Notes
+
+| solidcommunity.net | https://solidcommunity.net/register | Recommended for testing
+| solidweb.org | https://solidweb.org | Alternative community server
+| inrupt.net | https://inrupt.net | *Do not use with localhost*
+|===
+
+After registering you receive:
+
+* A *WebID*, for example: `https://yourname.solidcommunity.net/profile/card#me`
+* A *Pod storage root*, for example: `https://yourname.solidcommunity.net/`
+
+== Log In
+
+Whether you are in development mode or on the live server, you will see the login screen with the header bar at the top.
+
+. Find the *provider dropdown* in the top header and select the provider where your Pod is hosted, or type in a custom provider URL.
+. Click *Log in*.
+. You will be redirected to your identity provider's login page. Enter your credentials there.
+. After a successful login you are redirected back to {app-name}. Your display name appears in the header and the sidebar.
+
+TIP: Your session is remembered in the browser. You do not need to log in again after a page refresh.
+
+== App Layout
+
+After logging in you will see three areas:
+
+[cols="1,2,3", options="header"]
+|===
+| Area | Description | Usage
+
+| *Header* (top) | Your name, logout button, and language switcher | Change your provider, switch language, or log out
+| *Profile sidebar* (left) | Your Pod details, contacts, and requests | Edit display name/picture, add or remove contacts, handle access requests
+| *File explorer* (center) | Your files and folder navigation | View, upload, download, share, and delete files on your Pod
+|===
+
+== Uploading Your First File
+
+On your first login, {app-name} creates a folder called `my-solid-app`. You can use this folder or navigate to any other folder on your Pod.
+
+. Navigate to the target folder.
+. Click *Choose file* and select a file from your device.
+. Fill in the required fields:
+** *Title* (required, e.g. `Holiday Photo`)
+** *Description* (optional)
+** Data type, upload date, and publisher are filled in automatically.
+. Click *Upload*. The app will:
+** Validate your metadata
+** Upload the binary file
+** Write a metadata document (`index.ttl`) alongside it
+** Register the file in your Pod's catalog
+. The file appears as a card in the explorer when the upload completes.
+
+NOTE: The first upload also links your catalog to your WebID profile so other Solid apps can discover it.
+
+== Browse & Navigate
+
+* Your files appear as cards in the file explorer.
+* Click any *folder row* to navigate inside it; the breadcrumb trail at the top updates as you go.
+* Click a breadcrumb item to jump back up to any previous level.
+* Internal system files (`catalog.ttl`, `.acl`, `.shared-*.ttl`) are hidden automatically.
+
+== Inline Preview
+
+Each file card shows an inline preview automatically (currently only inside the `my-solid-app` folder):
+
+Image:: Thumbnail rendered directly on the card
+Video:: Playable video player
+Audio:: Audio player
+PDF / text:: Embedded viewer
+Other:: Download button only
+
+All previews are loaded from your Pod directly into your browser.
+
+== File Details
+
+Click the *Info* button on any file card to expand the details panel:
+
+* File type (schema.org class)
+* Title and description
+* Format (MIME type)
+* File size
+* Upload date
+* Publisher name (resolved from their Solid profile)
+
+== Download
+
+Click the *Download* button on a file card. Your browser saves the file locally. The download comes directly from your Pod.
+
+== Sharing Files
+
+You can share any file you own with contacts listed in your Solid profile.
+
+. Click the *Share* button on a file card.
+. The Share panel opens and lists your current contacts.
+. Click *Grant* next to a contact to share the file with them. The app will:
+** Update the file's ACL on your Pod
+** Create a per-contact shared catalog so the recipient can discover the file
+** Restrict the shared catalog so only that contact can read it
+
+To *revoke* access:
+
+. Open the Share panel on the file.
+. Find the contact under *Shared with*.
+. Click *Revoke*. The app removes them from the ACL and deletes the file entry from their shared catalog.
+
+NOTE: If a contact is removed from your list, shared files are also removed in both directions.
+
+== Shared With Me
+
+Scroll below your own files to the *Shared with Me* section.
+The app reads your contacts' shared catalogs and displays any files they have shared with you as read-only cards.
+
+TIP: If a contact shared files before the app was updated, it also checks their main catalog as a fallback; older shares still show up.
+
+== Delete a File
+
+. Click the *Delete* button on a file card.
+. Confirm the deletion when prompted. The app removes:
+** The file entry from your catalog
+** The binary file from your Pod
+** The metadata document (`index.ttl`)
+** The file's container on your Pod
+
+No orphaned resources are left behind.
+
+== Switch Language
+
+Click the *language switcher* in the top header. Currently supported:
+
+* English
+* German
+
+The selected language is remembered for your next visit.
+
+== Test Checklist
+
+=== Test Accounts
+
+You need at least *two Solid Pod accounts* to test the full sharing flow.
+Register two accounts on `solidcommunity.net` and add each other as contacts via the Profile sidebar.
+
+=== Core Test Checklist
+
+*Authentication*
+
+* [ ] Log in with `solidcommunity.net`: redirects correctly and displays the user name
+* [ ] Refresh the page: session is restored without re-login
+* [ ] Log out: session is cleared and the login screen re-appears
+
+*Upload*
+
+* [ ] Upload an image: preview thumbnail appears on the card
+* [ ] Upload a video: inline video player appears
+* [ ] Upload an audio file: audio player appears
+* [ ] Upload a PDF: embedded viewer appears
+* [ ] Upload a file with no title: upload stays blocked until title is filled in
+* [ ] Upload a second file: catalog is updated without creating a duplicate profile link
+* [ ] Upload the same file twice: gets rejected to avoid duplicates
+* [ ] Files uploaded to a folder other than `my-solid-app` get their own folder
+
+*Browse & Navigate*
+
+* [ ] From _Pod Content_, navigate into any subfolder using the folder row
+* [ ] Use the breadcrumb trail to jump back up
+* [ ] System files (`.acl`, `catalog.ttl`, `.shared-*.ttl`) do not appear in the file list
+
+*File Details*
+
+* [ ] Click _Info_ on a file: all metadata fields are populated correctly
+* [ ] Switch language: metadata labels update accordingly
+* [ ] Publisher name resolves to a display name (not a raw WebID URL)
+
+*Download*
+
+* [ ] Download a file: browser saves it locally without a server redirect
+
+*Delete*
+
+* [ ] Delete a file: card disappears and catalog is cleaned up; no orphaned container remains
+
+*Sharing (requires two accounts)*
+
+* [ ] Add the second account as a contact using their _WebID_
+* [ ] Check that their name and avatar photo appear (if they have set one)
+* [ ] Click _Request Access_ to see their catalog
+* [ ] The second user receives the request: they can _Deny_ or _Accept_
+* [ ] Accept: catalog content appears in the *Shared with Me* section
+* [ ] Deny: a denied message appears next to the contact's name
+* [ ] Request again: the cycle repeats
+* [ ] Share a file directly using the Share button: no request needed
+* [ ] Revoke access: the file disappears from the second account's *Shared with Me* section
+* [ ] The revoked file is no longer accessible via direct URL from the second account
+
+*Language*
+
+* [ ] Switch to German: all labels update immediately
+* [ ] Refresh the page: German is still active
+
+== Navigation
+
+.Parent
+link:README.adoc[solid.drive]

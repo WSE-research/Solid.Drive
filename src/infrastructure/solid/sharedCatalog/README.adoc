@@ -1,0 +1,34 @@
+= sharedCatalog
+
+Helpers for the per-contact shared catalog naming scheme and access checks.
+Each file share creates a dedicated Turtle catalog at `.shared-{encodedViewerWebId}.ttl` inside the app container.
+
+== Functions
+
+[cols="1,3", options="header"]
+|===
+| Function | Description
+
+| `getAppContainerUri(storageRoot)` | Returns `{storageRoot}my-solid-app/`
+| `getSharedCatalogUri(appContainerUri, viewerWebId)` | Full URI for a grantee-specific shared catalog
+| `getCandidateSharedCatalogUris(...)` | Returns both normalized and legacy filenames for backward compatibility
+| `isSharedCatalogFile(fileName)` | Returns `true` for `.shared-*.ttl` filenames
+| `toContainerUri(instanceUri)` | Converts `.../index.ttl` to `.../`
+| `hasAccess(containerUri, fetch)` | HEAD request to check if the viewer can read a container
+| `normalizeShareCatalogId(webId)` | Strips the `#fragment` from a WebID
+|===
+
+== See also
+
+* link:../catalog/README.adoc[catalog] provides `parseCatalog`, which is used to read both the per-contact shared catalog and the main catalog.
+* link:../../features/file-explorer/hooks/useSharedCatalog/README.adoc[useSharedCatalog] is the React hook that calls the URI helpers and `hasAccess` function defined here.
+* link:../../features/sharing/hooks/useAclManager/README.adoc[useAclManager] writes shared catalog entries using the URI helpers here during every grant and revoke operation.
+* link:../../features/profile/hooks/useAccessRequests/README.adoc[useAccessRequests] creates the initial per-contact shared catalog using this module when a catalog access request is approved.
+
+== Navigation
+
+.Parent
+link:../README.adoc[infrastructure/solid]
+
+.Uses
+* link:../../../config/README.adoc[config]

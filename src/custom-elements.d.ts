@@ -36,6 +36,10 @@ declare module "react" {
       "drive-error-icon": El;
       "drive-loading": El;
       "files-section-header": El;
+      "add-menu": El;
+      "add-menu-dropdown": El;
+      // NewFolderInput
+      "new-folder-input": El;
       // FileUpload
       "file-upload-row": El;
       "file-upload-errors": El;

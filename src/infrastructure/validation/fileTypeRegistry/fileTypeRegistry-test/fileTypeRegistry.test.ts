@@ -117,7 +117,7 @@ describe("fileTypeRegistry", () => {
     it("returns default types for invalid turtle", () => {
       const types = parseFileTypesFromTurtle("this is not valid turtle {{{");
       expect(types.length).toBeGreaterThan(0);
-      expect(types.find((t) => t.id === "DigitalDocument")).toBeDefined();
+      expect(types.find((fileType) => fileType.id === "DigitalDocument")).toBeDefined();
     });
 
     it("returns default types for empty turtle", () => {
@@ -139,7 +139,7 @@ schema:TestLongDesc
 .
 `;
       const types = parseFileTypesFromTurtle(turtle);
-      const testType = types.find((t) => t.id === "TestLongDesc");
+      const testType = types.find((fileType) => fileType.id === "TestLongDesc");
       expect(testType).toBeDefined();
       // FILE_TYPE_DESCRIPTION_MAX_LENGTH is 200, so truncated = 197 chars + "..."
       expect(testType!.description.length).toBeLessThanOrEqual(200);
@@ -158,7 +158,7 @@ schema:ImageObject
 .
 `;
       const types = parseFileTypesFromTurtle(turtle);
-      const imageType = types.find((t) => t.id === "ImageObject");
+      const imageType = types.find((fileType) => fileType.id === "ImageObject");
       expect(imageType).toBeDefined();
       // humanizeId("ImageObject") → "Image object"
       expect(imageType!.label).toBe("Image object");
@@ -175,7 +175,7 @@ schema:HTMLDocument
 .
 `;
       const types = parseFileTypesFromTurtle(turtle);
-      const htmlType = types.find((t) => t.id === "HTMLDocument");
+      const htmlType = types.find((fileType) => fileType.id === "HTMLDocument");
       expect(htmlType).toBeDefined();
       // humanizeId("HTMLDocument") → "HTML Document" → lowercase → "html document" → capitalize → "Html document"
       // Actually: .replace(/([a-z])([A-Z])/g, "$1 $2") has no effect (no lowercase before uppercase)
@@ -183,6 +183,28 @@ schema:HTMLDocument
       //           .toLowerCase() → "html document"
       //           .replace(/^\w/, c => c.toUpperCase()) → "Html document"
       expect(htmlType!.label).toBe("Html document");
+    });
+
+    it("skips non-schema.org classes in the ontology", () => {
+      const turtle = `
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix schema: <http://schema.org/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+foaf:Person
+  a rdfs:Class ;
+  rdfs:label "FOAF Person" ;
+.
+
+schema:ImageObject
+  a rdfs:Class ;
+  rdfs:label "Image" ;
+.
+`;
+      const types = parseFileTypesFromTurtle(turtle);
+      expect(types.find((fileType) => fileType.uri.startsWith("http://xmlns.com"))).toBeUndefined();
+      expect(types.find((fileType) => fileType.id === "ImageObject")).toBeDefined();
     });
 
     it("skips a schema.org class whose URI is exactly the schema namespace (empty local name)", () => {

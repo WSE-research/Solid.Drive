@@ -24,7 +24,15 @@
     "emptyFolder": "This folder is empty.",
     "download": "Download",
     "noStorageFound": "No storage location found on your profile. Your Pod may not be configured correctly.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "add": "Add",
+    "newFolder": "New Folder",
+    "createFolder": "Create",
+    "uploadFiles": "Upload files",
+    "newFolderPlaceholder": "Folder name",
+    "newFolderEmpty": "Folder name cannot be empty",
+    "newFolderInvalidChars": "Name cannot contain: / \\ : * ? \" < > |",
+    "newFolderError": "Failed to create folder"
   },
   "fileCard": {
     "loading": "Loading\u2026",

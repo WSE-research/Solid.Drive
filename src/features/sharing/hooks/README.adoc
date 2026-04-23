@@ -1,0 +1,12 @@
+= sharing/hooks
+
+React hooks for WAC/ACL management.
+
+== Contents
+
+`useAclManager`:: Manages WAC ACL operations for a file container: load grantees, grant access, revoke access
+
+== Navigation
+
+.Parent
+link:../README.adoc[sharing]

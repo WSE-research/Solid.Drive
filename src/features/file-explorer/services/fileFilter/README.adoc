@@ -1,0 +1,16 @@
+= fileFilter
+
+Determines which leaf resources should be visible in the file explorer.
+
+== Functions
+
+`isVisibleLeaf(entry)`:: Returns `false` for files in the `SYSTEM_FILES` set (`catalog.ttl`, `robots.txt`, `.acl`, `.meta`, `README`) and shared catalog files matching the `.shared-*.ttl` pattern. Keeps the file browser clean without cluttering it with Pod plumbing files.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/services]
+
+.Uses
+* link:../../../../config/constants/README.adoc[constants]
+* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]

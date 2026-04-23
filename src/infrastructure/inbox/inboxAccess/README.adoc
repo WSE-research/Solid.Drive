@@ -1,0 +1,35 @@
+= inboxAccess
+
+High-level functions for working with Solid LDP inboxes.
+All message parsing and serialization is delegated to `inboxMessages`.
+
+== Functions
+
+[cols="1,3", options="header"]
+|===
+| Function | Description
+
+| `discoverInboxUri(webId, fetch)` | Fetches a profile and extracts the `ldp:inbox` URI
+| `postCatalogAccessRequest(...)` | Sends a catalog-level access request to a contact's inbox
+| `postFileAccessRequest(...)` | Sends a file-level access request to a contact's inbox
+| `postRejectionNotification(...)` | Sends a denial notice to a requester's inbox
+| `listRejectionNotifications(...)` | Lists rejection messages in an inbox
+| `listAccessRequests(...)` | Lists access request messages in an inbox
+| `deleteAccessRequest(messageUri, fetch)` | Deletes an inbox message
+|===
+
+== See also
+
+* link:../inboxMessages/README.adoc[inboxMessages] handles all message parsing and serialization that this module delegates to.
+* link:../../features/file-explorer/hooks/useAccessRequests/README.adoc[useFileAccessRequests] is the React hook that sends access requests using the functions here.
+* link:../../features/profile/hooks/useAccessRequests/README.adoc[useAccessRequests] reads and processes inbox messages using the functions provided here.
+* link:../../shared/hooks/useContactRejections/README.adoc[useContactRejections] reads rejection notifications by calling `listRejectionNotifications` from this module.
+
+== Navigation
+
+.Parent
+link:../README.adoc[inbox]
+
+.Uses
+* link:../../../config/README.adoc[config]
+* link:../inboxMessages/README.adoc[inboxMessages]

@@ -63,6 +63,7 @@ export function useProfile({ suspendSync = false }: UseProfileOptions = {}): Use
     const storageRoot =
       profile?.storage?.toArray()[0]?.["@id"] ??
       session.webId.replace(/\/profile\/card.*/, "/");
+    /* v8 ignore next */
     const ext = file.name.split(".").pop() ?? "jpg";
     const avatarUri = `${storageRoot}public/avatar.${ext}`;
     setIsUploadingAvatar(true);

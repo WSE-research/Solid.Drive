@@ -1,0 +1,19 @@
+= infrastructure
+
+Protocol and service layer — no React, no UI.
+This code talks to the network, parses RDF, and handles Solid-specific protocols.
+
+Infrastructure modules only depend on `@/config`, `@/types`, and each other.
+They never import from `@/features` or `@/shared/contexts`.
+
+== Contents
+
+link:inbox/README.adoc[inbox/]:: Solid LDP inbox: access request messages, rejection notifications
+link:solid/README.adoc[solid/]:: Core Solid operations: catalog CRUD, profile patches, display name resolution, resource type guards, shared catalog naming, RDF utilities
+link:validation/README.adoc[validation/]:: TBox loading, SHACL shape validation, file type registry
+link:wac/README.adoc[wac/]:: Web Access Control: ACL discovery, reading, and writing
+
+== Navigation
+
+.Parent
+link:../README.adoc[src]

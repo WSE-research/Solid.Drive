@@ -1,0 +1,19 @@
+= profile
+
+Everything related to user profile management and social connections.
+
+== Contents
+
+link:components/ProfileSidebar/README.adoc[components/ProfileSidebar]:: The sidebar container that assembles the profile UI
+link:components/ProfileCard/README.adoc[components/ProfileCard]:: View and edit profile name and avatar
+link:components/ContactsList/README.adoc[components/ContactsList]:: Add/remove contacts (`foaf:knows`), with rejection notification display
+link:components/ContactRow/README.adoc[components/ContactRow]:: A single contact with request-access and remove actions
+link:components/RequestsPanel/README.adoc[components/RequestsPanel]:: Approve or deny incoming access requests from the user's inbox
+link:hooks/useProfile/README.adoc[hooks/useProfile]:: Read/write the logged-in user's profile fields
+link:hooks/useContacts/README.adoc[hooks/useContacts]:: Manage the `foaf:knows` contact list
+link:hooks/useAccessRequests/README.adoc[hooks/useAccessRequests]:: Load, approve, and deny inbox access requests
+
+== Navigation
+
+.Parent
+link:../README.adoc[features]

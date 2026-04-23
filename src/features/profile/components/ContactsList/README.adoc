@@ -1,0 +1,25 @@
+= ContactsList
+
+Lists the user's contacts (from `foaf:knows`) and provides an input for adding new ones.
+WebID input is validated to be a valid `http(s)://` URL before calling `addContact`.
+
+== Features
+
+Rejection notifications:: Loaded on mount from the owner's inbox and displayed in each `ContactRow`
+Clearing rejections:: Removes the rejection from the local map; it is not deleted from the inbox until the user explicitly requests access again
+
+== See also
+
+* link:../../hooks/useContacts/README.adoc[useContacts] manages the `foaf:knows` list that this component displays and mutates.
+* link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections] provides the rejection notifications shown per contact row.
+
+== Navigation
+
+.Parent
+link:../README.adoc[profile/components]
+
+.Uses
+* link:../ContactRow/README.adoc[ContactRow]
+* link:../../hooks/useContacts/README.adoc[useContacts]
+* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
+* link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections]

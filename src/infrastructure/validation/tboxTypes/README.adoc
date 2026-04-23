@@ -1,0 +1,21 @@
+= tboxTypes
+
+Type definitions for TBox validation.
+
+== Contents
+
+`PropertyConstraint`:: Constraint for a single property in a SHACL shape
+`ShapeDefinition`:: Definition of a SHACL NodeShape with required and optional properties
+`ValidationResult`:: Result of validating metadata against a shape
+`PropertyViolation`:: A missing required property from validation
+
+== See also
+
+* link:../tboxParser/README.adoc[tboxParser] produces `ShapeDefinition` values that conform to the types defined here.
+* link:../tboxValidator/README.adoc[tboxValidator] returns `ValidationResult` and `PropertyViolation` objects whose shapes are defined in this module.
+* link:../../../features/file-explorer/hooks/useFileValidation/README.adoc[useFileValidation] is the React hook that surfaces `ValidationResult` and `PropertyViolation` to the upload form.
+
+== Navigation
+
+.Parent
+link:../README.adoc[validation]

@@ -1,0 +1,34 @@
+= inboxMessages
+
+Low-level message parsing and serialization for Solid inbox messages.
+All serialization uses the N3 library.
+Message types are identified by `rdf:type` using the `solid-access:` vocabulary.
+
+== Functions
+
+[cols="1,3", options="header"]
+|===
+| Function | Description
+
+| `discoverInboxUriFromProfile(profileDocUri, webId, turtle)` | Parses a profile Turtle string to find the `ldp:inbox` triple
+| `buildAccessRequestMessage(type, requesterWebId, accessTo)` | Creates Turtle for an access request
+| `buildAccessRejectionMessage(accessTo)` | Creates Turtle for a rejection notification
+| `parseContainedResourceUris(inboxUri, turtle)` | Extracts `ldp:contains` URIs from a container listing
+| `parseAccessRequestMessage(messageUri, turtle)` | Parses a Turtle message into an `AccessRequest`
+| `parseAccessRejectionMessage(messageUri, turtle)` | Parses a Turtle message into an `AccessRejection`
+|===
+
+== See also
+
+* link:../inboxAccess/README.adoc[inboxAccess] is the high-level wrapper that calls the parsing functions defined here.
+* link:../../solid/rdfUtils/README.adoc[rdfUtils] provides the shared N3 serialization utilities used by this module to build message bodies.
+
+== Navigation
+
+.Parent
+link:../README.adoc[inbox]
+
+.Uses
+* link:../../../config/README.adoc[config]
+* link:../../solid/rdfUtils/README.adoc[rdfUtils]
+* link:../../../shared/utils/README.adoc[utils]

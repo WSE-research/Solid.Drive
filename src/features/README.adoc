@@ -1,0 +1,17 @@
+= features
+
+UI features, each self contained in its own folder with components, hooks, and services.
+Features may import from `@/infrastructure` and `@/shared`.
+Cross feature imports are not allowed except that `file-explorer` imports from `sharing` (WAC hooks).
+
+== Contents
+
+link:auth/README.adoc[auth/]:: Login/logout, provider selection, language switching
+link:file-explorer/README.adoc[file-explorer/]:: Browse Pod files, upload, download, share, navigate folders
+link:profile/README.adoc[profile/]:: View and edit user profile, manage contacts, handle access requests
+link:sharing/README.adoc[sharing/]:: Low level WAC ACL hooks; consumed by `file-explorer/SharePanel`
+
+== Navigation
+
+.Parent
+link:../README.adoc[src]

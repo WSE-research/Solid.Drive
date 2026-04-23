@@ -254,6 +254,14 @@ describe('ProfileCard', () => {
     expect(avatar).toBeInTheDocument();
   });
 
+  it('calls setName when name input changes in edit mode', () => {
+    render(<ProfileCard />);
+    fireEvent.click(screen.getByText('profileSidebar.editProfile'));
+    const input = document.querySelector('.profile-input__field') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'New Name' } });
+    expect(mockSetName).toHaveBeenCalledWith('New Name');
+  });
+
   it('falls back to profile img when imgUrl is empty in edit mode', () => {
     profileReturnValue = {
       ...profileReturnValue,

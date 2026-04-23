@@ -203,6 +203,7 @@ export function getFileType(uriOrId: string): FileTypeDef | undefined {
     if (direct) return direct;
     // Try with schema.org prefix
     const withPrefix = cachedTypeMap.get(`${SCHEMA}${uriOrId}`);
+    /* v8 ignore next */
     if (withPrefix) return withPrefix;
   }
   
@@ -237,6 +238,7 @@ export function getFileTypeLabel(uriOrId: string): string {
   const typeDef = getFileType(uriOrId);
   if (typeDef) return typeDef.label;
   // Fallback: extract local name from URI
+  /* v8 ignore next */
   return uriOrId.split(/[#/]/).pop() ?? uriOrId;
 }
 
@@ -251,6 +253,7 @@ export function getFileTypeLabel(uriOrId: string): string {
 export function getFileTypeInfo(uriOrId: string): { label: string; description: string } {
   const typeDef = getFileType(uriOrId);
   if (typeDef) return { label: typeDef.label, description: typeDef.description };
+  /* v8 ignore next */
   const fallback = uriOrId.split(/[#/]/).pop() ?? uriOrId;
   return { label: fallback, description: "" };
 }

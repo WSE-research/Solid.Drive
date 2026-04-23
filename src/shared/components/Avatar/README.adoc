@@ -1,0 +1,20 @@
+= Avatar
+
+Displays a user's profile image or an initial letter fallback.
+
+== Features
+
+[cols="1,3", options="header"]
+|===
+| Feature | Description
+
+| Image | If `src` is provided, renders an `<img>` tag
+| Initial | Otherwise renders a placeholder `<div>` with the `initial` letter
+| Loading | If `isLoading` is true, shows a spinner instead of the initial
+| Size | Supports two sizes via the `size` prop: `"sm"` and `"md"` (default)
+|===
+
+== Navigation
+
+.Parent
+link:../README.adoc[shared/components]

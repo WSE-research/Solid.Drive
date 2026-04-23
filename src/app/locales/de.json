@@ -24,7 +24,15 @@
     "emptyFolder": "Dieser Ordner ist leer.",
     "download": "Herunterladen",
     "noStorageFound": "Kein Speicherort in Ihrem Profil gefunden. Möglicherweise ist Ihr Pod nicht korrekt konfiguriert.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "add": "Hinzufügen",
+    "newFolder": "Neuer Ordner",
+    "createFolder": "Erstellen",
+    "uploadFiles": "Dateien hochladen",
+    "newFolderPlaceholder": "Ordnername",
+    "newFolderEmpty": "Ordnername darf nicht leer sein",
+    "newFolderInvalidChars": "Name darf nicht enthalten: / \\ : * ? \" < > |",
+    "newFolderError": "Ordner konnte nicht erstellt werden"
   },
   "fileCard": {
     "loading": "Wird geladen\u2026",

@@ -1,0 +1,26 @@
+= docs
+
+Project documentation assets.
+
+== Contents
+
+=== diagrams/
+
+PlantUML source files (`.puml`) for the architecture and sequence diagrams embedded in the project documentation.
+Render them with PlantUML (the `plantuml.jar` at the project root) or any compatible tool.
+
+[cols="1,3", options="header"]
+|===
+| File | Depicts
+
+| `class-diagram.puml` | Static class/module relationships across features and infrastructure
+| `sequence-approve-catalog-request.puml` | Flow for approving a shared catalog access request
+| `sequence-approve-file-request.puml` | Flow for approving a per-file access request
+| `sequence-grant-access.puml` | Flow for granting file access from the Share panel
+| `sequence-load-requests.puml` | Flow for loading pending access requests from the inbox
+|===
+
+== Navigation
+
+.Parent
+link:../README.adoc[root]

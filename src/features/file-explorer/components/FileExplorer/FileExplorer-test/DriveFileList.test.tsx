@@ -7,6 +7,14 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string) => key],
 }));
 
+vi.mock('@ldo/solid-react', () => ({
+  useResource: vi.fn(() => null),
+}));
+
+vi.mock('@/infrastructure/solid/resourceGuards', () => ({
+  isSolidContainer: vi.fn((r: unknown) => !!(r as Record<string, unknown>)?.children),
+}));
+
 vi.mock('@/features/file-explorer/components/FileCard', () => ({
   FileCard: ({ containerUri, catalogUri }: { containerUri: string; catalogUri: string }) => (
     <div data-testid="file-card" data-uri={containerUri} data-catalog={catalogUri} />
@@ -28,6 +36,8 @@ const makeFolders = (uris: string[]): SolidContainer[] =>
 const makeLeaves = (uris: string[]): SolidLeaf[] =>
   uris.map((uri) => ({ uri, type: 'SolidLeaf' })) as unknown as SolidLeaf[];
 
+import { useResource } from '@ldo/solid-react';
+
 describe('DriveFileList', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -38,6 +48,7 @@ describe('DriveFileList', () => {
         leafEntries={[]}
         isInAppFolder={true}
         catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -52,6 +63,7 @@ describe('DriveFileList', () => {
         leafEntries={[]}
         isInAppFolder={false}
         catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -59,7 +71,7 @@ describe('DriveFileList', () => {
     expect(screen.getByText('fileExplorer.emptyFolder')).toBeInTheDocument();
   });
 
-  it('renders FileCard for folder entries when in app folder', () => {
+  it('renders FileCard for folder entries when in catalog', () => {
     const folders = makeFolders(['https://pod.example/app/doc1/', 'https://pod.example/app/doc2/']);
     render(
       <DriveFileList
@@ -67,6 +79,7 @@ describe('DriveFileList', () => {
         leafEntries={[]}
         isInAppFolder={true}
         catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set(['https://pod.example/app/doc1/', 'https://pod.example/app/doc2/'])}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -77,7 +90,35 @@ describe('DriveFileList', () => {
     expect(cards[0].getAttribute('data-catalog')).toBe('https://pod.example/catalog.ttl');
   });
 
-  it('renders FolderEntry for folder entries when not in app folder', () => {
+  it('renders FileCard via structural detection when container has index.ttl', () => {
+    const folderUri = 'https://pod.example/public/sub/1.jpg/';
+    const folders = makeFolders([folderUri]);
+    // Simulate the loaded resource having index.ttl as a child leaf
+    const mockResource = {
+      uri: folderUri,
+      children: () => [
+        { uri: `${folderUri}index.ttl` },   // leaf (no children method)
+        { uri: `${folderUri}1.jpg` },
+      ],
+    };
+    vi.mocked(useResource).mockReturnValueOnce(mockResource as unknown as ReturnType<typeof useResource>);
+
+    render(
+      <DriveFileList
+        folderEntries={folders}
+        leafEntries={[]}
+        isInAppFolder={false}
+        catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
+        onNavigate={mockOnNavigate}
+        onDownload={mockOnDownload}
+      />
+    );
+    expect(screen.getByTestId('file-card')).toBeInTheDocument();
+    expect(screen.getByTestId('file-card').getAttribute('data-uri')).toBe(folderUri);
+  });
+
+  it('renders FolderEntry for folder entries not in catalog and no index.ttl', () => {
     const folders = makeFolders(['https://pod.example/public/', 'https://pod.example/private/']);
     render(
       <DriveFileList
@@ -85,6 +126,7 @@ describe('DriveFileList', () => {
         leafEntries={[]}
         isInAppFolder={false}
         catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -101,6 +143,7 @@ describe('DriveFileList', () => {
         leafEntries={[]}
         isInAppFolder={false}
         catalogUri=""
+        catalogContainerUris={new Set()}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -117,6 +160,7 @@ describe('DriveFileList', () => {
         leafEntries={leaves}
         isInAppFolder={true}
         catalogUri=""
+        catalogContainerUris={new Set()}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -133,6 +177,7 @@ describe('DriveFileList', () => {
         leafEntries={leaves}
         isInAppFolder={true}
         catalogUri=""
+        catalogContainerUris={new Set()}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />
@@ -150,6 +195,7 @@ describe('DriveFileList', () => {
         leafEntries={leaves}
         isInAppFolder={true}
         catalogUri="cat"
+        catalogContainerUris={new Set(['https://pod.example/app/folder/'])}
         onNavigate={mockOnNavigate}
         onDownload={mockOnDownload}
       />

@@ -1,0 +1,35 @@
+= useFileUpload
+
+Handles the full file upload sequence to a Solid Pod.
+Cleans up the created container on failure to avoid orphaned data.
+
+== Upload sequence
+
+. Creates a child container inside `mainContainer`
+. Uploads the binary file
+. Writes `index.ttl` with DCAT metadata (title, publisher, MIME type, size, upload date)
+. Appends a dataset entry to `catalog.ttl`
+. Links the catalog to the user's profile (if not already linked)
+
+== Returns
+
+`isUploading`:: `true` while any step of the upload sequence is in progress
+`upload`:: Function that starts the upload sequence
+
+== See also
+
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog] provides `appendToCatalog` and `linkCatalogToProfile`, which cover steps 4 and 5 of the upload sequence.
+* link:../../../../infrastructure/solid/profile/README.adoc[profile] handles the SPARQL Patch that links the catalog URI to the user's WebID document.
+* link:../../components/FileUpload/README.adoc[FileUpload] is the component that calls this hook and renders upload progress.
+* link:../useFileValidation/README.adoc[useFileValidation] validates the form metadata before this hook is invoked.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]
+
+.Uses
+* link:../../../../config/README.adoc[config]
+* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
+* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]

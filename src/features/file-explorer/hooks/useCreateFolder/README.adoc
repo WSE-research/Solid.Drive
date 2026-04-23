@@ -1,0 +1,39 @@
+= useCreateFolder
+
+Hook for creating new folders as LDP BasicContainers on a Solid pod.
+Exposes name validation, a `createFolder` function, and an `isCreating` flag.
+
+== Validation
+
+`validateName` checks the proposed folder name and returns an i18n error key, or `null` if valid.
+
+Rules enforced:
+
+* Name must not be empty after trimming whitespace
+* Name must not contain any of `/  \  :  *  ?  "  <  >  |`
+
+== Folder creation
+
+`createFolder` slugifies the name (lowercase, alphanumeric + hyphens) and calls
+`parentContainer.createChildAndOverwrite` from `@ldo/connected-solid`.
+The slug always ends with `/` so the server recognises it as a container.
+
+An error is thrown if the server returns an error result; the caller is responsible for catching it.
+
+== Returns
+
+`isCreating`:: `true` while the container creation request is in progress
+`createFolder`:: `(parentContainer, folderName) => Promise<void>` — creates the child container
+`validateName`:: `(folderName) => string | null` — returns an i18n key on failure, null on success
+
+== See also
+
+* link:../../components/NewFolderInput/README.adoc[NewFolderInput] is the component that calls this hook and renders the inline input form.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]
+
+.Uses
+* link:../../../../types/README.adoc[types] — `ContainerCreationResult`

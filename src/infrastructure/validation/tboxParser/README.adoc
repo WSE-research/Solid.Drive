@@ -1,0 +1,28 @@
+= tboxParser
+
+Parses SHACL NodeShape definitions from Turtle text with no I/O side effects.
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Value | Description
+
+| `shapes` | Map of shape URI -> `ShapeDefinition` for all `sh:NodeShape` nodes
+| `parents` | Map of child URI -> parent URIs via `rdfs:subClassOf`
+|===
+
+== See also
+
+* link:../tboxValidator/README.adoc[tboxValidator] consumes the `shapes` and `parents` maps that this module produces when validating file metadata.
+* link:../tboxTypes/README.adoc[tboxTypes] defines `ShapeDefinition` and `PropertyConstraint`, the types that the parsed output conforms to.
+* link:../fileTypeRegistry/README.adoc[fileTypeRegistry] calls this parser when loading file type definitions from the TBox.
+
+== Navigation
+
+.Parent
+link:../README.adoc[validation]
+
+.Uses
+* link:../../../config/README.adoc[config]
+* link:../tboxTypes/README.adoc[tboxTypes]

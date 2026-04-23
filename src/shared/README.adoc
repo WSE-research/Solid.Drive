@@ -1,0 +1,16 @@
+= shared
+
+Reusable building blocks used across features.
+Nothing here should depend on a specific feature.
+
+== Contents
+
+link:components/README.adoc[components/]:: Generic UI components (link:components/Avatar/README.adoc[Avatar], link:components/ErrorBoundary/README.adoc[ErrorBoundary], link:components/Toast/README.adoc[Toast])
+link:contexts/README.adoc[contexts/]:: React contexts (link:contexts/NotificationContext/README.adoc[NotificationContext] for toasts and confirm dialogs)
+link:hooks/README.adoc[hooks/]:: Shared React hooks used across features (link:hooks/useContactRejections/README.adoc[useContactRejections])
+link:utils/README.adoc[utils/]:: Pure helper functions (`formatBytes`, `getInitial`, `getProfileDisplayName`, `isAbsoluteUri`)
+
+== Navigation
+
+.Parent
+link:../README.adoc[src]

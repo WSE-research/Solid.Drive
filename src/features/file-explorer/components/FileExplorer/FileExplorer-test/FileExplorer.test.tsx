@@ -49,6 +49,11 @@ const mockResolveCatalogUri = vi.fn(() => 'https://pod.example/my-solid-app/cata
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
   resolveCatalogUri: () => mockResolveCatalogUri(),
+  parseCatalog: vi.fn(() => []),
+}));
+
+vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
+  toContainerUri: vi.fn((uri: string) => uri),
 }));
 
 vi.mock('@/features/file-explorer/services/fileFilter', () => ({
@@ -88,6 +93,10 @@ vi.mock('@/features/file-explorer/components/FileUpload', () => ({
   FileUpload: () => <div data-testid="file-upload" />,
 }));
 
+vi.mock('@/features/file-explorer/components/NewFolderInput', () => ({
+  NewFolderInput: () => <div data-testid="new-folder-input" />,
+}));
+
 import { useResource, useSubject } from '@ldo/solid-react';
 
 // Helper to create a mock container resource
@@ -102,6 +111,7 @@ describe('FileExplorer', () => {
     vi.clearAllMocks();
     mockSession.isLoggedIn = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
+    mockFetch.mockResolvedValue({ ok: false });
     mockUseDriveInit.noStorageDetected = false;
     mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
     mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
@@ -130,11 +140,18 @@ describe('FileExplorer', () => {
     expect(screen.getByText('fileExplorer.connecting')).toBeInTheDocument();
   });
 
-  it('renders main layout with FileUpload, DriveFileList, SharedWithMeSection', () => {
+  it('renders main layout with DriveFileList and SharedWithMeSection', () => {
     render(<FileExplorer />);
-    expect(screen.getByTestId('file-upload')).toBeInTheDocument();
     expect(screen.getByTestId('drive-file-list')).toBeInTheDocument();
     expect(screen.getByTestId('shared-section')).toBeInTheDocument();
+  });
+
+  it('shows FileUpload after selecting Upload files from Add menu', () => {
+    render(<FileExplorer />);
+    expect(screen.queryByTestId('file-upload')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    fireEvent.click(screen.getByText('fileExplorer.uploadFiles'));
+    expect(screen.getByTestId('file-upload')).toBeInTheDocument();
   });
 
   it('shows "yourFiles" label when in app folder', () => {
@@ -321,7 +338,7 @@ describe('FileExplorer', () => {
   });
 
   it('passes empty string as catalogUri to DriveFileList when resolveCatalogUri returns undefined', () => {
-    mockResolveCatalogUri.mockReturnValueOnce(undefined as unknown as string);
+    mockResolveCatalogUri.mockReturnValue(undefined as unknown as string);
     render(<FileExplorer />);
     // catalogUri ?? "" fires — DriveFileList still renders
     expect(capturedDriveFileListProps.catalogUri).toBe('');

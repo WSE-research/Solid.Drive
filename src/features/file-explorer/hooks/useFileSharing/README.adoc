@@ -1,0 +1,24 @@
+= useFileSharing
+
+Checks whether a file container has been shared with other users.
+Discovers the container's ACL URI, reads the agents listed in it, and returns `true` if any non-owner agent has access.
+Used by `FileCard` to show the shared indicator badge.
+
+Silently returns `false` if ACL discovery fails (e.g. the server does not support WAC).
+
+== Returns
+
+`isShared`:: `true` when at least one non-owner agent has access to the container
+
+== See also
+
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] provides the ACL discovery and agent-list read operations this hook relies on.
+* link:../../components/FileCard/README.adoc[FileCard] is the component that calls this hook and renders the shared indicator badge.
+
+== Navigation
+
+.Parent
+link:../README.adoc[file-explorer/hooks]
+
+.Uses
+* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager]
