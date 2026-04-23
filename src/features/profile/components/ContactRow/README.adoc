@@ -12,11 +12,11 @@ Rejection state:: If a rejection exists for this contact (passed in as a prop), 
 == Navigation
 
 .Parent
-link:../README.adoc[profile/components]
+link:../[profile/components]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../../../infrastructure/inbox/inboxAccess/README.adoc[inboxAccess]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
-* link:../../../../shared/components/Avatar/README.adoc[Avatar]
-* link:../../../../shared/utils/README.adoc[utils]
+* link:../../../../config/[config]
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../shared/components/Avatar/[Avatar]
+* link:../../../../shared/utils/[utils]

@@ -18,4 +18,4 @@ Keys are dot-separated and match the `t('key')` calls in components.
 == Navigation
 
 .Parent
-link:../README.adoc[app]
+link:../[app]

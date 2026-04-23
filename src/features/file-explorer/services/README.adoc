@@ -9,4 +9,4 @@ Pure utility functions used by the file explorer (no React hooks).
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer]
+link:../[file-explorer]

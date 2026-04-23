@@ -17,8 +17,8 @@ node scripts/extract-tbox.mjs
 == Navigation
 
 .Parent
-link:../README.adoc[root]
+link:../[root]
 
 .Related
-* link:../scripts/README.adoc[scripts/extract-tbox.mjs] generates `tbox.ttl`
-* link:../src/infrastructure/validation/README.adoc[infrastructure/validation] consumes `tbox.ttl` at runtime
+* link:../scripts/[scripts/extract-tbox.mjs] generates `tbox.ttl`
+* link:../src/infrastructure/validation/[infrastructure/validation] consumes `tbox.ttl` at runtime

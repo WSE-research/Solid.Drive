@@ -9,4 +9,4 @@ React hooks for authentication logic.
 == Navigation
 
 .Parent
-link:../README.adoc[auth]
+link:../[auth]

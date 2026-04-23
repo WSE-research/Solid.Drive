@@ -22,19 +22,19 @@ For each contact in the user's `foaf:knows` list, tries per-contact shared catal
 |===
 | Hook | Purpose
 
-| link:../../hooks/useSharedCatalog/README.adoc[useSharedCatalog] | Resolves shared entries and type groups for a contact
-| link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections] | Fetches and manages file access rejection notifications
+| link:../../hooks/useSharedCatalog/[useSharedCatalog] | Resolves shared entries and type groups for a contact
+| link:../../../../shared/hooks/useContactRejections/[useContactRejections] | Fetches and manages file access rejection notifications
 |===
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]
 
 .Uses
-* link:../FileCard/README.adoc[FileCard]
-* link:../TypeFolder/README.adoc[TypeFolder]
-* link:../../hooks/useSharedCatalog/README.adoc[useSharedCatalog]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
-* link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections]
-* link:../../../../shared/utils/getProfileDisplayName/README.adoc[getProfileDisplayName]
+* link:../FileCard/[FileCard]
+* link:../TypeFolder/[TypeFolder]
+* link:../../hooks/useSharedCatalog/[useSharedCatalog]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]
+* link:../../../../shared/hooks/useContactRejections/[useContactRejections]
+* link:../../../../shared/utils/getProfileDisplayName/[getProfileDisplayName]

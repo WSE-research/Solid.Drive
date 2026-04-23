@@ -12,4 +12,4 @@ The optional `onDismiss` callback is called when the user clicks the dismiss but
 == Navigation
 
 .Parent
-link:../README.adoc[shared/components]
+link:../[shared/components]

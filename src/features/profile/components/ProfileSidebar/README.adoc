@@ -7,17 +7,17 @@ Shown only when the user is logged in. The `App` component conditionally renders
 
 == Layout
 
-link:../ProfileCard/README.adoc[ProfileCard]:: Avatar + name with inline edit
-link:../ContactsList/README.adoc[ContactsList]:: Add/remove contacts, view rejection notices
-link:../RequestsPanel/README.adoc[RequestsPanel]:: Incoming access requests (only shown if catalog is available)
+link:../ProfileCard/[ProfileCard]:: Avatar + name with inline edit
+link:../ContactsList/[ContactsList]:: Add/remove contacts, view rejection notices
+link:../RequestsPanel/[RequestsPanel]:: Incoming access requests (only shown if catalog is available)
 
 == Navigation
 
 .Parent
-link:../README.adoc[profile/components]
+link:../[profile/components]
 
 .Uses
-* link:../ContactsList/README.adoc[ContactsList]
-* link:../ProfileCard/README.adoc[ProfileCard]
-* link:../RequestsPanel/README.adoc[RequestsPanel]
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
+* link:../ContactsList/[ContactsList]
+* link:../ProfileCard/[ProfileCard]
+* link:../RequestsPanel/[RequestsPanel]
+* link:../../../../infrastructure/solid/catalog/[catalog]

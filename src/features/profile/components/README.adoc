@@ -13,4 +13,4 @@ UI components for the profile sidebar.
 == Navigation
 
 .Parent
-link:../README.adoc[profile]
+link:../[profile]

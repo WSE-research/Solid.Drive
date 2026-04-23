@@ -18,16 +18,16 @@ Each violation includes the property `path`, `label`, and `description` so the U
 
 == See also
 
-* link:../tboxParser/README.adoc[tboxParser] parses the raw SHACL NodeShapes that `loadTBox` depends on.
-* link:../tboxTypes/README.adoc[tboxTypes] defines the `ValidationResult` and `PropertyViolation` types that this module returns.
-* link:../../../features/file-explorer/hooks/useFileValidation/README.adoc[useFileValidation] is the React hook that loads the TBox and drives this validator.
+* link:../tboxParser/[tboxParser] parses the raw SHACL NodeShapes that `loadTBox` depends on.
+* link:../tboxTypes/[tboxTypes] defines the `ValidationResult` and `PropertyViolation` types that this module returns.
+* link:../../../features/file-explorer/hooks/useFileValidation/[useFileValidation] is the React hook that loads the TBox and drives this validator.
 
 == Navigation
 
 .Parent
-link:../README.adoc[validation]
+link:../[validation]
 
 .Uses
-* link:../../../config/README.adoc[config]
-* link:../tboxParser/README.adoc[tboxParser]
-* link:../tboxTypes/README.adoc[tboxTypes]
+* link:../../../config/[config]
+* link:../tboxParser/[tboxParser]
+* link:../tboxTypes/[tboxTypes]

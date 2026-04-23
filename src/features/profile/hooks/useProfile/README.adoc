@@ -18,14 +18,14 @@ Syncs local state from the LDO-subscribed profile on each render (unless `suspen
 
 == See also
 
-* link:../../../../infrastructure/solid/profile/README.adoc[profile] provides `saveProfileFields` and `ensureProfileDocType`, the SPARQL Patch operations this hook sends when saving changes.
-* link:../../components/ProfileCard/README.adoc[ProfileCard] is the component that calls this hook to render and edit the logged-in user's profile.
+* link:../../../../infrastructure/solid/profile/[profile] provides `saveProfileFields` and `ensureProfileDocType`, the SPARQL Patch operations this hook sends when saving changes.
+* link:../../components/ProfileCard/[ProfileCard] is the component that calls this hook to render and edit the logged-in user's profile.
 
 == Navigation
 
 .Parent
-link:../README.adoc[profile/hooks]
+link:../[profile/hooks]
 
 .Uses
-* link:../../../../infrastructure/solid/profile/README.adoc[profile]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../infrastructure/solid/profile/[profile]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]

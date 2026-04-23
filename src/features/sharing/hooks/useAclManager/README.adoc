@@ -32,16 +32,16 @@ Handles granting and revoking access, syncing shared catalogs, and cleaning up l
 
 == See also
 
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] provides the low-level ACL discovery and write functions that this hook orchestrates.
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog] provides the URI helpers and catalog write operations called during every grant and revoke.
-* link:../../../file-explorer/components/SharePanel/README.adoc[SharePanel] is the component that calls this hook and renders the current grantee list.
+* link:../../../../infrastructure/wac/aclManager/[aclManager] provides the low-level ACL discovery and write functions that this hook orchestrates.
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog] provides the URI helpers and catalog write operations called during every grant and revoke.
+* link:../../../file-explorer/components/SharePanel/[SharePanel] is the component that calls this hook and renders the current grantee list.
 
 == Navigation
 
 .Parent
-link:../README.adoc[sharing/hooks]
+link:../[sharing/hooks]
 
 .Uses
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
-* link:../../../../infrastructure/solid/sharedCatalog/README.adoc[sharedCatalog]
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager]
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]
+* link:../../../../infrastructure/wac/aclManager/[aclManager]

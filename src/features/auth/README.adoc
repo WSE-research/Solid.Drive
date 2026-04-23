@@ -5,11 +5,11 @@ Handles the full login flow: picking a provider, initiating the Solid OIDC redir
 
 == Contents
 
-link:components/Header/README.adoc[components/Header]:: Site header with provider selection (logged out) or user info (logged in)
-link:components/LanguageSwitcher/README.adoc[components/LanguageSwitcher]:: Language dropdown, rendered inside the header
-link:hooks/useAuth/README.adoc[hooks/useAuth]:: Thin wrapper around `useSolidAuth` exposing login state, WebID, and auth actions
+link:components/Header/[components/Header]:: Site header with provider selection (logged out) or user info (logged in)
+link:components/LanguageSwitcher/[components/LanguageSwitcher]:: Language dropdown, rendered inside the header
+link:hooks/useAuth/[hooks/useAuth]:: Thin wrapper around `useSolidAuth` exposing login state, WebID, and auth actions
 
 == Navigation
 
 .Parent
-link:../README.adoc[features]
+link:../[features]

@@ -14,16 +14,16 @@ The `violations` array includes a property label and description so the UI can s
 
 == See also
 
-* link:../../../../infrastructure/validation/tboxValidator/README.adoc[tboxValidator] is the SHACL engine this hook calls to produce `validation.violations`.
-* link:../../../../infrastructure/validation/tboxTypes/README.adoc[tboxTypes] defines the `PropertyViolation` and `ValidationResult` types returned by this hook.
-* link:../useFileTypes/README.adoc[useFileTypes] loads the full list of type definitions from the same TBox, useful when building a type selector.
-* link:../../components/FileUpload/README.adoc[FileUpload] is the component that calls this hook and renders the violation messages.
+* link:../../../../infrastructure/validation/tboxValidator/[tboxValidator] is the SHACL engine this hook calls to produce `validation.violations`.
+* link:../../../../infrastructure/validation/tboxTypes/[tboxTypes] defines the `PropertyViolation` and `ValidationResult` types returned by this hook.
+* link:../useFileTypes/[useFileTypes] loads the full list of type definitions from the same TBox, useful when building a type selector.
+* link:../../components/FileUpload/[FileUpload] is the component that calls this hook and renders the violation messages.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]
-* link:../../../../infrastructure/validation/tboxValidator/README.adoc[tboxValidator]
+* link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry]
+* link:../../../../infrastructure/validation/tboxValidator/[tboxValidator]

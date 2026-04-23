@@ -10,4 +10,4 @@ Nothing here should import from a specific feature module. Hooks that belong to 
 == Navigation
 
 .Parent
-link:../README.adoc[shared]
+link:../[shared]

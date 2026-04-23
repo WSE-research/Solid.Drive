@@ -58,6 +58,7 @@ export function useFileAccessRequests({
 
   const handleRequestAll = useCallback(async () => {
     setBulkStatus("sending");
+    setFileStatuses(Object.fromEntries(entries.map((e) => [e.uri, "sending" as RequestStatus])));
     try {
       const inboxUri = await discoverInboxUri(contactWebId, solidFetch);
       await Promise.all(
@@ -66,8 +67,10 @@ export function useFileAccessRequests({
         )
       );
       setBulkStatus("sent");
+      setFileStatuses(Object.fromEntries(entries.map((e) => [e.uri, "sent" as RequestStatus])));
     } catch {
       setBulkStatus("error");
+      setFileStatuses({});
     }
   }, [contactWebId, viewerWebId, entries, solidFetch]);
 

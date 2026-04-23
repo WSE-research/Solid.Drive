@@ -13,4 +13,4 @@ All exported from `@/shared/utils` index for convenience.
 == Navigation
 
 .Parent
-link:../README.adoc[shared]
+link:../[shared]

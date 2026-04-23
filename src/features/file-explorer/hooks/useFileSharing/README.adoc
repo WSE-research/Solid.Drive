@@ -12,13 +12,13 @@ Silently returns `false` if ACL discovery fails (e.g. the server does not suppor
 
 == See also
 
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager] provides the ACL discovery and agent-list read operations this hook relies on.
-* link:../../components/FileCard/README.adoc[FileCard] is the component that calls this hook and renders the shared indicator badge.
+* link:../../../../infrastructure/wac/aclManager/[aclManager] provides the ACL discovery and agent-list read operations this hook relies on.
+* link:../../components/FileCard/[FileCard] is the component that calls this hook and renders the shared indicator badge.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../infrastructure/wac/aclManager/README.adoc[aclManager]
+* link:../../../../infrastructure/wac/aclManager/[aclManager]

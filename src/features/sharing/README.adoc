@@ -5,9 +5,9 @@ Kept as a separate feature to isolate the WAC protocol details from the file exp
 
 == Contents
 
-link:hooks/useAclManager/README.adoc[hooks/useAclManager]:: Handles all the WAC ACL operations needed to grant and revoke file access. Consumer: link:../file-explorer/components/SharePanel/README.adoc[SharePanel]
+link:hooks/useAclManager/[hooks/useAclManager]:: Handles all the WAC ACL operations needed to grant and revoke file access. Consumer: link:../file-explorer/components/SharePanel/[SharePanel]
 
 == Navigation
 
 .Parent
-link:../README.adoc[features]
+link:../[features]

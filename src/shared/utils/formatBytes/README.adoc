@@ -12,4 +12,4 @@ Under 1 MB:: `"1.5 KB"`
 == Navigation
 
 .Parent
-link:../README.adoc[shared/utils]
+link:../[shared/utils]

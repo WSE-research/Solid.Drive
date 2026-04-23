@@ -195,8 +195,8 @@ solid.drive/
 `-- vitest.config.ts
 ----
 
-See link:src/README.adoc[src/README.adoc] for the full layer map and dependency rules. +
-See link:src/.shapes/README.adoc[src/.shapes/README.adoc] for shape definitions. +
+See link:src/[src/README.adoc] for the full layer map and dependency rules. +
+See link:src/.shapes/[src/.shapes/README.adoc] for shape definitions. +
 See link:TESTER_GUIDE.adoc[TESTER_GUIDE.adoc] for manual QA steps.
 
 == Known Issues

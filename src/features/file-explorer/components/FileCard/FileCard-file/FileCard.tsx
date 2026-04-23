@@ -111,7 +111,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   }
 
   if (!fileMeta) {
-    const folderName = decodeURIComponent(containerUri.replace(/\/$/, "").split("/").pop() ?? containerUri);
+    const folderName = decodeURIComponent(containerUri.replace(/\/$/, "").split("/").pop()!);
     const fallbackDownloadName = binaryUri?.split("/").pop();
     return (
       <file-card>
@@ -154,7 +154,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     classUri,
     mediaType: fileMeta.encodingFormat ?? CONTENT_TYPES.OCTET_STREAM,
     byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
-    title: fileMeta.name ?? metadataUri.split("/").pop() ?? "Shared file",
+    title: fileMeta.name ?? metadataUri.split("/").pop()!,
     description: fileMeta.description ?? "",
     modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
   };

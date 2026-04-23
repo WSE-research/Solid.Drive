@@ -4,8 +4,8 @@ Handles Solid LDP inbox operations for access request messaging.
 
 == Contents
 
-link:inboxAccess/README.adoc[inboxAccess]:: High-level functions: discover inbox URI, post requests/rejections, list and delete messages
-link:inboxMessages/README.adoc[inboxMessages]:: Low-level: parse Turtle messages, build Turtle message bodies, extract contained resource URIs
+link:inboxAccess/[inboxAccess]:: High-level functions: discover inbox URI, post requests/rejections, list and delete messages
+link:inboxMessages/[inboxMessages]:: Low-level: parse Turtle messages, build Turtle message bodies, extract contained resource URIs
 
 == Message types
 
@@ -16,4 +16,4 @@ link:inboxMessages/README.adoc[inboxMessages]:: Low-level: parse Turtle messages
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure]
+link:../[infrastructure]

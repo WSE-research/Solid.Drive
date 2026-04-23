@@ -8,4 +8,4 @@ Used to distinguish absolute URIs from relative ones in RDF parsing and inbox me
 == Navigation
 
 .Parent
-link:../README.adoc[shared/utils]
+link:../[shared/utils]

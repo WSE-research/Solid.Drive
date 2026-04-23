@@ -23,4 +23,4 @@ Render them with PlantUML (the `plantuml.jar` at the project root) or any compat
 == Navigation
 
 .Parent
-link:../README.adoc[root]
+link:../[root]

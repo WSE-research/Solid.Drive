@@ -32,7 +32,7 @@ if (confirmed) {
 == Navigation
 
 .Parent
-link:../README.adoc[shared/contexts]
+link:../[shared/contexts]
 
 .Uses
-* link:../../components/Toast/README.adoc[Toast]
+* link:../../components/Toast/[Toast]

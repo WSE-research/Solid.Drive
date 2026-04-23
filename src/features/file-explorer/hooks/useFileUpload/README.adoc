@@ -18,18 +18,18 @@ Cleans up the created container on failure to avoid orphaned data.
 
 == See also
 
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog] provides `appendToCatalog` and `linkCatalogToProfile`, which cover steps 4 and 5 of the upload sequence.
-* link:../../../../infrastructure/solid/profile/README.adoc[profile] handles the SPARQL Patch that links the catalog URI to the user's WebID document.
-* link:../../components/FileUpload/README.adoc[FileUpload] is the component that calls this hook and renders upload progress.
-* link:../useFileValidation/README.adoc[useFileValidation] validates the form metadata before this hook is invoked.
+* link:../../../../infrastructure/solid/catalog/[catalog] provides `appendToCatalog` and `linkCatalogToProfile`, which cover steps 4 and 5 of the upload sequence.
+* link:../../../../infrastructure/solid/profile/[profile] handles the SPARQL Patch that links the catalog URI to the user's WebID document.
+* link:../../components/FileUpload/[FileUpload] is the component that calls this hook and renders upload progress.
+* link:../useFileValidation/[useFileValidation] validates the form metadata before this hook is invoked.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
-* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]
+* link:../../../../config/[config]
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry]

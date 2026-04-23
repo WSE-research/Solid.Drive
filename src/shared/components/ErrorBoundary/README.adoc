@@ -11,4 +11,4 @@ Errors are logged to `console.error`.
 == Navigation
 
 .Parent
-link:../README.adoc[shared/components]
+link:../[shared/components]

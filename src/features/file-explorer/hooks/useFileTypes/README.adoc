@@ -15,13 +15,13 @@ To look up a single type by URI, use `getFileTypeInfo` from `@/infrastructure/va
 
 == See also
 
-* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry] is the underlying registry this hook wraps; call `getFileTypeInfo` directly from there when you only need a single type by URI.
-* link:../useFileValidation/README.adoc[useFileValidation] validates upload form data against the same TBox that this hook reads.
+* link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry] is the underlying registry this hook wraps; call `getFileTypeInfo` directly from there when you only need a single type by URI.
+* link:../useFileValidation/[useFileValidation] validates upload form data against the same TBox that this hook reads.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]
+* link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry]

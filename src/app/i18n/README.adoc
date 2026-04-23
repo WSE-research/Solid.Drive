@@ -11,8 +11,8 @@ Import the configured instance directly when you need `i18n.changeLanguage()`, b
 == Navigation
 
 .Parent
-link:../README.adoc[app]
+link:../[app]
 
 .Uses
-* link:../locales/README.adoc[locales]
-* link:../../config/README.adoc[config]
+* link:../locales/[locales]
+* link:../../config/[config]

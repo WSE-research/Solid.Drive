@@ -20,15 +20,15 @@ Each file share creates a dedicated Turtle catalog at `.shared-{encodedViewerWeb
 
 == See also
 
-* link:../catalog/README.adoc[catalog] provides `parseCatalog`, which is used to read both the per-contact shared catalog and the main catalog.
-* link:../../features/file-explorer/hooks/useSharedCatalog/README.adoc[useSharedCatalog] is the React hook that calls the URI helpers and `hasAccess` function defined here.
-* link:../../features/sharing/hooks/useAclManager/README.adoc[useAclManager] writes shared catalog entries using the URI helpers here during every grant and revoke operation.
-* link:../../features/profile/hooks/useAccessRequests/README.adoc[useAccessRequests] creates the initial per-contact shared catalog using this module when a catalog access request is approved.
+* link:../catalog/[catalog] provides `parseCatalog`, which is used to read both the per-contact shared catalog and the main catalog.
+* link:../../features/file-explorer/hooks/useSharedCatalog/[useSharedCatalog] is the React hook that calls the URI helpers and `hasAccess` function defined here.
+* link:../../features/sharing/hooks/useAclManager/[useAclManager] writes shared catalog entries using the URI helpers here during every grant and revoke operation.
+* link:../../features/profile/hooks/useAccessRequests/[useAccessRequests] creates the initial per-contact shared catalog using this module when a catalog access request is approved.
 
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure/solid]
+link:../[infrastructure/solid]
 
 .Uses
-* link:../../../config/README.adoc[config]
+* link:../../../config/[config]

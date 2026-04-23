@@ -9,12 +9,12 @@ Creates a blob URL with `URL.createObjectURL` and automatically revokes it on cl
 
 == See also
 
-* link:../../components/FileCard/README.adoc[FileCard] is the component that calls this hook to render file previews.
+* link:../../components/FileCard/[FileCard] is the component that calls this hook to render file previews.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]

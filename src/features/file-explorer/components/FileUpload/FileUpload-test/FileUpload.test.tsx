@@ -111,7 +111,7 @@ describe('FileUpload', () => {
     expect(screen.getByText(/fileUpload.fieldRequired/)).toBeInTheDocument();
   });
 
-  it('shows auto violations list', () => {
+  it('shows auto violations list with description', () => {
     mockValidation = {
       valid: false,
       violations: [
@@ -125,6 +125,21 @@ describe('FileUpload', () => {
     expect(screen.getByText('fileUpload.missingRequired')).toBeInTheDocument();
     expect(screen.getByText('Encoding')).toBeInTheDocument();
     expect(screen.getByText(/Required encoding/)).toBeInTheDocument();
+  });
+
+  it('shows auto violations list without description detail', () => {
+    mockValidation = {
+      valid: false,
+      violations: [
+        { localName: 'encoding', label: 'Encoding', path: 'encoding', description: '' },
+      ],
+      shape: null,
+    };
+    render(<FileUpload {...baseProps} />);
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'f.txt', { type: 'text/plain' })] } });
+    expect(screen.getByText('fileUpload.missingRequired')).toBeInTheDocument();
+    expect(screen.getByText('Encoding')).toBeInTheDocument();
   });
 
   it('disables submit when validation is invalid', () => {

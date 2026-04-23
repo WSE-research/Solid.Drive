@@ -10,10 +10,10 @@ Used internally by `useDriveInitialization`, which syncs the initial storage roo
 
 == See also
 
-* link:../useDriveInitialization/README.adoc[useDriveInitialization] composes this hook with `usePodDiscovery`; prefer it over calling `useNavigation` directly in most cases.
-* link:../../components/FileExplorer/README.adoc[FileExplorer] is the root component that renders the folder tree and breadcrumb trail driven by this hook.
+* link:../useDriveInitialization/[useDriveInitialization] composes this hook with `usePodDiscovery`; prefer it over calling `useNavigation` directly in most cases.
+* link:../../components/FileExplorer/[FileExplorer] is the root component that renders the folder tree and breadcrumb trail driven by this hook.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/hooks]
+link:../[file-explorer/hooks]

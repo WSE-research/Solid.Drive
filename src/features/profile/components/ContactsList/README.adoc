@@ -10,16 +10,16 @@ Clearing rejections:: Removes the rejection from the local map; it is not delete
 
 == See also
 
-* link:../../hooks/useContacts/README.adoc[useContacts] manages the `foaf:knows` list that this component displays and mutates.
-* link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections] provides the rejection notifications shown per contact row.
+* link:../../hooks/useContacts/[useContacts] manages the `foaf:knows` list that this component displays and mutates.
+* link:../../../../shared/hooks/useContactRejections/[useContactRejections] provides the rejection notifications shown per contact row.
 
 == Navigation
 
 .Parent
-link:../README.adoc[profile/components]
+link:../[profile/components]
 
 .Uses
-* link:../ContactRow/README.adoc[ContactRow]
-* link:../../hooks/useContacts/README.adoc[useContacts]
-* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
-* link:../../../../shared/hooks/useContactRejections/README.adoc[useContactRejections]
+* link:../ContactRow/[ContactRow]
+* link:../../hooks/useContacts/[useContacts]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]
+* link:../../../../shared/hooks/useContactRejections/[useContactRejections]

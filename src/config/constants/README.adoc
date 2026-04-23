@@ -24,4 +24,4 @@ When you find yourself writing a literal string or number that has meaning beyon
 == Navigation
 
 .Parent
-link:../README.adoc[config]
+link:../[config]

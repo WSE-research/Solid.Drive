@@ -15,15 +15,15 @@ NOTE: If any step after the binary upload fails, the newly created container is 
 
 == Hooks
 
-link:../../hooks/useFileValidation/README.adoc[useFileValidation]:: Validates the selected file and metadata against SHACL shapes from `tbox.ttl`
-link:../../hooks/useFileUpload/README.adoc[useFileUpload]:: Handles the multi step upload sequence and exposes an `isUploading` flag
+link:../../hooks/useFileValidation/[useFileValidation]:: Validates the selected file and metadata against SHACL shapes from `tbox.ttl`
+link:../../hooks/useFileUpload/[useFileUpload]:: Handles the multi step upload sequence and exposes an `isUploading` flag
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]
 
 .Uses
-* link:../../hooks/useFileUpload/README.adoc[useFileUpload]
-* link:../../hooks/useFileValidation/README.adoc[useFileValidation]
-* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
+* link:../../hooks/useFileUpload/[useFileUpload]
+* link:../../hooks/useFileValidation/[useFileValidation]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]

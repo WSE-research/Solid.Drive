@@ -24,7 +24,7 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
   const [translate] = useTranslation();
   const profile = useSubject(SolidProfileShapeType, contactWebId);
 
-  const { sharedEntries, typeGroups, resolvedCatalogUri, catalogAccessible, isProfileLoading } =
+  const { sharedEntries, typeGroups, resolvedCatalogUri, catalogAccessible } =
     useSharedCatalog(contactWebId, viewerWebId);
   const { fileRejections, handleClearRejection } = useContactRejections(viewerWebId);
 
@@ -39,7 +39,6 @@ const ContactSharedFiles: FunctionComponent<{ contactWebId: string; viewerWebId:
     containerUri: toContainerUri(entry.uri),
   }));
 
-  if (!catalogAccessible && !isProfileLoading) return null;
   if (!catalogAccessible) return null;
 
   return (

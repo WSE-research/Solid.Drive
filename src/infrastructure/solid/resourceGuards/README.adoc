@@ -22,4 +22,4 @@ These guards make it safe to call those methods.
 == Navigation
 
 .Parent
-link:../README.adoc[infrastructure/solid]
+link:../[infrastructure/solid]

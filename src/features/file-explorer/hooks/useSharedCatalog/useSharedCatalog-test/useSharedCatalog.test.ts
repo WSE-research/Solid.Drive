@@ -138,6 +138,7 @@ describe('useSharedCatalog', () => {
   it('falls back to main catalog when per-contact catalogs fail', async () => {
     const mainEntries = [{ uri: 'https://contact.example/files/doc/index.ttl', title: 'Doc', conformsTo: '' }];
 
+    mockHasAccess.mockResolvedValue(true);
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('.shared-viewer')) {
         return Promise.resolve({ ok: false });
@@ -177,6 +178,7 @@ describe('useSharedCatalog', () => {
   it('falls back to main catalog when per-contact catalog fetch throws an error', async () => {
     const mainEntries = [{ uri: 'https://contact.example/files/doc/index.ttl', title: 'Doc', conformsTo: '' }];
 
+    mockHasAccess.mockResolvedValue(true);
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('.shared-viewer')) {
         return Promise.reject(new Error('network error'));
@@ -388,6 +390,7 @@ describe('useSharedCatalog', () => {
     };
     const mainEntries = [{ uri: 'https://contact.example/files/doc/index.ttl', title: 'Doc', conformsTo: '' }];
 
+    mockHasAccess.mockResolvedValue(true);
     mockFetch.mockImplementation((url: string) => {
       // The fallback storageRoot is 'https://contact.example/' (from replacing /profile/card)
       // So catalog would be 'https://contact.example/catalog.ttl'

@@ -24,28 +24,28 @@ Pass `readOnly` to hide mutation controls (used by `SharedWithMeSection` for fil
 |===
 | Hook | Purpose
 
-| link:../../hooks/useFileSharing/README.adoc[useFileSharing] | Checks whether the file container has an ACL granting access to others
-| link:../../hooks/useFilePreview/README.adoc[useFilePreview] | Resolves a blob URL for in-browser preview of the binary
+| link:../../hooks/useFileSharing/[useFileSharing] | Checks whether the file container has an ACL granting access to others
+| link:../../hooks/useFilePreview/[useFilePreview] | Resolves a blob URL for in-browser preview of the binary
 |===
 
 == See also
 
-* link:../SharePanel/README.adoc[SharePanel] is the panel this component opens when the user clicks the Share action.
-* link:../FileExplorer/README.adoc[FileExplorer] is the parent component that renders a `FileCard` for each file in the current container.
+* link:../SharePanel/[SharePanel] is the panel this component opens when the user clicks the Share action.
+* link:../FileExplorer/[FileExplorer] is the parent component that renders a `FileCard` for each file in the current container.
 
 == Navigation
 
 .Parent
-link:../README.adoc[file-explorer/components]
+link:../[file-explorer/components]
 
 .Uses
-* link:../../../../config/README.adoc[config]
-* link:../SharePanel/README.adoc[SharePanel]
-* link:../../hooks/useFilePreview/README.adoc[useFilePreview]
-* link:../../hooks/useFileSharing/README.adoc[useFileSharing]
-* link:../../../../infrastructure/solid/catalog/README.adoc[catalog]
-* link:../../../../infrastructure/solid/resourceGuards/README.adoc[resourceGuards]
-* link:../../../../infrastructure/validation/fileTypeRegistry/README.adoc[fileTypeRegistry]
-* link:../../../../shared/contexts/NotificationContext/README.adoc[NotificationContext]
-* link:../../../../shared/utils/README.adoc[utils]
-* link:../../../../shared/utils/formatBytes/README.adoc[formatBytes]
+* link:../../../../config/[config]
+* link:../SharePanel/[SharePanel]
+* link:../../hooks/useFilePreview/[useFilePreview]
+* link:../../hooks/useFileSharing/[useFileSharing]
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]
+* link:../../../../shared/utils/[utils]
+* link:../../../../shared/utils/formatBytes/[formatBytes]

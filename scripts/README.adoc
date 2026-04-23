@@ -26,10 +26,10 @@ node scripts/fix-ldo-types.mjs
 
 == See also
 
-* link:../public/README.adoc[public] — `tbox.ttl` is written here by `extract-tbox.mjs`
-* link:../src/.ldo/README.adoc[src/.ldo] — patched by `fix-ldo-types.mjs`
+* link:../public/[public] — `tbox.ttl` is written here by `extract-tbox.mjs`
+* link:../src/.ldo/[src/.ldo] — patched by `fix-ldo-types.mjs`
 
 == Navigation
 
 .Parent
-link:../README.adoc[root]
+link:../[root]
