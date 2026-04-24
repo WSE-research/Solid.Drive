@@ -1,0 +1,29 @@
+= SearchInput
+
+Controlled search box rendered above the file listing in the file explorer.
+
+== Behaviour
+
+. The input reflects the `value` prop.
+. Typing calls `onChange` with the new string.
+. A clear button appears only when `value` is non-empty; clicking it calls `onChange("")`.
+
+== Props
+
+[cols="1,1,3", options="header"]
+|===
+| Prop | Type | Description
+
+| `value`    | `string`                     | Current query (controlled)
+| `onChange` | `(query: string) => void`    | Called on every keystroke and when the clear button is clicked
+|===
+
+== See also
+
+* link:../../hooks/useFileSearch/[useFileSearch] consumes the query produced here.
+* link:../SearchResults/[SearchResults] renders the matching entries.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/components]

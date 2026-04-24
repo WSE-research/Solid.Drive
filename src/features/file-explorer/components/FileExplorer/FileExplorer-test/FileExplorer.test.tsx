@@ -49,15 +49,20 @@ const mockResolveCatalogUri = vi.fn(() => 'https://pod.example/my-solid-app/cata
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
   resolveCatalogUri: () => mockResolveCatalogUri(),
-  parseCatalog: vi.fn(() => []),
-}));
-
-vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
-  toContainerUri: vi.fn((uri: string) => uri),
 }));
 
 vi.mock('@/features/file-explorer/services/fileFilter', () => ({
   isVisibleLeaf: () => true,
+}));
+
+vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
+  useCatalog: vi.fn(),
+}));
+
+vi.mock('@/features/file-explorer/components/SearchResults', () => ({
+  SearchResults: ({ query }: { query: string }) => (
+    <div data-testid="search-results" data-query={query} />
+  ),
 }));
 
 vi.mock('@/shared/contexts/NotificationContext', () => ({
@@ -106,6 +111,28 @@ vi.mock('@/features/file-explorer/components/NewFolderInput', () => ({
 }));
 
 import { useResource, useSubject } from '@ldo/solid-react';
+import { useCatalog } from '@/features/file-explorer/hooks/useCatalog';
+
+const mockedUseCatalog = vi.mocked(useCatalog);
+
+const defaultCatalogReturn = {
+  entries: [
+    {
+      uri: 'https://pod.example/annual-report/index.ttl',
+      title: 'Annual Report',
+      mediaType: 'application/pdf',
+      conformsTo: '',
+      description: '',
+      modified: '',
+      publisher: '',
+      byteSize: 0,
+      accessURL: '',
+    },
+  ],
+  containerUris: new Set<string>(),
+  loading: false,
+  error: null,
+} as ReturnType<typeof useCatalog>;
 
 // Helper to create a mock container resource
 const makeContainer = (childList: unknown[] = []) => ({
@@ -129,6 +156,7 @@ describe('FileExplorer', () => {
     mockUseDriveInit.breadcrumbs = [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }];
     vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
     vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
+    mockedUseCatalog.mockReturnValue(defaultCatalogReturn);
   });
 
   it('renders login prompt when not logged in', () => {
@@ -396,14 +424,86 @@ describe('FileExplorer', () => {
     expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
   });
 
-  it('populates catalogContainerUris when catalog fetch returns entries', async () => {
-    const { parseCatalog } = await import('@/infrastructure/solid/catalog');
-    vi.mocked(parseCatalog).mockReturnValue([
-      { uri: 'https://pod.example/my-solid-app/file/index.ttl', title: '', conformsTo: '', description: '', modified: '', publisher: '', mediaType: '', byteSize: 0, accessURL: '' },
-    ]);
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('turtle content') });
+  it('passes containerUris from useCatalog through to DriveFileList', () => {
+    const reportContainerUri = 'https://pod.example/report/';
+    mockedUseCatalog.mockReturnValue({
+      ...defaultCatalogReturn,
+      containerUris: new Set([reportContainerUri]),
+    });
     render(<FileExplorer />);
-    await act(async () => {});
-    expect(capturedDriveFileListProps.catalogContainerUris).toBeDefined();
+    expect(capturedDriveFileListProps.catalogContainerUris).toEqual(
+      new Set([reportContainerUri]),
+    );
+  });
+});
+
+describe('FileExplorer search toggle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSession.isLoggedIn = true;
+    mockSession.webId = 'https://pod.example/profile/card#me';
+    mockFetch.mockResolvedValue({ ok: false });
+    mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
+    mockUseDriveInit.noStorageDetected = false;
+    mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
+    mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
+    mockUseDriveInit.breadcrumbs = [
+      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
+    ];
+    vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
+    vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
+    mockedUseCatalog.mockReturnValue(defaultCatalogReturn);
+  });
+
+  it('swaps the folder UI for SearchResults once the debounce elapses', () => {
+    vi.useFakeTimers();
+    try {
+      render(<FileExplorer />);
+
+      expect(screen.getByTestId('drive-file-list')).toBeInTheDocument();
+      expect(screen.getByTestId('shared-section')).toBeInTheDocument();
+      expect(screen.queryByTestId('search-results')).not.toBeInTheDocument();
+
+      const searchBox = screen.getByLabelText('fileExplorer.searchPlaceholder');
+      fireEvent.change(searchBox, { target: { value: 'annual' } });
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      const searchResultsElement = screen.getByTestId('search-results');
+      expect(searchResultsElement).toBeInTheDocument();
+      expect(searchResultsElement.getAttribute('data-query')).toBe('annual');
+
+      expect(screen.queryByTestId('drive-file-list')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('shared-section')).not.toBeInTheDocument();
+      expect(screen.queryByText('fileExplorer.yourFiles')).not.toBeInTheDocument();
+      expect(screen.queryByText('My Drive')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('restores the folder view when the user clears the query', () => {
+    vi.useFakeTimers();
+    try {
+      render(<FileExplorer />);
+
+      const searchBox = screen.getByLabelText('fileExplorer.searchPlaceholder');
+      fireEvent.change(searchBox, { target: { value: 'annual' } });
+      act(() => { vi.advanceTimersByTime(200); });
+
+      expect(screen.getByTestId('search-results')).toBeInTheDocument();
+
+      fireEvent.change(searchBox, { target: { value: '' } });
+      act(() => { vi.advanceTimersByTime(200); });
+
+      expect(screen.queryByTestId('search-results')).not.toBeInTheDocument();
+      expect(screen.getByTestId('drive-file-list')).toBeInTheDocument();
+      expect(screen.getByTestId('shared-section')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

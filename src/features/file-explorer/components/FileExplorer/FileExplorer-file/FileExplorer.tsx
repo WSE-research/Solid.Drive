@@ -10,15 +10,18 @@ import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "@/infrastructure/solid/resourceGuards";
-import { resolveCatalogUri, parseCatalog } from "@/infrastructure/solid/catalog";
-import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
+import { resolveCatalogUri } from "@/infrastructure/solid/catalog";
 import { SharedWithMeSection } from "@/features/file-explorer/components/SharedWithMeSection";
 import { FileUpload } from "@/features/file-explorer/components/FileUpload";
 import { isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
+import { useCatalog } from "@/features/file-explorer/hooks/useCatalog";
+import { useFileSearch } from "@/features/file-explorer/hooks/useFileSearch";
 import { NewFolderInput } from "@/features/file-explorer/components/NewFolderInput";
+import { SearchInput } from "@/features/file-explorer/components/SearchInput";
+import { SearchResults } from "@/features/file-explorer/components/SearchResults";
 import { DriveFileList } from "./DriveFileList";
 import type { SolidLeaf } from "@ldo/connected-solid";
 
@@ -32,7 +35,9 @@ interface FileExplorerProps {
 /**
  * Main file explorer component.
  * Handles session state, navigation, data loading, folder browsing,
- * uploads, and file display. Shows shared files from contacts.
+ * uploads, and file display. Provides pod-wide search that replaces the
+ * folder listing with a flat results view while a query is active.
+ * Shows shared files from contacts.
  *
  * @public
  */
@@ -46,7 +51,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [catalogContainerUris, setCatalogContainerUris] = useState<Set<string>>(new Set());
 
   const profile = useSubject(SolidProfileShapeType, session.webId);
 
@@ -63,6 +67,10 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   } = useDriveInitialization(storageRetryDelayMs);
 
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
+  const { entries: catalogEntries, containerUris: catalogContainerUris } = useCatalog(catalogUri);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { debouncedQuery, results: searchResults } = useFileSearch(catalogEntries, searchQuery);
+  const isSearching = debouncedQuery.length > 0;
 
   const currentContainer = useResource(currentUri);
 
@@ -136,23 +144,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   }, [showAddMenu]);
 
   useEffect(() => {
-    if (!catalogUri) {
-      setCatalogContainerUris(new Set());
-      return;
-    }
-    let cancelled = false;
-    void solidFetch(catalogUri)
-      .then((res: Response) => (res.ok ? res.text() : ""))
-      .then((text: string) => {
-        if (cancelled || !text) return;
-        const entries = parseCatalog(text, catalogUri);
-        setCatalogContainerUris(new Set(entries.map((e) => toContainerUri(e.uri))));
-      })
-      .catch(() => { if (!cancelled) setCatalogContainerUris(new Set()); });
-    return () => { cancelled = true; };
-  }, [catalogUri, solidFetch]);
-
-  useEffect(() => {
     setShowNewFolder(false);
     setShowUpload(false);
     setShowAddMenu(false);
@@ -195,89 +186,100 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   return (
     <main>
-      {showUpload && isSolidContainer(currentContainer) && catalogUri && (
-        <FileUpload
-          mainContainer={currentContainer}
-          catalogUri={catalogUri}
-          profileHasCatalog={!!profile?.catalog?.["@id"]}
-          onUploadSuccess={handleUploadDone}
+      <SearchInput value={searchQuery} onChange={setSearchQuery} />
+      {isSearching ? (
+        <SearchResults
+          query={debouncedQuery}
+          results={searchResults}
+          catalogUri={catalogUri ?? ""}
         />
-      )}
+      ) : (
+        <>
+          {showUpload && isSolidContainer(currentContainer) && catalogUri && (
+            <FileUpload
+              mainContainer={currentContainer}
+              catalogUri={catalogUri}
+              profileHasCatalog={!!profile?.catalog?.["@id"]}
+              onUploadSuccess={handleUploadDone}
+            />
+          )}
 
-      {breadcrumbs.length > 1 && (
-        <nav className="breadcrumb">
-          {breadcrumbs.map((crumb, index) => (
-            <Fragment key={crumb.uri}>
-              {index > 0 && <span className="breadcrumb__sep">/</span>}
-              <button
-                className={`breadcrumb__item${index === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
-                onClick={() => handleBreadcrumbClick(index, crumb.uri)}
-                disabled={index === breadcrumbs.length - 1}
-              >
-                {crumb.label}
+          {breadcrumbs.length > 1 && (
+            <nav className="breadcrumb">
+              {breadcrumbs.map((crumb, index) => (
+                <Fragment key={crumb.uri}>
+                  {index > 0 && <span className="breadcrumb__sep">/</span>}
+                  <button
+                    className={`breadcrumb__item${index === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
+                    onClick={() => handleBreadcrumbClick(index, crumb.uri)}
+                    disabled={index === breadcrumbs.length - 1}
+                  >
+                    {crumb.label}
+                  </button>
+                </Fragment>
+              ))}
+            </nav>
+          )}
+
+          <files-section-header>
+            <p className="files-section-label">
+              {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
+            </p>
+            <div className="files-section-actions">
+              <button className="btn btn--ghost btn--small" onClick={handleReload} disabled={isReloading}>
+                {isReloading ? (
+                  <>
+                    <div className="spinner spinner--small" />
+                    {translate("fileExplorer.reloading")}
+                  </>
+                ) : (
+                  <>
+                    <span className="icon--refresh" />
+                    {translate("fileExplorer.refresh")}
+                  </>
+                )}
               </button>
-            </Fragment>
-          ))}
-        </nav>
-      )}
-
-      <files-section-header>
-        <p className="files-section-label">
-          {isInAppFolder ? translate("fileExplorer.yourFiles") : translate("fileExplorer.podContents")}
-        </p>
-        <div className="files-section-actions">
-          <button className="btn btn--ghost btn--small" onClick={handleReload} disabled={isReloading}>
-            {isReloading ? (
-              <>
-                <div className="spinner spinner--small" />
-                {translate("fileExplorer.reloading")}
-              </>
-            ) : (
-              <>
-                <span className="icon--refresh" />
-                {translate("fileExplorer.refresh")}
-              </>
-            )}
-          </button>
-          <add-menu>
-            <button
-              type="button"
-              className="btn btn--ghost btn--small"
-              onClick={handleToggleAddMenu}
-              aria-haspopup="menu"
-              aria-expanded={showAddMenu}
-            >
-              {translate("fileExplorer.add")} ▾
-            </button>
-            {showAddMenu && (
-              <add-menu-dropdown>
-                <button type="button" className="add-menu__item" onClick={handleSelectNewFolder}>
-                  {translate("fileExplorer.newFolder")}
+              <add-menu>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={handleToggleAddMenu}
+                  aria-haspopup="menu"
+                  aria-expanded={showAddMenu}
+                >
+                  {translate("fileExplorer.add")} ▾
                 </button>
-                <button type="button" className="add-menu__item" onClick={handleSelectUploadFiles}>
-                  {translate("fileExplorer.uploadFiles")}
-                </button>
-              </add-menu-dropdown>
-            )}
-          </add-menu>
-        </div>
-      </files-section-header>
+                {showAddMenu && (
+                  <add-menu-dropdown>
+                    <button type="button" className="add-menu__item" onClick={handleSelectNewFolder}>
+                      {translate("fileExplorer.newFolder")}
+                    </button>
+                    <button type="button" className="add-menu__item" onClick={handleSelectUploadFiles}>
+                      {translate("fileExplorer.uploadFiles")}
+                    </button>
+                  </add-menu-dropdown>
+                )}
+              </add-menu>
+            </div>
+          </files-section-header>
 
-      {showNewFolder && isSolidContainer(currentContainer) && (
-        <NewFolderInput parentContainer={currentContainer} onDone={handleNewFolderDone} />
+          {showNewFolder && isSolidContainer(currentContainer) && (
+            <NewFolderInput parentContainer={currentContainer} onDone={handleNewFolderDone} />
+          )}
+
+          <DriveFileList
+            folderEntries={folderEntries}
+            leafEntries={leafEntries}
+            isInAppFolder={isInAppFolder}
+            catalogUri={catalogUri ?? ""}
+            catalogContainerUris={catalogContainerUris}
+            onNavigate={handleNavigate}
+            onDownload={handleDownload}
+          />
+
+          <SharedWithMeSection contacts={contacts} ownerWebId={session.webId ?? ""} />
+        </>
       )}
-
-      <DriveFileList
-        folderEntries={folderEntries}
-        leafEntries={leafEntries}
-        isInAppFolder={isInAppFolder}
-        catalogUri={catalogUri ?? ""}
-        catalogContainerUris={catalogContainerUris}
-        onNavigate={handleNavigate}
-        onDownload={handleDownload}
-      />
-
-      <SharedWithMeSection contacts={contacts} ownerWebId={session.webId ?? ""} />
     </main>
   );
 };
