@@ -24,6 +24,8 @@ type DriveFileListProps = {
   catalogContainerUris: Set<string>;
   onNavigate: (uri: string) => void;
   onDownload: (entry: SolidLeaf, fileName: string) => void;
+  onFolderDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
+  onFolderDragOverChange?: (isOver: boolean) => void;
 };
 
 type FolderEntryRouterProps = {
@@ -31,6 +33,8 @@ type FolderEntryRouterProps = {
   catalogUri: string;
   catalogContainerUris: Set<string>;
   onNavigate: (uri: string) => void;
+  onFolderDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
+  onFolderDragOverChange?: (isOver: boolean) => void;
 };
 
 /**
@@ -45,6 +49,8 @@ const FolderEntryRouter: FunctionComponent<FolderEntryRouterProps> = ({
   catalogUri,
   catalogContainerUris,
   onNavigate,
+  onFolderDrop,
+  onFolderDragOverChange,
 }) => {
   const resource = useResource(entry.uri);
 
@@ -61,7 +67,34 @@ const FolderEntryRouter: FunctionComponent<FolderEntryRouterProps> = ({
     }
   }
 
-  return <FolderEntry uri={entry.uri} onNavigate={onNavigate} />;
+  return (
+    <FolderEntry
+      uri={entry.uri}
+      onNavigate={onNavigate}
+      onDrop={onFolderDrop}
+      onDragOverChange={onFolderDragOverChange}
+    />
+  );
+};
+
+type LeafFileEntryProps = {
+  entry: SolidLeaf;
+  onDownload: (entry: SolidLeaf, fileName: string) => void;
+};
+
+const LeafFileEntry: FunctionComponent<LeafFileEntryProps> = ({ entry, onDownload }) => {
+  const [translate] = useTranslation();
+  const fileName = decodeURIComponent(entry.uri.split("/").pop()!);
+  const downloadLabel = translate("fileExplorer.download");
+  const handleDownloadClick = () => onDownload(entry, fileName);
+  return (
+    <file-entry>
+      <span className="file-entry__name">{fileName}</span>
+      <button className="btn btn--ghost btn--small" onClick={handleDownloadClick}>
+        {downloadLabel}
+      </button>
+    </file-entry>
+  );
 };
 
 /**
@@ -79,16 +112,21 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
   catalogContainerUris,
   onNavigate,
   onDownload,
+  onFolderDrop,
+  onFolderDragOverChange,
 }) => {
   const [translate] = useTranslation();
 
   const isEmpty = folderEntries.length === 0 && leafEntries.length === 0;
 
   if (isEmpty) {
+    const emptyStateMessage = isInAppFolder
+      ? translate("fileExplorer.noFilesYet")
+      : translate("fileExplorer.emptyFolder");
     return (
       <empty-state>
         <empty-state-icon>◌</empty-state-icon>
-        <p>{isInAppFolder ? translate("fileExplorer.noFilesYet") : translate("fileExplorer.emptyFolder")}</p>
+        <p>{emptyStateMessage}</p>
       </empty-state>
     );
   }
@@ -102,19 +140,13 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
           catalogUri={catalogUri}
           catalogContainerUris={catalogContainerUris}
           onNavigate={onNavigate}
+          onFolderDrop={onFolderDrop}
+          onFolderDragOverChange={onFolderDragOverChange}
         />
       ))}
-      {leafEntries.map((entry) => {
-        const fileName = decodeURIComponent(entry.uri.split("/").pop()!);
-        return (
-          <file-entry key={entry.uri}>
-            <span className="file-entry__name">{fileName}</span>
-            <button className="btn btn--ghost btn--small" onClick={() => onDownload(entry, fileName)}>
-              {translate("fileExplorer.download")}
-            </button>
-          </file-entry>
-        );
-      })}
+      {leafEntries.map((entry) => (
+        <LeafFileEntry key={entry.uri} entry={entry} onDownload={onDownload} />
+      ))}
     </>
   );
 };

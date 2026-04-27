@@ -1,0 +1,45 @@
+= useUploadQueue
+
+Owns the bulk-upload tray queue. Each enqueued file flows through `validateFile` → `useFileUpload`'s `upload`, sequentially.
+
+== Behaviour
+
+. `enqueueInstant(files, destinationUri, destinationLabel)` adds rows in `queued`.
+. The internal worker validates each row first; failures land in `error` without uploading.
+. Successful validation flips the row to `uploading`, then to `success` or `error`.
+. `retry` flips `error` back to `queued`. `dismiss` removes a row entirely.
+. `hasActive` is true while any row is `queued` or `uploading`.
+
+== Parameters
+
+[cols="1,1,3", options="header"]
+|===
+| Parameter           | Type      | Description
+
+| `catalogUri`        | `string`  | DCAT catalog URI passed to each upload
+| `profileHasCatalog` | `boolean` | Whether the profile already links the catalog
+| `catalogEntries`    | `CatalogEntry[]` | Current catalog entries; used to reject duplicate filenames before any upload runs.
+|===
+
+== Returns
+
+[cols="1,1,3", options="header"]
+|===
+| Key             | Type                                                                  | Description
+
+| `items`         | `UploadQueueItem[]`                                                   | Current tray rows
+| `enqueueInstant`| `(files, destinationUri, destinationLabel) => void`                   | Add rows for bulk drop
+| `dismiss`       | `(id: string) => void`                                                | Remove a row
+| `retry`         | `(id: string) => void`                                                | Re-queue an errored row
+| `hasActive`     | `boolean`                                                             | True while any row is queued or uploading
+|===
+
+== See also
+
+* link:../../../../infrastructure/validation/validateFile/[validateFile]
+* link:../useFileUpload/[useFileUpload]
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]

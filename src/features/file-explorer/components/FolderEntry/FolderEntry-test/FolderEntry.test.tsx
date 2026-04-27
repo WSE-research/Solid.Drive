@@ -43,4 +43,44 @@ describe('FolderEntry', () => {
     render(<FolderEntry uri="" onNavigate={vi.fn()} />);
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
+
+  it('does not attach DnD listeners when onDrop is not provided', () => {
+    const { container } = render(<FolderEntry uri="https://pod.example/x/" onNavigate={vi.fn()} />);
+    expect(container.querySelector('.folder-entry--drop-target')).toBeNull();
+  });
+
+  it('calls onDrop with the dropped files, target uri, and the raw DataTransfer', () => {
+    const onDrop = vi.fn();
+    const { container } = render(
+      <FolderEntry uri="https://pod.example/photos/" onNavigate={vi.fn()} onDrop={onDrop} onDragOverChange={vi.fn()} />
+    );
+    const button = container.querySelector('button')!;
+    const file = new File(['x'], 'a.txt', { type: 'text/plain' });
+    const dataTransfer = { files: [file], types: ['Files'] };
+    fireEvent.drop(button, { dataTransfer });
+    expect(onDrop).toHaveBeenCalledWith([file], 'https://pod.example/photos/', expect.any(Object));
+  });
+
+  it('pings onDragOverChange when files enter and leave', () => {
+    const onDragOverChange = vi.fn();
+    const { container } = render(
+      <FolderEntry uri="https://pod.example/photos/" onNavigate={vi.fn()} onDrop={vi.fn()} onDragOverChange={onDragOverChange} />
+    );
+    const button = container.querySelector('button')!;
+    fireEvent.dragEnter(button, { dataTransfer: { types: ['Files'] } });
+    expect(onDragOverChange).toHaveBeenCalledWith(true);
+    fireEvent.dragLeave(button);
+    expect(onDragOverChange).toHaveBeenCalledWith(false);
+  });
+
+  it('applies the drop-target modifier class while a file is over the card', () => {
+    const { container } = render(
+      <FolderEntry uri="https://pod.example/photos/" onNavigate={vi.fn()} onDrop={vi.fn()} onDragOverChange={vi.fn()} />
+    );
+    const button = container.querySelector('button')!;
+    fireEvent.dragEnter(button, { dataTransfer: { types: ['Files'] } });
+    expect(button.classList.contains('folder-entry--drop-target')).toBe(true);
+    fireEvent.dragLeave(button);
+    expect(button.classList.contains('folder-entry--drop-target')).toBe(false);
+  });
 });

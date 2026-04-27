@@ -250,4 +250,16 @@ describe('FileUpload', () => {
     fireEvent.change(input, { target: { files: [file] } });
     expect(screen.getByText(/fileUpload.unknownType/)).toBeInTheDocument();
   });
+
+  it('seeds the file from prefilledFile prop on mount', () => {
+    const prefilled = new File(['x'], 'prefilled.txt', { type: 'text/plain' });
+    render(<FileUpload {...baseProps} prefilledFile={prefilled} />);
+    expect(screen.getByText('prefilled.txt')).toBeInTheDocument();
+  });
+
+  it('does not require user to click the file input when prefilledFile is provided', () => {
+    const prefilled = new File(['x'], 'auto.txt', { type: 'text/plain' });
+    render(<FileUpload {...baseProps} prefilledFile={prefilled} />);
+    expect(screen.getByText('fileUpload.title')).toBeInTheDocument();
+  });
 });

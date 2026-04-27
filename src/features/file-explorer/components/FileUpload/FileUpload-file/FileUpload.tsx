@@ -21,6 +21,7 @@ type FileUploadProps = {
   catalogUri: string;
   profileHasCatalog: boolean;
   onUploadSuccess?: () => void;
+  prefilledFile?: File;
 };
 
 /**
@@ -31,13 +32,13 @@ type FileUploadProps = {
  *
  * @public
  */
-export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog, onUploadSuccess }) => {
+export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, catalogUri, profileHasCatalog, onUploadSuccess, prefilledFile }) => {
   const [translate] = useTranslation();
   const { session } = useSolidAuth();
   const { showError, showSuccess } = useNotifications();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [pendingFile, setPendingFile] = useState<File | undefined>();
+  const [pendingFile, setPendingFile] = useState<File | undefined>(prefilledFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { validation, tboxError } = useFileValidation(pendingFile, title, description, session.webId);
@@ -63,9 +64,20 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
   const violationsWithDetail = nonTitleViolations.map((violation) => ({
     ...violation,
-    detail: violation.description ? ` — ${violation.description}` : "",
+    detail: violation.description ? `. ${violation.description}` : "",
   }));
-  
+
+  const tboxErrorPrefix = translate("fileUpload.tboxError");
+  const chooseFileLabel = translate("fileUpload.chooseFile");
+  const titleFieldLabel = translate("fileUpload.title");
+  const titlePlaceholder = translate("fileUpload.titlePlaceholder");
+  const descriptionPlaceholder = translate("fileUpload.descriptionPlaceholder");
+  const missingRequiredLabel = translate("fileUpload.missingRequired");
+  const hasNonTitleViolations = nonTitleViolations.length > 0;
+  const submitDisabled = isUploading || !canUpload;
+  const validationShapeLabel = validation?.shape?.label ?? "";
+  const hasValidationShape = !!validation?.shape;
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) =>
     setPendingFile(event.target.files?.[0]);
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -114,11 +126,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   return (
     <form className="file-upload" onSubmit={handleSubmit}>
       {tboxError && (
-        <p className="file-upload__validation-error">{translate("fileUpload.tboxError")} {tboxError}</p>
+        <p className="file-upload__validation-error">{tboxErrorPrefix} {tboxError}</p>
       )}
       <file-upload-row>
         <label className="file-upload__label" htmlFor="file-upload-input">
-          {translate("fileUpload.chooseFile")}
+          {chooseFileLabel}
         </label>
         <input
           id="file-upload-input"
@@ -135,7 +147,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         <>
           <div className="file-upload__divider" />
           <label className="file-upload__field-label" htmlFor="file-upload-title">
-            {translate("fileUpload.title")}{" "}
+            {titleFieldLabel}{" "}
             {titleViolationMessage && (
               <span className="file-upload__field-error">{titleViolationMessage}</span>
             )}
@@ -144,23 +156,23 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
             id="file-upload-title"
             className={titleClassName}
             type="text"
-            placeholder={translate("fileUpload.titlePlaceholder")}
+            placeholder={titlePlaceholder}
             value={title}
             onChange={handleTitleChange}
             required
           />
           <textarea
             className="file-upload__body"
-            placeholder={translate("fileUpload.descriptionPlaceholder")}
+            placeholder={descriptionPlaceholder}
             value={description}
             onChange={handleDescriptionChange}
             rows={2}
           />
           <div className="file-upload__divider" />
 
-          {nonTitleViolations.length > 0 && (
+          {hasNonTitleViolations && (
             <file-upload-errors>
-              <p className="file-upload__validation-heading">{translate("fileUpload.missingRequired")}</p>
+              <p className="file-upload__validation-heading">{missingRequiredLabel}</p>
               {violationsWithDetail.map((violation) => (
                 <p key={violation.path} className="file-upload__validation-item">
                   <strong>{violation.label}</strong>
@@ -173,11 +185,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
           <file-upload-footer>
             <span className="file-upload__meta">
               {fileTypeLabel} · {fileSizeKb}
-              {validation?.shape && (
-                <span className="file-upload__type-label"> · {validation.shape.label}</span>
+              {hasValidationShape && (
+                <span className="file-upload__type-label"> · {validationShapeLabel}</span>
               )}
             </span>
-            <button className="btn btn--primary" type="submit" disabled={isUploading || !canUpload}>
+            <button className="btn btn--primary" type="submit" disabled={submitDisabled}>
               {submitButtonLabel}
             </button>
           </file-upload-footer>

@@ -1,0 +1,26 @@
+= UploadTray
+
+Persistent tray rendered in the file-explorer corner while bulk drag-and-drop uploads are in flight or settled.
+
+== Behaviour
+
+. Renders nothing when `items` is empty.
+. Each row shows filename, destination label, a status indicator (spinner / ✓ / × / ellipsis), and per-row actions.
+. `Retry` button appears only on errored rows; `Dismiss` (×) appears on settled rows.
+. `Clear completed` button dismisses every settled row in one click.
+
+== Props
+
+[cols="1,1,3", options="header"]
+|===
+| Prop        | Type                              | Description
+
+| `items`     | `UploadQueueItem[]`               | Tray rows from `useUploadQueue`
+| `onDismiss` | `(id: string) => void`            | Called when × or `Clear completed` is clicked for a row
+| `onRetry`   | `(id: string) => void`            | Called when Retry is clicked
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/components]

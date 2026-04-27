@@ -1,0 +1,23 @@
+= DropZone
+
+Inline drop-zone banner rendered between the search box and the file listing while the user is dragging files over the explorer panel.
+
+== Behaviour
+
+. Renders nothing when `visible` is false.
+. When visible, shows a dashed-bordered pill containing an icon and the destination label interpolated into `fileExplorer.dropZoneLabel`.
+
+== Props
+
+[cols="1,1,3", options="header"]
+|===
+| Prop                | Type      | Description
+
+| `visible`           | `boolean` | Whether the banner should render
+| `destinationLabel`  | `string`  | Display label for the drop target, for example "My Drive" or a folder name
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/components]

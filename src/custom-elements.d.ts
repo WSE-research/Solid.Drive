@@ -90,6 +90,14 @@ declare module "react" {
       "search-input-clear": El;
       // SearchResults
       "search-results": El;
+      // DropZone
+      "drop-zone": El;
+      "drop-zone-icon": El;
+      "drop-zone-label": El;
+      // UploadTray
+      "upload-tray": El;
+      "upload-tray-row": El;
+      "upload-tray-row-actions": El;
     }
   }
 }
