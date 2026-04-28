@@ -115,7 +115,7 @@ export const TypeFolder: FunctionComponent<TypeFolderProps> = ({
   const typeInfo = getFileTypeInfo(classUri);
 
   const { bulkStatus, fileStatuses, handleRequestAll, handleRequestFile, handleRequestAgain } =
-    useFileAccessRequests({ contactWebId, viewerWebId, solidFetch, entries, onClearRejection });
+    useFileAccessRequests({ contactWebId, viewerWebId, solidFetch, entries, classUri, onClearRejection });
 
   const isBulkDisabled = bulkStatus === "sending" || bulkStatus === "sent";
   const bulkButtonLabel =

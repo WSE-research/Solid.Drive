@@ -20,6 +20,7 @@ let hookReturnValue = {
 vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string, params?: Record<string, string>) => {
     if (params?.resource) return `${key}:${params.resource}`;
+    if (params?.type) return `${key}:${params.type}`;
     return key;
   }],
 }));
@@ -61,6 +62,13 @@ vi.mock('@/shared/components/Avatar', () => ({
 vi.mock('@/shared/utils', () => ({
   getInitial: (name: string) => name.charAt(0).toUpperCase(),
   getProfileDisplayName: (contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId,
+}));
+
+vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
+  getFileTypeInfo: (uri: string) => ({
+    label: uri === 'http://schema.org/ImageObject' ? 'Image' : 'Document',
+    description: 'test',
+  }),
 }));
 
 const baseProps = {
@@ -228,6 +236,25 @@ describe('RequestsPanel', () => {
     render(<RequestsPanel {...baseProps} />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.requestsFileAccess:my doc.ttl')).toBeInTheDocument();
+  });
+
+  it('shows description for type request with the category label', () => {
+    hookReturnValue = {
+      ...hookReturnValue,
+      requests: [
+        {
+          messageUri: 'msg-type',
+          requesterWebId: 'https://req.example/card#me',
+          accessTo: '',
+          requestType: 'type',
+          forClass: 'http://schema.org/ImageObject',
+          timestamp: '',
+        },
+      ],
+    };
+    render(<RequestsPanel {...baseProps} />);
+    fireEvent.click(screen.getByText('requestsPanel.heading'));
+    expect(screen.getByText('requestsPanel.requestsTypeAccess:Image')).toBeInTheDocument();
   });
 
   it('shows timestamp when provided', () => {

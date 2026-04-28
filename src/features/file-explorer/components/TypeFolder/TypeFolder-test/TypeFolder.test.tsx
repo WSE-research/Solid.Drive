@@ -7,6 +7,7 @@ import { TypeFolder } from '../TypeFolder-file/TypeFolder';
 const mockFetch = vi.fn();
 const mockDiscoverInboxUri = vi.fn();
 const mockPostFileAccessRequest = vi.fn();
+const mockPostTypeAccessRequest = vi.fn();
 const mockDeleteAccessRequest = vi.fn();
 
 vi.mock('react-i18next', () => ({
@@ -25,12 +26,14 @@ vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
-  toContainerUri: (uri: string) => uri.replace(/index\.ttl$/, ''),
+  toContainerUri: (uri: string) =>
+    uri.endsWith('/') ? uri : uri.slice(0, uri.lastIndexOf('/') + 1),
 }));
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
   discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
   postFileAccessRequest: (...args: unknown[]) => mockPostFileAccessRequest(...args),
+  postTypeAccessRequest: (...args: unknown[]) => mockPostTypeAccessRequest(...args),
   deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
 }));
 
@@ -53,6 +56,7 @@ describe('TypeFolder', () => {
     vi.clearAllMocks();
     mockDiscoverInboxUri.mockResolvedValue('https://contact.example/inbox/');
     mockPostFileAccessRequest.mockResolvedValue(undefined);
+    mockPostTypeAccessRequest.mockResolvedValue(undefined);
     mockDeleteAccessRequest.mockResolvedValue(undefined);
   });
 
@@ -88,13 +92,20 @@ describe('TypeFolder', () => {
     expect(screen.getByText('sharedWithMe.requestAll')).toBeInTheDocument();
   });
 
-  it('request all button sends requests for all entries', async () => {
+  it('request all button sends a single category-level request', async () => {
     render(<TypeFolder {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAll'));
     });
     expect(mockDiscoverInboxUri).toHaveBeenCalledWith('https://contact.example/profile/card#me', mockFetch);
-    expect(mockPostFileAccessRequest).toHaveBeenCalledTimes(2);
+    expect(mockPostTypeAccessRequest).toHaveBeenCalledTimes(1);
+    expect(mockPostTypeAccessRequest).toHaveBeenCalledWith(
+      'https://contact.example/inbox/',
+      'https://viewer.example/profile/card#me',
+      'http://schema.org/ImageObject',
+      mockFetch
+    );
+    expect(mockPostFileAccessRequest).not.toHaveBeenCalled();
   });
 
   it('shows "request sent" after successful bulk request', async () => {

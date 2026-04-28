@@ -7,7 +7,7 @@
 import { useState, useCallback } from "react";
 import type { CatalogEntry } from "@/types";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
-import { discoverInboxUri, postFileAccessRequest, deleteAccessRequest } from "@/infrastructure/inbox/inboxAccess";
+import { discoverInboxUri, postFileAccessRequest, postTypeAccessRequest, deleteAccessRequest } from "@/infrastructure/inbox/inboxAccess";
 import type { AccessRejection } from "@/infrastructure/inbox/inboxAccess";
 
 export type RequestStatus = "idle" | "sending" | "sent" | "error";
@@ -17,6 +17,8 @@ type UseAccessRequestsParams = {
   viewerWebId: string;
   solidFetch: typeof fetch;
   entries: CatalogEntry[];
+  /** Schema.org class URI of the category these entries belong to. */
+  classUri: string;
   onClearRejection: (containerUri: string) => void;
 };
 
@@ -40,6 +42,7 @@ export function useFileAccessRequests({
   viewerWebId,
   solidFetch,
   entries,
+  classUri,
   onClearRejection,
 }: UseAccessRequestsParams): UseAccessRequestsResult {
   const [bulkStatus, setBulkStatus] = useState<RequestStatus>("idle");
@@ -61,18 +64,14 @@ export function useFileAccessRequests({
     setFileStatuses(Object.fromEntries(entries.map((e) => [e.uri, "sending" as RequestStatus])));
     try {
       const inboxUri = await discoverInboxUri(contactWebId, solidFetch);
-      await Promise.all(
-        entries.map((entry) =>
-          postFileAccessRequest(inboxUri, viewerWebId, toContainerUri(entry.uri), solidFetch)
-        )
-      );
+      await postTypeAccessRequest(inboxUri, viewerWebId, classUri, solidFetch);
       setBulkStatus("sent");
       setFileStatuses(Object.fromEntries(entries.map((e) => [e.uri, "sent" as RequestStatus])));
     } catch {
       setBulkStatus("error");
       setFileStatuses({});
     }
-  }, [contactWebId, viewerWebId, entries, solidFetch]);
+  }, [contactWebId, viewerWebId, entries, classUri, solidFetch]);
 
   const handleRequestFile = useCallback(async (entry: CatalogEntry) => {
     await sendRequest(toContainerUri(entry.uri), entry.uri);

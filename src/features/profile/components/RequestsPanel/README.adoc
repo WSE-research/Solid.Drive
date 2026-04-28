@@ -5,8 +5,10 @@ Loads pending requests from the user's LDP inbox on open.
 
 == Features
 
-Approve (catalog):: Creates a per-viewer shared catalog, grants read access to it, the main catalog, and the app container. Deletes the inbox message on success
+Approve (catalog):: Creates a per-viewer shared catalog, grants read access to it. Deletes the inbox message on success
 Approve (file):: Grants the requester read access to the specific file container. Deletes the inbox message on success
+Approve (type):: Reads the catalog, walks every entry whose `conformsTo` matches the requested class, and grants read on each container. Tolerates per-entry failures; only fails when every matching container is unreachable
+Discovery access:: Every approve path also calls `ensureDiscoveryAccess` so the requester gains read on the main catalog and list-only on the app container — letting them browse other available items
 Deny:: Sends a rejection notification to the requester's inbox, then deletes the message
 Badge:: Shows the count of pending requests on the toggle button
 Requester profile:: Each row shows the requester's avatar and display name via `RequesterRow`

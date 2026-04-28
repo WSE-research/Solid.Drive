@@ -22,7 +22,8 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
-  toContainerUri: (uri: string) => uri.replace(/index\.ttl$/, ''),
+  toContainerUri: (uri: string) =>
+    uri.endsWith('/') ? uri : uri.slice(0, uri.lastIndexOf('/') + 1),
 }));
 
 vi.mock('@/features/file-explorer/hooks/useSharedCatalog', () => ({

@@ -96,6 +96,7 @@
     "noRequests": "Keine offenen Anfragen.",
     "requestsAccess": "möchte Zugriff auf Ihren Katalog",
     "requestsFileAccess": "möchte Zugriff auf {{resource}}",
+    "requestsTypeAccess": "möchte Zugriff auf alle {{type}}-Dateien",
     "approve": "Genehmigen",
     "deny": "Ablehnen",
     "refresh": "Aktualisieren"

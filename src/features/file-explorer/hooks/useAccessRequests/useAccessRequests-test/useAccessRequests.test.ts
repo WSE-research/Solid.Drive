@@ -5,16 +5,19 @@ import type { AccessRejection } from '@/infrastructure/inbox/inboxAccess';
 
 const mockDiscoverInboxUri = vi.fn();
 const mockPostFileAccessRequest = vi.fn();
+const mockPostTypeAccessRequest = vi.fn();
 const mockDeleteAccessRequest = vi.fn();
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
   discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
   postFileAccessRequest: (...args: unknown[]) => mockPostFileAccessRequest(...args),
+  postTypeAccessRequest: (...args: unknown[]) => mockPostTypeAccessRequest(...args),
   deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
-  toContainerUri: (uri: string) => uri.replace(/index\.ttl$/, ''),
+  toContainerUri: (uri: string) =>
+    uri.endsWith('/') ? uri : uri.slice(0, uri.lastIndexOf('/') + 1),
 }));
 
 import { useFileAccessRequests } from '../useAccessRequests-file/useAccessRequests';
@@ -46,11 +49,14 @@ const entryB: CatalogEntry = {
   accessURL: '',
 };
 
+const classUri = 'http://schema.org/ImageObject';
+
 const baseParams = {
   contactWebId: 'https://contact.example/profile/card#me',
   viewerWebId: 'https://viewer.example/profile/card#me',
   solidFetch,
   entries: [entryA, entryB],
+  classUri,
   onClearRejection,
 };
 
@@ -59,6 +65,7 @@ describe('useFileAccessRequests', () => {
     vi.clearAllMocks();
     mockDiscoverInboxUri.mockResolvedValue('https://contact.example/inbox/');
     mockPostFileAccessRequest.mockResolvedValue(undefined);
+    mockPostTypeAccessRequest.mockResolvedValue(undefined);
     mockDeleteAccessRequest.mockResolvedValue(undefined);
   });
 
@@ -82,16 +89,24 @@ describe('useFileAccessRequests', () => {
     await act(async () => { resolveInbox('https://contact.example/inbox/'); });
   });
 
-  it('sets bulkStatus to "sent" after all requests succeed', async () => {
+  it('sets bulkStatus to "sent" after the category request succeeds', async () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });
 
     expect(result.current.bulkStatus).toBe('sent');
-    expect(mockPostFileAccessRequest).toHaveBeenCalledTimes(2);
   });
 
-  it('sends each entry to the inbox when requesting all', async () => {
+  it('sends exactly one category-level request regardless of entry count', async () => {
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
+
+    await act(async () => { await result.current.handleRequestAll(); });
+
+    expect(mockPostTypeAccessRequest).toHaveBeenCalledTimes(1);
+    expect(mockPostFileAccessRequest).not.toHaveBeenCalled();
+  });
+
+  it('passes the classUri to postTypeAccessRequest', async () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });
@@ -100,18 +115,21 @@ describe('useFileAccessRequests', () => {
       'https://contact.example/profile/card#me',
       solidFetch
     );
-    expect(mockPostFileAccessRequest).toHaveBeenCalledWith(
+    expect(mockPostTypeAccessRequest).toHaveBeenCalledWith(
       'https://contact.example/inbox/',
       'https://viewer.example/profile/card#me',
-      'https://pod.example/app/doc1/',
+      classUri,
       solidFetch
     );
-    expect(mockPostFileAccessRequest).toHaveBeenCalledWith(
-      'https://contact.example/inbox/',
-      'https://viewer.example/profile/card#me',
-      'https://pod.example/app/doc2/',
-      solidFetch
-    );
+  });
+
+  it('marks every entry as "sent" after a successful bulk request', async () => {
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
+
+    await act(async () => { await result.current.handleRequestAll(); });
+
+    expect(result.current.fileStatuses[entryA.uri]).toBe('sent');
+    expect(result.current.fileStatuses[entryB.uri]).toBe('sent');
   });
 
   it('sets bulkStatus to "error" when inbox discovery fails', async () => {
@@ -123,8 +141,8 @@ describe('useFileAccessRequests', () => {
     expect(result.current.bulkStatus).toBe('error');
   });
 
-  it('sets bulkStatus to "error" when posting a request fails', async () => {
-    mockPostFileAccessRequest.mockRejectedValue(new Error('post failed'));
+  it('sets bulkStatus to "error" when posting the category request fails', async () => {
+    mockPostTypeAccessRequest.mockRejectedValue(new Error('post failed'));
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
 
     await act(async () => { await result.current.handleRequestAll(); });

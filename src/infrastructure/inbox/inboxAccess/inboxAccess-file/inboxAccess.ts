@@ -71,6 +71,21 @@ export async function postFileAccessRequest(
 }
 
 /**
+ * Sends a category-level access request to a contact's inbox, asking for
+ * access to every file conforming to the given schema.org class.
+ *
+ * @public
+ */
+export async function postTypeAccessRequest(
+  inboxUri: string,
+  requesterWebId: string,
+  classUri: string,
+  fetch: FetchFn
+): Promise<void> {
+  await postRequest(inboxUri, buildAccessRequestMessage("type", requesterWebId, classUri), fetch);
+}
+
+/**
  * Sends a rejection notice to a requester's inbox.
  *
  * @public

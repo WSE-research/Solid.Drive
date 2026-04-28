@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSolidAuth, useResource, useSubject } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { parseCatalog } from "@/infrastructure/solid/catalog";
-import { getAppContainerUri, getCandidateSharedCatalogUris, toContainerUri, hasAccess } from "@/infrastructure/solid/sharedCatalog";
+import { getAppContainerUri, getCandidateSharedCatalogUris, hasAccess } from "@/infrastructure/solid/sharedCatalog";
 import { DEFAULT_FILE_TYPE_URI } from "@/config";
 import type { CatalogEntry } from "@/types";
 
@@ -85,8 +85,28 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
       if (cancelled) return;
 
       if (perContactAccessible) {
+        const perViewerChecks = await Promise.all(
+          foundShared.map(async (entry) => ({
+            entry,
+            accessible: await hasAccess(entry.uri, solidFetch),
+          }))
+        );
+        if (cancelled) return;
+
+        const accessibleShared: CatalogEntry[] = [];
+        const groups = new Map<string, CatalogEntry[]>();
+        const addBrowsable = (entry: CatalogEntry) => {
+          const key = entry.conformsTo || DEFAULT_FILE_TYPE_URI;
+          groups.set(key, [...(groups.get(key) ?? []), entry]);
+        };
+
+        for (const { entry, accessible } of perViewerChecks) {
+          if (accessible) accessibleShared.push(entry);
+          else addBrowsable(entry);
+        }
+
         setCatalogAccessible(true);
-        setSharedEntries(foundShared);
+        setSharedEntries(accessibleShared);
         setResolvedCatalogUri(foundCatalogUri);
 
         if (mainCatalogUri) {
@@ -101,36 +121,29 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
               const accessChecks = await Promise.all(
                 notYetShared.map(async (entry) => ({
                   entry,
-                  accessible: await hasAccess(toContainerUri(entry.uri), solidFetch),
+                  accessible: await hasAccess(entry.uri, solidFetch),
                 }))
               );
 
               if (cancelled) return;
 
               const recoveredShared: CatalogEntry[] = [];
-              const browsable: CatalogEntry[] = [];
 
               for (const { entry, accessible } of accessChecks) {
                 if (accessible) recoveredShared.push(entry);
-                else browsable.push(entry);
+                else addBrowsable(entry);
               }
 
               if (recoveredShared.length > 0) {
                 setSharedEntries((prev) => [...prev, ...recoveredShared]);
               }
-
-              const groups = new Map<string, CatalogEntry[]>();
-              for (const entry of browsable) {
-                const key = entry.conformsTo || DEFAULT_FILE_TYPE_URI;
-                const existing = groups.get(key) ?? [];
-                groups.set(key, [...existing, entry]);
-              }
-              setTypeGroups(groups);
             }
           } catch {
             // silently ignore
           }
         }
+
+        setTypeGroups(groups);
         return;
       }
 
@@ -145,7 +158,7 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
               const accessChecks = await Promise.all(
                 parsed.map(async (entry) => ({
                   entry,
-                  accessible: await hasAccess(toContainerUri(entry.uri), solidFetch),
+                  accessible: await hasAccess(entry.uri, solidFetch),
                 }))
               );
               if (cancelled) return;

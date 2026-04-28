@@ -23,9 +23,11 @@ const LDP_INBOX = namedNode(`${RDF_NAMESPACES.LDP}inbox`);
 const LDP_CONTAINS = namedNode(`${RDF_NAMESPACES.LDP}contains`);
 const CATALOG_ACCESS_REQUEST_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}CatalogAccessRequest`);
 const FILE_ACCESS_REQUEST_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}FileAccessRequest`);
+const TYPE_ACCESS_REQUEST_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}TypeAccessRequest`);
 const ACCESS_REJECTION_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}AccessRejected`);
 const ACL_AGENT = namedNode(`${RDF_NAMESPACES.ACL}agent`);
 const ACL_ACCESS_TO = namedNode(`${RDF_NAMESPACES.ACL}accessTo`);
+const SOLID_ACCESS_FOR_CLASS = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}forClass`);
 
 const WRITER_PREFIXES = {
   acl: RDF_NAMESPACES.ACL,
@@ -35,11 +37,12 @@ const WRITER_PREFIXES = {
 };
 
 /**
- * Type of access request: catalog-level or file-level.
+ * Type of access request: catalog-level, file-level, or type-level (a category
+ * defined by a schema.org class URI, e.g. all Image files).
  *
  * @public
  */
-export type AccessRequestType = "catalog" | "file";
+export type AccessRequestType = "catalog" | "file" | "type";
 
 /**
  * Parsed access request from an inbox message.
@@ -49,9 +52,11 @@ export type AccessRequestType = "catalog" | "file";
 export type AccessRequest = {
   messageUri: string;
   requesterWebId: string;
-  /** Contact WebID for catalog requests, or file container URI for file requests. */
+  /** Contact WebID for catalog requests, file container URI for file requests, empty for type requests. */
   accessTo: string;
   requestType: AccessRequestType;
+  /** Schema.org class URI when requestType is "type"; undefined otherwise. */
+  forClass?: string;
   timestamp: string;
 };
 
@@ -92,11 +97,12 @@ export function discoverInboxUriFromProfile(profileDocUri: string, webId: string
 }
 
 /**
- * Builds a Turtle message for a catalog or file access request.
+ * Builds a Turtle message for a catalog, file, or type access request.
  *
- * @param type - Whether this is a catalog or file access request
+ * @param type - Whether this is a catalog, file, or type access request
  * @param requesterWebId - WebID of the requester
- * @param accessTo - Target resource or contact WebID
+ * @param target - For "catalog"/"file": the contact WebID or file container URI.
+ *                 For "type": the schema.org class URI of the requested category.
  * @returns Serialized Turtle message
  *
  * @public
@@ -104,14 +110,26 @@ export function discoverInboxUriFromProfile(profileDocUri: string, webId: string
 export function buildAccessRequestMessage(
   type: AccessRequestType,
   requesterWebId: string,
-  accessTo: string
+  target: string
 ): string {
+  const created = quad(namedNode(""), DCTERMS_CREATED, literal(new Date().toISOString(), XSD_DATETIME));
+  const agent = quad(namedNode(""), ACL_AGENT, namedNode(requesterWebId));
+
+  if (type === "type") {
+    return serializeTurtle([
+      quad(namedNode(""), RDF_TYPE, TYPE_ACCESS_REQUEST_TYPE),
+      agent,
+      quad(namedNode(""), SOLID_ACCESS_FOR_CLASS, namedNode(target)),
+      created,
+    ], WRITER_PREFIXES);
+  }
+
   const typeNode = type === "catalog" ? CATALOG_ACCESS_REQUEST_TYPE : FILE_ACCESS_REQUEST_TYPE;
   return serializeTurtle([
     quad(namedNode(""), RDF_TYPE, typeNode),
-    quad(namedNode(""), ACL_AGENT, namedNode(requesterWebId)),
-    quad(namedNode(""), ACL_ACCESS_TO, namedNode(accessTo)),
-    quad(namedNode(""), DCTERMS_CREATED, literal(new Date().toISOString(), XSD_DATETIME)),
+    agent,
+    quad(namedNode(""), ACL_ACCESS_TO, namedNode(target)),
+    created,
   ], WRITER_PREFIXES);
 }
 
@@ -161,21 +179,42 @@ export function parseAccessRequestMessage(messageUri: string, turtle: string): A
   const typeQuad = quads.find(
     (quad) =>
       quad.predicate.equals(RDF_TYPE) &&
-      (quad.object.equals(CATALOG_ACCESS_REQUEST_TYPE) || quad.object.equals(FILE_ACCESS_REQUEST_TYPE))
+      (
+        quad.object.equals(CATALOG_ACCESS_REQUEST_TYPE) ||
+        quad.object.equals(FILE_ACCESS_REQUEST_TYPE) ||
+        quad.object.equals(TYPE_ACCESS_REQUEST_TYPE)
+      )
   );
 
   if (!typeQuad) return null;
 
   const agentQuad = quads.find((quad) => quad.predicate.equals(ACL_AGENT));
+  if (!agentQuad) return null;
+
+  const timestamp = quads.find((quad) => quad.predicate.equals(DCTERMS_CREATED))?.object.value ?? "";
+
+  if (typeQuad.object.equals(TYPE_ACCESS_REQUEST_TYPE)) {
+    const forClassQuad = quads.find((quad) => quad.predicate.equals(SOLID_ACCESS_FOR_CLASS));
+    if (!forClassQuad) return null;
+    return {
+      messageUri,
+      requesterWebId: agentQuad.object.value,
+      accessTo: "",
+      requestType: "type",
+      forClass: forClassQuad.object.value,
+      timestamp,
+    };
+  }
+
   const accessToQuad = quads.find((quad) => quad.predicate.equals(ACL_ACCESS_TO));
-  if (!agentQuad || !accessToQuad) return null;
+  if (!accessToQuad) return null;
 
   return {
     messageUri,
     requesterWebId: agentQuad.object.value,
     accessTo: accessToQuad.object.value,
     requestType: typeQuad.object.equals(FILE_ACCESS_REQUEST_TYPE) ? "file" : "catalog",
-    timestamp: quads.find((quad) => quad.predicate.equals(DCTERMS_CREATED))?.object.value ?? "",
+    timestamp,
   };
 }
 
