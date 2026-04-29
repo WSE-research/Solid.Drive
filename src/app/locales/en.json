@@ -109,6 +109,7 @@
     "noRequests": "No pending requests.",
     "requestsAccess": "wants access to your catalog",
     "requestsFileAccess": "wants access to {{resource}}",
+    "requestsTypeAccess": "wants access to all {{type}} files",
     "approve": "Approve",
     "deny": "Deny",
     "refresh": "Refresh"

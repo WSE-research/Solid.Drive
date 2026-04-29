@@ -7,9 +7,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useSolidAuth } from "@ldo/solid-react";
 import { discoverInboxUri, listAccessRequests, deleteAccessRequest, postRejectionNotification } from "@/infrastructure/inbox/inboxAccess";
 import type { AccessRequest } from "@/infrastructure/inbox/inboxAccess";
-import { discoverAclUri, readAclAgents, writeResourceAcl, writeListOnlyAcl, writeAcl } from "@/infrastructure/wac/aclManager";
-import { getAppContainerUri, getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
-import { EMPTY_CATALOG_TURTLE } from "@/infrastructure/solid/catalog";
+import { discoverAclUri, ensureDiscoveryAccess, grantContainerReadAccess, writeResourceAcl } from "@/infrastructure/wac/aclManager";
+import { getAppContainerUri, getSharedCatalogUri, toContainerUri } from "@/infrastructure/solid/sharedCatalog";
+import { EMPTY_CATALOG_TURTLE, parseCatalog } from "@/infrastructure/solid/catalog";
 import { CONTENT_TYPES } from "@/config";
 import type { FetchFn } from "@/types";
 
@@ -84,25 +84,32 @@ export function useAccessRequests(
 
         const sharedCatalogAclUri = await discoverAclUri(sharedCatalogUri, solidFetch);
         await writeResourceAcl(sharedCatalogAclUri, sharedCatalogUri, ownerWebId, [request.requesterWebId], solidFetch);
-
-        const catalogAclUri = await discoverAclUri(catalogUri, solidFetch);
-        const existingCatalogAgents = await readAclAgents(catalogAclUri, solidFetch);
-        if (!existingCatalogAgents.includes(request.requesterWebId)) {
-          await writeResourceAcl(catalogAclUri, catalogUri, ownerWebId, [...existingCatalogAgents, request.requesterWebId], solidFetch);
+      } else if (request.requestType === "type") {
+        const response = await solidFetch(catalogUri);
+        if (!response.ok) {
+          throw new Error(`Failed to read catalog at ${catalogUri}: ${response.status} ${response.statusText}`);
         }
-
-        const appAclUri = await discoverAclUri(appContainerUri, solidFetch);
-        const existingAppAgents = await readAclAgents(appAclUri, solidFetch);
-        if (!existingAppAgents.includes(request.requesterWebId)) {
-          await writeListOnlyAcl(appAclUri, appContainerUri, ownerWebId, [...existingAppAgents, request.requesterWebId], solidFetch);
+        const allEntries = parseCatalog(await response.text(), catalogUri);
+        const matching = allEntries.filter((entry) => entry.conformsTo === request.forClass);
+        const failures: unknown[] = [];
+        let granted = 0;
+        for (const entry of matching) {
+          try {
+            await grantContainerReadAccess(toContainerUri(entry.uri), ownerWebId, request.requesterWebId, solidFetch);
+            granted += 1;
+          } catch (err) {
+            failures.push(err);
+          }
+        }
+        if (matching.length > 0 && granted === 0) {
+          const first = failures[0];
+          throw first instanceof Error ? first : new Error(String(first));
         }
       } else {
-        const fileAclUri = await discoverAclUri(request.accessTo, solidFetch);
-        const existingFileAgents = await readAclAgents(fileAclUri, solidFetch);
-        if (!existingFileAgents.includes(request.requesterWebId)) {
-          await writeAcl(fileAclUri, request.accessTo, ownerWebId, [...existingFileAgents, request.requesterWebId], solidFetch);
-        }
+        await grantContainerReadAccess(request.accessTo, ownerWebId, request.requesterWebId, solidFetch);
       }
+
+      await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, request.requesterWebId, solidFetch);
 
       await deleteAccessRequest(request.messageUri, solidFetch);
       setRequests((prev) => prev.filter((existingRequest) => existingRequest.messageUri !== request.messageUri));

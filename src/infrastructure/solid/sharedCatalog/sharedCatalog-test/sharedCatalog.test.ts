@@ -112,10 +112,20 @@ describe("toContainerUri", () => {
     );
   });
 
-  it("returns the URI unchanged when it does not end with index.ttl", () => {
+  it("returns container URIs unchanged", () => {
     expect(toContainerUri("https://pod.example/my-app/photo/")).toBe(
       "https://pod.example/my-app/photo/"
     );
+  });
+
+  it("strips the final path segment for legacy entries that point at the binary directly", () => {
+    expect(toContainerUri("https://pod.example/my-app/photo/photo.jpg")).toBe(
+      "https://pod.example/my-app/photo/"
+    );
+  });
+
+  it("returns the input unchanged when there is no slash to anchor on", () => {
+    expect(toContainerUri("noslash")).toBe("noslash");
   });
 });
 

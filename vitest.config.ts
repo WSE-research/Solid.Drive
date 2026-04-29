@@ -33,6 +33,8 @@ export default mergeConfig(viteConfig, defineConfig({
         "**/*.config.*",
         "node_modules/**",
         "src/**/index.ts",
+        // e2e/ has its own test runner (Playwright) and isn't measured by vitest.
+        "e2e/**",
       ],
     },
   },

@@ -14,6 +14,7 @@ import { useAccessRequests } from "@/features/profile/hooks/useAccessRequests";
 import { MAX_DISPLAY_NAME_LENGTH, DEFAULT_LOCALE, SHORT_DATE_FORMAT_OPTIONS } from "@/config";
 import { Avatar } from "@/shared/components/Avatar";
 import { getInitial, getProfileDisplayName } from "@/shared/utils";
+import { getFileTypeInfo } from "@/infrastructure/validation/fileTypeRegistry";
 
 /**
  * Row component displaying the requester's profile info.
@@ -49,8 +50,8 @@ const RequesterRow: FunctionComponent<{ webId: string }> = ({ webId }) => {
  */
 const RequestItem: FunctionComponent<{
   request: AccessRequest;
-  onApprove: (r: AccessRequest) => Promise<void>;
-  onDeny: (r: AccessRequest) => Promise<void>;
+  onApprove: (request: AccessRequest) => Promise<void>;
+  onDeny: (request: AccessRequest) => Promise<void>;
   isBusy: boolean;
 }> = ({ request, onApprove, onDeny, isBusy }) => {
   const [translate] = useTranslation();
@@ -59,13 +60,20 @@ const RequestItem: FunctionComponent<{
     ? new Date(request.timestamp).toLocaleDateString(DEFAULT_LOCALE, SHORT_DATE_FORMAT_OPTIONS)
     : "";
 
-  const descriptionKey = request.requestType === "file"
-    ? "requestsPanel.requestsFileAccess"
-    : "requestsPanel.requestsAccess";
+  const descriptionKey =
+    request.requestType === "file"
+      ? "requestsPanel.requestsFileAccess"
+      : request.requestType === "type"
+      ? "requestsPanel.requestsTypeAccess"
+      : "requestsPanel.requestsAccess";
 
   const resourceLabel = request.requestType === "file"
     /* v8 ignore next */
     ? decodeURIComponent(request.accessTo.replace(/\/$/, "").split("/").pop() ?? request.accessTo)
+    : undefined;
+
+  const typeLabel = request.requestType === "type" && request.forClass
+    ? getFileTypeInfo(request.forClass).label
     : undefined;
 
   const handleApprove = () => onApprove(request);
@@ -75,7 +83,7 @@ const RequestItem: FunctionComponent<{
     <requests-panel-item>
       <RequesterRow webId={request.requesterWebId} />
       <p className="requests-panel__description">
-        {translate(descriptionKey, { resource: resourceLabel })}
+        {translate(descriptionKey, { resource: resourceLabel, type: typeLabel })}
       </p>
       {formattedDate && <p className="requests-panel__timestamp">{formattedDate}</p>}
       <requests-panel-actions>
@@ -122,45 +130,69 @@ export const RequestsPanel: FunctionComponent<RequestsPanelProps> = ({
 
   const chevronStyle = { transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" };
   const hasPendingRequests = requests.length > 0;
-  const showEmpty = !loading && !error && requests.length === 0;
-  const requestItems = requests.map((request) => (
-    <RequestItem
-      key={request.messageUri}
-      request={request}
-      onApprove={approve}
-      onDeny={deny}
-      isBusy={busyMessageUri === request.messageUri}
-    />
-  ));
+  const isEmpty = !loading && !error && requests.length === 0;
+
+  const badge = hasPendingRequests
+    ? <span className="requests-panel__badge">{requests.length}</span>
+    : null;
+
+  const loadingIndicator = loading
+    ? (
+      <requests-panel-loading>
+        <div className="spinner spinner--small" />
+        {translate("requestsPanel.loading")}
+      </requests-panel-loading>
+    )
+    : null;
+
+  const errorMessage = error
+    ? <p className="requests-panel__error">{error}</p>
+    : null;
+
+  const emptyMessage = isEmpty
+    ? <p className="requests-panel__empty">{translate("requestsPanel.noRequests")}</p>
+    : null;
+
+  const requestItems = loading
+    ? null
+    : requests.map((request) => (
+      <RequestItem
+        key={request.messageUri}
+        request={request}
+        onApprove={approve}
+        onDeny={deny}
+        isBusy={busyMessageUri === request.messageUri}
+      />
+    ));
+
+  const refreshButton = loading
+    ? null
+    : (
+      <button className="btn btn--ghost btn--small requests-panel__refresh" onClick={loadRequests}>
+        {translate("requestsPanel.refresh")}
+      </button>
+    );
+
+  const body = isOpen
+    ? (
+      <requests-panel-body>
+        {loadingIndicator}
+        {errorMessage}
+        {emptyMessage}
+        {requestItems}
+        {refreshButton}
+      </requests-panel-body>
+    )
+    : null;
 
   return (
     <requests-panel>
       <button className="requests-panel__toggle" onClick={handleToggle}>
         <span>{translate("requestsPanel.heading")}</span>
-        {hasPendingRequests && <span className="requests-panel__badge">{requests.length}</span>}
+        {badge}
         <span className="requests-panel__chevron" style={chevronStyle}>▼</span>
       </button>
-
-      {isOpen && (
-        <requests-panel-body>
-          {loading && (
-            <requests-panel-loading>
-              <div className="spinner spinner--small" />
-              {translate("requestsPanel.loading")}
-            </requests-panel-loading>
-          )}
-          {error && <p className="requests-panel__error">{error}</p>}
-          {showEmpty && (
-            <p className="requests-panel__empty">{translate("requestsPanel.noRequests")}</p>
-          )}
-          {!loading && requestItems}
-          {!loading && (
-            <button className="btn btn--ghost btn--small requests-panel__refresh" onClick={loadRequests}>
-              {translate("requestsPanel.refresh")}
-            </button>
-          )}
-        </requests-panel-body>
-      )}
+      {body}
     </requests-panel>
   );
 };

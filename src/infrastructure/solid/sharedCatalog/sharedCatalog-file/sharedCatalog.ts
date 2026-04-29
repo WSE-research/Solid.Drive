@@ -64,12 +64,21 @@ export function isSharedCatalogFile(fileName: string): boolean {
 }
 
 /**
- * Converts a catalog entry URI to its container URI.
+ * Converts a catalog entry URI to its parent container URI.
+ *
+ * @remarks
+ * Handles three shapes the catalog can produce:
+ * - `…/file/index.ttl` (current FileCard layout) → `…/file/`
+ * - `…/file/binary.ext` (legacy entries that point straight at the binary) → `…/file/`
+ * - `…/file/` (already a container) → unchanged
  *
  * @public
  */
 export function toContainerUri(instanceUri: string): string {
-  return instanceUri.replace(/index\.ttl$/, "");
+  if (instanceUri.endsWith("/")) return instanceUri;
+  const lastSlash = instanceUri.lastIndexOf("/");
+  if (lastSlash === -1) return instanceUri;
+  return instanceUri.slice(0, lastSlash + 1);
 }
 
 /**

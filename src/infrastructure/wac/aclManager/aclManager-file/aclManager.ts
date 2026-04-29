@@ -316,3 +316,54 @@ export async function writeResourceAcl(
     throw new Error(`PUT ${aclUri} returned ${response.status} ${response.statusText}`);
   }
 }
+
+/**
+ * Adds a contact to the container's ACL with read access (and `acl:default`)
+ * unless they are already a grantee.
+ *
+ * @public
+ */
+export async function grantContainerReadAccess(
+  containerUri: string,
+  ownerWebId: string,
+  contactWebId: string,
+  fetch: FetchFn
+): Promise<void> {
+  const aclUri = await discoverAclUri(containerUri, fetch);
+  const existingAgents = await readAclAgents(aclUri, fetch);
+  if (existingAgents.includes(contactWebId)) return;
+  await writeAcl(aclUri, containerUri, ownerWebId, [...existingAgents, contactWebId], fetch);
+}
+
+/**
+ * Best-effort grant of catalog read + app-container list-only access so the
+ * contact can browse the owner's full file listing. Errors are swallowed.
+ *
+ * @public
+ */
+export async function ensureDiscoveryAccess(
+  catalogUri: string,
+  appContainerUri: string,
+  ownerWebId: string,
+  contactWebId: string,
+  fetch: FetchFn
+): Promise<void> {
+  try {
+    const catalogAclUri = await discoverAclUri(catalogUri, fetch);
+    const existingCatalogAgents = await readAclAgents(catalogAclUri, fetch);
+    if (!existingCatalogAgents.includes(contactWebId)) {
+      await writeResourceAcl(catalogAclUri, catalogUri, ownerWebId, [...existingCatalogAgents, contactWebId], fetch);
+    }
+  } catch {
+    // best-effort; one side failing should not block the other
+  }
+  try {
+    const appAclUri = await discoverAclUri(appContainerUri, fetch);
+    const existingAppAgents = await readAclAgents(appAclUri, fetch);
+    if (!existingAppAgents.includes(contactWebId)) {
+      await writeListOnlyAcl(appAclUri, appContainerUri, ownerWebId, [...existingAppAgents, contactWebId], fetch);
+    }
+  } catch {
+    // best-effort
+  }
+}

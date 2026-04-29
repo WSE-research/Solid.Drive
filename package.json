@@ -12,7 +12,9 @@
     "build:ldo": "ldo build --input src/.shapes --output src/.ldo && node scripts/fix-ldo-types.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@ldo/ldo": "^1.0.0-alpha.36",
@@ -29,13 +31,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@inrupt/solid-client-authn-node": "4.0.0",
     "@ldo/cli": "^1.0.0-alpha.36",
     "@ldo/connected-solid": "^1.0.0-alpha.46",
+    "@playwright/test": "1.59.1",
+    "@solid/community-server": "8.0.0-alpha.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jsonld": "^1.5.15",
     "@types/n3": "^1.26.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.12.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/shexj": "^2.1.7",

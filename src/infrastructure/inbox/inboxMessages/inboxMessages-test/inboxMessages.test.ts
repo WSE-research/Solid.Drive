@@ -302,3 +302,97 @@ describe("parseAccessRejectionMessage", () => {
     expect(parseAccessRejectionMessage("https://requester.example/inbox/msg", turtle)).toBeNull();
   });
 });
+
+// ─── buildAccessRequestMessage (type) ────────────────────────────────────────
+
+describe('buildAccessRequestMessage("type", ...)', () => {
+  const requesterWebId = "https://requester.example/profile/card#me";
+  const classUri = "http://schema.org/ImageObject";
+
+  it("builds a type access request with the correct RDF type", () => {
+    const turtle = buildAccessRequestMessage("type", requesterWebId, classUri);
+    const quads = parseQuads(turtle, "https://owner.example/inbox/msg");
+    expect(
+      quads.some(
+        (quad) =>
+          quad.predicate.value === RDF_TYPE &&
+          quad.object.value === `${SOLID_ACCESS_NS}TypeAccessRequest`
+      )
+    ).toBe(true);
+  });
+
+  it("includes acl:agent pointing to the requester", () => {
+    const turtle = buildAccessRequestMessage("type", requesterWebId, classUri);
+    const quads = parseQuads(turtle, "https://owner.example/inbox/msg");
+    expect(
+      quads.some(
+        (quad) => quad.predicate.value === `${ACL_NS}agent` && quad.object.value === requesterWebId
+      )
+    ).toBe(true);
+  });
+
+  it("includes solid-access:forClass pointing to the class URI", () => {
+    const turtle = buildAccessRequestMessage("type", requesterWebId, classUri);
+    const quads = parseQuads(turtle, "https://owner.example/inbox/msg");
+    expect(
+      quads.some(
+        (quad) =>
+          quad.predicate.value === `${SOLID_ACCESS_NS}forClass` && quad.object.value === classUri
+      )
+    ).toBe(true);
+  });
+
+  it("does not include acl:accessTo on a type request", () => {
+    const turtle = buildAccessRequestMessage("type", requesterWebId, classUri);
+    const quads = parseQuads(turtle, "https://owner.example/inbox/msg");
+    expect(quads.some((quad) => quad.predicate.value === `${ACL_NS}accessTo`)).toBe(false);
+  });
+
+  it("includes a dcterms:created timestamp", () => {
+    const turtle = buildAccessRequestMessage("type", requesterWebId, classUri);
+    const quads = parseQuads(turtle, "https://owner.example/inbox/msg");
+    expect(
+      quads.some((quad) => quad.predicate.value === "http://purl.org/dc/terms/created")
+    ).toBe(true);
+  });
+});
+
+// ─── parseAccessRequestMessage (type) ────────────────────────────────────────
+
+describe('parseAccessRequestMessage (type)', () => {
+  it("parses a type access request built by buildAccessRequestMessage", () => {
+    const messageUri = "https://owner.example/inbox/msg-type";
+    const requesterWebId = "https://requester.example/profile/card#me";
+    const classUri = "http://schema.org/ImageObject";
+
+    const turtle = buildAccessRequestMessage("type", requesterWebId, classUri);
+    const result = parseAccessRequestMessage(messageUri, turtle);
+
+    expect(result).not.toBeNull();
+    expect(result?.messageUri).toBe(messageUri);
+    expect(result?.requesterWebId).toBe(requesterWebId);
+    expect(result?.requestType).toBe("type");
+    expect(result?.forClass).toBe(classUri);
+  });
+
+  it("does not populate accessTo for a type request", () => {
+    const turtle = buildAccessRequestMessage(
+      "type",
+      "https://requester.example/profile/card#me",
+      "http://schema.org/ImageObject"
+    );
+    const result = parseAccessRequestMessage("https://owner.example/inbox/msg", turtle);
+    expect(result?.accessTo).toBe("");
+  });
+
+  it("returns null when solid-access:forClass is missing on a type request", () => {
+    const turtle = `
+      @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+      @prefix acl: <${ACL_NS}> .
+      @prefix solid-access: <${SOLID_ACCESS_NS}> .
+      <> rdf:type solid-access:TypeAccessRequest ;
+         acl:agent <https://requester.example/profile/card#me> .
+    `;
+    expect(parseAccessRequestMessage("https://owner.example/inbox/msg", turtle)).toBeNull();
+  });
+});

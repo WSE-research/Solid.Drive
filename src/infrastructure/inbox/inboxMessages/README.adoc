@@ -11,7 +11,7 @@ Message types are identified by `rdf:type` using the `solid-access:` vocabulary.
 | Function | Description
 
 | `discoverInboxUriFromProfile(profileDocUri, webId, turtle)` | Parses a profile Turtle string to find the `ldp:inbox` triple
-| `buildAccessRequestMessage(type, requesterWebId, accessTo)` | Creates Turtle for an access request
+| `buildAccessRequestMessage(type, requesterWebId, target)` | Creates Turtle for an access request. `target` is the contact WebID (catalog), file container URI (file), or schema.org class URI (type)
 | `buildAccessRejectionMessage(accessTo)` | Creates Turtle for a rejection notification
 | `parseContainedResourceUris(inboxUri, turtle)` | Extracts `ldp:contains` URIs from a container listing
 | `parseAccessRequestMessage(messageUri, turtle)` | Parses a Turtle message into an `AccessRequest`

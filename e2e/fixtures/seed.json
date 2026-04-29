@@ -1,0 +1,12 @@
+[
+  {
+    "email": "peach@e2e.test",
+    "password": "peachy",
+    "pods": [{ "name": "peach" }]
+  },
+  {
+    "email": "parni@e2e.test",
+    "password": "parnitest",
+    "pods": [{ "name": "parni" }]
+  }
+]

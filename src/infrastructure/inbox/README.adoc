@@ -11,6 +11,7 @@ link:inboxMessages/[inboxMessages]:: Low-level: parse Turtle messages, build Tur
 
 `solid-access:CatalogAccessRequest`:: Catalog-level sharing request
 `solid-access:FileAccessRequest`:: Request to access a specific file
+`solid-access:TypeAccessRequest`:: Request to access every file of a given schema.org class (uses `solid-access:forClass`)
 `solid-access:AccessRejected`:: Denial notification
 
 == Navigation

@@ -14,6 +14,8 @@ All ACL documents are serialized using N3 via `rdfUtils.serializeTurtle`.
 | `writeAcl(aclUri, resourceUri, ownerWebId, grantees, fetch)` | Writes a full ACL: owner with Read/Write/Control + `acl:default`; grantees with Read + `acl:default`
 | `writeListOnlyAcl(...)` | Writes an ACL where grantees can list the container but do not inherit access to child resources
 | `writeResourceAcl(...)` | Writes an ACL for a single resource (no `acl:default` propagation)
+| `grantContainerReadAccess(containerUri, owner, contact, fetch)` | Idempotently adds a contact to the container's ACL with read + `acl:default`
+| `ensureDiscoveryAccess(catalogUri, appContainerUri, owner, contact, fetch)` | Best-effort: gives a contact read on the catalog and list-only on the app container, so they can browse the owner's full file listing
 |===
 
 == See also
@@ -21,7 +23,7 @@ All ACL documents are serialized using N3 via `rdfUtils.serializeTurtle`.
 * link:../solid/rdfUtils/[rdfUtils] provides `serializeTurtle`, which this module uses to build every ACL document body.
 * link:../../features/sharing/hooks/useAclManager/[useAclManager] is the React hook that orchestrates these low-level ACL operations for a specific file container.
 * link:../../features/file-explorer/hooks/useFileSharing/[useFileSharing] calls `discoverAclUri` and `readAclAgents` from here to detect whether a container has been shared.
-* link:../../features/profile/hooks/useAccessRequests/[useAccessRequests] calls `writeAcl` and `writeListOnlyAcl` from here when approving file and catalog access requests.
+* link:../../features/profile/hooks/useAccessRequests/[useAccessRequests] calls `grantContainerReadAccess` and `ensureDiscoveryAccess` from here when approving file, type, and catalog access requests.
 
 == Navigation
 

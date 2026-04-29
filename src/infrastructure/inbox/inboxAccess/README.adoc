@@ -12,6 +12,7 @@ All message parsing and serialization is delegated to `inboxMessages`.
 | `discoverInboxUri(webId, fetch)` | Fetches a profile and extracts the `ldp:inbox` URI
 | `postCatalogAccessRequest(...)` | Sends a catalog-level access request to a contact's inbox
 | `postFileAccessRequest(...)` | Sends a file-level access request to a contact's inbox
+| `postTypeAccessRequest(inboxUri, requester, classUri, fetch)` | Sends a single category-level access request (e.g. all images) to a contact's inbox
 | `postRejectionNotification(...)` | Sends a denial notice to a requester's inbox
 | `listRejectionNotifications(...)` | Lists rejection messages in an inbox
 | `listAccessRequests(...)` | Lists access request messages in an inbox

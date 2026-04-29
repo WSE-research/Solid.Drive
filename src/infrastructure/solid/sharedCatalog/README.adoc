@@ -13,7 +13,7 @@ Each file share creates a dedicated Turtle catalog at `.shared-{encodedViewerWeb
 | `getSharedCatalogUri(appContainerUri, viewerWebId)` | Full URI for a grantee-specific shared catalog
 | `getCandidateSharedCatalogUris(...)` | Returns both normalized and legacy filenames for backward compatibility
 | `isSharedCatalogFile(fileName)` | Returns `true` for `.shared-*.ttl` filenames
-| `toContainerUri(instanceUri)` | Converts `.../index.ttl` to `.../`
+| `toContainerUri(instanceUri)` | Resolves a catalog entry URI to its parent container — handles `…/index.ttl`, `…/binary.ext`, and already-container URIs
 | `hasAccess(containerUri, fetch)` | HEAD request to check if the viewer can read a container
 | `normalizeShareCatalogId(webId)` | Strips the `#fragment` from a WebID
 |===

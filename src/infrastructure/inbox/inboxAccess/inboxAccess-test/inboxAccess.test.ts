@@ -4,6 +4,7 @@ import {
   discoverInboxUri,
   postCatalogAccessRequest,
   postFileAccessRequest,
+  postTypeAccessRequest,
   postRejectionNotification,
   listRejectionNotifications,
   listAccessRequests,
@@ -124,6 +125,55 @@ describe("postFileAccessRequest", () => {
         "https://alice.example/inbox/",
         "https://requester.example/profile/card#me",
         "https://alice.example/files/videos/",
+        mockFetch
+      )
+    ).rejects.toThrow("500");
+  });
+});
+
+// ─── postTypeAccessRequest ────────────────────────────────────────────────────
+
+describe("postTypeAccessRequest", () => {
+  it("POSTs a type access request to the inbox with text/turtle content-type", async () => {
+    const mockFetch = makeFetch({ "POST https://alice.example/inbox/": { status: 201 } });
+    await postTypeAccessRequest(
+      "https://alice.example/inbox/",
+      "https://requester.example/profile/card#me",
+      "http://schema.org/ImageObject",
+      mockFetch
+    );
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://alice.example/inbox/",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ "Content-Type": "text/turtle" }),
+      })
+    );
+  });
+
+  it("sends a body containing solid-access:forClass with the class URI", async () => {
+    let capturedBody = "";
+    const mockFetch = vi.fn(async (_url: RequestInfo, init?: RequestInit) => {
+      capturedBody = (init?.body as string) ?? "";
+      return { ok: true, status: 201, statusText: "Created", text: async () => "" } as unknown as Response;
+    });
+    await postTypeAccessRequest(
+      "https://alice.example/inbox/",
+      "https://requester.example/profile/card#me",
+      "http://schema.org/ImageObject",
+      mockFetch as unknown as FetchFn
+    );
+    expect(capturedBody).toContain("forClass");
+    expect(capturedBody).toContain("http://schema.org/ImageObject");
+  });
+
+  it("throws when POST returns a non-2xx status code", async () => {
+    const mockFetch = makeFetch({ "POST https://alice.example/inbox/": { status: 500 } });
+    await expect(
+      postTypeAccessRequest(
+        "https://alice.example/inbox/",
+        "https://requester.example/profile/card#me",
+        "http://schema.org/ImageObject",
         mockFetch
       )
     ).rejects.toThrow("500");

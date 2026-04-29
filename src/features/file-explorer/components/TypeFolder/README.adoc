@@ -6,7 +6,7 @@ Lets the viewer request access per file or for the entire group at once.
 == Features
 
 Request access:: Each file row has a button that sends an LDP inbox notification to the contact
-Request all:: Folder level button sends access requests for every file in the group in one action
+Request all:: Folder level button sends a single category-level request (`solid-access:TypeAccessRequest`) covering every file of this schema.org type
 Request again:: Rejected files show a badge and a retry button that deletes the old rejection before sending a new request
 Status tracking:: Each file and the bulk action independently track idle / sending / sent / error states
 

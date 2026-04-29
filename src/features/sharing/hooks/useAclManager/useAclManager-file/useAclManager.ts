@@ -5,9 +5,9 @@
 
 import { useState, useCallback } from "react";
 import { useSolidAuth } from "@ldo/solid-react";
-import { discoverAclUri, readAclAgents, writeAcl, writeListOnlyAcl, writeResourceAcl } from "@/infrastructure/wac/aclManager";
-import { appendToCatalog, removeFromCatalog } from "@/infrastructure/solid/catalog";
-import { getCandidateSharedCatalogUris, getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
+import { discoverAclUri, ensureDiscoveryAccess, readAclAgents, writeAcl, writeResourceAcl } from "@/infrastructure/wac/aclManager";
+import { appendToCatalog } from "@/infrastructure/solid/catalog";
+import { getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
 import type { SharedEntry } from "@/types";
 
 interface UseAclManagerReturn {
@@ -65,33 +65,6 @@ export function useAclManager(
     await writeResourceAcl(sharedCatalogAclUri, sharedCatalogUri, ownerWebId, [contactWebId], solidFetch);
   }, [appContainerUri, ownerWebId, sharedEntry, solidFetch]);
 
-  const removeAgentsFromAcl = useCallback(async (
-    resourceUri: string,
-    agents: string[],
-    writeFn: (aclUri: string, resourceUri: string, owner: string, remaining: string[], fetch: typeof solidFetch) => Promise<void>
-  ) => {
-    const aclUri = await discoverAclUri(resourceUri, solidFetch);
-    const existing = await readAclAgents(aclUri, solidFetch);
-    const remaining = existing.filter((webId) => !agents.includes(webId));
-    if (remaining.length !== existing.length) {
-      await writeFn(aclUri, resourceUri, ownerWebId, remaining, solidFetch);
-    }
-  }, [ownerWebId, solidFetch]);
-
-  const removeLegacyDiscoveryAccess = useCallback(async (agents: string[]) => {
-    if (agents.length === 0 || !ownerWebId) return;
-    try {
-      await removeAgentsFromAcl(appContainerUri, agents, writeListOnlyAcl);
-    } catch {
-      // legacy cleanup should not block the current share operation
-    }
-    try {
-      await removeAgentsFromAcl(catalogUri, agents, writeResourceAcl);
-    } catch {
-      // legacy cleanup should not block the current share operation
-    }
-  }, [appContainerUri, catalogUri, ownerWebId, removeAgentsFromAcl]);
-
   const loadAcl = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -102,14 +75,14 @@ export function useAclManager(
       setGrantees(currentGrantees);
       for (const contactWebId of currentGrantees) {
         await syncSharedCatalog(contactWebId);
+        await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
       }
-      await removeLegacyDiscoveryAccess(currentGrantees);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [containerUri, removeLegacyDiscoveryAccess, solidFetch, syncSharedCatalog]);
+  }, [appContainerUri, catalogUri, containerUri, ownerWebId, solidFetch, syncSharedCatalog]);
 
   const grant = useCallback(async (contactWebId: string) => {
     if (!aclUri) return;
@@ -119,14 +92,14 @@ export function useAclManager(
       const newGrantees = [...grantees, contactWebId];
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
       await syncSharedCatalog(contactWebId);
-      await removeLegacyDiscoveryAccess([contactWebId]);
+      await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
       setGrantees(newGrantees);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsSaving(false);
     }
-  }, [aclUri, containerUri, grantees, ownerWebId, removeLegacyDiscoveryAccess, solidFetch, syncSharedCatalog]);
+  }, [aclUri, appContainerUri, catalogUri, containerUri, grantees, ownerWebId, solidFetch, syncSharedCatalog]);
 
   const revoke = useCallback(async (contactWebId: string) => {
     if (!aclUri) return;
@@ -135,16 +108,13 @@ export function useAclManager(
     try {
       const newGrantees = grantees.filter((granteeWebId) => granteeWebId !== contactWebId);
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
-      for (const sharedCatalogUri of getCandidateSharedCatalogUris(appContainerUri, contactWebId)) {
-        await removeFromCatalog(sharedCatalogUri, sharedEntry.metadataUri, solidFetch).catch(() => {});
-      }
       setGrantees(newGrantees);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsSaving(false);
     }
-  }, [aclUri, appContainerUri, containerUri, grantees, ownerWebId, sharedEntry.metadataUri, solidFetch]);
+  }, [aclUri, containerUri, grantees, ownerWebId, solidFetch]);
 
   return { aclUri, grantees, loading, error, isSaving, loadAcl, grant, revoke };
 }

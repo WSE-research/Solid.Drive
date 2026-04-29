@@ -60,10 +60,11 @@ describe('useSharedCatalog', () => {
     expect(result.current).toHaveProperty('isProfileLoading');
   });
 
-  it('returns sharedEntries when the per-contact catalog is accessible', async () => {
+  it('returns sharedEntries when the per-contact catalog is accessible and the file ACL still grants read', async () => {
     const entries = [{ uri: 'https://contact.example/files/photo/index.ttl', title: 'Photo', conformsTo: '' }];
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('turtle') });
     mockParseCatalog.mockReturnValue(entries);
+    mockHasAccess.mockResolvedValue(true);
 
     const { result } = renderHook(() =>
       useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
@@ -96,6 +97,51 @@ describe('useSharedCatalog', () => {
     expect(result.current.sharedEntries).toEqual([]);
   });
 
+  it('probes accessibility against entry.uri (the metadata index) — not the container — to avoid false negatives from servers that 404 on container HEAD', async () => {
+    const entryUri = 'https://contact.example/files/photo/index.ttl';
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('per-viewer') });
+    mockParseCatalog.mockReturnValue([{ uri: entryUri, title: 'Photo', conformsTo: '' }]);
+    mockHasAccess.mockResolvedValue(true);
+
+    renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(mockHasAccess).toHaveBeenCalled();
+    });
+    const probedUri = mockHasAccess.mock.calls[0][0];
+    expect(probedUri).toBe(entryUri);
+  });
+
+  it('moves per-viewer catalog entries that are no longer accessible into typeGroups so the requester can re-request them', async () => {
+    const perViewerEntries = [
+      { uri: 'https://contact.example/files/granted/index.ttl', title: 'Granted', conformsTo: 'http://schema.org/ImageObject' },
+      { uri: 'https://contact.example/files/revoked/index.ttl', title: 'Revoked', conformsTo: 'http://schema.org/ImageObject' },
+    ];
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('per-viewer') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockReturnValue(perViewerEntries);
+    mockHasAccess.mockImplementation((uri: string) =>
+      Promise.resolve(uri.includes('/granted/'))
+    );
+
+    const { result } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(result.current.sharedEntries.map((entry) => entry.title)).toEqual(['Granted']);
+    });
+    const imageBucket = result.current.typeGroups.get('http://schema.org/ImageObject');
+    expect(imageBucket?.map((entry) => entry.title)).toEqual(['Revoked']);
+  });
+
   it('separates accessible entries into sharedEntries and browsable entries into typeGroups when the main catalog is available', async () => {
     const sharedEntries = [{ uri: 'https://contact.example/files/a/index.ttl', title: 'A', conformsTo: '' }];
     const mainEntries = [
@@ -117,9 +163,9 @@ describe('useSharedCatalog', () => {
       if (uri.includes('.shared-viewer')) return sharedEntries;
       return mainEntries;
     });
-    // B is accessible, C is not
+    // A (per-viewer) and B (main) are accessible, C is not
     mockHasAccess.mockImplementation((uri: string) => {
-      if (uri.includes('/b/')) return Promise.resolve(true);
+      if (uri.includes('/a/') || uri.includes('/b/')) return Promise.resolve(true);
       return Promise.resolve(false);
     });
 
@@ -159,6 +205,33 @@ describe('useSharedCatalog', () => {
     });
     expect(result.current.catalogAccessible).toBe(true);
     expect(result.current.resolvedCatalogUri).toBe('https://contact.example/catalog.ttl');
+  });
+
+  it('main-catalog fallback puts inaccessible entries into typeGroups', async () => {
+    const mainEntries = [
+      { uri: 'https://contact.example/files/visible/index.ttl', title: 'Visible', conformsTo: 'http://schema.org/ImageObject' },
+      { uri: 'https://contact.example/files/locked/index.ttl', title: 'Locked', conformsTo: 'http://schema.org/ImageObject' },
+    ];
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) return Promise.resolve({ ok: false });
+      if (url === 'https://contact.example/catalog.ttl') {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('main') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockReturnValue(mainEntries);
+    mockHasAccess.mockImplementation((uri: string) => Promise.resolve(uri.includes('/visible/')));
+
+    const { result } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(result.current.sharedEntries.map((entry) => entry.title)).toEqual(['Visible']);
+    });
+    const imageBucket = result.current.typeGroups.get('http://schema.org/ImageObject');
+    expect(imageBucket?.map((entry) => entry.title)).toEqual(['Locked']);
   });
 
   it('returns empty when no catalogs are accessible', async () => {

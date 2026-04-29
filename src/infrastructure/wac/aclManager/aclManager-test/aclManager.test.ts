@@ -6,6 +6,8 @@ import {
   buildListOnlyAclTurtle,
   buildResourceAclTurtle,
   discoverAclUri,
+  ensureDiscoveryAccess,
+  grantContainerReadAccess,
   readAclAgents,
   writeAcl,
   writeListOnlyAcl,
@@ -283,5 +285,112 @@ describe("writeListOnlyAcl", () => {
         mockFetch
       )
     ).rejects.toThrow("403");
+  });
+});
+
+// ─── grantContainerReadAccess ─────────────────────────────────────────────────
+
+describe("grantContainerReadAccess", () => {
+  const containerUri = "https://pod.example/files/doc/";
+  const aclUri = "https://pod.example/files/doc/.acl";
+  const owner = "https://owner.example/#me";
+  const contact = "https://alice.example/#me";
+
+  function aclTurtleWith(agents: string[]): string {
+    return buildAclTurtle(containerUri, owner, agents);
+  }
+
+  it("writes the contact into the container ACL when missing", async () => {
+    const mockFetch = makeFetch({
+      [`HEAD ${containerUri}`]: { status: 200, headers: { Link: `<${aclUri}>; rel="acl"` } },
+      [aclUri]: { status: 200, body: aclTurtleWith([]) },
+      [`PUT ${aclUri}`]: { status: 201 },
+    });
+
+    await grantContainerReadAccess(containerUri, owner, contact, mockFetch);
+
+    const putBody = mockFetch.mock.calls.find((call) => (call[1] as RequestInit | undefined)?.method === "PUT")?.[1] as RequestInit;
+    expect(putBody.body).toContain(contact);
+  });
+
+  it("does not rewrite the ACL when the contact is already a grantee", async () => {
+    const mockFetch = makeFetch({
+      [`HEAD ${containerUri}`]: { status: 200, headers: { Link: `<${aclUri}>; rel="acl"` } },
+      [aclUri]: { status: 200, body: aclTurtleWith([contact]) },
+    });
+
+    await grantContainerReadAccess(containerUri, owner, contact, mockFetch);
+
+    const putCalls = mockFetch.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === "PUT");
+    expect(putCalls).toHaveLength(0);
+  });
+});
+
+// ─── ensureDiscoveryAccess ────────────────────────────────────────────────────
+
+describe("ensureDiscoveryAccess", () => {
+  const catalogUri = "https://pod.example/my-app/catalog.ttl";
+  const catalogAclUri = "https://pod.example/my-app/catalog.ttl.acl";
+  const appContainerUri = "https://pod.example/my-app/";
+  const appAclUri = "https://pod.example/my-app/.acl";
+  const owner = "https://owner.example/#me";
+  const contact = "https://alice.example/#me";
+
+  it("adds the contact to the catalog ACL (read-only) and to the app container ACL (list-only)", async () => {
+    const mockFetch = makeFetch({
+      [`HEAD ${catalogUri}`]: { status: 200, headers: { Link: `<${catalogAclUri}>; rel="acl"` } },
+      [catalogAclUri]: { status: 200, body: buildResourceAclTurtle(catalogUri, owner, []) },
+      [`PUT ${catalogAclUri}`]: { status: 201 },
+      [`HEAD ${appContainerUri}`]: { status: 200, headers: { Link: `<${appAclUri}>; rel="acl"` } },
+      [appAclUri]: { status: 200, body: buildListOnlyAclTurtle(appContainerUri, owner, []) },
+      [`PUT ${appAclUri}`]: { status: 201 },
+    });
+
+    await ensureDiscoveryAccess(catalogUri, appContainerUri, owner, contact, mockFetch);
+
+    const puts = mockFetch.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === "PUT");
+    expect(puts.map((call) => call[0])).toEqual([catalogAclUri, appAclUri]);
+    for (const call of puts) {
+      expect((call[1] as RequestInit).body).toContain(contact);
+    }
+  });
+
+  it("is idempotent — no PUTs when the contact already has discovery access", async () => {
+    const mockFetch = makeFetch({
+      [`HEAD ${catalogUri}`]: { status: 200, headers: { Link: `<${catalogAclUri}>; rel="acl"` } },
+      [catalogAclUri]: { status: 200, body: buildResourceAclTurtle(catalogUri, owner, [contact]) },
+      [`HEAD ${appContainerUri}`]: { status: 200, headers: { Link: `<${appAclUri}>; rel="acl"` } },
+      [appAclUri]: { status: 200, body: buildListOnlyAclTurtle(appContainerUri, owner, [contact]) },
+    });
+
+    await ensureDiscoveryAccess(catalogUri, appContainerUri, owner, contact, mockFetch);
+
+    const puts = mockFetch.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === "PUT");
+    expect(puts).toHaveLength(0);
+  });
+
+  it("still attempts the app ACL when catalog ACL discovery fails", async () => {
+    const mockFetch = makeFetch({
+      [`HEAD ${catalogUri}`]: { status: 403 },
+      [`HEAD ${appContainerUri}`]: { status: 200, headers: { Link: `<${appAclUri}>; rel="acl"` } },
+      [appAclUri]: { status: 200, body: buildListOnlyAclTurtle(appContainerUri, owner, []) },
+      [`PUT ${appAclUri}`]: { status: 201 },
+    });
+
+    await ensureDiscoveryAccess(catalogUri, appContainerUri, owner, contact, mockFetch);
+
+    const puts = mockFetch.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === "PUT");
+    expect(puts.map((call) => call[0])).toEqual([appAclUri]);
+  });
+
+  it("does not throw when both discovery writes fail", async () => {
+    const mockFetch = makeFetch({
+      [`HEAD ${catalogUri}`]: { status: 403 },
+      [`HEAD ${appContainerUri}`]: { status: 403 },
+    });
+
+    await expect(
+      ensureDiscoveryAccess(catalogUri, appContainerUri, owner, contact, mockFetch)
+    ).resolves.toBeUndefined();
   });
 });

@@ -17,4 +17,6 @@ jobs:
 
       - run: npm ci
 
-      - run: npx depcheck --ignores="@types/*,eslint-*,globals,vitest,@vitejs/*,typescript,typescript-eslint,vite,@ldo/solid,@ldo/connected-solid,buffer,shexj,@vitest/coverage-v8,@testing-library/user-event,uuid,tsx" --ignore-dirs="dist,node_modules"
+      # @solid/community-server is launched via `npx community-solid-server`
+      # in playwright.config.ts (not imported), so depcheck can't see it.
+      - run: npx depcheck --ignores="@types/*,eslint-*,globals,vitest,@vitejs/*,typescript,typescript-eslint,vite,@ldo/solid,@ldo/connected-solid,buffer,shexj,@vitest/coverage-v8,@testing-library/user-event,uuid,tsx,@solid/community-server" --ignore-dirs="dist,node_modules"

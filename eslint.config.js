@@ -115,4 +115,16 @@ export default defineConfig([
       }],
     },
   },
+
+  // ── Layer: e2e/ ───────────────────────────────────────────────────────────
+  // Playwright fixture functions destructure the dependency-injection object
+  // as their first argument. When a fixture needs none of the available
+  // fixtures, the conventional and required signature is `async ({}, provide)`,
+  // which trips `no-empty-pattern`. Disable that rule for e2e/.
+  {
+    files: ['e2e/**/*.{ts,tsx}'],
+    rules: {
+      'no-empty-pattern': 'off',
+    },
+  },
 ])

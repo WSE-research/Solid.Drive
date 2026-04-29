@@ -7,10 +7,9 @@ const mockListAccessRequests = vi.fn();
 const mockDeleteAccessRequest = vi.fn();
 const mockPostRejectionNotification = vi.fn();
 const mockDiscoverAclUri = vi.fn();
-const mockReadAclAgents = vi.fn();
 const mockWriteResourceAcl = vi.fn();
-const mockWriteListOnlyAcl = vi.fn();
-const mockWriteAcl = vi.fn();
+const mockGrantContainerReadAccess = vi.fn();
+const mockEnsureDiscoveryAccess = vi.fn();
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
@@ -25,19 +24,22 @@ vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
 
 vi.mock('@/infrastructure/wac/aclManager', () => ({
   discoverAclUri: (...args: unknown[]) => mockDiscoverAclUri(...args),
-  readAclAgents: (...args: unknown[]) => mockReadAclAgents(...args),
   writeResourceAcl: (...args: unknown[]) => mockWriteResourceAcl(...args),
-  writeListOnlyAcl: (...args: unknown[]) => mockWriteListOnlyAcl(...args),
-  writeAcl: (...args: unknown[]) => mockWriteAcl(...args),
+  grantContainerReadAccess: (...args: unknown[]) => mockGrantContainerReadAccess(...args),
+  ensureDiscoveryAccess: (...args: unknown[]) => mockEnsureDiscoveryAccess(...args),
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
   getAppContainerUri: (root: string) => `${root}my-solid-app/`,
   getSharedCatalogUri: (appUri: string, webId: string) => `${appUri}.shared-${encodeURIComponent(webId)}.ttl`,
+  toContainerUri: (uri: string) =>
+    uri.endsWith('/') ? uri : uri.slice(0, uri.lastIndexOf('/') + 1),
 }));
 
+const mockParseCatalog = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
   EMPTY_CATALOG_TURTLE: '@prefix dcat: <http://www.w3.org/ns/dcat#>.',
+  parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
 }));
 
 vi.mock('@/config', () => ({
@@ -58,10 +60,10 @@ describe('useAccessRequests', () => {
     mockDeleteAccessRequest.mockResolvedValue(undefined);
     mockPostRejectionNotification.mockResolvedValue(undefined);
     mockDiscoverAclUri.mockResolvedValue('https://pod.example/.acl');
-    mockReadAclAgents.mockResolvedValue([]);
     mockWriteResourceAcl.mockResolvedValue(undefined);
-    mockWriteListOnlyAcl.mockResolvedValue(undefined);
-    mockWriteAcl.mockResolvedValue(undefined);
+    mockGrantContainerReadAccess.mockResolvedValue(undefined);
+    mockEnsureDiscoveryAccess.mockResolvedValue(undefined);
+    mockParseCatalog.mockReturnValue([]);
     mockFetch.mockResolvedValue({ ok: true });
   });
 
@@ -136,8 +138,37 @@ describe('useAccessRequests', () => {
       await result.current.approve(request);
     });
 
-    expect(mockWriteAcl).toHaveBeenCalled();
+    expect(mockGrantContainerReadAccess).toHaveBeenCalledWith(
+      request.accessTo,
+      ownerWebId,
+      request.requesterWebId,
+      mockFetch
+    );
     expect(mockDeleteAccessRequest).toHaveBeenCalled();
+  });
+
+  it('approve(file) also grants discovery access to the main catalog so the requester can browse other items', async () => {
+    const request = {
+      messageUri: 'https://pod.example/inbox/msg-file-disco',
+      requesterWebId: 'https://alice.example/profile/card#me',
+      requestType: 'file' as const,
+      accessTo: 'https://pod.example/files/doc/',
+      timestamp: '',
+    };
+    mockListAccessRequests.mockResolvedValue([request]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    expect(mockEnsureDiscoveryAccess).toHaveBeenCalledWith(
+      catalogUri,
+      'https://pod.example/my-solid-app/',
+      ownerWebId,
+      request.requesterWebId,
+      mockFetch
+    );
   });
 
   it('deny deletes request and posts rejection notification', async () => {
@@ -196,13 +227,11 @@ describe('useAccessRequests', () => {
       timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
-    mockDiscoverAclUri.mockRejectedValue(new Error('ACL error'));
+    mockGrantContainerReadAccess.mockRejectedValue(new Error('ACL error'));
 
     const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Reset mock for approve flow
-    mockDiscoverAclUri.mockRejectedValue(new Error('ACL error'));
     await act(async () => {
       await result.current.approve(request);
     });
@@ -299,58 +328,6 @@ describe('useAccessRequests', () => {
     expect(result.current.error).toBe('42');
   });
 
-  it('approve skips writing catalog ACL when requester already exists in agents', async () => {
-    const request = {
-      messageUri: 'https://pod.example/inbox/msg9',
-      requesterWebId: 'https://alice.example/profile/card#me',
-      requestType: 'catalog' as const,
-      accessTo: 'https://pod.example/files/',
-      timestamp: '',
-    };
-    mockListAccessRequests.mockResolvedValue([request]);
-    mockFetch.mockImplementation(async (_url: string, opts?: Record<string, unknown>) => {
-      if (opts?.method === 'HEAD') return { ok: false };
-      if (opts?.method === 'PUT') return { ok: true };
-      return { ok: true };
-    });
-    // Return agent already in list for both catalog and app ACLs
-    mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-
-    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    await act(async () => {
-      await result.current.approve(request);
-    });
-
-    // writeResourceAcl should only be called once (for shared catalog), not for catalog/app since agent already exists
-    expect(mockWriteResourceAcl).toHaveBeenCalledTimes(1);
-    expect(mockWriteListOnlyAcl).not.toHaveBeenCalled();
-    expect(mockDeleteAccessRequest).toHaveBeenCalled();
-  });
-
-  it('approve skips writing file ACL when requester already exists', async () => {
-    const request = {
-      messageUri: 'https://pod.example/inbox/msg10',
-      requesterWebId: 'https://alice.example/profile/card#me',
-      requestType: 'file' as const,
-      accessTo: 'https://pod.example/files/doc/',
-      timestamp: '',
-    };
-    mockListAccessRequests.mockResolvedValue([request]);
-    mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
-
-    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    await act(async () => {
-      await result.current.approve(request);
-    });
-
-    expect(mockWriteAcl).not.toHaveBeenCalled();
-    expect(mockDeleteAccessRequest).toHaveBeenCalled();
-  });
-
   it('approve handles non-Error thrown by converting to string via String(err)', async () => {
     const request = {
       messageUri: 'https://pod.example/inbox/msg11',
@@ -360,7 +337,7 @@ describe('useAccessRequests', () => {
       timestamp: '',
     };
     mockListAccessRequests.mockResolvedValue([request]);
-    mockDiscoverAclUri.mockRejectedValue(99);
+    mockGrantContainerReadAccess.mockRejectedValue(99);
 
     const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -371,6 +348,147 @@ describe('useAccessRequests', () => {
 
     expect(result.current.error).toBe('99');
     expect(result.current.busyMessageUri).toBeNull();
+  });
+
+  // --- approve(type) snapshot grant ---
+
+  const imageClass = 'http://schema.org/ImageObject';
+  const docClass = 'http://schema.org/DigitalDocument';
+
+  function makeTypeRequest() {
+    return {
+      messageUri: 'https://pod.example/inbox/msg-type',
+      requesterWebId: 'https://alice.example/profile/card#me',
+      requestType: 'type' as const,
+      forClass: imageClass,
+      accessTo: '',
+      timestamp: '',
+    };
+  }
+
+  it('approve(type) grants access to every container whose conformsTo matches forClass', async () => {
+    const request = makeTypeRequest();
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url === catalogUri) {
+        return { ok: true, status: 200, text: async () => 'CATALOG_TTL' };
+      }
+      return { ok: true };
+    });
+    mockParseCatalog.mockReturnValue([
+      { uri: 'https://pod.example/my-solid-app/img1/index.ttl', conformsTo: imageClass },
+      { uri: 'https://pod.example/my-solid-app/img2/index.ttl', conformsTo: imageClass },
+      { uri: 'https://pod.example/my-solid-app/doc1/index.ttl', conformsTo: docClass },
+    ]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    expect(mockGrantContainerReadAccess).toHaveBeenCalledTimes(2);
+    const calledContainers = mockGrantContainerReadAccess.mock.calls.map((call) => call[0]);
+    expect(calledContainers).toEqual([
+      'https://pod.example/my-solid-app/img1/',
+      'https://pod.example/my-solid-app/img2/',
+    ]);
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith(request.messageUri, mockFetch);
+    expect(result.current.requests).toEqual([]);
+  });
+
+  it('approve(type) also grants discovery access to the main catalog and app container', async () => {
+    const request = makeTypeRequest();
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url === catalogUri) return { ok: true, status: 200, text: async () => 'CATALOG_TTL' };
+      return { ok: true };
+    });
+    mockParseCatalog.mockReturnValue([
+      { uri: 'https://pod.example/my-solid-app/img1/index.ttl', conformsTo: imageClass },
+    ]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    expect(mockEnsureDiscoveryAccess).toHaveBeenCalledWith(
+      catalogUri,
+      'https://pod.example/my-solid-app/',
+      ownerWebId,
+      request.requesterWebId,
+      mockFetch
+    );
+  });
+
+  it('approve(type) skips containers that fail and still grants the rest', async () => {
+    const request = makeTypeRequest();
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url === catalogUri) return { ok: true, status: 200, text: async () => 'CATALOG_TTL' };
+      return { ok: true };
+    });
+    mockParseCatalog.mockReturnValue([
+      { uri: 'https://pod.example/my-solid-app/img-stale/index.ttl', conformsTo: imageClass },
+      { uri: 'https://pod.example/my-solid-app/img-live/index.ttl', conformsTo: imageClass },
+    ]);
+    mockGrantContainerReadAccess.mockImplementation(async (containerUri: string) => {
+      if (containerUri.includes('img-stale')) {
+        throw new Error(`HEAD ${containerUri} returned 404 Not Found`);
+      }
+    });
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    const successfulCalls = mockGrantContainerReadAccess.mock.calls
+      .map((call) => call[0])
+      .filter((containerUri: string) => containerUri.includes('img-live'));
+    expect(successfulCalls).toEqual(['https://pod.example/my-solid-app/img-live/']);
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith(request.messageUri, mockFetch);
+    expect(result.current.requests).toEqual([]);
+  });
+
+  it('approve(type) fails when every matching container is unreachable', async () => {
+    const request = makeTypeRequest();
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url === catalogUri) return { ok: true, status: 200, text: async () => 'CATALOG_TTL' };
+      return { ok: true };
+    });
+    mockParseCatalog.mockReturnValue([
+      { uri: 'https://pod.example/my-solid-app/img1/index.ttl', conformsTo: imageClass },
+      { uri: 'https://pod.example/my-solid-app/img2/index.ttl', conformsTo: imageClass },
+    ]);
+    mockGrantContainerReadAccess.mockRejectedValue(new Error('HEAD returned 404'));
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    expect(mockDeleteAccessRequest).not.toHaveBeenCalled();
+    expect(result.current.requests).toHaveLength(1);
+    expect(result.current.error).toContain('404');
+  });
+
+  it('approve(type) sets error when the catalog GET fails', async () => {
+    const request = makeTypeRequest();
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url === catalogUri) return { ok: false, status: 403, statusText: 'Forbidden' };
+      return { ok: true };
+    });
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    expect(mockGrantContainerReadAccess).not.toHaveBeenCalled();
+    expect(result.current.error).toBeTruthy();
   });
 
   it('deny sets error with err.message when an Error instance is thrown', async () => {
