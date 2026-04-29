@@ -37,7 +37,15 @@
     "searchClearLabel": "Suche löschen",
     "searchNoResults": "Keine Dateien passen zu \"{{query}}\"",
     "searchMatchCount_one": "1 Treffer",
-    "searchMatchCount_other": "{{count}} Treffer"
+    "searchMatchCount_other": "{{count}} Treffer",
+    "myDrive": "Mein Pod",
+    "dropZoneLabel": "Dateien hier ablegen, um in {{destination}} hochzuladen",
+    "uploadTrayHeader": "Uploads ({{count}})",
+    "uploadTrayClearCompleted": "Erledigte entfernen",
+    "uploadTrayRetry": "Wiederholen",
+    "uploadTrayDismiss": "Schließen",
+    "unsupportedFolderDrop": "Ordner werden noch nicht unterstützt. Bitte einzelne Dateien ablegen.",
+    "uploadDuplicate": "Eine Datei mit dem Namen \"{{name}}\" existiert bereits in \"{{folder}}\"."
   },
   "fileCard": {
     "loading": "Wird geladen\u2026",

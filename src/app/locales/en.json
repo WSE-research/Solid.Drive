@@ -37,7 +37,15 @@
     "searchClearLabel": "Clear search",
     "searchNoResults": "No files match \"{{query}}\"",
     "searchMatchCount_one": "1 match",
-    "searchMatchCount_other": "{{count}} matches"
+    "searchMatchCount_other": "{{count}} matches",
+    "myDrive": "My Drive",
+    "dropZoneLabel": "Drop files here to upload to {{destination}}",
+    "uploadTrayHeader": "Uploads ({{count}})",
+    "uploadTrayClearCompleted": "Clear completed",
+    "uploadTrayRetry": "Retry",
+    "uploadTrayDismiss": "Dismiss",
+    "unsupportedFolderDrop": "Folders aren't supported yet. Please drop individual files instead.",
+    "uploadDuplicate": "A file named \"{{name}}\" already exists in \"{{folder}}\"."
   },
   "fileCard": {
     "loading": "Loading\u2026",

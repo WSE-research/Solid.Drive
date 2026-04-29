@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 
-import { useState, Fragment, useCallback, useEffect } from "react";
-import type { FunctionComponent } from "react";
+import { useState, Fragment, useCallback, useEffect, useRef } from "react";
+import type { DragEvent, FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
@@ -19,9 +19,13 @@ import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
 import { useCatalog } from "@/features/file-explorer/hooks/useCatalog";
 import { useFileSearch } from "@/features/file-explorer/hooks/useFileSearch";
+import { useUploadQueue } from "@/features/file-explorer/hooks/useUploadQueue";
 import { NewFolderInput } from "@/features/file-explorer/components/NewFolderInput";
 import { SearchInput } from "@/features/file-explorer/components/SearchInput";
 import { SearchResults } from "@/features/file-explorer/components/SearchResults";
+import { DropZone } from "@/features/file-explorer/components/DropZone";
+import { UploadTray } from "@/features/file-explorer/components/UploadTray";
+import { hasUnsupportedFolderDrop } from "@/features/file-explorer/services/dragAndDrop";
 import { DriveFileList } from "./DriveFileList";
 import type { SolidLeaf } from "@ldo/connected-solid";
 
@@ -74,6 +78,81 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   const currentContainer = useResource(currentUri);
 
+  const [dragState, setDragState] = useState<"idle" | "over-panel" | "over-card">("idle");
+  const dragCounterRef = useRef(0);
+  const [prefilledFile, setPrefilledFile] = useState<File | undefined>();
+  const profileHasCatalog = !!profile?.catalog?.["@id"];
+  const safeCatalogUri = catalogUri ?? "";
+  const {
+    items: uploadItems,
+    enqueueInstant,
+    dismiss: dismissUpload,
+    retry: retryUpload,
+  } = useUploadQueue(safeCatalogUri, profileHasCatalog, catalogEntries);
+  const isOverPanel = dragState === "over-panel";
+
+  const currentFolderLabel =
+    breadcrumbs.length > 0
+      ? breadcrumbs[breadcrumbs.length - 1].label
+      : translate("fileExplorer.myDrive");
+
+  const handleDragEnter = useCallback((event: DragEvent<HTMLElement>) => {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    dragCounterRef.current += 1;
+    setDragState((current) => (current === "over-card" ? "over-card" : "over-panel"));
+  }, []);
+
+  const handleDragOver = useCallback((event: DragEvent<HTMLElement>) => {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) setDragState("idle");
+  }, []);
+
+  const dispatchDrop = useCallback((files: File[], destinationUri: string, destinationLabel: string) => {
+    if (files.length === 0) return;
+    if (files.length === 1) {
+      setPrefilledFile(files[0]);
+      setShowUpload(true);
+    } else {
+      enqueueInstant(files, destinationUri, destinationLabel);
+    }
+  }, [enqueueInstant]);
+
+  const handlePanelDrop = useCallback((event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    dragCounterRef.current = 0;
+    setDragState("idle");
+    if (!currentContainer || isSearching) return;
+    if (hasUnsupportedFolderDrop(event.dataTransfer)) {
+      showError(translate("fileExplorer.unsupportedFolderDrop"));
+      return;
+    }
+    if (!currentUri) return;
+    const files = Array.from(event.dataTransfer.files);
+    dispatchDrop(files, currentUri, currentFolderLabel);
+  }, [currentContainer, currentUri, currentFolderLabel, dispatchDrop, isSearching, showError, translate]);
+
+  const handleFolderDragOverChange = useCallback((isOver: boolean) => {
+    setDragState(isOver ? "over-card" : "over-panel");
+  }, []);
+
+  const handleFolderDrop = useCallback((files: File[], targetUri: string, dataTransfer: DataTransfer | null) => {
+    dragCounterRef.current = 0;
+    setDragState("idle");
+    if (isSearching) return;
+    if (hasUnsupportedFolderDrop(dataTransfer)) {
+      showError(translate("fileExplorer.unsupportedFolderDrop"));
+      return;
+    }
+    const folderLabel = decodeURIComponent(targetUri.replace(/\/$/, "").split("/").pop() ?? "");
+    dispatchDrop(files, targetUri, folderLabel);
+  }, [dispatchDrop, isSearching, showError, translate]);
+
   /** Download a file via the session and trigger a browser save. */
   const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {
     try {
@@ -125,6 +204,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   const handleUploadDone = useCallback(() => {
     setShowUpload(false);
+    setPrefilledFile(undefined);
   }, []);
 
   useEffect(() => {
@@ -185,8 +265,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const leafEntries = entries.filter((entry) => !isSolidContainer(entry)).filter(isVisibleLeaf) as SolidLeaf[];
 
   return (
-    <main>
+    <main
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handlePanelDrop}
+    >
       <SearchInput value={searchQuery} onChange={setSearchQuery} />
+      <DropZone visible={isOverPanel} destinationLabel={currentFolderLabel} />
       {isSearching ? (
         <SearchResults
           query={debouncedQuery}
@@ -199,8 +285,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             <FileUpload
               mainContainer={currentContainer}
               catalogUri={catalogUri}
-              profileHasCatalog={!!profile?.catalog?.["@id"]}
+              profileHasCatalog={profileHasCatalog}
               onUploadSuccess={handleUploadDone}
+              prefilledFile={prefilledFile}
             />
           )}
 
@@ -275,11 +362,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             catalogContainerUris={catalogContainerUris}
             onNavigate={handleNavigate}
             onDownload={handleDownload}
+            onFolderDrop={handleFolderDrop}
+            onFolderDragOverChange={handleFolderDragOverChange}
           />
 
           <SharedWithMeSection contacts={contacts} ownerWebId={session.webId ?? ""} />
         </>
       )}
+      <UploadTray items={uploadItems} onDismiss={dismissUpload} onRetry={retryUpload} />
     </main>
   );
 };

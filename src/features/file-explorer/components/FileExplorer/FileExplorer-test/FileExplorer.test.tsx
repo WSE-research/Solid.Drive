@@ -96,10 +96,39 @@ vi.mock('@/features/file-explorer/components/SharedWithMeSection', () => ({
 
 let capturedUploadDone: (() => void) | null = null;
 vi.mock('@/features/file-explorer/components/FileUpload', () => ({
-  FileUpload: ({ onUploadSuccess }: { onUploadSuccess: () => void }) => {
+  FileUpload: ({ onUploadSuccess, prefilledFile }: { onUploadSuccess: () => void; prefilledFile?: File }) => {
     capturedUploadDone = onUploadSuccess;
-    return <div data-testid="file-upload" />;
+    return (
+      <div data-testid="file-upload">
+        {prefilledFile ? <span>{prefilledFile.name}</span> : null}
+      </div>
+    );
   },
+}));
+
+const mockEnqueueInstant = vi.fn();
+const mockDismiss = vi.fn();
+const mockRetry = vi.fn();
+let mockQueueItems: unknown[] = [];
+
+vi.mock('@/features/file-explorer/hooks/useUploadQueue', () => ({
+  useUploadQueue: () => ({
+    items: mockQueueItems,
+    enqueueInstant: mockEnqueueInstant,
+    dismiss: mockDismiss,
+    retry: mockRetry,
+    hasActive: mockQueueItems.length > 0,
+  }),
+}));
+
+vi.mock('@/features/file-explorer/components/DropZone', () => ({
+  DropZone: ({ visible, destinationLabel }: { visible: boolean; destinationLabel: string }) =>
+    visible ? <div data-testid="drop-zone" data-destination={destinationLabel} /> : null,
+}));
+
+vi.mock('@/features/file-explorer/components/UploadTray', () => ({
+  UploadTray: ({ items }: { items: unknown[] }) =>
+    items.length > 0 ? <div data-testid="upload-tray" /> : null,
 }));
 
 let capturedNewFolderDone: (() => void) | null = null;
@@ -505,5 +534,104 @@ describe('FileExplorer search toggle', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('FileExplorer drag-and-drop', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockQueueItems = [];
+    mockSession.isLoggedIn = true;
+    mockSession.webId = 'https://pod.example/profile/card#me';
+    mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
+    mockUseDriveInit.noStorageDetected = false;
+    mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
+    mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
+    mockUseDriveInit.breadcrumbs = [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }];
+    vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
+    vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
+    mockedUseCatalog.mockReturnValue(defaultCatalogReturn);
+  });
+
+  it('shows DropZone when files are dragged over the panel', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    fireEvent.dragEnter(main, { dataTransfer: { types: ['Files'] } });
+    expect(screen.getByTestId('drop-zone')).toBeInTheDocument();
+  });
+
+  it('does not show DropZone when non-file data is dragged', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    fireEvent.dragEnter(main, { dataTransfer: { types: ['text/plain'] } });
+    expect(screen.queryByTestId('drop-zone')).toBeNull();
+  });
+
+  it('dropping a single file opens the upload form prefilled', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    const file = new File(['x'], 'one.txt', { type: 'text/plain' });
+    fireEvent.drop(main, { dataTransfer: { files: [file], types: ['Files'] } });
+    expect(screen.getByText('one.txt')).toBeInTheDocument();
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+  });
+
+  it('dropping two files calls enqueueInstant', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    const files = [new File(['x'], 'a.txt'), new File(['y'], 'b.txt')];
+    fireEvent.drop(main, { dataTransfer: { files, types: ['Files'] } });
+    expect(mockEnqueueInstant).toHaveBeenCalledTimes(1);
+    expect(mockEnqueueInstant.mock.calls[0][0]).toEqual(files);
+  });
+
+  it('rejects a folder drop with a translated error and never calls enqueueInstant', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    const dataTransfer = {
+      files: [],
+      types: ['Files'],
+      items: [
+        { kind: 'file', webkitGetAsEntry: () => ({ isDirectory: true, isFile: false }) },
+      ],
+    };
+    fireEvent.drop(main, { dataTransfer });
+    expect(mockShowError).toHaveBeenCalledWith('fileExplorer.unsupportedFolderDrop');
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+  });
+
+  it('dropping multiple files on a folder card calls enqueueInstant with the folder URI and label', () => {
+    render(<FileExplorer />);
+    const files = [new File(['x'], 'a.txt'), new File(['y'], 'b.txt')];
+    const dataTransfer = { files, types: ['Files'] } as unknown as DataTransfer;
+    const onFolderDrop = capturedDriveFileListProps.onFolderDrop as
+      | ((files: File[], targetUri: string, dataTransfer: DataTransfer) => void)
+      | undefined;
+    act(() => {
+      onFolderDrop?.(files, 'https://pod.example/photos/', dataTransfer);
+    });
+    expect(mockEnqueueInstant).toHaveBeenCalledTimes(1);
+    expect(mockEnqueueInstant.mock.calls[0][0]).toEqual(files);
+    expect(mockEnqueueInstant.mock.calls[0][1]).toBe('https://pod.example/photos/');
+    expect(mockEnqueueInstant.mock.calls[0][2]).toBe('photos');
+  });
+
+  it('dropping a folder onto a folder card surfaces the unsupported-folder error and never calls enqueueInstant', () => {
+    render(<FileExplorer />);
+    const dataTransfer = {
+      files: [],
+      types: ['Files'],
+      items: [
+        { kind: 'file', webkitGetAsEntry: () => ({ isDirectory: true, isFile: false }) },
+      ],
+    } as unknown as DataTransfer;
+    const onFolderDrop = capturedDriveFileListProps.onFolderDrop as
+      | ((files: File[], targetUri: string, dataTransfer: DataTransfer) => void)
+      | undefined;
+    act(() => {
+      onFolderDrop?.([], 'https://pod.example/photos/', dataTransfer);
+    });
+    expect(mockShowError).toHaveBeenCalledWith('fileExplorer.unsupportedFolderDrop');
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
   });
 });

@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { loadTBox, validateMetadata, type ShapeDefinition, type ValidationResult } from "@/infrastructure/validation/tboxValidator";
-import { resolveClass } from "@/infrastructure/validation/fileTypeRegistry";
+import { loadTBox, type ValidationResult } from "@/infrastructure/validation/tboxValidator";
+import { validateFile } from "@/infrastructure/validation/validateFile";
 
 /**
  * Return value from the useFileValidation hook.
@@ -42,51 +42,51 @@ export function useFileValidation(
   description: string,
   webId: string | undefined
 ): UseFileValidationReturn {
-  const [tbox, setTbox] = useState<{ shapes: Map<string, ShapeDefinition>; parents: Map<string, string[]> } | null>(null);
+  const [isReady, setIsReady] = useState<boolean>(false);
   const [tboxError, setTboxError] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
 
-  // Load TBox once on mount
+  // Load TBox once on mount; only track success/error here.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const result = await loadTBox();
-        if (!cancelled) setTbox(result);
-      } catch (err) {
+    void loadTBox()
+      .then(() => {
+        if (!cancelled) {
+          setIsReady(true);
+          setTboxError(null);
+        }
+      })
+      .catch((err) => {
         if (!cancelled) setTboxError((err as Error).message);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Validate whenever form state or TBox changes
+  // Validate whenever form state changes; defer to the pure validateFile helper.
   useEffect(() => {
-    if (!tbox || !file) {
+    if (!isReady || !file) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setValidation(null);
       return;
     }
-    const classUri = resolveClass(file.type);
-    /* v8 ignore next */
-    const typeLocalName = classUri.split(/[#/]/).pop() ?? "DigitalDocument";
-    const snapshot: Record<string, unknown> = {
-      name: title.trim() || file.name,
-      description: description.trim() || undefined,
-      encodingFormat: file.type || undefined,
-      contentSize: file.size.toString(),
-      uploadDate: new Date().toISOString(),
-      publisher: { "@id": webId ?? "" },
-      type: [{ "@id": typeLocalName }],
+    let cancelled = false;
+    void validateFile(file, title, description, webId ?? "")
+      .then((result) => {
+        if (!cancelled) setValidation(result);
+      })
+      .catch(() => {
+        if (!cancelled) setValidation(null);
+      });
+    return () => {
+      cancelled = true;
     };
-    setValidation(validateMetadata(snapshot, classUri, tbox.shapes, tbox.parents));
-  }, [tbox, file, title, description, webId]);
+  }, [isReady, file, title, description, webId]);
 
   return {
     validation,
     tboxError,
-    isReady: !!tbox,
+    isReady,
   };
 }

@@ -399,3 +399,84 @@ search-results { display: block; margin-top: 4px; }
   color: var(--text-muted);
   margin: 0 0 12px 4px;
 }
+
+/* --- Drop zone (inline, between SearchInput and content) --- */
+drop-zone {
+  display: none;
+}
+drop-zone.drop-zone--active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 560px;
+  margin: 0 auto 16px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 2px dashed rgba(37, 99, 235, 0.6);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+drop-zone-icon {
+  font-size: 16px;
+  color: var(--accent);
+}
+drop-zone-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* --- Folder entry drop-target highlight --- */
+.folder-entry--drop-target {
+  border-color: rgba(37, 99, 235, 0.6);
+  background: var(--surface-2);
+}
+
+/* --- Upload tray --- */
+upload-tray {
+  display: block;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+}
+.upload-tray__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.upload-tray__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+upload-tray-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+upload-tray-row:last-child { border-bottom: none; }
+.upload-tray-row__name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-tray-row__destination { color: var(--text-muted); font-size: 11px; }
+.upload-tray-row__status { display: inline-flex; align-items: center; gap: 6px; }
+.upload-tray-row__error { color: var(--danger); font-size: 11px; }
+.upload-tray-row__success { color: var(--accent); }
+.upload-tray-row__queued { color: var(--text-muted); }
+upload-tray-row.upload-tray-row--error { background: rgba(220, 38, 38, 0.04); }
+upload-tray-row.upload-tray-row--success { background: rgba(37, 99, 235, 0.04); }
+upload-tray-row-actions { display: inline-flex; gap: 4px; }
