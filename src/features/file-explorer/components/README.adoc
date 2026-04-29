@@ -4,13 +4,15 @@ UI components for the file explorer feature.
 
 == Contents
 
-link:FileExplorer/[FileExplorer]:: Root coordinator: navigation state, breadcrumbs, file listing, upload, shared files section
+link:FileExplorer/[FileExplorer]:: Root coordinator: navigation state, breadcrumbs, file listing, upload, search, shared files section
 link:FileCard/[FileCard]:: Displays a single uploaded file: preview, metadata, info panel, share panel, delete
 link:FileUpload/[FileUpload]:: Upload form with TBox validation; creates container, writes binary + `index.ttl`, updates catalog
 link:FolderEntry/[FolderEntry]:: Clickable row for navigating into a Pod container that is not managed by this app
+link:NewFolderInput/[NewFolderInput]:: Inline input form for creating a new folder as an LDP BasicContainer
+link:SearchInput/[SearchInput]:: Controlled pill-shaped search box with a clear button; used by `FileExplorer` to drive pod-wide search
+link:SearchResults/[SearchResults]:: Flat list of catalog entries matching the current query; renders a match count + one `FileCard` per hit, or an empty state when nothing matches
 link:SharePanel/[SharePanel]:: Grant/revoke per-file access to contacts via WAC ACLs and shared catalogs
 link:SharedWithMeSection/[SharedWithMeSection]:: Shows files shared by contacts; reads per-contact shared catalogs and checks accessibility
-link:NewFolderInput/[NewFolderInput]:: Inline input form for creating a new folder as an LDP BasicContainer
 link:TypeFolder/[TypeFolder]:: Collapsible folder grouped by schema.org type, with request access buttons per-file
 
 == Navigation

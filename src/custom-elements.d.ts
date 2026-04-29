@@ -85,6 +85,11 @@ declare module "react" {
       "confirm-overlay": El;
       "confirm-dialog": El;
       "confirm-dialog-actions": El;
+      // SearchInput
+      "search-input": El;
+      "search-input-clear": El;
+      // SearchResults
+      "search-results": El;
     }
   }
 }

@@ -1,0 +1,42 @@
+= useCatalog
+
+Fetches and parses the user's DCAT catalog into typed `CatalogEntry` objects.
+
+== Behaviour
+
+. When `catalogUri` is defined, fetches it with the authenticated `solidFetch`.
+. On a 2xx response, parses the body with `parseCatalog` into `CatalogEntry[]`.
+. Derives `containerUris` by mapping each entry URI through `toContainerUri`.
+. Refetches whenever `catalogUri` changes; cancels in-flight work on unmount.
+. Non-2xx responses or parse failures result in empty `entries` and `containerUris`. Thrown errors surface via `error`.
+
+== Parameters
+
+[cols="1,1,3", options="header"]
+|===
+| Parameter | Type | Description
+
+| `catalogUri` | `string \| undefined` | The catalog to fetch. Undefined disables the effect.
+|===
+
+== Returns
+
+[cols="1,1,3", options="header"]
+|===
+| Key | Type | Description
+
+| `entries`       | `CatalogEntry[]` | Parsed catalog entries
+| `containerUris` | `Set<string>`    | Container URI for each entry, pre-computed for routing
+| `loading`       | `boolean`        | True while a fetch is in flight
+| `error`         | `Error \| null`  | Last thrown error, if any
+|===
+
+== See also
+
+* link:../../../../infrastructure/solid/catalog/[catalog] for the fetch + parse primitives.
+* link:../useFileSearch/[useFileSearch] consumes `entries` to produce search hits.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]

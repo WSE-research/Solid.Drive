@@ -5,9 +5,11 @@ React hooks for the file explorer feature.
 == Contents
 
 link:useAccessRequests/[useFileAccessRequests]:: Sends access requests to a contact's inbox for individual files or all files at once
+link:useCatalog/[useCatalog]:: Fetches and parses the user's DCAT catalog once; exposes entries and pre-computed container URIs
 link:useCreateFolder/[useCreateFolder]:: Validates folder names and creates new LDP BasicContainers on a Solid pod
 link:useDriveInitialization/[useDriveInitialization]:: Discovers Pod storage, creates app container, sets up navigation state
 link:useFilePreview/[useFilePreview]:: Creates a blob URL for previewing a binary resource; revokes on cleanup
+link:useFileSearch/[useFileSearch]:: Debounced, case-insensitive substring filter over catalog entries (matches `title` or `mediaType`, AND across whitespace-separated terms)
 link:useFileSharing/[useFileSharing]:: Checks if a resource has been shared (has non-owner ACL agents)
 link:useFileTypes/[useFileTypes]:: Loads and caches file type definitions from `tbox.ttl`
 link:useFileUpload/[useFileUpload]:: Executes the full upload sequence (container, binary, metadata, catalog)

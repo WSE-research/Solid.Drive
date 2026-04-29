@@ -1,0 +1,24 @@
+= SearchResults
+
+Flat list of catalog entries shown while the user is actively searching.
+
+== Behaviour
+
+. When `results` is empty, shows an empty-state with the query interpolated via `fileExplorer.searchNoResults`.
+. Otherwise renders a pluralized match count (`fileExplorer.searchMatchCount` with i18next `_one` / `_other` plural keys) followed by one link:../FileCard/[FileCard] per entry; each entry URI is converted to a container URI with `toContainerUri`.
+
+== Props
+
+[cols="1,1,3", options="header"]
+|===
+| Prop | Type | Description
+
+| `query`       | `string`         | Debounced query used for the empty-state message
+| `results`     | `CatalogEntry[]` | Matching entries from link:../../hooks/useFileSearch/[useFileSearch]
+| `catalogUri`  | `string`         | Catalog URI passed through to each `FileCard`
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/components]

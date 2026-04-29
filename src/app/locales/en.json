@@ -32,7 +32,12 @@
     "newFolderPlaceholder": "Folder name",
     "newFolderEmpty": "Folder name cannot be empty",
     "newFolderInvalidChars": "Name cannot contain: / \\ : * ? \" < > |",
-    "newFolderError": "Failed to create folder"
+    "newFolderError": "Failed to create folder",
+    "searchPlaceholder": "Search your pod",
+    "searchClearLabel": "Clear search",
+    "searchNoResults": "No files match \"{{query}}\"",
+    "searchMatchCount_one": "1 match",
+    "searchMatchCount_other": "{{count}} matches"
   },
   "fileCard": {
     "loading": "Loading\u2026",

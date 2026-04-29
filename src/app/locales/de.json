@@ -32,7 +32,12 @@
     "newFolderPlaceholder": "Ordnername",
     "newFolderEmpty": "Ordnername darf nicht leer sein",
     "newFolderInvalidChars": "Name darf nicht enthalten: / \\ : * ? \" < > |",
-    "newFolderError": "Ordner konnte nicht erstellt werden"
+    "newFolderError": "Ordner konnte nicht erstellt werden",
+    "searchPlaceholder": "In deinem Pod suchen",
+    "searchClearLabel": "Suche löschen",
+    "searchNoResults": "Keine Dateien passen zu \"{{query}}\"",
+    "searchMatchCount_one": "1 Treffer",
+    "searchMatchCount_other": "{{count}} Treffer"
   },
   "fileCard": {
     "loading": "Wird geladen\u2026",
