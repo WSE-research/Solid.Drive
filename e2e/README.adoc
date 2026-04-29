@@ -1,0 +1,284 @@
+= e2e tests
+:toc: macro
+:toclevels: 2
+
+End-to-end tests for the category-level access feature. They run two
+real browser contexts (Peach as owner, Parni as requester) against a
+local Community Solid Server (CSS) and the Vite dev build of the app.
+
+toc::[]
+
+== Quick start
+
+[source,bash]
+----
+npm run test:e2e         # headless, list reporter
+npm run test:e2e:ui      # Playwright UI mode (great for debugging)
+
+# focus on a single file
+npx playwright test e2e/tests/category-share.spec.ts
+
+# focus on tests matching a name
+npx playwright test -g "Peach revokes"
+----
+
+First time only:
+
+[source,bash]
+----
+npx playwright install chromium     # downloads the headless browser
+----
+
+Once the suite is green, the post-mortem artifacts (screenshots, video,
+trace) for any failure are under `test-results/`.
+
+== What boots when you run
+
+`playwright test` launches two services via the `webServer` config in
+`playwright.config.ts`:
+
+[cols="1,3", options="header"]
+|===
+| Service | Notes
+
+| Vite dev server on `:5173`
+| The app under test, served by `npm run dev`.
+
+| Community Solid Server on `:3001`
+| In-memory, seeded with two accounts via `e2e/fixtures/seed.json`:
++
+* `peach@e2e.test` / `peachy` → pod at `/peach/`
+* `parni@e2e.test` / `parnitest` → pod at `/parni/`
+|===
+
+`reuseExistingServer: !process.env.CI` is on locally, so back-to-back
+runs share the same CSS process. State accumulates in CSS memory across
+those runs; the per-test fixtures (see <<test-fixture>>) wipe Peach's
+pod and Parni's profile state at the start of every test, so leakage
+doesn't matter in practice. To guarantee a fresh CSS, kill the
+`community-solid-server` process before running.
+
+CI gets `reuseExistingServer: false` and a fresh CSS for every job.
+
+== Layout
+
+[cols="1,3", options="header"]
+|===
+| Path | Purpose
+
+| `playwright.config.ts`            | Test runner config + `webServer` boot for Vite and CSS.
+| `e2e/fixtures/seed.json`          | CSS seed config (two accounts, two pods).
+| `e2e/fixtures/assets/*.png`       | Real PNGs uploaded as the binary content of seeded files.
+3+| **Helpers**
+| `e2e/helpers/fixtures.ts`         | Playwright fixture (`peach`, `parni`) + `freshLogin`. Use this in new tests.
+| `e2e/helpers/css-auth.ts`         | `getAuthenticatedFetch` — CSS account API → client-credentials → DPoP-bound `fetch`.
+| `e2e/helpers/login-ui.ts`         | `loginAsViaUI` — drives the Solid OIDC dance through the app's Header.
+| `e2e/helpers/seed.ts`             | Pod-shaping helpers: profile basics, file upload, ACL grants, contact, cleanup.
+| `e2e/helpers/ui-actions.ts`       | UI-action helpers: add contact, request access, approve/deny, revoke via SharePanel, expand a type folder.
+3+| **Tests**
+| `e2e/tests/category-share.spec.ts`     | Focused: type request → approve → file appears as shared.
+| `e2e/tests/revoke-keeps-visible.spec.ts` | Focused: programmatic ACL revoke moves the file to "Also available", not gone.
+| `e2e/tests/revoke-ui.spec.ts`         | UI revoke via SharePanel; complements the focused revoke test.
+| `e2e/tests/deny.spec.ts`              | Denied request renders "Denied" + "Request Again" on the requester side.
+| `e2e/tests/full-journey.spec.ts`      | The complete UI journey from add-contact through type approve.
+|===
+
+== How to add a test
+
+Every test starts from a Playwright fixture that authenticates both
+users and wipes Peach's pod. Pull `peach` and `parni` from the fixture
+and call seeders for your specific scenario.
+
+[source,typescript]
+----
+import { test, expect, freshLogin } from "../helpers/fixtures";
+import { addContact, grantDiscoveryAccess, seedFile } from "../helpers/seed";
+
+test("describe what is being asserted", async ({ browser, peach, parni }) => {
+  test.setTimeout(180_000);
+
+  // 1. Direct fetch: shape the world the way your scenario expects.
+  await seedFile({
+    authedFetch: peach.authedFetch,
+    pod: peach.pod,
+    fileName: `something-${Date.now()}.png`,
+    classUri: "http://schema.org/ImageObject",
+    mediaType: "image/png",
+    title: "My File",
+    asset: "Holiday_Photo.png",
+  });
+  await grantDiscoveryAccess(peach.authedFetch, peach.pod, parni.pod.webId);
+  await addContact(parni.authedFetch, parni.pod.webId, peach.pod.webId);
+
+  // 2. UI: drive the surfaces this test cares about.
+  const session = await freshLogin(browser, parni);
+  await session.page.getByRole("button", { name: /Request all Image/i }).click();
+  // ...
+
+  await session.close();
+});
+----
+
+=== When to use direct fetch vs. drive the UI
+
+Direct fetch (`peach.authedFetch`, `parni.authedFetch`) is for
+**setup**: catalog rows, ACLs, contacts, profile triples. Anything that
+isn't the surface under test goes through fetch — much faster, less
+brittle, and the backing helpers in `seed.ts` mirror what the real
+production code does.
+
+The UI is for the **assertion**: the actual button, the expected text,
+the disappearance of a folder. Drive only what your test claims to
+verify.
+
+=== When to call `freshLogin` vs. reuse a page
+
+After **the other side** changes server state (Peach approves Parni's
+request, Peach revokes), Parni's existing browser context still holds
+pre-change auth tokens and LDO subject caches. Reading the new state
+through the existing context is unreliable. Close the old context and
+call `freshLogin` again — it's a one-liner now.
+
+== Debugging
+
+=== Playwright UI mode
+
+Best for understanding a flaky failure or a new test:
+
+[source,bash]
+----
+npm run test:e2e:ui
+----
+
+Lets you step through actions, see network calls per step, and re-run a
+single test without restarting CSS.
+
+=== Failure artifacts
+
+When headless runs fail, look under `test-results/` for the failing
+test's directory. Each contains:
+
+- `test-failed-1.png` (and possibly more) — screenshots at the assertion
+- `video.webm` — full run
+- `trace.zip` — open with `npx playwright show-trace test-results/<dir>/trace.zip` for a timeline of every action, request, and DOM snapshot
+
+=== Reading the network panel
+
+If you open Playwright UI mode you'll see red entries even on green
+tests. Most are by design:
+
+[cols="1,3", options="header"]
+|===
+| Error | What it means
+
+| `catalog.ttl 404`
+| The contact's main catalog doesn't exist (yet, or for this contact).
+  `useSharedCatalog` falls back gracefully.
+
+| `.shared-…/profile/card.ttl 403` (×2)
+| Path A in `useSharedCatalog` probes two candidate URIs (with and
+  without `#me` fragment). When neither exists, the hook falls through
+  to the main catalog.
+
+| `index.ttl 403` on a per-file metadata
+| `hasAccess` HEAD on a file the viewer can't read. That's how the hook
+  decides "shared vs. browsable".
+
+| `.acl 403`
+| `useAclManager.loadAcl` fired on a file the viewer doesn't own. Only
+  happens if the SharePanel was opened on a non-owned file.
+|===
+
+If you see something not on this list, especially a `404` for the
+binary URL of a shared file, that's a real bug — file it.
+
+== Architecture and design notes
+
+=== Drive only the parts of the UI we own
+
+The five specs exercise TypeFolder, RequestsPanel, SharePanel, the
+contact list, and the post-approval rendering in `useSharedCatalog`.
+Setup that doesn't matter to the assertion (file upload form, contact
+entry validation, etc.) goes through direct fetch in `seed.ts`. This:
+
+- Keeps each test focused on one or two new behaviors
+- Avoids brittle multi-step UI prerequisites
+- Doesn't re-test flows that already have unit coverage
+
+=== Why the seed helpers exist
+
+CSS produces minimal accounts and bare profiles. `ensureProfileBasics`
+adds what the app's profile-driven UI needs:
+
+. `pim:storage` triple → tells the app where the pod root is
+. `foaf:name` → display name in the contacts list
+. `ldp:inbox` triple → request notifications can find a target
+. `dcat:catalog` triple → catalog discovery works
+. Public `acl:Append` on the inbox → contacts can post requests
+
+`grantDiscoveryAccess` mirrors what the production
+`ensureDiscoveryAccess` does after approving any request: read on the
+main catalog, list-only on the app container. Without it, tests for
+"Parni sees Peach's catalog" can't get past the discovery step.
+
+=== State across tests
+
+Each test starts by:
+
+. Authenticating both users via client-credentials (cheap; ~250 ms each).
+. Patching profile basics (idempotent — duplicate triples are merged by RDF).
+. Wiping every child of Peach's `my-solid-app/` container, every inbox message, and the catalog file. The container itself is not deleted (CSS rejects DELETE once an ACL is attached).
+
+The fixture in `e2e/helpers/fixtures.ts` does this automatically. New
+tests don't need to call `cleanPod` or `ensureProfileBasics`
+themselves.
+
+[[test-fixture]]
+=== The `peach` and `parni` fixture
+
+Each test gets a `UserFixture`:
+
+[source,typescript]
+----
+type UserFixture = {
+  pod: PodIdentity;        // WebID, storageRoot, appContainer, catalogUri, inboxUri
+  email: string;
+  password: string;
+  authedFetch: typeof fetch;  // DPoP-bound, talks directly to CSS
+};
+----
+
+The `pod` field is the source of truth for URIs — never hard-code
+`http://localhost:3001/peach/...` in a test.
+
+== Known limitations / not tested
+
+The suite focuses on category-level access. It does **not** cover:
+
+- File upload UI (drag-and-drop, file picker, SHACL validation feedback) — has unit coverage in `useFileUpload-test`
+- Contact validation in the Add input — `useContacts-test`
+- Catalog editing / deletion via UI — `FileCard-test`
+- Concurrent requests from multiple contacts — single-user scenarios only
+- Federation across multiple Solid pod providers — local CSS only
+
+== Performance
+
+Cold (first invocation, CSS + Vite booting fresh):
+
+- Suite: ~3 minutes
+- CSS Components.js discovery alone: ~30 seconds
+
+Warm (CSS already running from a previous run, `reuseExistingServer`):
+
+- Suite: ~1 min 40 sec
+- Per spec: 7-25 seconds
+
+If a spec gets noticeably slower than that, reach for `--ui` mode to
+spot whatever is timing out.
+
+The current setup is intentionally unoptimized — every test logs in
+through the OIDC redirect dance, and `freshLogin` does so a second time
+after the other party changes server state. Cutting that to a single
+client-credentials token grant or to `storageState` reuse would shave
+the bulk of per-test overhead, but neither is on the table until we
+have a reason to spend more CI budget.

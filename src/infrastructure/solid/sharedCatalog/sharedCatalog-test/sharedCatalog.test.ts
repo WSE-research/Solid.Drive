@@ -123,6 +123,10 @@ describe("toContainerUri", () => {
       "https://pod.example/my-app/photo/"
     );
   });
+
+  it("returns the input unchanged when there is no slash to anchor on", () => {
+    expect(toContainerUri("noslash")).toBe("noslash");
+  });
 });
 
 // ─── hasAccess ─────────────────────────────────────────────────────────────────

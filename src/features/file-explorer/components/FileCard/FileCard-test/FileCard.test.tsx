@@ -284,11 +284,14 @@ describe('FileCard — full card render', () => {
     expect(screen.getByRole('link', { name: 'fileCard.download' })).toHaveAttribute('href', 'blob:preview');
   });
 
-  it('renders a download link using binaryUri when no previewUrl', () => {
-    // fileMeta.name is set → binaryUri = containerUri + name
+  it('does not guess a binary URL from a human-readable title when no container children are available', () => {
+    // schema:name often holds a human-readable title (e.g. "Holiday Photo"),
+    // not the binary's filename. Guessing `${containerUri}${name}` produced
+    // 404s for any titled file. With no container listing and no schema:image,
+    // we'd rather render no download link than a broken one.
+    withFileMeta({ name: 'Holiday Photo', image: undefined });
     renderCard();
-    const link = screen.getByRole('link', { name: 'fileCard.download' });
-    expect(link).toHaveAttribute('href', `${CONTAINER_URI}report.pdf`);
+    expect(screen.queryByRole('link', { name: 'fileCard.download' })).not.toBeInTheDocument();
   });
 
   it('hides download link when neither previewUrl nor binaryUri is available', () => {

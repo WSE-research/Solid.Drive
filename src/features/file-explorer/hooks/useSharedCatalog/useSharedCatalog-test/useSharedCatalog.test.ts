@@ -207,6 +207,33 @@ describe('useSharedCatalog', () => {
     expect(result.current.resolvedCatalogUri).toBe('https://contact.example/catalog.ttl');
   });
 
+  it('main-catalog fallback puts inaccessible entries into typeGroups', async () => {
+    const mainEntries = [
+      { uri: 'https://contact.example/files/visible/index.ttl', title: 'Visible', conformsTo: 'http://schema.org/ImageObject' },
+      { uri: 'https://contact.example/files/locked/index.ttl', title: 'Locked', conformsTo: 'http://schema.org/ImageObject' },
+    ];
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) return Promise.resolve({ ok: false });
+      if (url === 'https://contact.example/catalog.ttl') {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('main') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockReturnValue(mainEntries);
+    mockHasAccess.mockImplementation((uri: string) => Promise.resolve(uri.includes('/visible/')));
+
+    const { result } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(result.current.sharedEntries.map((entry) => entry.title)).toEqual(['Visible']);
+    });
+    const imageBucket = result.current.typeGroups.get('http://schema.org/ImageObject');
+    expect(imageBucket?.map((entry) => entry.title)).toEqual(['Locked']);
+  });
+
   it('returns empty when no catalogs are accessible', async () => {
     mockFetch.mockResolvedValue({ ok: false });
 
