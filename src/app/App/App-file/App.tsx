@@ -8,27 +8,32 @@ import type { FunctionComponent } from 'react';
 import { useSolidAuth, BrowserSolidLdoProvider } from '@ldo/solid-react';
 import { Header } from '@/features/auth/components/Header';
 import { FileExplorer } from '@/features/file-explorer/components/FileExplorer';
-import { ProfileSidebar } from '@/features/profile/components/ProfileSidebar';
+import { ClassicLayout } from '@/app/ClassicLayout';
+import { useSessionContinuity } from '@/app/hooks/useSessionContinuity';
+import { OneDriveLayout, useLayoutPreference } from '@/features/onedrive-layout';
 import { NotificationProvider } from '@/shared/contexts/NotificationContext';
 import './App.css';
 
 /**
- * Renders the main content area based on authentication state.
- * Shows sidebar layout when logged in, simple explorer when logged out.
+ * Renders the appropriate shell — OneDriveLayout in immersive mode, otherwise
+ * the classic Header + content stack.
  *
  * @internal
  */
-const AppContent: FunctionComponent = () => {
+const AppShell: FunctionComponent = () => {
   const { session } = useSolidAuth();
-  return session.isLoggedIn ? (
-    <app-layout>
-      <ProfileSidebar />
-      <main className="app-main">
-        <FileExplorer />
-      </main>
-    </app-layout>
-  ) : (
-    <FileExplorer />
+  const [layout] = useLayoutPreference();
+  const assumeLoggedIn = useSessionContinuity();
+
+  if (layout === 'onedrive' && assumeLoggedIn) {
+    return <OneDriveLayout />;
+  }
+
+  return (
+    <>
+      <Header />
+      {session.isLoggedIn ? <ClassicLayout /> : <FileExplorer />}
+    </>
   );
 };
 
@@ -43,8 +48,7 @@ const App: FunctionComponent = () => (
   <app-root>
     <BrowserSolidLdoProvider>
       <NotificationProvider>
-        <Header />
-        <AppContent />
+        <AppShell />
       </NotificationProvider>
     </BrowserSolidLdoProvider>
   </app-root>

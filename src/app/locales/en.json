@@ -141,5 +141,32 @@
   },
   "languageSwitcher": {
     "label": "Language"
+  },
+  "oneDriveLayout": {
+    "layout": "Layout",
+    "classic": "Classic",
+    "onedrive": "OneDrive",
+    "navRail": "Navigation",
+    "create": "Create",
+    "recent": "Home",
+    "myFiles": "My Files",
+    "shared": "Shared",
+    "requests": "Requests",
+    "bin": "Recycle Bin",
+    "people": "People",
+    "searchPlaceholder": "Search",
+    "settings": "Settings",
+    "account": "Account",
+    "logout": "Log out",
+    "viewProfile": "View profile",
+    "signedIn": "Signed in",
+    "viewTitle": {
+      "recent": "Home",
+      "myFiles": "My Files",
+      "shared": "Shared",
+      "requests": "Requests",
+      "bin": "Recycle Bin",
+      "people": "People"
+    }
   }
 }

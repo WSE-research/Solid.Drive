@@ -1,0 +1,451 @@
+/*
+ * OneDrive inspired layout: design tokens and base shell styles.
+ * All tokens are scoped to <onedrive-layout> so the classic layout is unaffected.
+ *
+ * Token values are placeholders measured against docs/images/Solid.drive_*.png;
+ * the visual-polish task locks final values.
+ */
+
+/*
+ * Tokens are declared at :root so Radix portaled content (DropdownMenu, Tooltip,
+ * Dialog) — which renders into document.body, OUTSIDE the <onedrive-layout>
+ * subtree — can still resolve --odl-* variables.
+ */
+:root {
+  /* surfaces */
+  --odl-bg-page:       #0e0e10;
+  --odl-bg-panel:      #1a1a1d;
+  --odl-bg-elevated:   #232327;
+  --odl-bg-hover:      #2a2a2f;
+  --odl-border:        #2c2c31;
+  --odl-divider:       #3a3a3f;
+
+  /* text */
+  --odl-text:          #f3f3f3;
+  --odl-text-muted:    #9c9ca3;
+  --odl-text-faint:    #6e6e74;
+
+  /* accent (Fluent communication blue, matches OneDrive) */
+  --odl-accent:        #0f6cbd;
+  --odl-accent-strong: #115ea3;
+  --odl-accent-soft:   rgba(15, 108, 189, 0.16);
+
+  /* brand (sampled from the Solid.drive logo — used for the create (+) button) */
+  --odl-brand:               #5854d6;
+  --odl-brand-strong:        #4641c4;
+  --odl-brand-soft:          rgba(88, 84, 214, 0.30);
+  --odl-brand-gradient:      linear-gradient(135deg, #3b82f6 0%, #5854d6 100%);
+  --odl-brand-gradient-hover: linear-gradient(135deg, #2563eb 0%, #4641c4 100%);
+
+  /* radii */
+  --odl-radius-panel:  16px;
+  --odl-radius-input:  999px;
+  --odl-radius-chip:   8px;
+  --odl-radius-card:   12px;
+  --odl-radius-pill:   999px;
+
+  /* spacing scale */
+  --odl-space-1: 4px;
+  --odl-space-2: 8px;
+  --odl-space-3: 12px;
+  --odl-space-4: 16px;
+  --odl-space-5: 20px;
+  --odl-space-6: 24px;
+  --odl-space-8: 32px;
+
+  /* layout dimensions (matched to OneDrive proportions) */
+  --odl-rail-width:    92px;
+  --odl-detail-width:  220px;
+  --odl-topbar-height: 88px;
+  --odl-row-height:    52px;
+  --odl-icon-size:     20px;
+
+  /* type */
+  --odl-font-size-sm:  12px;
+  --odl-font-size-md:  14px;
+  --odl-font-size-lg:  16px;
+
+  /* motion */
+  --odl-transition-fast: 120ms ease;
+  --odl-transition-med:  200ms ease;
+}
+
+onedrive-layout {
+  /* OneDrive-style two-row, two-column layout: top bar spans the full width,
+     rail and main content sit beneath it. */
+  display: grid;
+  grid-template-columns: var(--odl-rail-width) 1fr;
+  grid-template-rows: var(--odl-topbar-height) 1fr;
+  grid-template-areas:
+    "topbar topbar"
+    "rail   main";
+  background: var(--odl-bg-page);
+  color: var(--odl-text);
+  font-size: var(--odl-font-size-md);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  animation: onedrive-layout-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+onedrive-layout > top-bar  { grid-area: topbar; }
+onedrive-layout > nav-rail { grid-area: rail; }
+onedrive-layout > .odl-main { grid-area: main; }
+
+@keyframes onedrive-layout-enter {
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  onedrive-layout { animation: none; }
+}
+
+/* ─── Nav rail ────────────────────────────────────────────────────────── */
+
+nav-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--odl-space-2);
+  padding: var(--odl-space-3) 0 var(--odl-space-4);
+  background: var(--odl-bg-page);
+}
+
+.rail-create {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--odl-brand-gradient);
+  color: #ffffff;
+  cursor: pointer;
+  margin-bottom: var(--odl-space-3);
+  box-shadow: 0 4px 14px var(--odl-brand-soft);
+  transition: background var(--odl-transition-fast),
+              transform var(--odl-transition-fast),
+              box-shadow var(--odl-transition-fast);
+}
+.rail-create:hover {
+  background: var(--odl-brand-gradient-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px var(--odl-brand-soft);
+}
+.rail-create svg { width: 20px; height: 20px; }
+
+.rail-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--odl-radius-card);
+  border: 0;
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast), color var(--odl-transition-fast);
+}
+.rail-item:hover { background: var(--odl-bg-hover); color: var(--odl-text); }
+.rail-item--active { background: var(--odl-accent-soft); color: var(--odl-accent); }
+.rail-item svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
+.rail-item:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+
+.rail-divider {
+  width: 18px;
+  height: 18px;
+  color: var(--odl-text-faint);
+  margin: var(--odl-space-2) 0;
+}
+
+/* ─── Tooltip (Radix) ─────────────────────────────────────────────────── */
+
+.rail-tooltip {
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  padding: 6px 10px;
+  font-size: var(--odl-font-size-sm);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  z-index: 200;
+}
+
+.rail-tooltip__arrow { fill: var(--odl-bg-elevated); }
+
+/* ─── Top bar ─────────────────────────────────────────────────────────── */
+
+top-bar {
+  display: grid;
+  grid-template-columns: var(--odl-rail-width) 1fr auto;
+  align-items: center;
+  background: var(--odl-bg-page);
+  height: var(--odl-topbar-height);
+  padding-right: var(--odl-space-4);
+}
+
+topbar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.topbar-logo {
+  /* 2× the size of the .rail-create (+) button below it (40 → 80). */
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  display: block;
+  border-radius: 16px;
+}
+
+search-slot {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--odl-space-4);
+}
+
+.topbar-search {
+  appearance: none;
+  width: min(560px, 100%);
+  height: 36px;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid transparent;
+  border-radius: var(--odl-radius-input);
+  padding: 0 18px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  transition: border-color var(--odl-transition-fast), background var(--odl-transition-fast);
+}
+.topbar-search::placeholder { color: var(--odl-text-faint); }
+.topbar-search:focus {
+  border-color: var(--odl-accent);
+  background: var(--odl-bg-panel);
+}
+
+topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+}
+
+.topbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast), color var(--odl-transition-fast);
+}
+.topbar-icon:hover { background: var(--odl-bg-hover); color: var(--odl-text); }
+.topbar-icon:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.topbar-icon svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
+
+.topbar-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow var(--odl-transition-fast);
+}
+.topbar-avatar:hover { box-shadow: 0 0 0 2px var(--odl-accent-soft); }
+.topbar-avatar:focus-visible { outline: 2px solid var(--odl-accent); outline-offset: 2px; }
+
+/* ─── Avatar dropdown menu (Radix) ────────────────────────────────────── */
+
+.topbar-menu {
+  min-width: 240px;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  z-index: 250;
+  animation: onedrive-menu-enter 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes onedrive-menu-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.topbar-menu__label {
+  padding: 10px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--odl-text-faint);
+}
+
+.topbar-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: var(--odl-font-size-md);
+  color: var(--odl-text);
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: background var(--odl-transition-fast);
+  min-height: 36px;
+  user-select: none;
+}
+.topbar-menu__item[data-highlighted],
+.topbar-menu__item:hover { background: var(--odl-bg-hover); }
+.topbar-menu__item--radio { padding-left: 36px; position: relative; }
+.topbar-menu__item--destructive { color: #f3a4a4; }
+.topbar-menu__item--destructive[data-highlighted] { background: rgba(255, 70, 70, 0.12); }
+
+.topbar-menu__indicator {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--odl-accent);
+}
+.topbar-menu__indicator svg {
+  width: 16px;
+  height: 16px;
+}
+
+.topbar-menu__separator {
+  height: 1px;
+  background: var(--odl-divider);
+  margin: 6px 4px;
+}
+
+topbar-menu-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 8px 8px;
+}
+
+/* Dark-theme override for the LayoutToggle when it's mounted inside the
+   topbar menu (its default colours target the Classic light theme). */
+.topbar-menu .layout-toggle {
+  background: var(--odl-bg-page);
+  border-color: var(--odl-border);
+  box-shadow: none;
+}
+.topbar-menu .layout-toggle__pill {
+  color: var(--odl-text-muted);
+}
+.topbar-menu .layout-toggle__pill:hover {
+  color: var(--odl-text);
+}
+.topbar-menu .layout-toggle__pill[data-state="on"] {
+  background: var(--odl-accent);
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--odl-accent-soft);
+}
+.topbar-menu .layout-toggle__pill[data-state="on"]:hover {
+  color: #ffffff;
+}
+.topbar-menu .layout-toggle__pill:focus-visible {
+  outline-color: var(--odl-accent);
+}
+
+/* ─── Account dropdown — profile header ───────────────────────────────── */
+
+.topbar-menu--account {
+  min-width: 280px;
+}
+
+topbar-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 14px;
+}
+
+topbar-menu-profile-info {
+  display: block;
+  min-width: 0;
+  flex: 1;
+}
+
+topbar-menu-profile-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--odl-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+topbar-menu-profile-webid {
+  display: block;
+  font-size: var(--odl-font-size-sm);
+  color: var(--odl-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.topbar-menu__item--link {
+  color: var(--odl-accent);
+  text-decoration: none;
+}
+.topbar-menu__item--link:hover { color: var(--odl-accent); }
+.topbar-menu__item--link[data-highlighted] { color: var(--odl-accent); }
+
+/* ─── Main view area ──────────────────────────────────────────────────── */
+
+.odl-main {
+  background: var(--odl-bg-panel);
+  margin: var(--odl-space-4);
+  /* Generous gap between top bar and the main panel — pushes the content
+     well below the search bar so they don't feel crowded. */
+  margin-top: var(--odl-space-6);
+  padding: var(--odl-space-6);
+  border-radius: var(--odl-radius-panel);
+  overflow: auto;
+  min-height: 0;
+}
+
+onedrive-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-4);
+}
+
+.odl-view-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 var(--odl-space-1);
+}
