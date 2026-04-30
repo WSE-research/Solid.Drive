@@ -39,7 +39,6 @@ describe('OneDriveLayout', () => {
     ['my-files', 'view-my-files'],
     ['shared', 'view-shared'],
     ['requests', 'view-requests'],
-    ['bin', 'view-bin'],
     ['people', 'view-people'],
   ])('renders the right view when ?view=%s', (param, testId) => {
     window.history.replaceState({}, '', `/?view=${param}`);

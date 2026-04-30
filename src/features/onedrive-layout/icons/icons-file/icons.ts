@@ -15,7 +15,6 @@ export {
   FolderRegular       as MyFilesIcon,
   PeopleRegular       as SharedIcon,
   MailInboxRegular    as RequestsIcon,
-  DeleteRegular       as BinIcon,
   PersonRegular       as PeopleIcon,
   ChevronDownRegular  as ChevronDownIcon,
   AddRegular          as PlusIcon,
@@ -28,6 +27,5 @@ export {
   FolderFilled     as MyFilesIconActive,
   PeopleFilled     as SharedIconActive,
   MailInboxFilled  as RequestsIconActive,
-  DeleteFilled     as BinIconActive,
   PersonFilled     as PeopleIconActive,
 } from '@fluentui/react-icons';

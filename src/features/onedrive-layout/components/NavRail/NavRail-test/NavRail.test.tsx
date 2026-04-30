@@ -12,7 +12,6 @@ vi.mock('react-i18next', () => ({
         'oneDriveLayout.myFiles': 'My Files',
         'oneDriveLayout.shared': 'Shared',
         'oneDriveLayout.requests': 'Requests',
-        'oneDriveLayout.bin': 'Recycle Bin',
         'oneDriveLayout.people': 'People',
       };
       return map[key] ?? fallback ?? key;
@@ -33,11 +32,16 @@ describe('NavRail', () => {
     expect(screen.queryByRole('img', { name: /solid\.drive/i })).not.toBeInTheDocument();
   });
 
-  it('renders all 6 view buttons in mockup order', () => {
+  it('renders all 5 view buttons in mockup order', () => {
     render(<NavRail />);
-    for (const label of ['Home', 'My Files', 'Shared', 'Requests', 'Recycle Bin', 'People']) {
+    for (const label of ['Home', 'My Files', 'Shared', 'Requests', 'People']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
+  });
+
+  it('does not render a Recycle Bin button', () => {
+    render(<NavRail />);
+    expect(screen.queryByRole('button', { name: /recycle bin/i })).not.toBeInTheDocument();
   });
 
   it('clicking a rail icon writes ?view=<id> to the URL', () => {
@@ -47,9 +51,9 @@ describe('NavRail', () => {
   });
 
   it('marks the active view via aria-current', () => {
-    window.history.replaceState({}, '', '/?view=bin');
+    window.history.replaceState({}, '', '/?view=requests');
     render(<NavRail />);
-    expect(screen.getByRole('button', { name: 'Recycle Bin' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Requests' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
 
@@ -61,7 +65,7 @@ describe('NavRail', () => {
     expect(activeItem!.getAttribute('aria-label')).toBe('People');
   });
 
-  it('renders the chevron divider between top items and the people item', () => {
+  it('renders the chevron divider between the top items and the bottom items', () => {
     const { container } = render(<NavRail />);
     expect(container.querySelector('.rail-divider')).toBeInTheDocument();
   });

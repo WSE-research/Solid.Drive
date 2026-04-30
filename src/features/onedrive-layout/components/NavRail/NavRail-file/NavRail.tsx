@@ -1,8 +1,8 @@
 /**
  * Left-edge navigation rail for the OneDrive-inspired layout.
- * Renders the Create (+) button, the 5 top view items, a chevron divider,
- * and the People item at the bottom. Each item wraps a Radix Tooltip that
- * surfaces its localized EN / DE label.
+ * Renders the Create (+) button, the 3 top view items (Home, My Files,
+ * Shared), a chevron divider, and the bottom items (Requests, People).
+ * Each item wraps a Radix Tooltip that surfaces its localized EN / DE label.
  *
  * @packageDocumentation
  */
@@ -15,13 +15,11 @@ import {
   MyFilesIcon,
   SharedIcon,
   RequestsIcon,
-  BinIcon,
   PeopleIcon,
   HomeIconActive,
   MyFilesIconActive,
   SharedIconActive,
   RequestsIconActive,
-  BinIconActive,
   PeopleIconActive,
   ChevronDownIcon,
   PlusIcon,
@@ -41,19 +39,15 @@ interface RailItem {
 }
 
 const TOP_ITEMS: readonly RailItem[] = [
-  { id: 'recent',   Icon: HomeIcon,     ActiveIcon: HomeIconActive,     i18nKey: 'oneDriveLayout.recent' },
-  { id: 'my-files', Icon: MyFilesIcon,  ActiveIcon: MyFilesIconActive,  i18nKey: 'oneDriveLayout.myFiles' },
-  { id: 'shared',   Icon: SharedIcon,   ActiveIcon: SharedIconActive,   i18nKey: 'oneDriveLayout.shared' },
-  { id: 'requests', Icon: RequestsIcon, ActiveIcon: RequestsIconActive, i18nKey: 'oneDriveLayout.requests' },
-  { id: 'bin',      Icon: BinIcon,      ActiveIcon: BinIconActive,      i18nKey: 'oneDriveLayout.bin' },
+  { id: 'recent',   Icon: HomeIcon,    ActiveIcon: HomeIconActive,    i18nKey: 'oneDriveLayout.recent' },
+  { id: 'my-files', Icon: MyFilesIcon, ActiveIcon: MyFilesIconActive, i18nKey: 'oneDriveLayout.myFiles' },
+  { id: 'shared',   Icon: SharedIcon,  ActiveIcon: SharedIconActive,  i18nKey: 'oneDriveLayout.shared' },
 ];
 
-const PEOPLE_ITEM: RailItem = {
-  id: 'people',
-  Icon: PeopleIcon,
-  ActiveIcon: PeopleIconActive,
-  i18nKey: 'oneDriveLayout.people',
-};
+const BOTTOM_ITEMS: readonly RailItem[] = [
+  { id: 'requests', Icon: RequestsIcon, ActiveIcon: RequestsIconActive, i18nKey: 'oneDriveLayout.requests' },
+  { id: 'people',   Icon: PeopleIcon,   ActiveIcon: PeopleIconActive,   i18nKey: 'oneDriveLayout.people' },
+];
 
 interface RailButtonProps {
   item: RailItem;
@@ -65,15 +59,19 @@ interface RailButtonProps {
 const RailButton: FunctionComponent<RailButtonProps> = ({ item, active, onSelect, label }) => {
   const { Icon, ActiveIcon, id } = item;
   const Glyph = active ? ActiveIcon : Icon;
+  const className = active ? 'rail-item rail-item--active' : 'rail-item';
+  const ariaCurrent = active ? 'page' : undefined;
+  const handleClick = () => onSelect(id);
+
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <button
           type="button"
-          className={`rail-item${active ? ' rail-item--active' : ''}`}
-          aria-current={active ? 'page' : undefined}
+          className={className}
+          aria-current={ariaCurrent}
           aria-label={label}
-          onClick={() => onSelect(id)}
+          onClick={handleClick}
         >
           <Glyph aria-hidden focusable={false} />
         </button>
@@ -134,12 +132,15 @@ export const NavRail: FunctionComponent = () => {
           focusable={false}
         />
 
-        <RailButton
-          item={PEOPLE_ITEM}
-          active={view === 'people'}
-          onSelect={setView}
-          label={translate(PEOPLE_ITEM.i18nKey)}
-        />
+        {BOTTOM_ITEMS.map((item) => (
+          <RailButton
+            key={item.id}
+            item={item}
+            active={view === item.id}
+            onSelect={setView}
+            label={translate(item.i18nKey)}
+          />
+        ))}
       </nav-rail>
     </Tooltip.Provider>
   );

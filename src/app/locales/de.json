@@ -152,7 +152,6 @@
     "myFiles": "Meine Dateien",
     "shared": "Geteilt",
     "requests": "Anfragen",
-    "bin": "Papierkorb",
     "people": "Personen",
     "searchPlaceholder": "Suchen",
     "settings": "Einstellungen",
@@ -165,7 +164,6 @@
       "myFiles": "Meine Dateien",
       "shared": "Geteilt",
       "requests": "Anfragen",
-      "bin": "Papierkorb",
       "people": "Personen"
     }
   }

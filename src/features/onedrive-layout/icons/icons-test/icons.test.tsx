@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import {
-  HomeIcon, MyFilesIcon, SharedIcon, RequestsIcon, BinIcon, PeopleIcon,
+  HomeIcon, MyFilesIcon, SharedIcon, RequestsIcon, PeopleIcon,
   HomeIconActive, MyFilesIconActive, SharedIconActive, RequestsIconActive,
-  BinIconActive, PeopleIconActive,
+  PeopleIconActive,
   ChevronDownIcon, PlusIcon, GearIcon, CheckmarkIcon,
 } from '../icons-file/icons';
 
@@ -13,7 +13,6 @@ describe('icons module', () => {
     ['MyFilesIcon', MyFilesIcon],
     ['SharedIcon', SharedIcon],
     ['RequestsIcon', RequestsIcon],
-    ['BinIcon', BinIcon],
     ['PeopleIcon', PeopleIcon],
     ['ChevronDownIcon', ChevronDownIcon],
     ['PlusIcon', PlusIcon],
@@ -26,7 +25,6 @@ describe('icons module', () => {
     ['MyFilesIconActive', MyFilesIconActive],
     ['SharedIconActive', SharedIconActive],
     ['RequestsIconActive', RequestsIconActive],
-    ['BinIconActive', BinIconActive],
     ['PeopleIconActive', PeopleIconActive],
   ] as const;
 

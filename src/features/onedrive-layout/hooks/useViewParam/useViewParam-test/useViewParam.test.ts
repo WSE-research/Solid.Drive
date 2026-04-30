@@ -19,7 +19,7 @@ describe('useViewParam', () => {
   });
 
   it('reads each known view id from the URL', () => {
-    const ids = ['recent', 'my-files', 'shared', 'requests', 'bin', 'people'] as const;
+    const ids = ['recent', 'my-files', 'shared', 'requests', 'people'] as const;
     for (const id of ids) {
       setUrl(`/?view=${id}`);
       const { result } = renderHook(() => useViewParam());
@@ -35,9 +35,9 @@ describe('useViewParam', () => {
 
   it('setter updates state and writes ?view= via replaceState', () => {
     const { result } = renderHook(() => useViewParam());
-    act(() => result.current[1]('bin'));
-    expect(result.current[0]).toBe('bin');
-    expect(window.location.search).toContain('view=bin');
+    act(() => result.current[1]('shared'));
+    expect(result.current[0]).toBe('shared');
+    expect(window.location.search).toContain('view=shared');
   });
 
   it('setter does not push a new history entry', () => {
@@ -60,7 +60,7 @@ describe('useViewParam', () => {
     const { unmount, result } = renderHook(() => useViewParam());
     unmount();
     act(() => {
-      window.history.pushState({}, '', '/?view=bin');
+      window.history.pushState({}, '', '/?view=shared');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     // Result is stale because hook unmounted; we just verify no crash.

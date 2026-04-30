@@ -13,7 +13,6 @@ import { RecentView } from '@/features/onedrive-layout/components/views/RecentVi
 import { MyFilesView } from '@/features/onedrive-layout/components/views/MyFilesView';
 import { SharedView } from '@/features/onedrive-layout/components/views/SharedView';
 import { RequestsView } from '@/features/onedrive-layout/components/views/RequestsView';
-import { RecycleBinView } from '@/features/onedrive-layout/components/views/RecycleBinView';
 import { PeopleView } from '@/features/onedrive-layout/components/views/PeopleView';
 import {
   useViewParam,
@@ -26,7 +25,6 @@ const VIEWS: Record<ViewId, ComponentType> = {
   'my-files': MyFilesView,
   shared:    SharedView,
   requests:  RequestsView,
-  bin:       RecycleBinView,
   people:    PeopleView,
 };
 
