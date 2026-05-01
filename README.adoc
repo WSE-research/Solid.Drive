@@ -1,7 +1,6 @@
 :app-name: solid.drive
 :app-url: http://demos.swe.htwk-leipzig.de:3000/
 :github-repository: https://github.com/WSE-research/Solid-Hello-World-Frontend-React
-:docker-image: wseresearch/solid-hello-world-frontend-react
 :toc:
 :toclevels: 3
 :toc-placement!:
@@ -86,10 +85,26 @@ npm run build         # extract TBox, type check, and bundle
 
 === Docker
 
+==== Published image
+
+Run the image from the registry (no local build):
+
 [source,bash]
 ----
-docker run -p 3000:80 {docker-image}
+docker run -p 3000:80 wseresearch/solid-hello-world-frontend-react
 ----
+
+==== Build and run locally
+
+From the repository root (where the `Dockerfile` lives), build the image and start a container:
+
+[source,bash]
+----
+docker build -t wseresearch/solid-hello-world-frontend-react:local .
+docker run -p 3000:80 wseresearch/solid-hello-world-frontend-react:local
+----
+
+The app listens on port 80 inside the container; open http://localhost:3000/ in your browser.
 
 === Regenerating derived files
 
