@@ -11,6 +11,7 @@ import { Header } from '@/features/auth/components/Header';
 import { FileExplorer } from '@/features/file-explorer/components/FileExplorer';
 import { ProfileSidebar } from '@/features/profile/components/ProfileSidebar';
 import { NotificationProvider } from '@/shared/contexts/NotificationContext';
+import './github-fork-ribbon.css';
 import './App.css';
 
 /**
@@ -40,8 +41,21 @@ const AppContent: FunctionComponent = () => {
  *
  * @public
  */
+const GITHUB_REPO_URL =
+  'https://github.com/WSE-research/Solid-Hello-World-Frontend-React';
+
 const App: FunctionComponent = () => (
   <app-root>
+    <a
+      className="github-fork-ribbon fixed"
+      href={GITHUB_REPO_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-ribbon="Fork me on GitHub"
+      title="Fork me on GitHub"
+    >
+      Fork me on GitHub
+    </a>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <BrowserSolidLdoProvider>
         <NotificationProvider>
