@@ -5,6 +5,7 @@
  */
 
 import type { FunctionComponent } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { useSolidAuth, BrowserSolidLdoProvider } from '@ldo/solid-react';
 import { Header } from '@/features/auth/components/Header';
 import { FileExplorer } from '@/features/file-explorer/components/FileExplorer';
@@ -41,12 +42,14 @@ const AppContent: FunctionComponent = () => {
  */
 const App: FunctionComponent = () => (
   <app-root>
-    <BrowserSolidLdoProvider>
-      <NotificationProvider>
-        <Header />
-        <AppContent />
-      </NotificationProvider>
-    </BrowserSolidLdoProvider>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserSolidLdoProvider>
+        <NotificationProvider>
+          <Header />
+          <AppContent />
+        </NotificationProvider>
+      </BrowserSolidLdoProvider>
+    </BrowserRouter>
   </app-root>
 );
 

@@ -40,6 +40,7 @@ toc::[]
 
 * *Authentication:* log in via any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self-hosted server)
 * *Pod navigation:* browse the full Pod directory tree with breadcrumb navigation
+* *URLs and history:* the open folder is reflected in the query string (`folder=…`); copy the address bar to share a deep link, and use the browser back/forward buttons to move through your navigation history
 * *TBox-driven validation:* SHACL shapes are loaded from `public/tbox.ttl` at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before upload; missing fields are surfaced inline
 * *File adoption:* renders files that existed on the Pod before the app was used, showing folder name and download button for containers lacking `index.ttl`
 * *File upload:* accepts any file type; stores the binary and a metadata document (`index.ttl`) inside a dedicated container on the Pod
