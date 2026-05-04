@@ -71,14 +71,16 @@
 }
 
 onedrive-layout {
-  /* OneDrive-style two-row, two-column layout: top bar spans the full width,
-     rail and main content sit beneath it. */
+  /* OneDrive-style three-row, three-column layout: top bar spans the
+     full width, the contextual toolbar floats above main+detail in the
+     page background, then main and detail panels sit beneath it. */
   display: grid;
-  grid-template-columns: var(--odl-rail-width) 1fr;
-  grid-template-rows: var(--odl-topbar-height) 1fr;
+  grid-template-columns: var(--odl-rail-width) 1fr auto;
+  grid-template-rows: var(--odl-topbar-height) auto 1fr;
   grid-template-areas:
-    "topbar topbar"
-    "rail   main";
+    "topbar topbar  topbar"
+    "rail   toolbar toolbar"
+    "rail   main    detail";
   background: var(--odl-bg-page);
   color: var(--odl-text);
   font-size: var(--odl-font-size-md);
@@ -91,7 +93,29 @@ onedrive-layout {
 
 onedrive-layout > top-bar  { grid-area: topbar; }
 onedrive-layout > nav-rail { grid-area: rail; }
+onedrive-layout > page-header { grid-area: toolbar; }
 onedrive-layout > .odl-main { grid-area: main; }
+onedrive-layout > detail-panel { grid-area: detail; }
+
+/* ─── Page header (view title + contextual toolbar) ───────────────────── */
+
+page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--odl-space-4);
+  padding: var(--odl-space-3) var(--odl-space-4) var(--odl-space-2);
+  background: transparent;
+}
+
+.odl-page-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--odl-text);
+}
 
 @keyframes onedrive-layout-enter {
   from { opacity: 0; transform: scale(0.985); }
@@ -426,10 +450,9 @@ topbar-menu-profile-webid {
 
 .odl-main {
   background: var(--odl-bg-panel);
-  margin: var(--odl-space-4);
-  /* Generous gap between top bar and the main panel — pushes the content
-     well below the search bar so they don't feel crowded. */
-  margin-top: var(--odl-space-6);
+  /* The contextual toolbar now sits above main in its own grid row, so
+     keep main's margins symmetric — no extra top gap is needed. */
+  margin: 0 var(--odl-space-4) var(--odl-space-4);
   padding: var(--odl-space-6);
   border-radius: var(--odl-radius-panel);
   overflow: auto;
@@ -448,4 +471,403 @@ onedrive-view {
   letter-spacing: -0.01em;
   line-height: 1.25;
   margin: 0 0 var(--odl-space-1);
+}
+
+/* ─── Breadcrumb ──────────────────────────────────────────────────────── */
+
+.odl-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-1);
+  flex-wrap: wrap;
+  font-size: var(--odl-font-size-md);
+  color: var(--odl-text-muted);
+}
+.odl-breadcrumb__sep {
+  color: var(--odl-text-faint);
+  user-select: none;
+}
+.odl-breadcrumb__item {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--odl-radius-chip);
+  font-size: inherit;
+  font-family: inherit;
+  transition: background var(--odl-transition-fast), color var(--odl-transition-fast);
+}
+.odl-breadcrumb__item:hover:not(:disabled) {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+}
+.odl-breadcrumb__item--active {
+  color: var(--odl-text);
+  font-weight: 600;
+  cursor: default;
+}
+.odl-breadcrumb__item:disabled { cursor: default; }
+
+/* ─── Contextual toolbar (right zone: Sort, Details) ──────────────────── */
+
+contextual-toolbar {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+}
+toolbar-left { display: inline-flex; gap: var(--odl-space-2); }
+toolbar-right { display: inline-flex; gap: var(--odl-space-2); margin-left: auto; }
+
+.odl-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--odl-space-3);
+  border: 0;
+  border-radius: var(--odl-radius-chip);
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  transition: background var(--odl-transition-fast), color var(--odl-transition-fast);
+}
+.odl-toolbar-button:hover { background: var(--odl-bg-hover); color: var(--odl-text); }
+.odl-toolbar-button[aria-pressed="true"] {
+  background: var(--odl-accent-soft);
+  color: var(--odl-accent);
+}
+.odl-toolbar-button:focus-visible { outline: 2px solid var(--odl-accent); outline-offset: 2px; }
+.odl-toolbar-button svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
+
+.odl-toolbar-menu,
+.odl-create-menu {
+  min-width: 200px;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  z-index: 250;
+  animation: onedrive-menu-enter 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.odl-toolbar-menu__item,
+.odl-create-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 32px;
+  font-size: var(--odl-font-size-md);
+  color: var(--odl-text);
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  position: relative;
+  transition: background var(--odl-transition-fast);
+}
+.odl-toolbar-menu__item[data-highlighted],
+.odl-create-menu__item[data-highlighted],
+.odl-toolbar-menu__item:hover,
+.odl-create-menu__item:hover { background: var(--odl-bg-hover); }
+.odl-toolbar-menu__item { padding-left: 32px; }
+.odl-toolbar-menu__indicator {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--odl-accent);
+}
+.odl-toolbar-menu__indicator svg { width: 14px; height: 14px; }
+
+/* ─── Files table ─────────────────────────────────────────────────────── */
+
+.odl-files-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: var(--odl-radius-card);
+  /* Allow horizontal scroll when the available space is narrower than
+     the sum of the column minimums (e.g. detail panel open + small
+     viewport) instead of squashing cells into each other. */
+  overflow-x: auto;
+}
+/* Shared column template — keep this in sync between the head row and
+   each body row so headers stay aligned with cells. Absolute minimums
+   prevent the Modified / File size / Sharing columns from crushing
+   into each other on narrow widths (e.g. when the detail panel is
+   open). The Name column flexes; the rest hold a sensible floor. */
+.odl-files-table__head,
+.odl-files-row {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 2fr)
+    minmax(140px, 1fr)
+    minmax(100px, 1fr)
+    minmax(120px, 1fr);
+  gap: var(--odl-space-4);
+}
+.odl-files-table__head {
+  padding: var(--odl-space-3) var(--odl-space-4);
+  font-size: var(--odl-font-size-sm);
+  font-weight: 600;
+  color: var(--odl-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--odl-divider);
+}
+.odl-files-table__body {
+  display: flex;
+  flex-direction: column;
+}
+.odl-files-row {
+  align-items: center;
+  padding: 0 var(--odl-space-4);
+  height: var(--odl-row-height);
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--odl-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  transition: background var(--odl-transition-fast);
+}
+.odl-files-row:hover { background: var(--odl-bg-hover); }
+.odl-files-row:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: -2px;
+}
+.odl-files-row--active,
+.odl-files-row[aria-selected="true"] {
+  background: var(--odl-accent-soft);
+}
+.odl-files-row--active .odl-files-cell--name,
+.odl-files-row[aria-selected="true"] .odl-files-cell--name {
+  color: var(--odl-accent);
+}
+.odl-files-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--odl-text-muted);
+}
+.odl-files-cell--name { color: var(--odl-text); font-weight: 500; }
+.odl-sharing-cell { color: var(--odl-text-muted); }
+.odl-sharing-cell--loading { color: var(--odl-text-faint); }
+.odl-search-empty {
+  padding: var(--odl-space-8) var(--odl-space-4);
+  text-align: center;
+  color: var(--odl-text-muted);
+}
+
+/* ─── FileUpload + NewFolderInput dark-theme overrides ────────────────── */
+/* These two components ship with classic-light styling (white card, blue
+   accents) for the existing FileExplorer. Inside the OneDrive shell we
+   reskin them onto the dark token palette without touching the source
+   components. Selectors are scoped under .odl-main so the classic
+   layout is unaffected. */
+
+.odl-main .file-upload {
+  background: var(--odl-bg-elevated);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-card);
+  padding: var(--odl-space-4) var(--odl-space-5);
+  margin-bottom: var(--odl-space-4);
+  color: var(--odl-text);
+}
+.odl-main .file-upload:focus-within { border-color: var(--odl-accent); }
+
+.odl-main .file-upload__title,
+.odl-main .file-upload__body {
+  color: var(--odl-text);
+  background: transparent;
+  border: 0;
+}
+.odl-main .file-upload__title::placeholder,
+.odl-main .file-upload__body::placeholder {
+  color: var(--odl-text-faint);
+}
+
+.odl-main .file-upload__label {
+  color: var(--odl-text-muted);
+  border: 1px dashed var(--odl-border);
+  background: transparent;
+  border-radius: var(--odl-radius-chip);
+  padding: var(--odl-space-2) var(--odl-space-3);
+  transition: border-color var(--odl-transition-fast), color var(--odl-transition-fast);
+}
+.odl-main .file-upload__label:hover {
+  border-color: var(--odl-accent);
+  color: var(--odl-accent);
+}
+.odl-main .file-upload__divider {
+  background: var(--odl-divider);
+}
+.odl-main .file-upload__field-label {
+  color: var(--odl-text-muted);
+}
+.odl-main .file-upload__meta {
+  color: var(--odl-text-muted);
+}
+.odl-main .file-upload__type-label {
+  color: var(--odl-accent);
+}
+.odl-main .file-upload__selected {
+  color: var(--odl-accent);
+}
+.odl-main .file-upload input[type="file"] { display: none; }
+
+.odl-main new-folder-input {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  background: var(--odl-bg-elevated);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-card);
+  padding: var(--odl-space-3) var(--odl-space-4);
+  margin-bottom: var(--odl-space-4);
+  color: var(--odl-text);
+}
+.odl-main new-folder-input:focus-within { border-color: var(--odl-accent); }
+.odl-main new-folder-input input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--odl-text);
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  padding: 4px 0;
+}
+.odl-main new-folder-input input[type="text"]::placeholder {
+  color: var(--odl-text-faint);
+}
+.odl-main .new-folder-input__error {
+  color: #f3a4a4;
+  font-size: var(--odl-font-size-sm);
+}
+
+/* Primary action button (Create / Upload). Both `new-folder-input` and
+   `file-upload` host their submit button as the FIRST `<button>` in the
+   form — that's the one we paint accent-blue. */
+.odl-main new-folder-input > button[type="button"]:first-of-type,
+.odl-main .file-upload .btn--primary {
+  appearance: none;
+  border: 0;
+  background: var(--odl-accent);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--odl-font-size-sm);
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--odl-radius-chip);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast),
+              box-shadow var(--odl-transition-fast),
+              transform var(--odl-transition-fast);
+}
+.odl-main new-folder-input > button[type="button"]:first-of-type:hover,
+.odl-main .file-upload .btn--primary:hover {
+  background: var(--odl-accent-strong);
+}
+.odl-main new-folder-input > button[type="button"]:first-of-type:focus-visible,
+.odl-main .file-upload .btn--primary:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-main new-folder-input > button[type="button"]:first-of-type:disabled,
+.odl-main .file-upload .btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Ghost / secondary action (Cancel). Always the last button in the row. */
+.odl-main new-folder-input > button[type="button"] + button[type="button"] {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--odl-text-muted);
+  font: inherit;
+  font-size: var(--odl-font-size-sm);
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--odl-radius-chip);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-main new-folder-input > button[type="button"] + button[type="button"]:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+  border-color: var(--odl-border);
+}
+.odl-main new-folder-input > button[type="button"] + button[type="button"]:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+
+/* ─── Detail panel ────────────────────────────────────────────────────── */
+
+detail-panel {
+  display: block;
+  width: var(--odl-detail-width);
+  background: var(--odl-bg-panel);
+  /* Match the main panel's vertical extent: same top/bottom margins so
+     the two cards align edge-to-edge. A small left gap separates them
+     visually (OneDrive does the same). */
+  margin: 0 var(--odl-space-4) var(--odl-space-4) var(--odl-space-2);
+  padding: var(--odl-space-6);
+  border-radius: var(--odl-radius-panel);
+  overflow: auto;
+  min-height: 0;
+  transition: width var(--odl-transition-med),
+              margin var(--odl-transition-med),
+              padding var(--odl-transition-med),
+              opacity var(--odl-transition-med);
+}
+detail-panel[aria-hidden="true"] {
+  width: 0;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+detail-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--odl-space-4);
+}
+detail-panel-header h3 {
+  font-size: var(--odl-font-size-lg);
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+detail-panel-body { display: flex; flex-direction: column; gap: var(--odl-space-3); }
+detail-panel-empty {
+  display: block;
+  padding: var(--odl-space-6) 0;
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-md);
+  text-align: center;
+}
+.odl-details__kind {
+  margin: 0;
+  font-size: var(--odl-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--odl-text-muted);
 }

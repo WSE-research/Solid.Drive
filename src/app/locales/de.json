@@ -159,12 +159,45 @@
     "logout": "Abmelden",
     "viewProfile": "Profil anzeigen",
     "signedIn": "Angemeldet",
+    "breadcrumb": "Brotkrumen",
     "viewTitle": {
       "recent": "Startseite",
       "myFiles": "Meine Dateien",
       "shared": "Geteilt",
       "requests": "Anfragen",
       "people": "Personen"
+    },
+    "column": {
+      "name": "Name",
+      "modified": "Geändert",
+      "size": "Dateigröße",
+      "sharing": "Freigabe"
+    },
+    "sort": {
+      "name": "Name",
+      "modified": "Geändert",
+      "size": "Größe",
+      "sharing": "Freigabe"
+    },
+    "sharing": {
+      "private": "Privat",
+      "public": "Öffentlich",
+      "shared_other": "{{count}} Personen"
+    },
+    "toolbar": {
+      "sort": "Sortieren",
+      "details": "Details"
+    },
+    "details": {
+      "title": "Details",
+      "empty": "Wählen Sie ein Element aus, um Details anzuzeigen.",
+      "close": "Schließen",
+      "kindFile": "Datei",
+      "kindFolder": "Ordner"
+    },
+    "createMenu": {
+      "newFolder": "Neuer Ordner",
+      "uploadFiles": "Dateien hochladen"
     }
   }
 }

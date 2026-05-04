@@ -2,7 +2,7 @@
   "services": [
     {
       "mode": "dockerfile",
-      "port": "3000:80",
+      "port": "40211:80",
       "image": "wseresearch/solid-hello-world-frontend-react",
       "tag": "latest"
     }

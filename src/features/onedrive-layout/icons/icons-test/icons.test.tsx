@@ -5,6 +5,7 @@ import {
   HomeIconActive, MyFilesIconActive, SharedIconActive, RequestsIconActive,
   PeopleIconActive,
   ChevronDownIcon, PlusIcon, GearIcon, CheckmarkIcon,
+  SortIcon, InfoIcon, CloseIcon,
 } from '../icons-file/icons';
 
 describe('icons module', () => {
@@ -18,6 +19,9 @@ describe('icons module', () => {
     ['PlusIcon', PlusIcon],
     ['GearIcon', GearIcon],
     ['CheckmarkIcon', CheckmarkIcon],
+    ['SortIcon', SortIcon],
+    ['InfoIcon', InfoIcon],
+    ['CloseIcon', CloseIcon],
   ] as const;
 
   const filled = [

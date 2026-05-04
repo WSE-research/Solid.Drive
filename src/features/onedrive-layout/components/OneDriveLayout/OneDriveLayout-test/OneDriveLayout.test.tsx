@@ -12,6 +12,10 @@ vi.mock('@/features/onedrive-layout/components/TopBar', () => ({
   ),
 }));
 
+vi.mock('@/features/onedrive-layout/components/views/MyFilesView', () => ({
+  MyFilesView: () => <div data-testid="view-my-files" />,
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string, fallback?: string) => fallback ?? key],
 }));

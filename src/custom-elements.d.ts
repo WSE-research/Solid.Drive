@@ -1,6 +1,7 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, RefAttributes } from "react";
 
-type El = HTMLAttributes<HTMLElement> & { key?: React.Key | null };
+type El = HTMLAttributes<HTMLElement> &
+  RefAttributes<HTMLElement> & { key?: React.Key | null };
 
 declare module "react" {
   namespace JSX {
@@ -112,6 +113,17 @@ declare module "react" {
       "topbar-menu-profile-info": El;
       "topbar-menu-profile-name": El;
       "topbar-menu-profile-webid": El;
+      // OneDriveLayout — page header (title + toolbar row above main)
+      "page-header": El;
+      // OneDriveLayout — ContextualToolbar
+      "contextual-toolbar": El;
+      "toolbar-left": El;
+      "toolbar-right": El;
+      // OneDriveLayout — DetailPanel
+      "detail-panel": El;
+      "detail-panel-header": El;
+      "detail-panel-body": El;
+      "detail-panel-empty": El;
     }
   }
 }
