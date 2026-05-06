@@ -35,6 +35,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
 });
+vi.mock('../App-file/github-fork-ribbon.css', () => ({}));
 
 import { useSolidAuth } from '@ldo/solid-react';
 

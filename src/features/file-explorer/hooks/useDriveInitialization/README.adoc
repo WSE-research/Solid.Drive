@@ -1,20 +1,18 @@
 = useDriveInitialization
 
-Composes `usePodDiscovery` and `useNavigation` to set up everything the file explorer needs on login: storage root, app container, navigation state, and the user's contact list.
+Composes `usePodDiscovery` with URL-backed folder navigation so the file explorer can use browser history and shareable links.
 
 == Features
 
 Pod setup:: Delegates to `usePodDiscovery` for storage root discovery and app container creation
-Navigation state:: Delegates to `useNavigation`; syncs initial URI and breadcrumb label once storage is discovered
+Navigation state:: Keeps `currentUri` and `breadcrumbs` in sync with React Router (`?folder=`); invalid or missing values fall back to the storage root chosen at discovery time
 Contact list:: Reads the user's `foaf:knows` list and exposes it so `SharedWithMeSection` can load shared files
 Storage retry:: Exposes `handleRetryStorage` (from `usePodDiscovery`) for both manual and auto-retry
 
 == Returns
 
-All values from `usePodDiscovery` and `useNavigation` are re-exported directly.
+`usePodDiscovery` fields (`appContainerUri`, `storageRootUri`, etc.) plus navigation helpers: `currentUri`, `setCurrentUri`, `breadcrumbs`, `setBreadcrumbs`, `handleNavigate`, `handleBreadcrumbClick`.
 
-link:../usePodDiscovery/[usePodDiscovery]:: `appContainerUri`, `storageRootUri`, `noStorageDetected`, `handleRetryStorage`
-link:../useNavigation/[useNavigation]:: `currentUri`, `setCurrentUri`, `breadcrumbs`, `setBreadcrumbs`, `handleNavigate`, `handleBreadcrumbClick`
 `contacts`:: WebIDs from the user's `foaf:knows` list
 
 == Navigation
@@ -24,5 +22,6 @@ link:../[file-explorer/hooks]
 
 .Uses
 * link:../../../../config/[config]
-* link:../useNavigation/[useNavigation]
+* link:../../services/driveUrl/[driveUrl]
+* link:../useNavigation/[useNavigation] (breadcrumb type only)
 * link:../usePodDiscovery/[usePodDiscovery]

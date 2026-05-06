@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import React, { type ReactNode } from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 let mockProfileValue: Record<string, unknown> | null = {
   storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
@@ -38,6 +40,16 @@ vi.mock('@/config', () => ({
 
 import { useDriveInitialization } from '../useDriveInitialization-file/useDriveInitialization';
 
+function testWrapper(initialEntry = '/') {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return React.createElement(
+      MemoryRouter,
+      { initialEntries: [initialEntry] },
+      children
+    );
+  };
+}
+
 describe('useDriveInitialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,7 +67,7 @@ describe('useDriveInitialization', () => {
   });
 
   it('exposes storage URIs, navigation state, retry handler, navigation handlers, and contacts', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current).toHaveProperty('appContainerUri');
     expect(result.current).toHaveProperty('storageRootUri');
     expect(result.current).toHaveProperty('currentUri');
@@ -70,19 +82,19 @@ describe('useDriveInitialization', () => {
   });
 
   it('initializes with storage root from profile', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.storageRootUri).toBe('https://pod.example/');
     expect(result.current.appContainerUri).toBe('https://pod.example/my-solid-app/');
     expect(result.current.currentUri).toBe('https://pod.example/');
   });
 
   it('extracts contacts from profile', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.contacts).toEqual(['https://alice.example/profile/card#me']);
   });
 
   it('sets initial breadcrumbs', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.breadcrumbs).toHaveLength(1);
     expect(result.current.breadcrumbs[0].label).toBe('fileExplorer.myPod');
     expect(result.current.breadcrumbs[0].uri).toBe('https://pod.example/');
@@ -91,12 +103,12 @@ describe('useDriveInitialization', () => {
   it('creates app container if createIfAbsent is available', () => {
     const mockCreateIfAbsent = vi.fn().mockResolvedValue(undefined);
     mockGetResource.mockReturnValue({ createIfAbsent: mockCreateIfAbsent });
-    renderHook(() => useDriveInitialization());
+    renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(mockCreateIfAbsent).toHaveBeenCalled();
   });
 
   it('noStorageDetected is false when storage exists', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.noStorageDetected).toBe(false);
   });
 
@@ -106,7 +118,7 @@ describe('useDriveInitialization', () => {
       knows: { toArray: () => [] },
     };
     mockWebIdResource = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.noStorageDetected).toBe(true);
   });
 
@@ -116,7 +128,7 @@ describe('useDriveInitialization', () => {
       knows: { toArray: () => [] },
     };
     mockWebIdResource = { isLoading: () => true, reload: vi.fn().mockResolvedValue(undefined) };
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.noStorageDetected).toBe(false);
   });
 
@@ -126,7 +138,9 @@ describe('useDriveInitialization', () => {
       knows: { toArray: () => [] },
     };
     mockWebIdResource = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
-    const { result } = renderHook(() => useDriveInitialization(500));
+    const { result } = renderHook(() => useDriveInitialization(500), {
+      wrapper: testWrapper(),
+    });
     expect(result.current.noStorageDetected).toBe(true);
 
     await act(async () => {
@@ -137,7 +151,7 @@ describe('useDriveInitialization', () => {
   });
 
   it('handleRetryStorage resets state and reloads resource', async () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     await act(async () => {
       await result.current.handleRetryStorage();
     });
@@ -146,7 +160,7 @@ describe('useDriveInitialization', () => {
 
   it('returns empty contacts when profile is null', () => {
     mockProfileValue = null;
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.contacts).toEqual([]);
   });
 
@@ -155,14 +169,14 @@ describe('useDriveInitialization', () => {
       storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
       knows: undefined,
     };
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current.contacts).toEqual([]);
   });
 
   it('handleRetryStorage returns early when webIdResource is not reloadable', async () => {
     // Remove reload method to make isReloadable return false
     mockWebIdResource = { isLoading: () => false };
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     await act(async () => {
       await result.current.handleRetryStorage();
     });
@@ -172,29 +186,40 @@ describe('useDriveInitialization', () => {
   });
 
   it('handleNavigate pushes a new folder onto the breadcrumb trail and updates currentUri', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     act(() => {
       result.current.handleNavigate('https://pod.example/my-solid-app/photos/');
     });
     expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
-    expect(result.current.breadcrumbs).toHaveLength(2);
-    expect(result.current.breadcrumbs[1].uri).toBe('https://pod.example/my-solid-app/photos/');
-    expect(result.current.breadcrumbs[1].label).toBe('photos');
+    expect(result.current.breadcrumbs).toHaveLength(3);
+    expect(result.current.breadcrumbs[2].uri).toBe('https://pod.example/my-solid-app/photos/');
+    expect(result.current.breadcrumbs[2].label).toBe('photos');
   });
 
   it('handleBreadcrumbClick trims the breadcrumb trail and updates currentUri', () => {
-    const { result } = renderHook(() => useDriveInitialization());
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     act(() => {
       result.current.handleNavigate('https://pod.example/my-solid-app/photos/');
       result.current.handleNavigate('https://pod.example/my-solid-app/photos/vacation/');
     });
-    expect(result.current.breadcrumbs).toHaveLength(3);
+    expect(result.current.breadcrumbs).toHaveLength(4);
 
     act(() => {
-      result.current.handleBreadcrumbClick(1, 'https://pod.example/my-solid-app/photos/' as import('@ldo/connected-solid').SolidContainerUri);
+      result.current.handleBreadcrumbClick(
+        2,
+        'https://pod.example/my-solid-app/photos/' as import('@ldo/connected-solid').SolidContainerUri
+      );
     });
     expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
-    expect(result.current.breadcrumbs).toHaveLength(2);
-    expect(result.current.breadcrumbs[1].uri).toBe('https://pod.example/my-solid-app/photos/');
+    expect(result.current.breadcrumbs).toHaveLength(3);
+    expect(result.current.breadcrumbs[2].uri).toBe('https://pod.example/my-solid-app/photos/');
+  });
+
+  it('respects a valid folder deep link in the URL', () => {
+    const deepUri = encodeURIComponent('https://pod.example/my-solid-app/photos/');
+    const { result } = renderHook(() => useDriveInitialization(), {
+      wrapper: testWrapper(`/?folder=${deepUri}`),
+    });
+    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
   });
 });

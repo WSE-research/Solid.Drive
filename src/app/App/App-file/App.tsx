@@ -5,6 +5,7 @@
  */
 
 import type { FunctionComponent } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { useSolidAuth, BrowserSolidLdoProvider } from '@ldo/solid-react';
 import { Header } from '@/features/auth/components/Header';
 import { FileExplorer } from '@/features/file-explorer/components/FileExplorer';
@@ -12,6 +13,7 @@ import { ClassicLayout } from '@/app/ClassicLayout';
 import { useSessionContinuity } from '@/app/hooks/useSessionContinuity';
 import { OneDriveLayout, useLayoutPreference } from '@/features/onedrive-layout';
 import { NotificationProvider } from '@/shared/contexts/NotificationContext';
+import './github-fork-ribbon.css';
 import './App.css';
 
 /**
@@ -44,6 +46,9 @@ const AppShell: FunctionComponent = () => {
  *
  * @public
  */
+const GITHUB_REPO_URL =
+  'https://github.com/WSE-research/Solid-Hello-World-Frontend-React';
+
 const App: FunctionComponent = () => (
   <app-root>
     <BrowserSolidLdoProvider>
@@ -51,6 +56,24 @@ const App: FunctionComponent = () => (
         <AppShell />
       </NotificationProvider>
     </BrowserSolidLdoProvider>
+    <a
+      className="github-fork-ribbon fixed"
+      href={GITHUB_REPO_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-ribbon="Fork me on GitHub"
+      title="Fork me on GitHub"
+    >
+      Fork me on GitHub
+    </a>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserSolidLdoProvider>
+        <NotificationProvider>
+          <Header />
+          <AppContent />
+        </NotificationProvider>
+      </BrowserSolidLdoProvider>
+    </BrowserRouter>
   </app-root>
 );
 
