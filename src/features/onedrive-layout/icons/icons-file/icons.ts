@@ -23,6 +23,12 @@ export {
   ArrowSortDownLinesRegular as SortIcon,
   InfoRegular         as InfoIcon,
   DismissRegular      as CloseIcon,
+  ShareRegular            as ShareIcon,
+  LinkRegular             as LinkIcon,
+  DeleteRegular           as DeleteIcon,
+  ArrowDownloadRegular    as DownloadIcon,
+  FolderArrowRightRegular as MoveToIcon,
+  RenameRegular           as RenameIcon,
 } from '@fluentui/react-icons';
 
 export {

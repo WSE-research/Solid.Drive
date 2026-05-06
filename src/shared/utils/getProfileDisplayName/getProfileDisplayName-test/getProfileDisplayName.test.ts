@@ -4,33 +4,28 @@ import { getWebIdFallbackName, getProfileDisplayName } from '../getProfileDispla
 // ─── getWebIdFallbackName ──────────────────────────────────────────────────────
 
 describe("getWebIdFallbackName", () => {
-  it("extracts the host segment from a standard Solid WebID", () => {
+  it("extracts the leftmost subdomain for Pod-per-subdomain WebIDs", () => {
     const result = getWebIdFallbackName("https://alice.solidcommunity.net/profile/card#me");
-    expect(result).toBe("alice.solidcommunity.net");
+    expect(result).toBe("alice");
   });
 
-  it("skips 'profile' and 'card' path segments", () => {
-    const result = getWebIdFallbackName("https://bob.example.org/profile/card#me");
-    expect(result).toBe("bob.example.org");
+  it("preserves usernames with hyphens or underscores", () => {
+    expect(getWebIdFallbackName("https://aurora-salvatore.solidcommunity.net/profile/card#me")).toBe("aurora-salvatore");
+    expect(getWebIdFallbackName("https://test_htwk.solidcommunity.net/profile/card#me")).toBe("test_htwk");
   });
 
-  it("returns the host segment when all path segments are generic", () => {
-    // The function returns the first segment that doesn't start with "http" and
-    // isn't "profile"/"card" — for this URL that is the host.
+  it("extracts a meaningful path segment for Pod-as-path WebIDs", () => {
     const result = getWebIdFallbackName("https://example.com/users/charlie");
-    expect(result).toBe("example.com");
+    expect(result).toBe("charlie");
   });
 
-  it("falls back to the full WebID when no usable segment exists", () => {
-    const result = getWebIdFallbackName("https://example.com");
-    expect(result).toBe("example.com");
+  it("returns the host when there is no usable subdomain or path segment", () => {
+    expect(getWebIdFallbackName("https://example.com")).toBe("example.com");
+    expect(getWebIdFallbackName("https://example.com/profile/card#me")).toBe("example.com");
   });
 
-  it("falls back to raw webId when all segments are profile/card/http-prefixed", () => {
-    // After removing fragment: "https://profile/card"
-    // Segments: ["https:", "profile", "card"] — all excluded
-    const result = getWebIdFallbackName("https://profile/card#me");
-    expect(result).toBe("https://profile/card#me");
+  it("returns the raw WebID when it cannot be parsed as a URL", () => {
+    expect(getWebIdFallbackName("not a url")).toBe("not a url");
   });
 });
 
@@ -52,10 +47,14 @@ describe("getProfileDisplayName", () => {
   });
 
   it("falls back to the WebID-derived name when profile has no name or fn", () => {
-    expect(getProfileDisplayName({}, webId)).toBe("alice.solidcommunity.net");
+    expect(getProfileDisplayName({}, webId)).toBe("alice");
   });
 
   it("falls back to the WebID-derived name when profile is undefined", () => {
-    expect(getProfileDisplayName(undefined, webId)).toBe("alice.solidcommunity.net");
+    expect(getProfileDisplayName(undefined, webId)).toBe("alice");
+  });
+
+  it("treats blank name and fn as missing so the WebID fallback wins", () => {
+    expect(getProfileDisplayName({ name: "", fn: "   " }, webId)).toBe("alice");
   });
 });

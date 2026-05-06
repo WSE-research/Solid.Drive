@@ -1,129 +1,98 @@
 /**
- * Notification context for toasts and confirmation dialogs.
+ * Notification provider component. Renders the toast container and the
+ * confirmation dialog overlay, exposing the toast / confirm API through
+ * a React context. The hook and context object live in a sibling file
+ * (notificationContext.ts) so this file exports a component only —
+ * required for React Fast Refresh to hot-replace edits cleanly.
  *
  * @packageDocumentation
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode, type FunctionComponent } from "react";
+import { useState, useCallback, useMemo } from "react";
+import type { FunctionComponent, ReactNode, MouseEvent } from "react";
 import { Toast } from "@/shared/components/Toast";
+import { NotificationContext } from "./notificationContextValue";
+import type { NotificationContextValue, ToastType } from "./notificationContextValue";
 
-/**
- * Toast notification type.
- */
-type ToastType = "info" | "error" | "success";
-
-/**
- * Internal toast message with unique ID.
- */
-type ToastMessage = {
+interface ToastMessage {
   id: string;
   message: string;
   type: ToastType;
-};
+}
 
-/**
- * Notification context value providing toast and confirm functions.
- */
-type NotificationContextType = {
-  showToast: (message: string, type?: ToastType) => void;
-  showError: (message: string) => void;
-  showSuccess: (message: string) => void;
-  showInfo: (message: string) => void;
-  confirm: (message: string) => Promise<boolean>;
-};
+interface ConfirmDialogState {
+  message: string;
+  resolve: (value: boolean) => void;
+}
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const TOAST_AUTO_DISMISS_MS = 5000;
 
-/**
- * Hook to access notification functions.
- * Must be used within NotificationProvider.
- *
- * @returns Notification context functions
- * @throws Error if used outside NotificationProvider
- *
- * @public
- */
-export function useNotifications(): NotificationContextType {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error("useNotifications must be used within NotificationProvider");
-  }
-  return context;
+interface NotificationProviderProps {
+  children: ReactNode;
 }
 
 /**
- * Props for the NotificationProvider component.
+ * Generates a collision-resistant toast id without pulling in a UUID
+ * dependency for what is purely a UI key.
+ *
+ * @internal
  */
-type NotificationProviderProps = {
-  children: ReactNode;
-};
+function nextToastId(): string {
+  return `${Date.now()}-${Math.random()}`;
+}
 
 /**
- * Internal state for confirmation dialog.
- */
-type ConfirmDialogState = {
-  message: string;
-  resolve: (value: boolean) => void;
-} | null;
-
-/**
- * Provider component for notification context.
- * Renders toast container and confirmation dialog overlay.
+ * Provider component for notification context. Renders the toast
+ * container and confirmation dialog overlay.
  *
  * @public
  */
 export const NotificationProvider: FunctionComponent<NotificationProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }, []);
 
   const showToast = useCallback((message: string, type: ToastType = "info") => {
-    const id = `${Date.now()}-${Math.random()}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 5000);
-  }, []);
+    const id = nextToastId();
+    setToasts((current) => [...current, { id, message, type }]);
+    setTimeout(() => dismissToast(id), TOAST_AUTO_DISMISS_MS);
+  }, [dismissToast]);
 
   const showError = useCallback((message: string) => showToast(message, "error"), [showToast]);
   const showSuccess = useCallback((message: string) => showToast(message, "success"), [showToast]);
   const showInfo = useCallback((message: string) => showToast(message, "info"), [showToast]);
 
-  const confirm = useCallback((message: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setConfirmDialog({ message, resolve });
-    });
-  }, []);
+  const confirm = useCallback(
+    (message: string): Promise<boolean> =>
+      new Promise((resolve) => setConfirmDialog({ message, resolve })),
+    [],
+  );
 
-  const handleConfirm = useCallback((result: boolean) => {
-    if (confirmDialog) {
+  const resolveConfirm = useCallback(
+    (result: boolean) => {
+      if (!confirmDialog) return;
       confirmDialog.resolve(result);
       setConfirmDialog(null);
-    }
-  }, [confirmDialog]);
+    },
+    [confirmDialog],
+  );
 
-  const dismissToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  }, []);
+  const handleConfirmYes = () => resolveConfirm(true);
+  const handleConfirmNo = () => resolveConfirm(false);
+  const stopOverlayClick = (event: MouseEvent) => event.stopPropagation();
 
-  const handleConfirmYes = () => handleConfirm(true);
-  const handleConfirmNo = () => handleConfirm(false);
-  const handleDialogClick = (e: React.MouseEvent) => e.stopPropagation();
-
-  const value: NotificationContextType = {
-    showToast,
-    showError,
-    showSuccess,
-    showInfo,
-    confirm,
-  };
+  const value = useMemo<NotificationContextValue>(
+    () => ({ showToast, showError, showSuccess, showInfo, confirm }),
+    [showToast, showError, showSuccess, showInfo, confirm],
+  );
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
-      
-      {/* Toast container */}
+
       <toast-container>
         {toasts.map((toast) => (
           <Toast
@@ -135,22 +104,15 @@ export const NotificationProvider: FunctionComponent<NotificationProviderProps> 
         ))}
       </toast-container>
 
-      {/* Confirmation dialog */}
       {confirmDialog && (
         <confirm-overlay onClick={handleConfirmNo}>
-          <confirm-dialog onClick={handleDialogClick}>
+          <confirm-dialog onClick={stopOverlayClick}>
             <p className="confirm-dialog__message">{confirmDialog.message}</p>
             <confirm-dialog-actions>
-              <button
-                className="btn btn--primary"
-                onClick={handleConfirmYes}
-              >
+              <button className="btn btn--primary" onClick={handleConfirmYes}>
                 Confirm
               </button>
-              <button
-                className="btn btn--ghost"
-                onClick={handleConfirmNo}
-              >
+              <button className="btn btn--ghost" onClick={handleConfirmNo}>
                 Cancel
               </button>
             </confirm-dialog-actions>

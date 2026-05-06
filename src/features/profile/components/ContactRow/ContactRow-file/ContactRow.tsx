@@ -6,16 +6,42 @@
 
 import { useState, useCallback } from "react";
 import type { FunctionComponent } from "react";
-import { useResource, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
-import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
-import { isLoadable } from "@/infrastructure/solid/resourceGuards";
-import { discoverInboxUri, postCatalogAccessRequest } from "@/infrastructure/inbox/inboxAccess";
-import { deleteAccessRequest } from "@/infrastructure/inbox/inboxAccess";
-import type { AccessRejection } from "@/infrastructure/inbox/inboxAccess";
+import {discoverInboxUri, postCatalogAccessRequest, deleteAccessRequest, type AccessRejection } from "@/infrastructure/inbox/inboxAccess";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/config";
 import { Avatar } from "@/shared/components/Avatar";
-import { getInitial, getProfileDisplayName } from "@/shared/utils";
+import { useContactProfile } from "@/shared/hooks/useContactProfile";
+
+type RequestStatus = "idle" | "sending" | "sent" | "error";
+
+/**
+ * Maps a *settled* request status (`sent`, `error`, `idle`) to the i18n
+ * key used for the action button label. The `sending` state is rendered
+ * as a literal ellipsis by the component, so it intentionally has no key.
+ *
+ * @internal
+ */
+function settledRequestLabelKey(status: Exclude<RequestStatus, "sending">): string {
+  switch (status) {
+    case "sent":
+      return "profileSidebar.requestSent";
+    case "error":
+      return "profileSidebar.requestError";
+    case "idle":
+      return "profileSidebar.requestAccess";
+  }
+}
+
+/**
+ * Truncates a display name to {@link MAX_DISPLAY_NAME_LENGTH}, appending an
+ * ellipsis when shortened so contact rows render at a consistent width.
+ *
+ * @internal
+ */
+function truncateName(name: string): string {
+  if (name.length <= MAX_DISPLAY_NAME_LENGTH) return name;
+  return `${name.slice(0, MAX_DISPLAY_NAME_LENGTH)}...`;
+}
 
 /**
  * Props for the ContactRow component.
@@ -44,14 +70,8 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
   onRemove,
 }) => {
   const [translate] = useTranslation();
-  const contactResource = useResource(webId.split("#")[0]);
-  const contact = useSubject(SolidProfileShapeType, webId);
-  const isLoading = isLoadable(contactResource) && contactResource.isLoading();
-  const [requestStatus, setRequestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-
-  const displayName = getProfileDisplayName(contact, webId);
-  const avatarUrl = contact?.img?.["@id"];
-  const initial = getInitial(displayName);
+  const { displayName, avatarUrl, initial, isLoading } = useContactProfile(webId);
+  const [requestStatus, setRequestStatus] = useState<RequestStatus>("idle");
 
   const handleRequestAccess = useCallback(async () => {
     setRequestStatus("sending");
@@ -77,18 +97,10 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
     void handleRequestAccess();
   }, [rejection, solidFetch, onClearRejection, handleRequestAccess]);
 
-  const truncatedName = displayName.length > MAX_DISPLAY_NAME_LENGTH
-    ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH)}...`
-    : displayName;
-  const nameDisplay = isLoading ? translate("profileSidebar.loading") : truncatedName;
+  const nameDisplay = isLoading ? translate("profileSidebar.loading") : truncateName(displayName);
   const isRequestDisabled = requestStatus === "sending" || requestStatus === "sent";
-  const requestButtonLabel = requestStatus === "sending"
-    ? "..."
-    : requestStatus === "sent"
-    ? translate("profileSidebar.requestSent")
-    : requestStatus === "error"
-    ? translate("profileSidebar.requestError")
-    : translate("profileSidebar.requestAccess");
+  const requestButtonLabel =
+    requestStatus === "sending" ? "..." : translate(settledRequestLabelKey(requestStatus));
 
   return (
     <contact-row>

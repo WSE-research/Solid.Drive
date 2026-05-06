@@ -5,7 +5,6 @@ import { FileCard } from '../FileCard-file/FileCard';
 // ── module mocks ─────────────────────────────────────────────────────────────
 
 vi.mock('@ldo/solid-react', () => ({
-  useLdo: vi.fn(),
   useResource: vi.fn(),
   useSubject: vi.fn(),
   useSolidAuth: vi.fn(),
@@ -17,7 +16,6 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({ SolidProfileShapeType: {} }))
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isLoadable: vi.fn(() => false),
   isReadable: vi.fn(() => false),
-  isDeletable: vi.fn(() => false),
   isSolidContainer: vi.fn(() => false),
 }));
 
@@ -25,8 +23,8 @@ vi.mock('@/shared/utils/formatBytes', () => ({
   formatBytes: vi.fn((byteCount: string) => `${byteCount} bytes`),
 }));
 
-vi.mock('@/infrastructure/solid/catalog', () => ({
-  removeFromCatalog: vi.fn(() => Promise.resolve()),
+vi.mock('@/features/file-explorer/services/deleteResource', () => ({
+  deleteResource: vi.fn(() => Promise.resolve({ ok: true })),
 }));
 
 vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
@@ -64,14 +62,14 @@ vi.mock('react-i18next', () => ({
 
 // ── imports after mocks ───────────────────────────────────────────────────────
 
-import { useLdo, useResource, useSubject, useSolidAuth } from '@ldo/solid-react';
+import { useResource, useSubject, useSolidAuth } from '@ldo/solid-react';
 import {
-  isLoadable, isReadable, isDeletable, isSolidContainer,
+  isLoadable, isReadable, isSolidContainer,
 } from '@/infrastructure/solid/resourceGuards';
 import { useFileSharing } from '@/features/file-explorer/hooks/useFileSharing';
 import { useFilePreview } from '@/features/file-explorer/hooks/useFilePreview';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
-import { removeFromCatalog } from '@/infrastructure/solid/catalog';
+import { deleteResource } from '@/features/file-explorer/services/deleteResource';
 import { resolveClass } from '@/infrastructure/validation/fileTypeRegistry';
 
 // ── shared constants ──────────────────────────────────────────────────────────
@@ -104,7 +102,6 @@ const baseFileMeta = {
   isPartOf: undefined,
 };
 
-const mockGetResource = vi.fn();
 const mockConfirm = vi.fn();
 
 // ── default mock wiring ───────────────────────────────────────────────────────
@@ -116,13 +113,11 @@ beforeEach(() => {
     session: { isLoggedIn: true, webId: 'https://me.example/card#me' },
     fetch: vi.fn(),
   });
-  vi.mocked(useLdo).mockReturnValue({ getResource: mockGetResource });
   vi.mocked(useResource).mockReturnValue(makeResource());
   vi.mocked(useSubject).mockReturnValue(null);
 
   vi.mocked(isLoadable).mockReturnValue(false);
   vi.mocked(isReadable).mockReturnValue(false);
-  vi.mocked(isDeletable).mockReturnValue(false);
   vi.mocked(isSolidContainer).mockReturnValue(false);
 
   vi.mocked(useFileSharing).mockReturnValue(false);
@@ -367,43 +362,26 @@ describe('FileCard — delete button', () => {
 describe('FileCard — delete action', () => {
   beforeEach(() => withFileMeta());
 
-  it('does not call removeFromCatalog when the user cancels the confirmation', async () => {
+  it('does not call deleteResource when the user cancels the confirmation', async () => {
     mockConfirm.mockResolvedValue(false);
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
     await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
-    expect(removeFromCatalog).not.toHaveBeenCalled();
+    expect(deleteResource).not.toHaveBeenCalled();
   });
 
-  it('calls removeFromCatalog with the correct URIs when confirmed', async () => {
+  it('invokes deleteResource with the container/metadata/catalog URIs when confirmed', async () => {
     mockConfirm.mockResolvedValue(true);
-    const mockDelete = vi.fn(() => Promise.resolve());
-    mockGetResource.mockReturnValue({ delete: mockDelete });
-    vi.mocked(isDeletable).mockReturnValue(true);
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
-    await waitFor(() => expect(removeFromCatalog).toHaveBeenCalledWith(CATALOG_URI, METADATA_URI, expect.any(Function)));
-  });
-
-  it('deletes the container after removing from catalog when confirmed', async () => {
-    mockConfirm.mockResolvedValue(true);
-    const mockDelete = vi.fn(() => Promise.resolve());
-    mockGetResource.mockReturnValue({ delete: mockDelete });
-    vi.mocked(isDeletable).mockReturnValue(true);
-    renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledTimes(1));
-  });
-
-  it('does not call container.delete when the container is not deletable', async () => {
-    mockConfirm.mockResolvedValue(true);
-    const mockDelete = vi.fn(() => Promise.resolve());
-    mockGetResource.mockReturnValue({ delete: mockDelete });
-    vi.mocked(isDeletable).mockReturnValue(false);
-    renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
-    await waitFor(() => expect(removeFromCatalog).toHaveBeenCalled());
-    expect(mockDelete).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(deleteResource).toHaveBeenCalledWith({
+        containerUri: CONTAINER_URI,
+        metadataUri: METADATA_URI,
+        catalogUri: CATALOG_URI,
+        fetch: expect.any(Function),
+      }),
+    );
   });
 });
 

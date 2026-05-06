@@ -20,10 +20,21 @@ type ProfileLike = {
 };
 
 /**
+ * Path segments that are scaffolding for Solid WebIDs and never useful as a
+ * display name. We skip these when scanning a path for a username segment.
+ *
+ * @internal
+ */
+const NON_NAME_PATH_SEGMENTS = new Set(["profile", "card", "card.ttl", "users", "people", "u", "p"]);
+
+/**
  * Extracts a fallback display name from a WebID.
  *
  * @remarks
- * Removes hash fragments and URL segments, returning a meaningful identifier.
+ * Tries (in order) the leftmost subdomain of the host (Pod-per-subdomain
+ * pattern, e.g. `alice.solidcommunity.net` → `alice`), then a meaningful
+ * path segment (Pod-as-path pattern, e.g. `https://server/users/alice/...`
+ * → `alice`), then the host itself, then the raw WebID.
  *
  * @param webId - The WebID to extract from
  * @returns Extracted name segment or the full WebID
@@ -31,13 +42,25 @@ type ProfileLike = {
  * @public
  */
 export function getWebIdFallbackName(webId: string): string {
-  return (
-    webId
-      .replace(/#.*$/, "")
-      .split("/")
-      .filter(Boolean)
-      .find((segment) => segment !== "profile" && segment !== "card" && !segment.startsWith("http")) ?? webId
-  );
+  let url: URL;
+  try {
+    url = new URL(webId);
+  } catch {
+    return webId;
+  }
+
+  const hostParts = url.hostname.split(".").filter(Boolean);
+  if (hostParts.length >= 3) {
+    return hostParts[0];
+  }
+
+  const pathSegment = url.pathname
+    .split("/")
+    .filter(Boolean)
+    .find((segment) => !NON_NAME_PATH_SEGMENTS.has(segment));
+  if (pathSegment) return pathSegment;
+
+  return url.hostname || webId;
 }
 
 /**
@@ -45,6 +68,8 @@ export function getWebIdFallbackName(webId: string): string {
  *
  * @remarks
  * Checks `name`, then `fn`, then falls back to extracting from the WebID.
+ * Empty strings are treated as missing so a blank `vcard:fn` still falls
+ * through to the WebID-derived name.
  *
  * @param profile - Profile object with name properties
  * @param webId - The user's WebID for fallback
@@ -53,5 +78,5 @@ export function getWebIdFallbackName(webId: string): string {
  * @public
  */
 export function getProfileDisplayName(profile: ProfileLike | undefined, webId: string): string {
-  return profile?.name ?? profile?.fn ?? getWebIdFallbackName(webId);
+  return profile?.name?.trim() || profile?.fn?.trim() || getWebIdFallbackName(webId);
 }

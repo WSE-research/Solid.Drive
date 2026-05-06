@@ -6,14 +6,14 @@
 
 import { useMemo, useCallback, useState } from "react";
 import type { FunctionComponent } from "react";
-import { useLdo, useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
+import { useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { CatalogEntryShShapeType } from "@/.ldo/catalogEntry.shapeTypes";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
-import { isLoadable, isReadable, isDeletable, isSolidContainer } from "@/infrastructure/solid/resourceGuards";
+import { isLoadable, isReadable, isSolidContainer } from "@/infrastructure/solid/resourceGuards";
 import { formatBytes } from "@/shared/utils/formatBytes";
 import type { SolidLeaf } from "@ldo/connected-solid";
-import { removeFromCatalog } from "@/infrastructure/solid/catalog";
+import { deleteResource } from "@/features/file-explorer/services/deleteResource";
 import { getFileTypeInfo, resolveClass } from "@/infrastructure/validation/fileTypeRegistry";
 import { SharePanel } from "@/features/file-explorer/components/SharePanel";
 import { useFileSharing } from "@/features/file-explorer/hooks/useFileSharing";
@@ -60,7 +60,6 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const publisherWebId = fileMeta?.publisher?.["@id"];
   const publisherProfile = useSubject(SolidProfileShapeType, publisherWebId);
   const publisherName = publisherProfile?.fn ?? publisherProfile?.name ?? publisherWebId;
-  const { getResource } = useLdo();
   const { session, fetch: solidFetch } = useSolidAuth();
   const [showInfo, setShowInfo] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -90,10 +89,13 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm(translate("fileCard.deleteConfirm"));
     if (!confirmed) return;
-    await removeFromCatalog(catalogUri, metadataUri, solidFetch).catch(() => {});
-    const container = getResource(containerUri);
-    if (isDeletable(container)) await container.delete();
-  }, [containerUri, metadataUri, catalogUri, solidFetch, getResource, translate, confirm]);
+    await deleteResource({
+      containerUri,
+      metadataUri,
+      catalogUri,
+      fetch: solidFetch,
+    });
+  }, [containerUri, metadataUri, catalogUri, solidFetch, translate, confirm]);
 
   const isMetaLoading =
     (isLoadable(metadataResource) && (metadataResource.isLoading() || metadataResource.isUnfetched())) ||
