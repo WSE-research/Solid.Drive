@@ -46,7 +46,7 @@ export function useResourceDetails({
   catalogByContainer,
 }: UseResourceDetailsArgs): ResourceDetails | null {
   // Call useResource unconditionally to keep hook order stable across
-  // renders —> pass an empty string when no folder is selected.
+  // renders; pass an empty string when no folder is selected.
   const folderResource = useResource(
     selection?.kind === 'folder' ? selection.uri : '',
   );

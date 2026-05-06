@@ -279,8 +279,8 @@ describe('FileCard — full card render', () => {
     expect(screen.getByRole('link', { name: 'fileCard.download' })).toHaveAttribute('href', 'blob:preview');
   });
 
-  it('does not guess a binary URL from a human-readable title when no container children are available', () => {
-    // schema:name often holds a human-readable title (e.g. "Holiday Photo"),
+  it('does not guess a binary URL from a display title when no container children are available', () => {
+    // schema:name often holds a display title (e.g. "Holiday Photo"),
     // not the binary's filename. Guessing `${containerUri}${name}` produced
     // 404s for any titled file. With no container listing and no schema:image,
     // we'd rather render no download link than a broken one.

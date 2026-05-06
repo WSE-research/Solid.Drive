@@ -2,7 +2,7 @@
  * Profile display name utilities.
  *
  * @remarks
- * Extracts human-readable names from Solid profiles with fallbacks.
+ * Extracts display names from Solid profiles with fallbacks.
  *
  * @packageDocumentation
  */
