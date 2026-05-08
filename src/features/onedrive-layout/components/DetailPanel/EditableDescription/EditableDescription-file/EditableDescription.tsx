@@ -1,8 +1,7 @@
 /**
  * Inline-editable description input for the DetailPanel. Persists to
- * `schema:description` in the file's index.ttl via LDO on blur or Enter.
- * Shows a transient "Saving…" state and surfaces commit failures via
- * the notification context.
+ * `schema:description` in the file's index.ttl via LDO on blur or
+ * Enter. Surfaces commit failures via the notification context.
  *
  * @packageDocumentation
  */
@@ -38,9 +37,8 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
   const [value, setValue] = useState(initialValue);
   const [isSaving, setIsSaving] = useState(false);
 
-  // "Adjusting state on prop change" pattern — when the selection moves
-  // to a different file, reset the in-progress value. See
-  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  // Reset the in-progress value when the selection moves to a different
+  // file. https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [previousMetadataUri, setPreviousMetadataUri] = useState(metadataUri);
   if (previousMetadataUri !== metadataUri) {
     setPreviousMetadataUri(metadataUri);
@@ -68,6 +66,9 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
         indexResource,
       );
       const trimmed = value.trim();
+      // LDO's createData returns a Proxy that captures patches via property
+      // assignment; this mutation is the documented save path, not a normal
+      // object update.
       draft.description = trimmed === '' ? undefined : trimmed;
       const result = await commitData(draft);
       if (result.isError) {

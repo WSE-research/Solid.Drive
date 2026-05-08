@@ -1,26 +1,31 @@
 /**
- * Right-edge slide-in panel that displays metadata for the currently
- * selected file or folder. Owns no state — `open`, `selected`, and
- * `details` are controlled by the parent shell.
+ * Right-edge slide-in panel that displays metadata for the selected
+ * file or folder. Stateless: `open`, `selected`, and `details` are
+ * controlled by the parent shell.
  *
- * For files: header (type icon + name + close), thumbnail block,
- * editable description, "Has access" avatars, "More details" divider,
- * then label/value rows for Type, Size, Created, Modified, Pod URI.
- *
- * For folders: same layout minus the thumbnail and Type rows; Size is
- * replaced by item count.
+ * Files render a thumbnail preview + Type/Size/Created/Modified rows.
+ * Folders render the same layout minus the thumbnail and Type, with
+ * Size replaced by item count.
  *
  * @packageDocumentation
  */
 
+import { useMemo } from 'react';
 import type { FunctionComponent } from 'react';
+import { useResource } from '@ldo/solid-react';
+import type { SolidLeaf } from '@ldo/connected-solid';
 import { useTranslation } from 'react-i18next';
-import { CloseIcon, MyFilesIcon } from '@/features/onedrive-layout/icons';
+import { useFilePreview } from '@/features/file-explorer';
+import { isSolidContainer } from '@/infrastructure/solid/resourceGuards';
+import { INDEX_FILE } from '@/config';
+import { CloseIcon } from '@/features/onedrive-layout/icons';
 import {
   formatCatalogSize,
   formatModifiedDate,
   EMPTY_CELL,
-} from '@/features/onedrive-layout/components/views/MyFilesView/MyFilesView-file/fileRowFormatting';
+  pickFileIcon,
+  pickFolderIcon,
+} from '@/features/onedrive-layout/formatting';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
 import type { ResourceDetails } from '@/features/onedrive-layout/hooks/useResourceDetails';
 import { EditableDescription } from '../EditableDescription';
@@ -38,12 +43,81 @@ interface DetailRow {
   value: string;
 }
 
+// Same catalog the file rows use, so the header glyph matches the row.
+function pickHeaderIcon(details: NonNullable<ResourceDetails>) {
+  if (details.kind === 'folder') return pickFolderIcon();
+  return pickFileIcon({
+    name: details.name,
+    mediaType: details.mediaType,
+    conformsTo: details.conformsTo,
+  });
+}
+
+const ResourceIcon: FunctionComponent<{ details: NonNullable<ResourceDetails> }> = ({ details }) => {
+  const { Icon } = pickHeaderIcon(details);
+  return <Icon aria-hidden focusable={false} />;
+};
+
+type PreviewKind = 'image' | 'video' | 'audio' | 'document' | 'none';
+
+// Returns 'none' for types we can't embed safely (archives, Office
+// docs without a server-side renderer); the panel falls back to the
+// branded icon in that case.
+function pickPreviewKind(mediaType: string | undefined): PreviewKind {
+  const type = mediaType?.toLowerCase();
+  if (!type) return 'none';
+  if (type.startsWith('image/')) return 'image';
+  if (type.startsWith('video/')) return 'video';
+  if (type.startsWith('audio/')) return 'audio';
+  if (type === 'application/pdf' || type.startsWith('text/')) return 'document';
+  return 'none';
+}
+
+interface FilePreviewProps {
+  details: Extract<NonNullable<ResourceDetails>, { kind: 'file' }>;
+}
+
+const FilePreview: FunctionComponent<FilePreviewProps> = ({ details }) => {
+  // `details.uri` is the file's container, not the binary. Mirror
+  // FileCard: scan the children for the non-`index.ttl` leaf and feed
+  // that to the auth-aware preview hook.
+  const containerResource = useResource(details.uri);
+  const binaryUri = useMemo(() => {
+    if (!isSolidContainer(containerResource)) return undefined;
+    const leaf = containerResource
+      .children()
+      .find(
+        (child): child is SolidLeaf =>
+          !isSolidContainer(child) && !child.uri.endsWith(INDEX_FILE),
+      );
+    return leaf?.uri;
+  }, [containerResource]);
+  const { previewUrl } = useFilePreview(binaryUri);
+  const kind = pickPreviewKind(details.mediaType);
+
+  if (!previewUrl || kind === 'none') {
+    return (
+      <detail-panel-thumbnail data-preview-kind="icon">
+        <ResourceIcon details={details} />
+      </detail-panel-thumbnail>
+    );
+  }
+
+  return (
+    <detail-panel-thumbnail data-preview-kind={kind}>
+      {kind === 'image' && <img src={previewUrl} alt={details.name} />}
+      {kind === 'video' && <video src={previewUrl} controls />}
+      {kind === 'audio' && <audio src={previewUrl} controls />}
+      {kind === 'document' && (
+        <iframe src={previewUrl} title={details.name} />
+      )}
+    </detail-panel-thumbnail>
+  );
+};
+
 /**
- * Renders the right-edge detail panel. When `details` is set, shows the
- * full structured body for the selected file or folder; otherwise shows
- * a localized empty hint. Closed state (`open === false`) is communicated
- * via `aria-hidden` so the surrounding CSS can collapse the grid column
- * with a transition.
+ * Closed state is communicated via `aria-hidden` so the CSS can
+ * collapse the grid column with a transition.
  *
  * @public
  */
@@ -72,7 +146,7 @@ export const DetailPanel: FunctionComponent<DetailPanelProps> = ({
       data-open={open ? 'true' : 'false'}
     >
       <detail-panel-header>
-        {details && <MyFilesIcon aria-hidden focusable={false} />}
+        {details && <ResourceIcon details={details} />}
         <h3>
           {details
             ? details.name
@@ -98,6 +172,56 @@ interface DetailPanelBodyProps {
   details: NonNullable<ResourceDetails>;
 }
 
+type Translate = ReturnType<typeof useTranslation>[0];
+
+const buildFileRows = (
+  details: Extract<NonNullable<ResourceDetails>, { kind: 'file' }>,
+  translate: Translate,
+): DetailRow[] => [
+  {
+    label: translate('oneDriveLayout.details.type', 'Type'),
+    value: details.mediaType ?? EMPTY_CELL,
+  },
+  {
+    label: translate('oneDriveLayout.details.size', 'Size'),
+    value: formatCatalogSize(details.byteSize),
+  },
+  ...(details.created
+    ? [
+        {
+          label: translate('oneDriveLayout.details.created', 'Created'),
+          value: formatModifiedDate(details.created),
+        },
+      ]
+    : []),
+  {
+    label: translate('oneDriveLayout.details.modified', 'Modified'),
+    value: formatModifiedDate(details.modified),
+  },
+  {
+    label: translate('oneDriveLayout.details.podUri', 'Pod URI'),
+    value: details.uri,
+  },
+];
+
+const buildFolderRows = (
+  details: Extract<NonNullable<ResourceDetails>, { kind: 'folder' }>,
+  translate: Translate,
+): DetailRow[] => [
+  {
+    label: translate('oneDriveLayout.details.itemCount', 'Items'),
+    value: String(details.itemCount),
+  },
+  {
+    label: translate('oneDriveLayout.details.modified', 'Modified'),
+    value: formatModifiedDate(details.modified),
+  },
+  {
+    label: translate('oneDriveLayout.details.podUri', 'Pod URI'),
+    value: details.uri,
+  },
+];
+
 const DetailPanelBody: FunctionComponent<DetailPanelBodyProps> = ({
   details,
 }) => {
@@ -105,57 +229,14 @@ const DetailPanelBody: FunctionComponent<DetailPanelBodyProps> = ({
 
   const rows: DetailRow[] =
     details.kind === 'file'
-      ? [
-          {
-            label: translate('oneDriveLayout.details.type', 'Type'),
-            value: details.mediaType ?? EMPTY_CELL,
-          },
-          {
-            label: translate('oneDriveLayout.details.size', 'Size'),
-            value: formatCatalogSize(details.byteSize),
-          },
-          ...(details.created
-            ? [
-                {
-                  label: translate(
-                    'oneDriveLayout.details.created',
-                    'Created',
-                  ),
-                  value: formatModifiedDate(details.created),
-                },
-              ]
-            : []),
-          {
-            label: translate('oneDriveLayout.details.modified', 'Modified'),
-            value: formatModifiedDate(details.modified),
-          },
-          {
-            label: translate('oneDriveLayout.details.podUri', 'Pod URI'),
-            value: details.uri,
-          },
-        ]
-      : [
-          {
-            label: translate('oneDriveLayout.details.itemCount', 'Items'),
-            value: String(details.itemCount),
-          },
-          {
-            label: translate('oneDriveLayout.details.modified', 'Modified'),
-            value: formatModifiedDate(details.modified),
-          },
-          {
-            label: translate('oneDriveLayout.details.podUri', 'Pod URI'),
-            value: details.uri,
-          },
-        ];
+      ? buildFileRows(details, translate)
+      : buildFolderRows(details, translate);
 
   return (
     <detail-panel-body>
       {details.kind === 'file' && (
         <>
-          <detail-panel-thumbnail>
-            <MyFilesIcon aria-hidden focusable={false} />
-          </detail-panel-thumbnail>
+          <FilePreview details={details} />
           <EditableDescription
             metadataUri={details.metadataUri}
             initial={details.description}
