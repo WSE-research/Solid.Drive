@@ -50,6 +50,7 @@
   "fileCard": {
     "loading": "Wird geladen\u2026",
     "deleteConfirm": "Möchten Sie diese Datei wirklich löschen?",
+    "deleteFail": "Löschen fehlgeschlagen",
     "download": "Herunterladen",
     "delete": "Löschen",
     "noMetadata": "Keine Metadaten",
@@ -147,6 +148,8 @@
     "classic": "Klassisch",
     "onedrive": "OneDrive",
     "navRail": "Navigation",
+    "navRailCollapse": "Einklappen",
+    "navRailExpand": "Ausklappen",
     "create": "Erstellen",
     "recent": "Startseite",
     "myFiles": "Meine Dateien",
@@ -218,10 +221,13 @@
       "download": "Herunterladen",
       "moveTo": "Verschieben",
       "rename": "Umbenennen",
+      "more": "Weitere Aktionen",
       "clearSelection": "Auswahl aufheben",
       "selectionCount_one": "{{count}} ausgewählt",
       "selectionCount_other": "{{count}} ausgewählt"
     },
+    "itemCount_one": "{{count}} Element",
+    "itemCount_other": "{{count}} Elemente",
     "toast": {
       "linkCopied": "Link in die Zwischenablage kopiert",
       "linkCopyFail": "Link konnte nicht kopiert werden",
@@ -229,6 +235,60 @@
       "deleteConfirm": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",
       "deleteSuccess": "„{{name}}\" gelöscht",
       "deleteFail": "Löschen fehlgeschlagen"
+    },
+    "filters": {
+      "typeGroup": "Dateitypfilter",
+      "allTypes": "Alle",
+      "personPlaceholder": "Nach Name oder Person filtern",
+      "chip": {
+        "folder": "Ordner",
+        "word": "Word",
+        "excel": "Excel",
+        "powerpoint": "PowerPoint",
+        "pdf": "PDF"
+      }
+    },
+    "sharedView": {
+      "tab": {
+        "withYou": "Mit dir",
+        "byYou": "Von dir"
+      },
+      "withYou": {
+        "empty": "Noch keine Kontakte."
+      },
+      "byYou": {
+        "empty": "Dateien, die du mit anderen teilst, erscheinen hier.",
+        "emptyContacts": "Füge Kontakte hinzu, um Dateien mit ihnen zu teilen."
+      },
+      "column": {
+        "name": "Name",
+        "dateShared": "Geteilt am",
+        "sharedBy": "Geteilt von",
+        "sharedWith": "Geteilt mit"
+      }
+    },
+    "requestsView": {
+      "connecting": "Verbinde…",
+      "heading": "Offene Anfragen",
+      "refresh": "Aktualisieren",
+      "loading": "Anfragen werden geladen…",
+      "emptyTitle": "Keine offenen Anfragen",
+      "emptySubtitle": "Wenn jemand Zugriff auf deine Dateien anfragt, erscheint es hier."
+    },
+    "recentView": {
+      "heading": "Zuletzt",
+      "empty": "Noch keine zuletzt geöffneten Dateien — alles, was du öffnest, erscheint hier.",
+      "column": {
+        "name": "Name",
+        "opened": "Geöffnet",
+        "owner": "Besitzer"
+      }
+    },
+    "peopleView": {
+      "heading": "Personen",
+      "selectPrompt": "Wähle einen Kontakt, um zu sehen, was er mit dir geteilt hat.",
+      "filesByHeading": "Dateien geteilt von {{name}}",
+      "back": "Zurück zu Personen"
     }
   }
 }
