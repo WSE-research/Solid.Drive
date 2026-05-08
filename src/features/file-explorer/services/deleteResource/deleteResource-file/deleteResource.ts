@@ -1,9 +1,9 @@
 /**
- * Recursively deletes a Solid resource (container or leaf). Most Solid
+ * Recursively deletes a Solid resource, container or leaf. Most Solid
  * pods reject `DELETE` on a non empty container, so the service walks
  * `ldp:contains` first, deletes every descendant, then deletes the
- * container itself. Catalog cleanup is best effort (silent failures
- * are acceptable — folders aren't always catalogued).
+ * container itself. Catalog cleanup is best effort and silent failures
+ * are acceptable, since folders aren't always catalogued.
  *
  * @packageDocumentation
  */
@@ -48,7 +48,7 @@ export interface DeleteResourceArgs {
  * Reads `ldp:contains` triples from a container's Turtle representation
  * and returns the absolute URIs of every immediate child. An empty list
  * is returned for any non-2xx response — callers should still attempt
- * the parent delete in that case (the parent itself may be missing).
+ * the parent delete in that case, since the parent itself may be missing.
  */
 async function listContainerChildren(
   containerUri: string,
@@ -78,7 +78,13 @@ export async function deleteResource(
       args.catalogUri,
       args.metadataUri,
       args.fetch,
-    ).catch(() => {});
+    ).catch((error: unknown) => {
+      // Catalog cleanup is best-effort: the container delete below is the
+      // source of truth for whether the resource is gone. Swallow here so a
+      // stale or already-removed catalog entry doesn't fail the user-facing
+      // delete.
+      void error;
+    });
   }
 
   try {

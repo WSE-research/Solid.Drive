@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useLayoutPreference } from '../useLayoutPreference-file/useLayoutPreference';
 
@@ -56,5 +56,28 @@ describe('useLayoutPreference', () => {
     act(() => b.current[1]('classic'));
     expect(a.current[0]).toBe('classic');
     expect(b.current[0]).toBe('classic');
+  });
+
+  it('falls back to "classic" when localStorage.getItem throws (e.g., private mode)', () => {
+    const spy = vi
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('SecurityError');
+      });
+    const { result } = renderHook(() => useLayoutPreference());
+    expect(result.current[0]).toBe('classic');
+    spy.mockRestore();
+  });
+
+  it('still updates in-memory state when localStorage.setItem throws (quota exceeded)', () => {
+    const spy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+    const { result } = renderHook(() => useLayoutPreference());
+    act(() => result.current[1]('onedrive'));
+    expect(result.current[0]).toBe('onedrive');
+    spy.mockRestore();
   });
 });

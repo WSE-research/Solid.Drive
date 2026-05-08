@@ -6,7 +6,7 @@
 import type { SolidContainerUri } from "@ldo/connected-solid";
 import type { Breadcrumb } from "@/features/file-explorer/hooks/useNavigation";
 
-/** Search param storing the current Solid container URI (deep links, history). */
+/** Search param storing the current Solid container URI for deep links and history. */
 export const DRIVE_FOLDER_SEARCH_PARAM = "folder";
 
 /** Ensures a container URI ends with a single trailing slash */
@@ -77,7 +77,7 @@ export function buildDriveBreadcrumbs(
 }
 
 /**
- * Serialized `folder` search value (full URLs need explicit encoding).
+ * Serialized `folder` search value, since full URLs need explicit encoding.
  */
 export function encodeDriveFolderSearchValue(uri: string): string {
   return encodeURIComponent(uri);

@@ -21,6 +21,7 @@ export type ResourceDetails =
       metadataUri: string;
       description: string | undefined;
       mediaType: string | undefined;
+      conformsTo: string | undefined;
       byteSize: number | undefined;
       modified: string | undefined;
       created: string | undefined;
@@ -45,11 +46,12 @@ export function useResourceDetails({
   selection,
   catalogByContainer,
 }: UseResourceDetailsArgs): ResourceDetails | null {
-  // Call useResource unconditionally to keep hook order stable across
-  // renders; pass an empty string when no folder is selected.
-  const folderResource = useResource(
-    selection?.kind === 'folder' ? selection.uri : '',
-  );
+  // Call useResource unconditionally to keep hook order stable. Passing
+  // `undefined` when no folder is selected is the documented disabled
+  // state for `@ldo/solid-react`'s useResource — it skips fetching and
+  // returns undefined.
+  const folderUri = selection?.kind === 'folder' ? selection.uri : undefined;
+  const folderResource = useResource(folderUri);
 
   if (!selection) return null;
 
@@ -62,6 +64,7 @@ export function useResourceDetails({
       metadataUri: `${selection.uri}${INDEX_FILE}`,
       description: entry?.description,
       mediaType: entry?.mediaType,
+      conformsTo: entry?.conformsTo,
       byteSize: entry?.byteSize,
       modified: entry?.modified,
       created: undefined,

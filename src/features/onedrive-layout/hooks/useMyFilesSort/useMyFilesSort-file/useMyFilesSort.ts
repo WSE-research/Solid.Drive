@@ -34,11 +34,12 @@ export const isSortState = (value: unknown): value is SortState => {
 
 function readStored(): SortState {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT;
     const parsed: unknown = JSON.parse(raw);
     return isSortState(parsed) ? parsed : DEFAULT;
   } catch {
+    // Storage denied (private mode) or stored value isn't valid JSON.
     return DEFAULT;
   }
 }
@@ -53,7 +54,11 @@ export function useMyFilesSort(): UseMyFilesSort {
   const setSort = useCallback((next: SortState) => {
     if (!isSortState(next)) return;
     setSortState(next);
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    try {
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Quota exceeded or storage denied; in-memory state still updates.
+    }
   }, []);
   return { sort, setSort };
 }

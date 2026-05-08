@@ -114,6 +114,17 @@ describe('sortEntries', () => {
     expect(result.map((e) => e.displayName)).toEqual(['a', 'c', 'b']);
   });
 
+  it('treats two missing modified dates as equal (preserves their relative order)', () => {
+    const result = sortEntries(
+      [
+        fileFromCatalog('https://x/a/', { title: 'a' }),
+        fileFromCatalog('https://x/b/', { title: 'b' }),
+      ],
+      { key: 'modified', direction: 'asc' },
+    );
+    expect(result.map((e) => e.displayName)).toEqual(['a', 'b']);
+  });
+
   it('sort by sharing currently does not reorder (sharing kind is private until row resolves)', () => {
     const result = sortEntries(
       [

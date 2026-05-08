@@ -28,13 +28,17 @@ export function useSelectedResource(): UseSelectedResource {
 
   const clear = useCallback(() => setSelected(null), []);
 
+  // Only listen for Escape while something is selected. This avoids
+  // multiple stacked listeners across hook instances (e.g. storybook,
+  // nested layouts) firing on a single Escape press.
   useEffect(() => {
+    if (selected === null) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setSelected(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [selected]);
 
   return { selected, select, clear };
 }

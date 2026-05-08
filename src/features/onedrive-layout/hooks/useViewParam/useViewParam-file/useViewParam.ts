@@ -41,10 +41,11 @@ const readViewFromUrl = (): ViewId => {
  * Returns the active view id and a setter that writes ?view= to the URL.
  *
  * Multiple hook instances stay in sync: every setter dispatches a custom
- * event that all live instances listen for, so flipping the view from one
- * component (e.g. NavRail) immediately re-renders every other component
- * reading it (e.g. OneDriveLayout's main panel). This is necessary because
- * `history.replaceState` does NOT fire `popstate` on the same tab.
+ * event that all live instances listen for, so flipping the view from
+ * one component such as NavRail immediately re-renders every other
+ * component reading it, like OneDriveLayout's main panel. This is
+ * necessary because `history.replaceState` does NOT fire `popstate` on
+ * the same tab.
  *
  * @public
  */
@@ -62,10 +63,10 @@ export const useViewParam = (): readonly [ViewId, (next: ViewId) => void] => {
   }, []);
 
   const update = useCallback((next: ViewId) => {
+    setView(next);
     const url = new URL(window.location.href);
     url.searchParams.set('view', next);
     window.history.replaceState({}, '', url);
-    setView(next);
     window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
   }, []);
 
