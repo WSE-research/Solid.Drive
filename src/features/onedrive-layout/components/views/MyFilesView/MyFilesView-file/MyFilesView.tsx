@@ -3,11 +3,11 @@
  * layout.
  *
  * Owns:
- *   - Folder navigation (via {@link useNavigationHistory}, which wraps
+ *   - Folder navigation via {@link useNavigationHistory}, which wraps
  *     `useDriveInitialization` so browser back/forward and per-folder
- *     scroll position both work).
- *   - Drag-and-drop uploads (panel-level + per-folder), feeding the
- *     `useUploadQueue` hook that surfaces in-flight progress.
+ *     scroll position both work.
+ *   - Drag-and-drop uploads at both the panel level and per folder,
+ *     feeding the `useUploadQueue` hook that surfaces in-flight progress.
  *   - The local `prefilledFile` used by the upload form when the user
  *     drops a single file on the panel.
  *   - Branching between the browse table ({@link MyFilesTable}) and the
@@ -43,7 +43,7 @@ import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelec
 import type { SortState } from '@/features/onedrive-layout/hooks/useMyFilesSort';
 import { MyFilesTable } from './MyFilesTable';
 import { MyFilesSearchTable } from './MyFilesSearchTable';
-import { decodeUriTail } from './fileRowFormatting';
+import { decodeUriTail } from '@/features/onedrive-layout/formatting';
 
 interface MyFilesViewProps {
   searchValue: string;
