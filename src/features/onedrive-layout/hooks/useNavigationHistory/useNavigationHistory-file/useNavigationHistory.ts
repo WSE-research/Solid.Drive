@@ -11,7 +11,6 @@
  */
 
 import { useCallback, useEffect, useRef } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
 import type { SolidContainerUri } from '@ldo/connected-solid';
 import type { Breadcrumb } from '@/features/file-explorer/hooks/useDriveInitialization';
 
@@ -32,7 +31,7 @@ export interface UseNavigationHistoryArgs {
   currentUri: SolidContainerUri | undefined;
   breadcrumbs: Breadcrumb[];
   setCurrentUri: (uri: SolidContainerUri | undefined) => void;
-  setBreadcrumbs: Dispatch<SetStateAction<Breadcrumb[]>>;
+  setBreadcrumbs: (breadcrumbs: Breadcrumb[]) => void;
 }
 
 export interface UseNavigationHistoryReturn {

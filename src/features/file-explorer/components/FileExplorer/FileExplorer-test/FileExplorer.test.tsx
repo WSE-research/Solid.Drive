@@ -36,6 +36,10 @@ vi.mock('@/features/file-explorer/hooks/useDriveInitialization', () => ({
   useDriveInitialization: () => mockUseDriveInit,
 }));
 
+vi.mock('@/features/file-explorer/hooks/useContacts', () => ({
+  useContacts: () => ['https://alice.example/profile/card#me'],
+}));
+
 vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
   SolidProfileShapeType: {},
 }));

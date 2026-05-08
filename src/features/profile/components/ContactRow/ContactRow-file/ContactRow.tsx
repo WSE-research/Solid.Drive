@@ -4,15 +4,13 @@
  * @packageDocumentation
  */
 
-import { useState, useCallback } from "react";
 import type { FunctionComponent } from "react";
 import { useTranslation } from "react-i18next";
-import {discoverInboxUri, postCatalogAccessRequest, deleteAccessRequest, type AccessRejection } from "@/infrastructure/inbox/inboxAccess";
+import type { AccessRejection } from "@/infrastructure/inbox/inboxAccess";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/config";
 import { Avatar } from "@/shared/components/Avatar";
 import { useContactProfile } from "@/shared/hooks/useContactProfile";
-
-type RequestStatus = "idle" | "sending" | "sent" | "error";
+import { useContactRequest, type RequestStatus } from "@/features/profile/hooks/useContactRequest";
 
 /**
  * Maps a *settled* request status (`sent`, `error`, `idle`) to the i18n
@@ -57,7 +55,6 @@ type ContactRowProps = {
 
 /**
  * Row displaying a single contact with request access and remove buttons.
- * Handles access request status and rejection notifications.
  *
  * @public
  */
@@ -71,36 +68,18 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
 }) => {
   const [translate] = useTranslation();
   const { displayName, avatarUrl, initial, isLoading } = useContactProfile(webId);
-  const [requestStatus, setRequestStatus] = useState<RequestStatus>("idle");
-
-  const handleRequestAccess = useCallback(async () => {
-    setRequestStatus("sending");
-    try {
-      const inboxUri = await discoverInboxUri(webId, solidFetch);
-      await postCatalogAccessRequest(inboxUri, ownerWebId, webId, solidFetch);
-      setRequestStatus("sent");
-    } catch {
-      setRequestStatus("error");
-    }
-  }, [webId, ownerWebId, solidFetch]);
-
-  const handleRequestAgain = useCallback(async () => {
-    /* v8 ignore next 2 */
-    if (!rejection) return;
-    try {
-      await deleteAccessRequest(rejection.messageUri, solidFetch);
-    } catch {
-      // Cleanup failure is non-critical
-    }
-    onClearRejection();
-    setRequestStatus("idle");
-    void handleRequestAccess();
-  }, [rejection, solidFetch, onClearRejection, handleRequestAccess]);
+  const { status, requestAccess, requestAgain } = useContactRequest({
+    webId,
+    ownerWebId,
+    solidFetch,
+    rejection,
+    onClearRejection,
+  });
 
   const nameDisplay = isLoading ? translate("profileSidebar.loading") : truncateName(displayName);
-  const isRequestDisabled = requestStatus === "sending" || requestStatus === "sent";
+  const isRequestDisabled = status === "sending" || status === "sent";
   const requestButtonLabel =
-    requestStatus === "sending" ? "..." : translate(settledRequestLabelKey(requestStatus));
+    status === "sending" ? "..." : translate(settledRequestLabelKey(status));
 
   return (
     <contact-row>
@@ -110,14 +89,14 @@ export const ContactRow: FunctionComponent<ContactRowProps> = ({
         {rejection ? (
           <>
             <span className="contact-row__denied">{translate("profileSidebar.requestDenied")}</span>
-            <button className="btn btn--ghost btn--small" onClick={handleRequestAgain}>
+            <button className="btn btn--ghost btn--small" onClick={requestAgain}>
               {translate("profileSidebar.requestAgain")}
             </button>
           </>
         ) : (
           <button
             className="btn btn--ghost btn--small"
-            onClick={handleRequestAccess}
+            onClick={requestAccess}
             disabled={isRequestDisabled}
           >
             {requestButtonLabel}

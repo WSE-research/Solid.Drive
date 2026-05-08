@@ -66,7 +66,7 @@ describe('useDriveInitialization', () => {
     vi.useRealTimers();
   });
 
-  it('exposes storage URIs, navigation state, retry handler, navigation handlers, and contacts', () => {
+  it('exposes storage URIs, navigation state, retry handler, and navigation handlers', () => {
     const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     expect(result.current).toHaveProperty('appContainerUri');
     expect(result.current).toHaveProperty('storageRootUri');
@@ -78,7 +78,6 @@ describe('useDriveInitialization', () => {
     expect(result.current).toHaveProperty('handleRetryStorage');
     expect(result.current).toHaveProperty('handleNavigate');
     expect(result.current).toHaveProperty('handleBreadcrumbClick');
-    expect(result.current).toHaveProperty('contacts');
   });
 
   it('initializes with storage root from profile', () => {
@@ -86,11 +85,6 @@ describe('useDriveInitialization', () => {
     expect(result.current.storageRootUri).toBe('https://pod.example/');
     expect(result.current.appContainerUri).toBe('https://pod.example/my-solid-app/');
     expect(result.current.currentUri).toBe('https://pod.example/');
-  });
-
-  it('extracts contacts from profile', () => {
-    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
-    expect(result.current.contacts).toEqual(['https://alice.example/profile/card#me']);
   });
 
   it('sets initial breadcrumbs', () => {
@@ -158,21 +152,6 @@ describe('useDriveInitialization', () => {
     expect(mockWebIdResource.reload).toHaveBeenCalled();
   });
 
-  it('returns empty contacts when profile is null', () => {
-    mockProfileValue = null;
-    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
-    expect(result.current.contacts).toEqual([]);
-  });
-
-  it('returns empty contacts when profile has no knows', () => {
-    mockProfileValue = {
-      storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
-      knows: undefined,
-    };
-    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
-    expect(result.current.contacts).toEqual([]);
-  });
-
   it('handleRetryStorage returns early when webIdResource is not reloadable', async () => {
     // Remove reload method to make isReloadable return false
     mockWebIdResource = { isLoading: () => false };
@@ -221,5 +200,52 @@ describe('useDriveInitialization', () => {
       wrapper: testWrapper(`/?folder=${deepUri}`),
     });
     expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
+  });
+
+  it('setCurrentUri navigates when the URI sits under the storage root', () => {
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    act(() => {
+      result.current.setCurrentUri(
+        'https://pod.example/my-solid-app/sub/' as import('@ldo/connected-solid').SolidContainerUri,
+      );
+    });
+    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/sub/');
+  });
+
+  it('setCurrentUri ignores undefined and URIs outside the storage root', () => {
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    const before = result.current.currentUri;
+    act(() => {
+      result.current.setCurrentUri(undefined);
+    });
+    expect(result.current.currentUri).toBe(before);
+    act(() => {
+      result.current.setCurrentUri(
+        'https://other-pod.example/foo/' as import('@ldo/connected-solid').SolidContainerUri,
+      );
+    });
+    expect(result.current.currentUri).toBe(before);
+  });
+
+  it('setBreadcrumbs navigates to the last breadcrumb when given an array', () => {
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    act(() => {
+      result.current.setBreadcrumbs([
+        { label: 'fileExplorer.myPod', uri: 'https://pod.example/' },
+        { label: 'photos', uri: 'https://pod.example/my-solid-app/photos/' },
+      ]);
+    });
+    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
+  });
+
+  it('setBreadcrumbs ignores trails whose last segment falls outside the storage root', () => {
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    const before = result.current.currentUri;
+    act(() => {
+      result.current.setBreadcrumbs([
+        { label: 'elsewhere', uri: 'https://other-pod.example/foo/' },
+      ]);
+    });
+    expect(result.current.currentUri).toBe(before);
   });
 });
