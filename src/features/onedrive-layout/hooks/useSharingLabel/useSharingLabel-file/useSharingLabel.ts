@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useSolidAuth } from '@ldo/solid-react';
 import { discoverAclUri, readAclAgents } from '@/infrastructure/wac/aclManager';
+import { useAclVersion } from '@/shared/hooks/useAclVersion';
 
 const FOAF_AGENT = 'http://xmlns.com/foaf/0.1/Agent';
 
@@ -31,6 +32,7 @@ interface ResolvedLabel {
 export function useSharingLabel(uri: string | undefined): SharingLabel {
   const { session, fetch: solidFetch } = useSolidAuth();
   const ownerWebId = session.webId;
+  const aclVersion = useAclVersion(uri);
   const [resolved, setResolved] = useState<ResolvedLabel | null>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function useSharingLabel(uri: string | undefined): SharingLabel {
           });
           return;
         }
-        
+
         const others = agents.filter((agent) => agent !== ownerWebId);
         setResolved({
           uri,
@@ -66,7 +68,7 @@ export function useSharingLabel(uri: string | undefined): SharingLabel {
     })();
 
     return () => { cancelled = true; };
-  }, [uri, ownerWebId, solidFetch]);
+  }, [uri, ownerWebId, solidFetch, aclVersion]);
 
   if (!uri) return DEFAULT;
   if (resolved?.uri === uri) return resolved.label;
