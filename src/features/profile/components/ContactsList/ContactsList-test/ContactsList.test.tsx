@@ -189,4 +189,97 @@ describe('ContactsList', () => {
     // useEffect early return fires — discoverInboxUri must not be called
     expect(vi.mocked(discoverInboxUri)).not.toHaveBeenCalled();
   });
+
+  describe('onSelect mode', () => {
+    it('does not wrap rows in a selectable shell when onSelect is omitted', () => {
+      mockContacts = ['https://alice.example/profile/card#me'];
+      const { container } = render(<ContactsList ownerWebId="https://owner.example/profile/card#me" />);
+      expect(container.querySelector('.contacts__selectable-row')).toBeNull();
+    });
+
+    it('wraps each row in a selectable shell when onSelect is provided', () => {
+      mockContacts = ['https://alice.example/profile/card#me'];
+      const { container } = render(
+        <ContactsList
+          ownerWebId="https://owner.example/profile/card#me"
+          onSelect={vi.fn()}
+        />,
+      );
+      const wrapper = container.querySelector('.contacts__selectable-row');
+      expect(wrapper).not.toBeNull();
+      expect(wrapper?.getAttribute('role')).toBe('button');
+      expect(wrapper?.getAttribute('tabindex')).toBe('0');
+    });
+
+    it('marks the matching wrapper as active when selectedWebId matches', () => {
+      mockContacts = ['https://alice.example/profile/card#me'];
+      const { container } = render(
+        <ContactsList
+          ownerWebId="https://owner.example/profile/card#me"
+          onSelect={vi.fn()}
+          selectedWebId="https://alice.example/profile/card#me"
+        />,
+      );
+      const wrapper = container.querySelector('.contacts__selectable-row');
+      expect(wrapper?.classList.contains('contacts__selectable-row--active')).toBe(true);
+      expect(wrapper?.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('fires onSelect when the wrapper is clicked away from interactive children', () => {
+      const onSelect = vi.fn();
+      mockContacts = ['https://alice.example/profile/card#me'];
+      const { container } = render(
+        <ContactsList
+          ownerWebId="https://owner.example/profile/card#me"
+          onSelect={onSelect}
+        />,
+      );
+      const wrapper = container.querySelector('.contacts__selectable-row') as HTMLElement;
+      // Click directly on the wrapper (target === wrapper, no inner button)
+      fireEvent.click(wrapper);
+      expect(onSelect).toHaveBeenCalledWith('https://alice.example/profile/card#me');
+    });
+
+    it('does not fire onSelect when the click originates inside an inner button', () => {
+      const onSelect = vi.fn();
+      mockContacts = ['https://alice.example/profile/card#me'];
+      render(
+        <ContactsList
+          ownerWebId="https://owner.example/profile/card#me"
+          onSelect={onSelect}
+        />,
+      );
+      // The remove button is rendered inside the row by the mocked ContactRow
+      fireEvent.click(screen.getByTestId('remove-btn'));
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('fires onSelect on Enter key', () => {
+      const onSelect = vi.fn();
+      mockContacts = ['https://alice.example/profile/card#me'];
+      const { container } = render(
+        <ContactsList
+          ownerWebId="https://owner.example/profile/card#me"
+          onSelect={onSelect}
+        />,
+      );
+      const wrapper = container.querySelector('.contacts__selectable-row') as HTMLElement;
+      fireEvent.keyDown(wrapper, { key: 'Enter' });
+      expect(onSelect).toHaveBeenCalledWith('https://alice.example/profile/card#me');
+    });
+
+    it('ignores keys other than Enter or Space', () => {
+      const onSelect = vi.fn();
+      mockContacts = ['https://alice.example/profile/card#me'];
+      const { container } = render(
+        <ContactsList
+          ownerWebId="https://owner.example/profile/card#me"
+          onSelect={onSelect}
+        />,
+      );
+      const wrapper = container.querySelector('.contacts__selectable-row') as HTMLElement;
+      fireEvent.keyDown(wrapper, { key: 'ArrowDown' });
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+  });
 });
