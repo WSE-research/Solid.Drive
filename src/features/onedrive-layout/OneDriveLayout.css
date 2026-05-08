@@ -55,7 +55,7 @@
 
   /* layout dimensions (matched to OneDrive proportions) */
   --odl-rail-width:    92px;
-  --odl-detail-width:  220px;
+  --odl-detail-width:  240px;
   --odl-topbar-height: 88px;
   --odl-row-height:    52px;
   --odl-icon-size:     20px;
@@ -146,6 +146,8 @@ page-header-right {
   cursor: pointer;
   font: inherit;
   font-size: var(--odl-font-size-md);
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background var(--odl-transition-fast),
               color var(--odl-transition-fast),
               border-color var(--odl-transition-fast);
@@ -209,6 +211,7 @@ nav-rail {
 .rail-create svg { width: 20px; height: 20px; }
 
 .rail-item {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -222,7 +225,22 @@ nav-rail {
   transition: background var(--odl-transition-fast), color var(--odl-transition-fast);
 }
 .rail-item:hover { background: var(--odl-bg-hover); color: var(--odl-text); }
-.rail-item--active { background: var(--odl-accent-soft); color: var(--odl-accent); }
+
+.rail-item--active {
+  background: transparent;
+  color: var(--odl-accent);
+}
+.rail-item--active::before {
+  content: "";
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  background: var(--odl-accent);
+  border-radius: 0 2px 2px 0;
+}
 .rail-item svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
 .rail-item:focus-visible {
   outline: 2px solid var(--odl-accent);
@@ -234,6 +252,41 @@ nav-rail {
   height: 18px;
   color: var(--odl-text-faint);
   margin: var(--odl-space-2) 0;
+}
+
+/* Chevron toggle that expands / collapses the bottom rail panel
+   (Requests + People). Sized like a normal rail item but rendered
+   as the divider so the user can hide the lower section. */
+.rail-divider-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--odl-radius-card);
+  background: transparent;
+  color: var(--odl-text-faint);
+  cursor: pointer;
+  margin: var(--odl-space-2) 0;
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast);
+}
+.rail-divider-toggle:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+}
+.rail-divider-toggle:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.rail-divider-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+rail-bottom-panel {
+  display: contents;
 }
 
 /* ─── Tooltip (Radix) ─────────────────────────────────────────────────── */
@@ -261,6 +314,9 @@ top-bar {
   background: var(--odl-bg-page);
   height: var(--odl-topbar-height);
   padding-right: var(--odl-space-4);
+  /* Allows the search overlay to position absolutely over the
+     topbar's content row at narrow viewports. */
+  position: relative;
 }
 
 topbar-brand {
@@ -268,6 +324,9 @@ topbar-brand {
   align-items: center;
   justify-content: center;
   height: 100%;
+  /* Pin to column 1 so the brand never drifts when sibling tracks
+     collapse (e.g. search-slot hidden at narrow viewports). */
+  grid-column: 1;
 }
 
 .topbar-logo {
@@ -282,6 +341,7 @@ search-slot {
   display: flex;
   justify-content: center;
   padding: 0 var(--odl-space-4);
+  grid-column: 2;
 }
 
 .topbar-search {
@@ -308,6 +368,11 @@ topbar-actions {
   display: flex;
   align-items: center;
   gap: var(--odl-space-2);
+  /* Pin to the last column so the search/gear/avatar trio stays
+     anchored on the right even when the centered search-slot is
+     hidden at narrow viewports. */
+  grid-column: 3;
+  justify-self: end;
 }
 
 .topbar-icon {
@@ -329,6 +394,85 @@ topbar-actions {
   outline-offset: 2px;
 }
 .topbar-icon svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
+
+/* Compact search trigger — anchored on the right within
+   topbar-actions. Hidden by default; the responsive @media block
+   below reveals it at narrow viewports. */
+.topbar-search-trigger { display: none; }
+
+/* Full-width search overlay — a single rounded pill that replaces
+   the topbar content when the user activates the compact search
+   button. The pill packs the magnifier icon, the input, and the
+   close (×) button together so everything reads as one search bar,
+   matching the OneDrive reference. */
+topbar-search-overlay {
+  position: absolute;
+  top: 50%;
+  left: var(--odl-space-4);
+  right: var(--odl-space-4);
+  transform: translateY(-50%);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 14px;
+  background: var(--odl-bg-elevated);
+  border: 1px solid transparent;
+  border-radius: var(--odl-radius-input);
+  z-index: 110;
+  transition: border-color var(--odl-transition-fast),
+              background var(--odl-transition-fast);
+  animation: topbar-search-overlay-enter 140ms ease-out;
+}
+topbar-search-overlay:focus-within {
+  border-color: var(--odl-accent);
+  background: var(--odl-bg-panel);
+}
+
+@keyframes topbar-search-overlay-enter {
+  from { opacity: 0; transform: translate(0, calc(-50% - 4px)); }
+  to   { opacity: 1; transform: translateY(-50%); }
+}
+
+.topbar-search-overlay__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--odl-text-muted);
+  flex: 0 0 auto;
+}
+.topbar-search-overlay__icon svg {
+  width: var(--odl-icon-size);
+  height: var(--odl-icon-size);
+}
+
+.topbar-search-overlay__input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  color: var(--odl-text);
+  border: 0;
+  padding: 0 8px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+}
+.topbar-search-overlay__input::placeholder { color: var(--odl-text-faint); }
+
+.topbar-search-overlay__close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+}
+
+/* Narrow viewport: the centered search input collapses to an icon
+   button anchored on the right alongside the gear/avatar. */
+@media (max-width: 720px) {
+  search-slot { display: none; }
+  .topbar-search-trigger { display: inline-flex; }
+}
 
 .topbar-avatar {
   display: inline-flex;
@@ -496,11 +640,22 @@ topbar-menu-profile-webid {
 
 .odl-main {
   background: var(--odl-bg-panel);
-  margin: 0 var(--odl-space-4) var(--odl-space-4);
+  margin: 0 var(--odl-space-2) var(--odl-space-4) var(--odl-space-4);
   padding: var(--odl-space-6);
   border-radius: var(--odl-radius-panel);
   overflow: auto;
   min-height: 0;
+}
+
+/* The Recent (Home), People list and People detail surfaces all sit
+   flush against the page — no elevated panel — so the toolbar, chip
+   row, and table read like part of the surrounding shell rather than
+   a contained card. Other views keep the standard .odl-main panel. */
+.odl-main:has(> onedrive-view[data-view-id="recent"]),
+.odl-main:has(> onedrive-view[data-view-id="people"]),
+.odl-main:has(> onedrive-view[data-view-id="people-detail"]) {
+  background: transparent;
+  padding: var(--odl-space-3) var(--odl-space-2) var(--odl-space-4);
 }
 
 onedrive-view {
@@ -565,10 +720,65 @@ toolbar-right { display: inline-flex; gap: var(--odl-space-2); margin-left: auto
 
 /* Selection actions */
 
+/* The container takes available width inside the page-header so the
+   ResizeObserver in SelectionActions actually sees the strip shrink
+   when the window narrows — that's what drives progressive overflow
+   into the kebab. */
 selection-actions {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: var(--odl-space-1);
+}
+
+selection-actions-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--odl-space-1);
+  min-width: 0;
+}
+
+selection-actions-kebab {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Kebab matches the regular toolbar button look so the action strip
+   keeps a single visual rhythm — only its hover / open state lights
+   up with the accent so the user can see when the menu is active. */
+.odl-selection-kebab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--odl-radius-chip);
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast);
+}
+.odl-selection-kebab:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+}
+.odl-selection-kebab:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-selection-kebab[aria-expanded="true"] {
+  background: var(--odl-accent-soft);
+  color: var(--odl-accent);
+}
+.odl-selection-kebab svg {
+  width: var(--odl-icon-size);
+  height: var(--odl-icon-size);
 }
 
 .odl-toolbar-button {
@@ -709,7 +919,34 @@ selection-actions {
   white-space: nowrap;
   color: var(--odl-text-muted);
 }
-.odl-files-cell--name { color: var(--odl-text); font-weight: 500; }
+.odl-files-cell--name {
+  color: var(--odl-text);
+  font-weight: 500;
+  /* Name cells host the leading branded icon plus the title; lay them
+     out as a flex row so the icon never wraps below the text. */
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  min-width: 0;
+}
+.odl-files-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+.odl-files-row__icon svg {
+  width: 24px;
+  height: 24px;
+}
+.odl-files-row__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
 .odl-sharing-cell { color: var(--odl-text-muted); }
 .odl-sharing-cell--loading { color: var(--odl-text-faint); }
 .odl-search-empty {
@@ -875,8 +1112,8 @@ detail-panel {
   /* Match the main panel's vertical extent: same top/bottom margins so
      the two cards align edge-to-edge. A small left gap separates them
      visually (OneDrive does the same). */
-  margin: 0 var(--odl-space-4) var(--odl-space-4) var(--odl-space-2);
-  padding: var(--odl-space-6);
+  margin: 0 var(--odl-space-4) var(--odl-space-4) 0;
+  padding: var(--odl-space-4);
   border-radius: var(--odl-radius-panel);
   overflow: auto;
   min-height: 0;
@@ -884,6 +1121,15 @@ detail-panel {
               margin var(--odl-transition-med),
               padding var(--odl-transition-med),
               opacity var(--odl-transition-med);
+}
+@media (min-width: 1100px) {
+  onedrive-layout { --odl-detail-width: 300px; }
+}
+@media (min-width: 1400px) {
+  onedrive-layout { --odl-detail-width: 360px; }
+}
+@media (min-width: 1700px) {
+  onedrive-layout { --odl-detail-width: 400px; }
 }
 detail-panel[aria-hidden="true"] {
   width: 0;
@@ -897,7 +1143,8 @@ detail-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--odl-space-4);
+  gap: var(--odl-space-2);
+  margin-bottom: var(--odl-space-2);
 }
 detail-panel-header h3 {
   font-size: var(--odl-font-size-lg);
@@ -907,7 +1154,7 @@ detail-panel-header h3 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-detail-panel-body { display: flex; flex-direction: column; gap: var(--odl-space-3); }
+detail-panel-body { display: flex; flex-direction: column; gap: var(--odl-space-2); }
 detail-panel-empty {
   display: block;
   padding: var(--odl-space-6) 0;
@@ -940,18 +1187,45 @@ detail-panel-thumbnail {
   border: 1px solid var(--odl-border);
   border-radius: var(--odl-radius-card);
   color: var(--odl-text-faint);
-  margin-bottom: var(--odl-space-2);
+  margin-bottom: var(--odl-space-1);
+  overflow: hidden;
 }
 detail-panel-thumbnail svg {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
+}
+detail-panel-thumbnail img,
+detail-panel-thumbnail video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+detail-panel-thumbnail audio {
+  width: 100%;
+  display: block;
+}
+detail-panel-thumbnail iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #ffffff;
+}
+detail-panel-thumbnail[data-preview-kind="document"] {
+  aspect-ratio: 4 / 5;
+}
+detail-panel-header svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 detail-panel-section {
   display: flex;
   flex-direction: column;
-  gap: var(--odl-space-2);
-  margin-top: var(--odl-space-3);
+  gap: var(--odl-space-1);
+  margin-top: var(--odl-space-2);
 }
 .odl-details__section-title {
   margin: 0;
@@ -1198,4 +1472,1151 @@ has-access-row {
 .odl-dialog-content share-panel-row .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ─── SharedView ─────────────────────────────────────────────────────── */
+onedrive-layout > shared-toolbar { grid-area: toolbar; }
+onedrive-layout > shared-body { grid-area: main; }
+
+shared-toolbar {
+  display: grid;
+  /* `auto 1fr auto` keeps the tabs and search at their natural widths
+     while the chip column flexes. `min-width: 0` on the children
+     prevents grid blow-out when chip text would otherwise force an
+     overflow. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--odl-space-4);
+  padding: var(--odl-space-3) var(--odl-space-5);
+}
+
+shared-toolbar-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-4);
+  flex-shrink: 0;
+}
+
+shared-body {
+  display: block;
+  background: var(--odl-bg-panel);
+  margin: 0 var(--odl-space-4) var(--odl-space-4);
+  padding: var(--odl-space-4) var(--odl-space-5) var(--odl-space-5);
+  border-radius: var(--odl-radius-panel);
+  overflow: auto;
+  min-height: 0;
+}
+
+.odl-shared-tabs__trigger {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  /* Tighter bottom padding pulls the active underline closer to the
+     text baseline so it reads like the OneDrive reference. */
+  padding: 6px 2px 4px;
+  /* Tabs must never wrap their text — at narrow widths they collapse
+     vertically alongside the rest of the toolbar. */
+  white-space: nowrap;
+  position: relative;
+  transition: color var(--odl-transition-fast);
+}
+.odl-shared-tabs__trigger:hover {
+  color: var(--odl-text);
+}
+.odl-shared-tabs__trigger--active {
+  color: var(--odl-text);
+}
+/* Active-tab underline. The class-based selector matches the buttons
+   we render (we no longer use Radix `data-state`); the data-state
+   variant is kept for any future Radix re-introduction. The bar sits
+   right below the text baseline (no negative offset) so the
+   underline hugs the label instead of floating below the trigger. */
+.odl-shared-tabs__trigger--active::after,
+.odl-shared-tabs__trigger[data-state="active"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--odl-accent);
+  border-radius: 2px;
+}
+.odl-shared-tabs__trigger:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+
+.odl-shared-tabs__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-3);
+  outline: none;
+}
+
+/* ─── Filter chips ────────────────────────────────────────────────────── */
+
+/* Three responsive states share the same filter state:
+     - wide  (default):       inline chips with text labels
+     - medium (≤ 960px):      collapsed "All ▼" dropdown
+     - narrow (≤ 560px):      inline chips with text hidden (icon-only)
+   The narrow rules below override the medium ones, so the cascade
+   resolves to icon-only at the narrowest breakpoint. */
+shared-toolbar-chips {
+  display: block;
+  min-width: 0;
+}
+.odl-shared-toolbar__chips--inline { display: block; min-width: 0; }
+.odl-shared-toolbar__chips--collapsed { display: none; }
+
+.odl-filter-chip--dropdown {
+  gap: 6px;
+}
+.odl-filter-chip--dropdown svg {
+  width: 14px;
+  height: 14px;
+}
+
+shared-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-3);
+}
+
+type-filter-chips {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--odl-space-2);
+}
+
+.odl-filter-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--odl-border);
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  border-radius: var(--odl-radius-pill);
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-filter-chip:hover {
+  background: var(--odl-bg-hover);
+  border-color: var(--odl-text-muted);
+}
+.odl-filter-chip--active,
+.odl-filter-chip[aria-pressed="true"] {
+  background: var(--odl-accent-soft);
+  color: var(--odl-accent);
+  border-color: var(--odl-accent);
+}
+.odl-filter-chip:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+/* Chip icons render as self-contained branded SVGs (Word=blue with W,
+   Excel=green with X, …). No CSS tile wrapper — the icon brings its
+   own colors so the chip pill looks like OneDrive's flat icons. */
+.odl-filter-chip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+.odl-filter-chip__icon svg {
+  width: 18px;
+  height: 18px;
+}
+.odl-filter-chip__label {
+  display: inline-block;
+  line-height: 1;
+}
+
+shared-toolbar-search {
+  display: flex;
+  justify-content: flex-end;
+}
+
+person-name-filter {
+  display: block;
+  /* Width scales down with the viewport so the search never crowds
+     the chip row at medium widths. The narrow breakpoint snaps it to
+     full width. */
+  width: min(280px, 36vw);
+  max-width: 100%;
+}
+
+.odl-filter-input {
+  appearance: none;
+  width: 100%;
+  height: 36px;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-pill);
+  padding: 0 16px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  transition: border-color var(--odl-transition-fast),
+              background var(--odl-transition-fast);
+}
+.odl-filter-input::placeholder { color: var(--odl-text-faint); }
+.odl-filter-input:focus {
+  border-color: var(--odl-accent);
+  background: var(--odl-bg-panel);
+}
+
+/* ─── Shared files table ──────────────────────────────────────────────── */
+
+shared-files-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+shared-files-head,
+shared-files-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 3fr) minmax(140px, 1fr) minmax(160px, 1fr);
+  gap: var(--odl-space-4);
+  align-items: center;
+  padding: 0 var(--odl-space-4);
+}
+
+shared-files-head {
+  height: 40px;
+  border-bottom: 1px solid var(--odl-divider);
+  font-size: var(--odl-font-size-sm);
+  font-weight: 600;
+  color: var(--odl-text-muted);
+}
+
+.odl-shared-head__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+}
+
+shared-files-body {
+  display: flex;
+  flex-direction: column;
+}
+
+shared-files-row {
+  height: 56px;
+  border-bottom: 1px solid var(--odl-border);
+  transition: background var(--odl-transition-fast);
+}
+shared-files-row:hover {
+  background: var(--odl-bg-hover);
+}
+
+shared-files-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  min-width: 0;
+}
+
+/* Row icons mirror the chip icons — branded SVGs with no CSS tile,
+   so each file row reads like OneDrive's inline file glyphs. */
+.odl-shared-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+.odl-shared-row__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+shared-files-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.odl-shared-row__title {
+  color: var(--odl-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.odl-shared-row__parent {
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.odl-shared-row__date,
+.odl-shared-row__sharer {
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Medium viewport (≤ 960px): toolbar starts to wrap, so the inline
+   chip row is replaced by the collapsed "All ▼" dropdown. The
+   layout still flows horizontally — toolbar items don't yet stack. */
+@media (max-width: 960px) {
+  .odl-shared-toolbar__chips--inline { display: none; }
+  .odl-shared-toolbar__chips--collapsed { display: block; }
+}
+
+/* Narrow viewport (≤ 560px): stack the toolbar vertically and fold the
+   table down to its Name column. The chip control stays as the
+   "All ▼" dropdown — the inline icon-only mode lives in a tighter
+   breakpoint below. */
+@media (max-width: 560px) {
+  shared-toolbar {
+    grid-template-columns: 1fr;
+    gap: var(--odl-space-2);
+    padding: var(--odl-space-3) var(--odl-space-4);
+  }
+  shared-toolbar-search {
+    justify-content: stretch;
+  }
+  person-name-filter {
+    width: 100%;
+  }
+
+  shared-files-head,
+  shared-files-row {
+    grid-template-columns: 1fr;
+    gap: var(--odl-space-2);
+  }
+  shared-files-head shared-files-cell:nth-child(n + 2),
+  shared-files-row shared-files-cell:nth-child(n + 2) {
+    display: none;
+  }
+
+  shared-body {
+    margin: 0 var(--odl-space-3) var(--odl-space-3);
+    padding: var(--odl-space-3) var(--odl-space-4) var(--odl-space-4);
+  }
+}
+
+/* Very narrow viewport (≤ 380px): replace the dropdown with inline
+   icon-only chips so the chip set is reachable in one tap on small
+   phones — the dropdown trigger plus its menu eat too much vertical
+   real estate at this width. */
+@media (max-width: 380px) {
+  .odl-shared-toolbar__chips--inline { display: block; }
+  .odl-shared-toolbar__chips--collapsed { display: none; }
+
+  /* Hide chip text on the branded chips (Folder/Word/Excel/...) and
+     compress them to a square icon-only button. The "All" chip has no
+     icon so it keeps its text label. */
+  .odl-filter-chip--with-icon .odl-filter-chip__label {
+    display: none;
+  }
+  .odl-filter-chip--with-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+.odl-shared-empty {
+  margin: 0;
+  padding: var(--odl-space-6) var(--odl-space-4);
+  text-align: center;
+  color: var(--odl-text-muted);
+  background: var(--odl-bg-elevated);
+  border: 1px dashed var(--odl-border);
+  border-radius: var(--odl-radius-card);
+}
+
+/* ─── People view — master/detail grid ────────────────────────────────── */
+
+people-view-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: var(--odl-space-5);
+  align-items: start;
+}
+
+people-view-list {
+  display: block;
+}
+
+people-view-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-3);
+  background: var(--odl-bg-elevated);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-card);
+  padding: var(--odl-space-5);
+  min-height: 240px;
+}
+
+.odl-people-detail__heading {
+  margin: 0 0 var(--odl-space-2);
+  font-size: var(--odl-font-size-lg);
+  font-weight: 600;
+  color: var(--odl-text);
+}
+
+.odl-people-detail__empty {
+  margin: 0;
+  color: var(--odl-text-muted);
+  text-align: center;
+  padding: var(--odl-space-6) 0;
+}
+
+/* ─── Person detail (clicked from People list) ────────────────────────── */
+
+.odl-people-back {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  padding: 4px 8px 4px 0;
+  /* The detail view's only divider sits beneath the back link, so
+     "Back to People" reads as the page header and the toolbar below
+     flows directly into the file table. */
+  margin: 0 0 var(--odl-space-3);
+  padding-bottom: var(--odl-space-3);
+  border-bottom: 1px solid var(--odl-divider);
+  border-radius: 0;
+  align-self: stretch;
+  justify-content: flex-start;
+  transition: color var(--odl-transition-fast), background var(--odl-transition-fast);
+}
+.odl-people-back:hover {
+  color: var(--odl-text);
+  background: var(--odl-bg-hover);
+}
+.odl-people-back:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-people-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Inside the People detail view the shared-toolbar uses a flex row
+   instead of the grid SharedView relies on. That lets the "All" chip
+   hug the identity slot (no wide 1fr column between name and chip)
+   while the filter input slides to the far right via margin-left:
+   auto, matching the OneDrive reference 1:1. */
+onedrive-view[data-view-id="people-detail"] shared-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  padding: 0;
+}
+onedrive-view[data-view-id="people-detail"] shared-toolbar-search {
+  margin-left: auto;
+}
+
+/* Only the file table inside the detail view sits on an elevated
+   panel — the back link + toolbar above stay flush against the page
+   so the layout reads exactly like the OneDrive reference. */
+onedrive-view[data-view-id="people-detail"] shared-files-table {
+  background: var(--odl-bg-panel);
+  border-radius: var(--odl-radius-panel);
+  padding: var(--odl-space-2) var(--odl-space-3) var(--odl-space-4);
+  margin-top: var(--odl-space-3);
+}
+
+/* Narrow viewports: the people-detail toolbar wraps so the filter
+   drops to its own row (full width) below the avatar + name + chip.
+   The flex container's wrap behavior keeps the identity row tight,
+   matching the OneDrive narrow-window reference. */
+@media (max-width: 560px) {
+  onedrive-view[data-view-id="people-detail"] shared-toolbar {
+    flex-wrap: wrap;
+  }
+  onedrive-view[data-view-id="people-detail"] shared-toolbar-search {
+    margin-left: 0;
+    flex: 1 1 100%;
+  }
+  onedrive-view[data-view-id="people-detail"] person-name-filter {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+person-detail-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  flex-shrink: 0;
+  min-width: 0;
+}
+.odl-person-detail__name {
+  margin: 0;
+  /* Matches the OneDrive reference's prominent contact name — same
+     size as the page-header title in other views. */
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--odl-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── OneDrive-style people list ──────────────────────────────────────── */
+
+people-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-3);
+}
+
+people-list-header {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  padding-bottom: var(--odl-space-3);
+  border-bottom: 1px solid var(--odl-divider);
+}
+
+.odl-people-list__heading {
+  margin: 0;
+  /* Push the filter + add toggle to the right edge. */
+  margin-right: auto;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--odl-text);
+}
+
+.odl-people-list__filter {
+  appearance: none;
+  height: 36px;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-pill);
+  padding: 0 16px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  width: min(280px, 50vw);
+  margin-left: auto;
+  transition: border-color var(--odl-transition-fast),
+              background var(--odl-transition-fast);
+}
+.odl-people-list__filter::placeholder { color: var(--odl-text-faint); }
+.odl-people-list__filter:focus {
+  border-color: var(--odl-accent);
+  background: var(--odl-bg-panel);
+}
+
+.odl-people-list__add-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--odl-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-people-list__add-toggle:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+  border-color: var(--odl-text-muted);
+}
+.odl-people-list__add-toggle:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-people-list__add-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+people-list-add {
+  display: flex;
+  gap: var(--odl-space-2);
+  align-items: center;
+}
+
+.odl-people-list__add-input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-pill);
+  padding: 0 16px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  transition: border-color var(--odl-transition-fast),
+              background var(--odl-transition-fast);
+}
+.odl-people-list__add-input::placeholder { color: var(--odl-text-faint); }
+.odl-people-list__add-input:focus {
+  border-color: var(--odl-accent);
+  background: var(--odl-bg-panel);
+}
+
+.odl-people-list__add-submit {
+  appearance: none;
+  border: 0;
+  height: 36px;
+  background: var(--odl-accent);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  font-weight: 500;
+  padding: 0 18px;
+  border-radius: var(--odl-radius-pill);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast);
+}
+.odl-people-list__add-submit:hover:not(:disabled) {
+  background: var(--odl-accent-strong);
+}
+.odl-people-list__add-submit:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-people-list__add-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.odl-people-list__empty {
+  margin: 0;
+  padding: var(--odl-space-6) var(--odl-space-4);
+  text-align: center;
+  color: var(--odl-text-muted);
+  background: var(--odl-bg-elevated);
+  border: 1px dashed var(--odl-border);
+  border-radius: var(--odl-radius-card);
+}
+
+people-list-body {
+  display: flex;
+  flex-direction: column;
+}
+
+person-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--odl-space-3);
+  padding: 10px var(--odl-space-3);
+  border-radius: var(--odl-radius-card);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast);
+}
+person-row:hover {
+  background: var(--odl-bg-hover);
+}
+person-row:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: -2px;
+}
+
+.odl-people-row__name {
+  color: var(--odl-text);
+  font-size: var(--odl-font-size-md);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.odl-people-row__action {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--odl-text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--odl-transition-fast),
+              background var(--odl-transition-fast),
+              color var(--odl-transition-fast);
+}
+.odl-people-row__action svg {
+  width: 16px;
+  height: 16px;
+}
+.odl-people-row__action:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+  opacity: 1;
+}
+.odl-people-row__action:disabled {
+  cursor: default;
+}
+person-row:hover .odl-people-row__action,
+person-row:focus-within .odl-people-row__action {
+  opacity: 1;
+}
+/* The "sent" + "error" states stay visible even off hover so the
+   user keeps the receipt of their action. */
+.odl-people-row__action--sent,
+.odl-people-row__action--error {
+  opacity: 1;
+}
+
+.odl-people-row__action--request:hover:not(:disabled) {
+  background: var(--odl-accent-soft);
+  color: var(--odl-accent);
+}
+.odl-people-row__action--sent {
+  color: #4ade80;
+}
+.odl-people-row__action--error {
+  color: #f3a4a4;
+}
+
+.odl-people-row__action--remove:hover:not(:disabled) {
+  background: rgba(255, 138, 138, 0.12);
+  color: #ff8a8a;
+}
+
+@media (max-width: 560px) {
+  people-list-header {
+    flex-wrap: wrap;
+  }
+  .odl-people-list__filter {
+    flex: 1 1 100%;
+    width: auto;
+  }
+}
+
+@media (max-width: 880px) {
+  people-view-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Selectable contact rows (used by PeopleView) ────────────────────── */
+
+.contacts__selectable-row {
+  display: block;
+  border-radius: var(--odl-radius-card);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast);
+}
+.contacts__selectable-row:hover {
+  background: var(--odl-bg-hover);
+}
+.contacts__selectable-row:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.contacts__selectable-row--active {
+  background: var(--odl-accent-soft);
+}
+
+/* ─── View placeholder (Requests "Connecting…") ───────────────────────── */
+
+.odl-view-placeholder {
+  margin: 0;
+  padding: var(--odl-space-6) var(--odl-space-4);
+  text-align: center;
+  color: var(--odl-text-muted);
+}
+
+/* ─── Recent view (Home) ─────────────────────────────────────────────── */
+
+recent-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+}
+
+.odl-recent__heading {
+  margin: 0;
+  /* Inline heading next to the chips, like the OneDrive reference. */
+  font-size: var(--odl-font-size-lg);
+  font-weight: 600;
+  color: var(--odl-text);
+}
+
+recent-toolbar-chips {
+  display: block;
+  min-width: 0;
+}
+
+recent-toolbar-search {
+  /* Push the filter input to the far right of the toolbar row. */
+  margin-left: auto;
+}
+
+recent-files-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: var(--odl-space-3);
+  /* Only the file table itself sits on the elevated panel — the
+     toolbar above (heading + chips + filter) stays flush against the
+     page surface, matching the OneDrive reference 1:1. */
+  background: var(--odl-bg-panel);
+  border-radius: var(--odl-radius-panel);
+  padding: var(--odl-space-2) var(--odl-space-3) var(--odl-space-4);
+}
+
+recent-files-head,
+recent-files-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 3fr) minmax(140px, 1fr) minmax(160px, 1fr);
+  gap: var(--odl-space-4);
+  align-items: center;
+  padding: 0 var(--odl-space-4);
+}
+
+recent-files-head {
+  height: 40px;
+  border-bottom: 1px solid var(--odl-divider);
+  font-size: var(--odl-font-size-sm);
+  font-weight: 600;
+  color: var(--odl-text-muted);
+}
+
+.odl-recent-head__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+}
+
+recent-files-body {
+  display: flex;
+  flex-direction: column;
+}
+
+recent-files-row {
+  height: 56px;
+  border-bottom: 1px solid var(--odl-border);
+  transition: background var(--odl-transition-fast);
+}
+recent-files-row:hover {
+  background: var(--odl-bg-hover);
+}
+
+recent-files-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  min-width: 0;
+}
+
+.odl-recent-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+.odl-recent-row__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+recent-files-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.odl-recent-row__title {
+  color: var(--odl-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.odl-recent-row__parent {
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.odl-recent-row__date,
+.odl-recent-row__owner {
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.odl-recent-empty {
+  margin: var(--odl-space-3) 0 0;
+  padding: var(--odl-space-6) var(--odl-space-4);
+  text-align: center;
+  color: var(--odl-text-muted);
+  background: var(--odl-bg-elevated);
+  border: 1px dashed var(--odl-border);
+  border-radius: var(--odl-radius-card);
+}
+
+/* Narrow viewport: stack the toolbar; fold the table to its Name
+   column so the layout matches the SharedView/MyFilesView pattern. */
+@media (max-width: 560px) {
+  recent-toolbar {
+    flex-wrap: wrap;
+  }
+  recent-toolbar-search {
+    margin-left: 0;
+    flex: 1 1 100%;
+  }
+  recent-toolbar-search person-name-filter {
+    width: 100%;
+    max-width: 100%;
+  }
+  recent-files-head,
+  recent-files-row {
+    grid-template-columns: 1fr;
+    gap: var(--odl-space-2);
+  }
+  recent-files-head recent-files-cell:nth-child(n + 2),
+  recent-files-row recent-files-cell:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+/* ─── Requests view ──────────────────────────────────────────────────── */
+
+requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-4);
+}
+
+requests-list-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--odl-space-3);
+}
+
+.odl-requests-list__heading {
+  margin: 0;
+  font-size: var(--odl-font-size-lg);
+  font-weight: 600;
+  color: var(--odl-text);
+}
+
+.odl-requests-list__refresh {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--odl-border);
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-sm);
+  padding: 6px 14px;
+  border-radius: var(--odl-radius-pill);
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-requests-list__refresh:hover:not(:disabled) {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+  border-color: var(--odl-text-muted);
+}
+.odl-requests-list__refresh:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-requests-list__refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+requests-list-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--odl-space-2);
+  padding: var(--odl-space-8) var(--odl-space-4);
+  background: var(--odl-bg-elevated);
+  border: 1px dashed var(--odl-border);
+  border-radius: var(--odl-radius-card);
+  color: var(--odl-text-muted);
+}
+requests-list-state[data-state="loading"] {
+  flex-direction: row;
+}
+.odl-requests-list__empty-title {
+  margin: 0;
+  font-size: var(--odl-font-size-md);
+  font-weight: 600;
+  color: var(--odl-text);
+}
+.odl-requests-list__empty-subtitle {
+  margin: 0;
+  font-size: var(--odl-font-size-sm);
+  color: var(--odl-text-muted);
+  max-width: 320px;
+  text-align: center;
+}
+.odl-requests-list__error {
+  margin: 0;
+  color: #f3a4a4;
+  font-size: var(--odl-font-size-md);
+}
+
+requests-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-3);
+}
+
+request-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--odl-space-4);
+  padding: var(--odl-space-4) var(--odl-space-5);
+  background: var(--odl-bg-elevated);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-card);
+  transition: border-color var(--odl-transition-fast);
+}
+request-card[data-busy="true"] {
+  opacity: 0.7;
+}
+
+request-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.odl-request-card__name {
+  margin: 0;
+  font-size: var(--odl-font-size-md);
+  font-weight: 600;
+  color: var(--odl-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.odl-request-card__description {
+  margin: 0;
+  font-size: var(--odl-font-size-md);
+  color: var(--odl-text-muted);
+}
+.odl-request-card__time {
+  font-size: var(--odl-font-size-sm);
+  color: var(--odl-text-faint);
+  margin-top: 2px;
+}
+
+request-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+  flex: 0 0 auto;
+}
+
+.odl-request-card__action {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--odl-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-sm);
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--odl-radius-pill);
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-request-card__action:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-request-card__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.odl-request-card__action--approve {
+  background: var(--odl-accent);
+  border-color: var(--odl-accent);
+  color: #ffffff;
+}
+.odl-request-card__action--approve:hover:not(:disabled) {
+  background: var(--odl-accent-strong);
+  border-color: var(--odl-accent-strong);
+}
+.odl-request-card__action--deny {
+  border-color: var(--odl-border);
+  color: var(--odl-text-muted);
+}
+.odl-request-card__action--deny:hover:not(:disabled) {
+  background: rgba(255, 138, 138, 0.12);
+  border-color: rgba(255, 138, 138, 0.45);
+  color: #ff8a8a;
+}
+
+/* Narrow viewports: cards stack the actions below the body so the
+   primary/secondary buttons stay readable. */
+@media (max-width: 560px) {
+  request-card {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    row-gap: var(--odl-space-3);
+  }
+  request-card-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
 }

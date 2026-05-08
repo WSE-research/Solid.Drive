@@ -1,18 +1,14 @@
 /**
- * Tracks whether the user "is or was just" logged in within the current
- * browser tab. The Solid auth provider needs ~1s after page load to restore
- * a saved session — during that window `useSolidAuth().session.isLoggedIn`
- * is `false`. Without this hook, refreshing while in OneDrive layout would
- * flash the classic Header + FileExplorer until auth resolved.
+ * Tracks whether the user is or was just logged in within the current
+ * browser tab. The Solid auth provider needs about a second after page
+ * load to restore a saved session, and during that window
+ * `useSolidAuth().session.isLoggedIn` is `false`. Without this hook,
+ * refreshing inside the OneDrive layout would flash the classic header
+ * and file explorer until auth resolved.
  *
- * Returns `true` when:
- * - the user is currently logged in (the truth source), OR
- * - we observed an active session earlier in this tab session and auth has
- *   not yet been resolved (sessionStorage persists across refreshes but is
- *   cleared when the tab closes, matching the Solid session lifetime).
- *
- * The flag is cleared automatically when the user truly logs out (a
- * transition from `isLoggedIn=true` back to `isLoggedIn=false`).
+ * Returns `true` while a real session is active or while one is being
+ * restored after a refresh. The flag is cleared automatically when the
+ * user truly logs out.
  *
  * @packageDocumentation
  */
@@ -23,10 +19,6 @@ import { useSolidAuth } from '@ldo/solid-react';
 const SESSION_FLAG_KEY = 'solid-drive.session-active';
 
 /**
- * Returns whether the app should treat the user as logged in for shell
- * routing purposes — true while a real session is active OR while one is
- * being restored after a refresh.
- *
  * @public
  */
 export const useSessionContinuity = (): boolean => {
@@ -50,7 +42,7 @@ export const useSessionContinuity = (): boolean => {
       return;
     }
     if (wasLoggedInRef.current) {
-      // We saw an active session and now it's gone → the user explicitly logged out.
+      // The previously-active session is gone, so the user logged out.
       setAuthObserved(true);
       try { sessionStorage.removeItem(SESSION_FLAG_KEY); } catch { /* storage unavailable */ }
     }

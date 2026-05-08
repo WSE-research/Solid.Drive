@@ -1,12 +1,13 @@
 /**
- * Left-edge navigation rail for the OneDrive-inspired layout.
- * Renders the Create (+) button, the 3 top view items (Home, My Files,
- * Shared), a chevron divider, and the bottom items (Requests, People).
- * Each item wraps a Radix Tooltip that surfaces its localized EN / DE label.
+ * Left-edge navigation rail for the OneDrive-inspired layout. Renders
+ * the Create button, three top view items, a chevron divider, and the
+ * bottom items. Each item wraps a Radix Tooltip with its localized
+ * label.
  *
  * @packageDocumentation
  */
 
+import { useState } from 'react';
 import type { ComponentType, FunctionComponent, SVGProps } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +23,7 @@ import {
   RequestsIconActive,
   PeopleIconActive,
   ChevronDownIcon,
-  PlusIcon,
+  ChevronUpIcon,
 } from '@/features/onedrive-layout/icons';
 import {
   useViewParam,
@@ -103,34 +104,16 @@ export const NavRail: FunctionComponent<NavRailProps> = ({
 }) => {
   const [translate] = useTranslation();
   const [view, setView] = useViewParam();
+  // The chevron at the bottom of the rail toggles a panel that holds
+  // the Requests + People view switchers. The user owns this state
+  // entirely — even when they're currently on Requests or People,
+  // they can collapse the panel.
+  const [bottomVisible, setBottomVisible] = useState(true);
 
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
       <nav-rail aria-label={translate('oneDriveLayout.navRail', 'Navigation')}>
-        {onNewFolder && onUploadFiles ? (
-          <CreateMenu
-            onNewFolder={onNewFolder}
-            onUploadFiles={onUploadFiles}
-          />
-        ) : (
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <button
-                type="button"
-                className="rail-create"
-                aria-label={translate('oneDriveLayout.create', 'Create')}
-              >
-                <PlusIcon aria-hidden focusable={false} />
-              </button>
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content side="right" sideOffset={8} className="rail-tooltip">
-                {translate('oneDriveLayout.create', 'Create')}
-                <Tooltip.Arrow className="rail-tooltip__arrow" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-        )}
+        <CreateMenu onNewFolder={onNewFolder} onUploadFiles={onUploadFiles} />
 
         {TOP_ITEMS.map((item) => (
           <RailButton
@@ -142,21 +125,50 @@ export const NavRail: FunctionComponent<NavRailProps> = ({
           />
         ))}
 
-        <ChevronDownIcon
-          className="rail-divider"
-          aria-hidden
-          focusable={false}
-        />
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <button
+              type="button"
+              className="rail-divider-toggle"
+              aria-expanded={bottomVisible}
+              aria-controls="rail-bottom-panel"
+              aria-label={
+                bottomVisible
+                  ? translate('oneDriveLayout.navRailCollapse', 'Collapse')
+                  : translate('oneDriveLayout.navRailExpand', 'Expand')
+              }
+              onClick={() => setBottomVisible((open: boolean) => !open)}
+            >
+              {bottomVisible ? (
+                <ChevronDownIcon aria-hidden focusable={false} />
+              ) : (
+                <ChevronUpIcon aria-hidden focusable={false} />
+              )}
+            </button>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content side="right" sideOffset={8} className="rail-tooltip">
+              {bottomVisible
+                ? translate('oneDriveLayout.navRailCollapse', 'Collapse')
+                : translate('oneDriveLayout.navRailExpand', 'Expand')}
+              <Tooltip.Arrow className="rail-tooltip__arrow" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
 
-        {BOTTOM_ITEMS.map((item) => (
-          <RailButton
-            key={item.id}
-            item={item}
-            active={view === item.id}
-            onSelect={setView}
-            label={translate(item.i18nKey)}
-          />
-        ))}
+        {bottomVisible && (
+          <rail-bottom-panel id="rail-bottom-panel">
+            {BOTTOM_ITEMS.map((item) => (
+              <RailButton
+                key={item.id}
+                item={item}
+                active={view === item.id}
+                onSelect={setView}
+                label={translate(item.i18nKey)}
+              />
+            ))}
+          </rail-bottom-panel>
+        )}
       </nav-rail>
     </Tooltip.Provider>
   );

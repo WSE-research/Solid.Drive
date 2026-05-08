@@ -1,7 +1,7 @@
 /**
- * Right-zone toolbar above the My Files table. Owns no state — reads
- * `sort` + `detailsOpen` from props and forwards user actions back to
- * the parent shell. Hosts the Sort dropdown and the Details toggle.
+ * Right-zone toolbar above the My Files table. Hosts the Sort dropdown
+ * and the Details toggle. Stateless: every interaction is forwarded
+ * through the matching callback prop.
  *
  * @packageDocumentation
  */
@@ -9,7 +9,12 @@
 import type { FunctionComponent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useTranslation } from 'react-i18next';
-import { SortIcon, InfoIcon, CheckmarkIcon } from '@/features/onedrive-layout/icons';
+import {
+  SortIcon,
+  DetailsPanelIcon,
+  DetailsPanelIconActive,
+  CheckmarkIcon,
+} from '@/features/onedrive-layout/icons';
 import type { SortKey, SortState } from '@/features/onedrive-layout/hooks/useMyFilesSort';
 
 const SORT_KEYS: readonly SortKey[] = ['name', 'modified', 'size', 'sharing'];
@@ -22,11 +27,6 @@ interface ContextualToolbarProps {
 }
 
 /**
- * Renders the contextual toolbar for My Files. Hosts a Sort dropdown
- * and a Details toggle. 
- * The component owns no state.
- * every interaction is forwarded through the matching callback prop.
- *
  * @public
  */
 export const ContextualToolbar: FunctionComponent<ContextualToolbarProps> = ({
@@ -97,7 +97,11 @@ export const ContextualToolbar: FunctionComponent<ContextualToolbarProps> = ({
           aria-pressed={detailsOpen}
           onClick={onToggleDetails}
         >
-          <InfoIcon aria-hidden focusable={false} />
+          {detailsOpen ? (
+            <DetailsPanelIconActive aria-hidden focusable={false} />
+          ) : (
+            <DetailsPanelIcon aria-hidden focusable={false} />
+          )}
           <span>{translate('oneDriveLayout.toolbar.details', 'Details')}</span>
         </button>
       </toolbar-right>
