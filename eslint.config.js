@@ -133,14 +133,16 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          // @/features/file-explorer/* is intentionally allowed — the OneDrive
-          // layout is a re-skin of the classic explorer that reuses its Pod
-          // browsing infrastructure (useDriveInitialization, useCatalog,
-          // FolderEntry, FileCard, NewFolderInput, FileUpload, UploadTray,
-          // DropZone, useFileSearch, useUploadQueue). The two features
-          // intentionally share this layer; promoting it into infrastructure/
-          // is tracked separately.
-          { group: ['@/features/auth/*', '@/features/profile/*', '@/features/sharing/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          // @/features/file-explorer/* and @/features/profile/* are
+          // intentionally allowed — the OneDrive layout is a re-skin of the
+          // classic explorer that reuses its Pod browsing infrastructure
+          // (useDriveInitialization, useCatalog, FolderEntry, FileCard,
+          // NewFolderInput, FileUpload, UploadTray, DropZone, useFileSearch,
+          // useUploadQueue) AND the classic profile UI (ContactsList,
+          // RequestsPanel) for the Shared / Requests / People views. The
+          // three features intentionally share this layer; promoting them
+          // into infrastructure/ is tracked separately.
+          { group: ['@/features/auth/*', '@/features/sharing/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],

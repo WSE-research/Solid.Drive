@@ -17,8 +17,11 @@ export {
   MailInboxRegular    as RequestsIcon,
   PersonRegular       as PeopleIcon,
   ChevronDownRegular  as ChevronDownIcon,
+  ChevronUpRegular    as ChevronUpIcon,
+  ChevronLeftRegular  as ChevronLeftIcon,
   AddRegular          as PlusIcon,
   SettingsRegular     as GearIcon,
+  SearchRegular       as SearchIcon,
   CheckmarkRegular    as CheckmarkIcon,
   ArrowSortDownLinesRegular as SortIcon,
   InfoRegular         as InfoIcon,
@@ -29,6 +32,10 @@ export {
   ArrowDownloadRegular    as DownloadIcon,
   FolderArrowRightRegular as MoveToIcon,
   RenameRegular           as RenameIcon,
+  KeyRegular              as RequestAccessIcon,
+  MoreHorizontalRegular   as MoreHorizontalIcon,
+  PanelRightContractRegular as DetailsPanelIcon,
+  PanelRightExpandRegular   as DetailsPanelIconActive,
 } from '@fluentui/react-icons';
 
 export {
