@@ -2,12 +2,13 @@
 
 UI features, each self contained in its own folder with components, hooks, and services.
 Features may import from `@/infrastructure` and `@/shared`.
-Cross feature imports are not allowed except that `file-explorer` imports from `sharing` (WAC hooks).
+Cross feature imports are restricted by ESLint; the allowed pairs are documented in `eslint.config.js`. The OneDrive shell reuses `file-explorer` and `profile` building blocks; `file-explorer` imports `sharing` (WAC hooks); `auth/Header` mounts the layout toggle from `onedrive-layout`.
 
 == Contents
 
 link:auth/[auth/]:: Login/logout, provider selection, language switching
 link:file-explorer/[file-explorer/]:: Browse Pod files, upload, download, share, navigate folders
+link:onedrive-layout/[onedrive-layout/]:: OneDrive-inspired shell that re-skins the file-explorer with a nav rail, top bar, contextual toolbar, and right-edge detail panel
 link:profile/[profile/]:: View and edit user profile, manage contacts, handle access requests
 link:sharing/[sharing/]:: Low level WAC ACL hooks; consumed by `file-explorer/SharePanel`
 

@@ -1,0 +1,35 @@
+= onedrive-layout
+
+OneDrive-inspired application shell. A re-skin of the classic file explorer that reuses the same Pod-browsing infrastructure (catalog, file actions, ACL hooks) and arranges it into a left nav rail, full-width top bar, contextual toolbar, main content area, and right-edge detail panel.
+
+User-facing toggle between this shell and the classic explorer lives in `auth/Header`.
+
+== Layout structure
+
+----
+top-bar           full width
+rail | toolbar    rail spans the full height
+rail | main | detail
+----
+
+The `topbar` slot hosts the global pod search.
+The `toolbar` slot is owned by each view: My Files renders the page header + sort/details toggle, Shared/Recent/People/Requests render their own toolbars in this slot.
+The `main` slot holds the active view.
+The `detail` slot is rendered only on the My Files view; it slides in/out via `aria-hidden` + a CSS width transition.
+
+== Views
+
+link:components/views/MyFilesView/[MyFilesView]:: Browsable file table with selection, sharing column, and contextual toolbar.
+link:components/views/SharedView/[SharedView]:: With-you / By-you tabs, type-filter chips, person filter; one row per shared entry.
+link:components/views/RecentView/[RecentView]:: Home view; flat list of recently-modified catalog entries.
+link:components/views/PeopleView/[PeopleView]:: List ↔ detail switch over the contact roster; detail view shows files shared by the selected person.
+link:components/views/RequestsView/[RequestsView]:: Pending inbox-based access requests with approve / deny.
+
+== Cross-feature imports
+
+`onedrive-layout` may import from `file-explorer` and `profile` (it reuses their hooks and building blocks). It must not import from `auth`, `sharing`, or `validation` directly.
+
+== Navigation
+
+.Parent
+link:../[features]
