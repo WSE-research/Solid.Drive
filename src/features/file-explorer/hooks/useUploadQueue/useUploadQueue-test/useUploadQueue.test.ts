@@ -133,6 +133,51 @@ describe('useUploadQueue', () => {
     await waitFor(() => expect(result.current.hasActive).toBe(false));
   });
 
+  it('marks an item as error when validation throws (e.g. shape fetch failure)', async () => {
+    mockValidateFile.mockRejectedValueOnce(new Error('shape unreachable'));
+    const { result } = renderHook(() => useUploadQueue(CATALOG_URI, true, []));
+    act(() => {
+      result.current.enqueueInstant([makeFile('thrower.txt')], DESTINATION_URI, 'My Drive');
+    });
+    await waitFor(() => expect(result.current.items[0].status).toBe('error'));
+    expect(result.current.items[0].error).toBe('Validation failed');
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
+  it('marks an item as error when the destination resource is not a container', async () => {
+    mockGetResource.mockReturnValue({ uri: 'https://pod.example/photos/notes.txt' });
+    const { result } = renderHook(() => useUploadQueue(CATALOG_URI, true, []));
+    act(() => {
+      result.current.enqueueInstant([makeFile('a.txt')], DESTINATION_URI, 'My Drive');
+    });
+    await waitFor(() => expect(result.current.items[0].status).toBe('error'));
+    expect(result.current.items[0].error).toBe('Destination is not a container');
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
+  it('rejects a duplicate even when its accessURL has a malformed percent-escape', async () => {
+    const existingCatalog = [
+      {
+        uri: 'https://pod.example/backup/odd%file/index.ttl',
+        conformsTo: '',
+        title: 'something-else.txt',
+        description: '',
+        modified: '',
+        publisher: '',
+        mediaType: 'text/plain',
+        byteSize: 1,
+        accessURL: 'https://pod.example/backup/%E0%A4%A/odd.txt',
+      },
+    ];
+    const { result } = renderHook(() => useUploadQueue(CATALOG_URI, true, existingCatalog));
+    act(() => {
+      result.current.enqueueInstant([makeFile('odd.txt')], DESTINATION_URI, 'My Drive');
+    });
+    await waitFor(() => expect(result.current.items[0].status).toBe('error'));
+    expect(result.current.items[0].error).toContain('fileExplorer.uploadDuplicate');
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
   it('rejects an item with a duplicate filename without calling upload', async () => {
     const existingCatalog = [
       {

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NavRail } from '../NavRail-file/NavRail';
 
 vi.mock('react-i18next', () => ({
@@ -108,13 +109,29 @@ describe('NavRail', () => {
     expect(createBtn).not.toHaveAttribute('aria-haspopup');
   });
 
-  it('renders the CreateMenu when both onNewFolder and onUploadFiles are provided', () => {
+  it('renders the CreateMenu when both onNewFolder and onFilesPicked are provided', () => {
     const onNewFolder = vi.fn();
-    const onUploadFiles = vi.fn();
-    render(<NavRail onNewFolder={onNewFolder} onUploadFiles={onUploadFiles} />);
+    const onFilesPicked = vi.fn();
+    render(<NavRail onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />);
     // OneDriveLayout supplies both — the CreateMenu takes over
     // and exposes its own Create button with aria-haspopup.
     // We just check we still have a Create button visible.
     expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+  });
+
+  it('renders the full CreateMenu (with menu items) when both create callbacks are wired', async () => {
+    const user = userEvent.setup();
+    const onNewFolder = vi.fn();
+    const onFilesPicked = vi.fn();
+    render(
+      <NavRail onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    expect(
+      await screen.findByRole('menuitem', { name: /new folder/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /upload files/i }),
+    ).toBeInTheDocument();
   });
 });

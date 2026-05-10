@@ -52,6 +52,22 @@ describe("decodeDriveFolderSearchParam / encodeDriveFolderSearchValue", () => {
     );
   });
 
+  it("returns undefined for null input", () => {
+    expect(decodeDriveFolderSearchParam(null)).toBeUndefined();
+  });
+
+  it("returns undefined for whitespace-only input", () => {
+    expect(decodeDriveFolderSearchParam("   ")).toBeUndefined();
+  });
+
+  it("returns undefined for non-http strings", () => {
+    expect(decodeDriveFolderSearchParam("file:///etc/passwd")).toBeUndefined();
+  });
+
+  it("returns undefined when the decoded value is not a parseable URL", () => {
+    expect(decodeDriveFolderSearchParam("https://[bad")).toBeUndefined();
+  });
+
   it("documents the conventional search parameter name", () => {
     expect(DRIVE_FOLDER_SEARCH_PARAM).toBe("folder");
   });

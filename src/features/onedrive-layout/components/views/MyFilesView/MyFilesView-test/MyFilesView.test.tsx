@@ -154,13 +154,39 @@ vi.mock('@/features/file-explorer/components/UploadTray', () => ({
     items.length > 0 ? <div data-testid="upload-tray" /> : null,
 }));
 
-vi.mock('@/features/file-explorer/components/NewFolderInput', () => ({
-  NewFolderInput: () => <div data-testid="mock-new-folder-input" />,
+vi.mock('@/features/onedrive-layout/components/NewFolderDialog', () => ({
+  NewFolderDialog: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange?: (open: boolean) => void;
+  }) =>
+    open ? (
+      <div data-testid="mock-new-folder-dialog">
+        <button
+          type="button"
+          data-testid="mock-new-folder-dialog-close"
+          onClick={() => onOpenChange?.(false)}
+        >
+          close
+        </button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('@/features/file-explorer/components/FileUpload', () => ({
-  FileUpload: ({ onUploadSuccess }: { onUploadSuccess?: () => void }) => (
-    <div data-testid="mock-file-upload">
+  FileUpload: ({
+    onUploadSuccess,
+    prefilledFile,
+  }: {
+    onUploadSuccess?: () => void;
+    prefilledFile?: File;
+  }) => (
+    <div
+      data-testid="mock-file-upload"
+      data-prefilled={prefilledFile?.name ?? ''}
+    >
       <button
         type="button"
         data-testid="mock-file-upload-success"
@@ -418,14 +444,14 @@ describe('MyFilesView — search', () => {
 });
 
 describe('MyFilesView — create flows', () => {
-  it('renders NewFolderInput when showNewFolder is true', () => {
+  it('renders NewFolderDialog when showNewFolder is true', () => {
     render(<MyFilesView {...renderProps} showNewFolder />);
-    expect(screen.getByTestId('mock-new-folder-input')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-new-folder-dialog')).toBeInTheDocument();
   });
 
-  it('does not render NewFolderInput when showNewFolder is false', () => {
+  it('does not render NewFolderDialog when showNewFolder is false', () => {
     render(<MyFilesView {...renderProps} showNewFolder={false} />);
-    expect(screen.queryByTestId('mock-new-folder-input')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-new-folder-dialog')).not.toBeInTheDocument();
   });
 
   it('renders FileUpload when showUpload is true', () => {
@@ -446,6 +472,43 @@ describe('MyFilesView — create flows', () => {
     );
     await user.click(screen.getByTestId('mock-file-upload-success'));
     expect(onUploadDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('closing the NewFolderDialog signals the parent via onNewFolderDone', async () => {
+    const user = userEvent.setup();
+    const onNewFolderDone = vi.fn();
+    render(
+      <MyFilesView
+        {...renderProps}
+        showNewFolder
+        onNewFolderDone={onNewFolderDone}
+      />,
+    );
+    await user.click(screen.getByTestId('mock-new-folder-dialog-close'));
+    expect(onNewFolderDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('seeds the FileUpload prefilled file when the pickedFile prop is set', () => {
+    const file = new File(['x'], 'pick.txt', { type: 'text/plain' });
+    render(<MyFilesView {...renderProps} showUpload pickedFile={file} />);
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      'pick.txt',
+    );
+  });
+
+  it('updates the prefilled file when the pickedFile prop changes between renders', () => {
+    const { rerender } = render(<MyFilesView {...renderProps} showUpload />);
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      '',
+    );
+    const file = new File(['x'], 'late.txt', { type: 'text/plain' });
+    rerender(<MyFilesView {...renderProps} showUpload pickedFile={file} />);
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      'late.txt',
+    );
   });
 });
 

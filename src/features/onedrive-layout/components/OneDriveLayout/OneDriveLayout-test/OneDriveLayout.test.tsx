@@ -6,16 +6,22 @@ import { OneDriveLayout } from '../OneDriveLayout-file/OneDriveLayout';
 vi.mock('@/features/onedrive-layout/components/NavRail', () => ({
   NavRail: ({
     onNewFolder,
-    onUploadFiles,
+    onFilesPicked,
   }: {
     onNewFolder: () => void;
-    onUploadFiles: () => void;
+    onFilesPicked: (files: File[]) => void;
   }) => (
     <nav-rail data-testid="nav-rail">
       <button type="button" data-testid="nav-rail-new-folder" onClick={onNewFolder}>
         new folder
       </button>
-      <button type="button" data-testid="nav-rail-upload" onClick={onUploadFiles}>
+      <button
+        type="button"
+        data-testid="nav-rail-upload"
+        onClick={() =>
+          onFilesPicked([new File(['x'], 'pick.txt', { type: 'text/plain' })])
+        }
+      >
         upload
       </button>
     </nav-rail>

@@ -1,81 +1,81 @@
 /**
  * Create menu rendered above the OneDrive-inspired NavRail. The trigger
- * is the `+` button; selecting an item invokes the matching prop
- * callback so the parent shell can open the right inline form.
+ * is the `+` button. "New folder" fires `onNewFolder`. "Upload files"
+ * opens the OS file picker via a hidden input and forwards the selected
+ * files to `onFilesPicked` so the parent shell can prefill the upload
+ * form.
  *
  * @packageDocumentation
  */
 
-import type { FunctionComponent } from 'react';
+import { useRef, type ChangeEvent, type FunctionComponent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useTranslation } from 'react-i18next';
 import { PlusIcon } from '@/features/onedrive-layout/icons';
 
 interface CreateMenuProps {
-  onNewFolder?: () => void;
-  onUploadFiles?: () => void;
+  onNewFolder: () => void;
+  onFilesPicked: (files: File[]) => void;
 }
 
 /**
- * Create menu trigger and dropdown. When neither `onNewFolder` nor
- * `onUploadFiles` is provided the trigger renders disabled, so callers
- * that don't wire actions yet still get the same chrome instead of an
- * inline placeholder.
+ * Two-item dropdown anchored on the rail's `+` button. "Upload files"
+ * clicks a hidden file input so the OS picker opens on selection.
  *
  * @public
  */
 export const CreateMenu: FunctionComponent<CreateMenuProps> = ({
   onNewFolder,
-  onUploadFiles,
+  onFilesPicked,
 }) => {
   const [translate] = useTranslation();
-  const disabled = !onNewFolder && !onUploadFiles;
-  const triggerLabel = translate('oneDriveLayout.create', 'Create');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (disabled) {
-    return (
-      <button
-        type="button"
-        className="rail-create"
-        aria-label={triggerLabel}
-        disabled
-      >
-        <PlusIcon aria-hidden focusable={false} />
-      </button>
-    );
-  }
+  const openFilePicker = () => fileInputRef.current?.click();
+
+  const handleFilesChosen = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length > 0) onFilesPicked(files);
+  };
 
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className="rail-create"
-          aria-label={triggerLabel}
-        >
-          <PlusIcon aria-hidden focusable={false} />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content side="right" sideOffset={8} className="odl-create-menu">
-          {onNewFolder && (
+    <>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="rail-create"
+            aria-label={translate('oneDriveLayout.create', 'Create')}
+          >
+            <PlusIcon aria-hidden focusable={false} />
+          </button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content side="right" sideOffset={8} className="odl-create-menu">
             <DropdownMenu.Item
               className="odl-create-menu__item"
               onSelect={onNewFolder}
             >
               {translate('oneDriveLayout.createMenu.newFolder', 'New folder')}
             </DropdownMenu.Item>
-          )}
-          {onUploadFiles && (
             <DropdownMenu.Item
               className="odl-create-menu__item"
-              onSelect={onUploadFiles}
+              onSelect={openFilePicker}
             >
               {translate('oneDriveLayout.createMenu.uploadFiles', 'Upload files')}
             </DropdownMenu.Item>
-          )}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        hidden
+        onChange={handleFilesChosen}
+        aria-hidden
+      />
+    </>
   );
 };

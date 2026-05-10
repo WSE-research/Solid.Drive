@@ -24,6 +24,7 @@ import {
   PeopleIconActive,
   ChevronDownIcon,
   ChevronUpIcon,
+  PlusIcon,
 } from '@/features/onedrive-layout/icons';
 import {
   useViewParam,
@@ -90,17 +91,21 @@ const RailButton: FunctionComponent<RailButtonProps> = ({ item, active, onSelect
 
 interface NavRailProps {
   onNewFolder?: () => void;
-  onUploadFiles?: () => void;
+  onFilesPicked?: (files: File[]) => void;
 }
 
 /**
  * Renders the navigation rail with logo, create button, and view switchers.
+ * Both create callbacks are optional so the rail can render in chrome-only
+ * contexts (early shells, storybooks, tests). The CreateMenu only renders
+ * when both callbacks are wired; otherwise a disabled fallback button is
+ * shown so the layout slot stays visually balanced.
  *
  * @public
  */
 export const NavRail: FunctionComponent<NavRailProps> = ({
   onNewFolder,
-  onUploadFiles,
+  onFilesPicked,
 }) => {
   const [translate] = useTranslation();
   const [view, setView] = useViewParam();
@@ -113,7 +118,18 @@ export const NavRail: FunctionComponent<NavRailProps> = ({
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
       <nav-rail aria-label={translate('oneDriveLayout.navRail', 'Navigation')}>
-        <CreateMenu onNewFolder={onNewFolder} onUploadFiles={onUploadFiles} />
+        {onNewFolder && onFilesPicked ? (
+          <CreateMenu onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />
+        ) : (
+          <button
+            type="button"
+            className="rail-create"
+            aria-label={translate('oneDriveLayout.create', 'Create')}
+            disabled
+          >
+            <PlusIcon aria-hidden focusable={false} />
+          </button>
+        )}
 
         {TOP_ITEMS.map((item) => (
           <RailButton

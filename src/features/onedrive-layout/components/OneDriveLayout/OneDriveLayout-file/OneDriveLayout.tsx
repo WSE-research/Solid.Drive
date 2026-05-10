@@ -86,6 +86,7 @@ export const OneDriveLayout: FunctionComponent = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [pickedFile, setPickedFile] = useState<File | undefined>();
   const [shareOpen, setShareOpen] = useState(false);
 
   const { fetch: solidFetch, session } = useSolidAuth();
@@ -135,10 +136,18 @@ export const OneDriveLayout: FunctionComponent = () => {
     setView('my-files');
     setShowNewFolder(true);
   }, [setView]);
-  const requestUpload = useCallback(() => {
-    setView('my-files');
-    setShowUpload(true);
-  }, [setView]);
+  const handleFilesPicked = useCallback(
+    (files: File[]) => {
+      setView('my-files');
+      setPickedFile(files[0]);
+      setShowUpload(true);
+    },
+    [setView],
+  );
+  const handleUploadDone = useCallback(() => {
+    setShowUpload(false);
+    setPickedFile(undefined);
+  }, []);
 
   const handleShare = useCallback(() => setShareOpen(true), []);
 
@@ -173,7 +182,7 @@ export const OneDriveLayout: FunctionComponent = () => {
         profileName={profileName}
         avatarSrc={avatarSrc}
       />
-      <NavRail onNewFolder={requestNewFolder} onUploadFiles={requestUpload} />
+      <NavRail onNewFolder={requestNewFolder} onFilesPicked={handleFilesPicked} />
       {isSharedView ? (
         <SharedView />
       ) : (
@@ -232,8 +241,9 @@ export const OneDriveLayout: FunctionComponent = () => {
                 sort={sort}
                 showNewFolder={showNewFolder}
                 showUpload={showUpload}
+                pickedFile={pickedFile}
                 onNewFolderDone={() => setShowNewFolder(false)}
-                onUploadDone={() => setShowUpload(false)}
+                onUploadDone={handleUploadDone}
                 onRequestUpload={() => setShowUpload(true)}
                 selectedUri={selected?.uri}
                 onSelect={select}
