@@ -89,7 +89,7 @@ const RailButton: FunctionComponent<RailButtonProps> = ({ item, active, onSelect
 
 interface NavRailProps {
   onNewFolder?: () => void;
-  onUploadFiles?: () => void;
+  onFilesPicked?: (files: File[]) => void;
 }
 
 /**
@@ -99,7 +99,7 @@ interface NavRailProps {
  */
 export const NavRail: FunctionComponent<NavRailProps> = ({
   onNewFolder,
-  onUploadFiles,
+  onFilesPicked,
 }) => {
   const [translate] = useTranslation();
   const [view, setView] = useViewParam();
@@ -107,10 +107,10 @@ export const NavRail: FunctionComponent<NavRailProps> = ({
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
       <nav-rail aria-label={translate('oneDriveLayout.navRail', 'Navigation')}>
-        {onNewFolder && onUploadFiles ? (
+        {onNewFolder && onFilesPicked ? (
           <CreateMenu
             onNewFolder={onNewFolder}
-            onUploadFiles={onUploadFiles}
+            onFilesPicked={onFilesPicked}
           />
         ) : (
           <Tooltip.Root>

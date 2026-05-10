@@ -60,6 +60,22 @@ describe('ContextualToolbar', () => {
     expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'desc' });
   });
 
+  it('selecting the active sort key when desc flips back to asc', async () => {
+    const user = userEvent.setup();
+    const onSortChange = vi.fn();
+    render(
+      <ContextualToolbar
+        {...baseProps}
+        sort={{ key: 'name', direction: 'desc' }}
+        onSortChange={onSortChange}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: /sort/i }));
+    const item = await screen.findByRole('menuitemradio', { name: /name/i });
+    await user.click(item);
+    expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
+  });
+
   it('Details button reflects open state and forwards clicks', async () => {
     const user = userEvent.setup();
     const onToggleDetails = vi.fn();

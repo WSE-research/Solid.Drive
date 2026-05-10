@@ -46,14 +46,20 @@ export const OneDriveLayout: FunctionComponent = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [pickedFile, setPickedFile] = useState<File | undefined>();
 
   const requestNewFolder = () => {
     setView('my-files');
     setShowNewFolder(true);
   };
-  const requestUpload = () => {
+  const handleFilesPicked = (files: File[]) => {
     setView('my-files');
+    setPickedFile(files[0]);
     setShowUpload(true);
+  };
+  const handleUploadDone = () => {
+    setShowUpload(false);
+    setPickedFile(undefined);
   };
 
   // Selecting a row marks it active but does NOT open the details panel.
@@ -71,7 +77,7 @@ export const OneDriveLayout: FunctionComponent = () => {
   return (
     <onedrive-layout data-testid="onedrive-layout-root">
       <TopBar searchValue={searchValue} onSearchChange={setSearchValue} />
-      <NavRail onNewFolder={requestNewFolder} onUploadFiles={requestUpload} />
+      <NavRail onNewFolder={requestNewFolder} onFilesPicked={handleFilesPicked} />
       <page-header>
         <h1 className="odl-page-title">{translate(VIEW_TITLE_KEYS[view])}</h1>
         {view === 'my-files' && (
@@ -90,8 +96,9 @@ export const OneDriveLayout: FunctionComponent = () => {
             sort={sort}
             showNewFolder={showNewFolder}
             showUpload={showUpload}
+            pickedFile={pickedFile}
             onNewFolderDone={() => setShowNewFolder(false)}
-            onUploadDone={() => setShowUpload(false)}
+            onUploadDone={handleUploadDone}
             onRequestUpload={() => setShowUpload(true)}
             selectedUri={selected?.uri}
             onSelect={select}
