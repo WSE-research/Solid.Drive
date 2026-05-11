@@ -56,7 +56,10 @@ const App: FunctionComponent = () => (
     >
       Fork me on GitHub
     </a>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter
+      basename="/solid-hello-world-frontend-react"
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <BrowserSolidLdoProvider>
         <NotificationProvider>
           <Header />
