@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { CatalogEntry } from '@/types';
 import type { SortState } from '@/features/onedrive-layout/hooks/useMyFilesSort';
@@ -28,33 +28,25 @@ const folderChild = { uri: 'https://pod/app/folder1/' };
 const fileContainerChild = { uri: 'https://pod/app/file1/' };
 
 const mockHandleRetryStorage = vi.fn();
-const mockDriveState: {
-  current: {
-    appContainerUri: string;
-    storageRootUri: string | undefined;
-    currentUri: string | undefined;
-    breadcrumbs: { label: string; uri: string }[];
-    noStorageDetected: boolean;
-  };
-} = {
-  current: {
-    appContainerUri: 'https://pod/app/',
-    storageRootUri: 'https://pod/',
-    currentUri: 'https://pod/app/',
-    breadcrumbs: [{ label: 'My Pod', uri: 'https://pod/app/' }],
-    noStorageDetected: false,
-  },
-};
+const driveInitDefaults = () => ({
+  appContainerUri: 'https://pod/app/',
+  storageRootUri: 'https://pod/',
+  currentUri: 'https://pod/app/' as string | undefined,
+  setCurrentUri: vi.fn(),
+  breadcrumbs: [{ label: 'My Pod', uri: 'https://pod/app/' }] as Array<{
+    label: string;
+    uri: string;
+  }>,
+  setBreadcrumbs: vi.fn(),
+  noStorageDetected: false,
+  handleRetryStorage: mockHandleRetryStorage,
+  handleNavigate: vi.fn(),
+  handleBreadcrumbClick: vi.fn(),
+  contacts: [],
+});
+const mockUseDriveInitialization = vi.fn(driveInitDefaults);
 vi.mock('@/features/file-explorer/hooks/useDriveInitialization', () => ({
-  useDriveInitialization: () => ({
-    ...mockDriveState.current,
-    setCurrentUri: vi.fn(),
-    setBreadcrumbs: vi.fn(),
-    handleRetryStorage: mockHandleRetryStorage,
-    handleNavigate: vi.fn(),
-    handleBreadcrumbClick: vi.fn(),
-    contacts: [],
-  }),
+  useDriveInitialization: () => mockUseDriveInitialization(),
 }));
 
 const fileEntry: CatalogEntry = {
@@ -78,8 +70,9 @@ vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
   }),
 }));
 
+const mockResolveCatalogUri = vi.fn(() => 'https://pod/catalog' as string | null);
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  resolveCatalogUri: () => 'https://pod/catalog',
+  resolveCatalogUri: () => mockResolveCatalogUri(),
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
@@ -95,11 +88,15 @@ vi.mock('@/features/onedrive-layout/hooks/useSharingLabel', () => ({
   useSharingLabel: () => ({ kind: 'private', agentWebIds: [], loading: false }),
 }));
 
+const defaultUseResource = (uri: string | undefined) => ({
+  uri: uri ?? '',
+  children: () => [folderChild, fileContainerChild],
+});
+const mockUseResource = vi.fn<
+  (uri: string | undefined) => unknown
+>(defaultUseResource);
 vi.mock('@ldo/solid-react', () => ({
-  useResource: (uri: string | undefined) =>
-    uri
-      ? { uri, children: () => [folderChild, fileContainerChild] }
-      : undefined,
+  useResource: (uri: string | undefined) => mockUseResource(uri),
   useSolidAuth: () => ({
     session: { isLoggedIn: true, webId: 'https://owner/me' },
     fetch: vi.fn(),
@@ -132,7 +129,7 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
   }),
 }));
 
-const mockHasUnsupportedFolderDrop = vi.fn(() => false);
+const mockHasUnsupportedFolderDrop = vi.fn<() => boolean>(() => false);
 vi.mock('@/features/file-explorer/services/dragAndDrop', () => ({
   hasUnsupportedFolderDrop: () => mockHasUnsupportedFolderDrop(),
 }));
@@ -155,19 +152,49 @@ vi.mock('@/features/file-explorer/components/UploadTray', () => ({
     items.length > 0 ? <div data-testid="upload-tray" /> : null,
 }));
 
-vi.mock('@/features/file-explorer/components/NewFolderInput', () => ({
-  NewFolderInput: () => <div data-testid="mock-new-folder-input" />,
+vi.mock('@/features/onedrive-layout/components/NewFolderDialog', () => ({
+  NewFolderDialog: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) =>
+    open ? (
+      <div data-testid="mock-new-folder-dialog">
+        <button
+          type="button"
+          data-testid="mock-new-folder-dialog-close"
+          onClick={() => onOpenChange(false)}
+        >
+          close
+        </button>
+        <button
+          type="button"
+          data-testid="mock-new-folder-dialog-open"
+          onClick={() => onOpenChange(true)}
+        >
+          open
+        </button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('@/features/file-explorer/components/FileUpload', () => ({
-  FileUpload: ({ onUploadSuccess }: { onUploadSuccess?: () => void }) => (
-    <div data-testid="mock-file-upload">
+  FileUpload: ({
+    prefilledFile,
+    onUploadSuccess,
+  }: {
+    prefilledFile?: File;
+    onUploadSuccess: () => void;
+  }) => (
+    <div data-testid="mock-file-upload" data-prefilled={prefilledFile?.name ?? ''}>
       <button
         type="button"
         data-testid="mock-file-upload-success"
-        onClick={() => onUploadSuccess?.()}
+        onClick={onUploadSuccess}
       >
-        complete upload
+        success
       </button>
     </div>
   ),
@@ -281,6 +308,10 @@ describe('MyFilesView — drag and drop', () => {
     mockDismiss.mockReset();
     mockRetry.mockReset();
     mockShowError.mockReset();
+    mockHasUnsupportedFolderDrop.mockReset();
+    mockHasUnsupportedFolderDrop.mockReturnValue(false);
+    mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseResource.mockImplementation(defaultUseResource);
   });
 
   it('shows the DropZone banner on drag enter and hides it on drag leave', () => {
@@ -362,6 +393,89 @@ describe('MyFilesView — drag and drop', () => {
       expect(mockEnqueueInstant.mock.calls[0][1]).toBe('https://pod/app/');
     }
   });
+
+  it('drag-over with Files types prevents the default browser handling', () => {
+    const { container } = render(<MyFilesView {...renderProps} />);
+    const view = container.querySelector('onedrive-view');
+    if (!view) throw new Error('onedrive-view not found');
+    // fireEvent returns false when preventDefault was called.
+    const handled = fireEvent.dragOver(view, {
+      dataTransfer: { types: ['Files'] },
+    });
+    expect(handled).toBe(false);
+  });
+
+  it('drag-over with non-Files types does not call preventDefault (early returns)', () => {
+    const { container } = render(<MyFilesView {...renderProps} />);
+    const view = container.querySelector('onedrive-view');
+    if (!view) throw new Error('onedrive-view not found');
+    const handled = fireEvent.dragOver(view, {
+      dataTransfer: { types: ['text/plain'] },
+    });
+    expect(handled).toBe(true);
+  });
+
+  it('panel drop with an unsupported folder drag shows an error and skips the queue', () => {
+    mockHasUnsupportedFolderDrop.mockReturnValue(true);
+    const { container } = render(<MyFilesView {...renderProps} />);
+    const view = container.querySelector('onedrive-view');
+    if (!view) throw new Error('onedrive-view not found');
+
+    fireEvent.drop(view, {
+      dataTransfer: {
+        files: [new File(['x'], 'a.txt')],
+        types: ['Files'],
+      },
+    });
+    expect(mockShowError).toHaveBeenCalledWith(
+      'fileExplorer.unsupportedFolderDrop',
+    );
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+  });
+
+  it('folder-row drop with an unsupported folder drag shows an error and skips the queue', () => {
+    mockHasUnsupportedFolderDrop.mockReturnValue(true);
+    render(<MyFilesView {...renderProps} />);
+    const folderRow = screen.getByRole('row', { name: /folder1/i });
+    const files = [new File(['x'], 'a.txt')];
+    fireEvent.drop(folderRow, { dataTransfer: { files, types: ['Files'] } });
+
+    expect(mockShowError).toHaveBeenCalledWith(
+      'fileExplorer.unsupportedFolderDrop',
+    );
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+  });
+
+  it('drop on the panel with no files is a no-op (does not enqueue)', () => {
+    const { container } = render(<MyFilesView {...renderProps} />);
+    const view = container.querySelector('onedrive-view');
+    if (!view) throw new Error('onedrive-view not found');
+
+    fireEvent.drop(view, {
+      dataTransfer: { files: [], types: ['Files'] },
+    });
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+    expect(mockShowError).not.toHaveBeenCalled();
+  });
+
+  it('panel drop is a no-op while no current container URI is resolved yet', () => {
+    mockUseDriveInitialization.mockImplementationOnce(() => ({
+      ...driveInitDefaults(),
+      currentUri: undefined,
+    }));
+    const { container } = render(<MyFilesView {...renderProps} />);
+    const view = container.querySelector('onedrive-view');
+    if (!view) throw new Error('onedrive-view not found');
+
+    fireEvent.drop(view, {
+      dataTransfer: {
+        files: [new File(['x'], 'a.txt')],
+        types: ['Files'],
+      },
+    });
+    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+  });
+
 });
 
 describe('MyFilesView — search', () => {
@@ -419,14 +533,14 @@ describe('MyFilesView — search', () => {
 });
 
 describe('MyFilesView — create flows', () => {
-  it('renders NewFolderInput when showNewFolder is true', () => {
+  it('renders NewFolderDialog when showNewFolder is true', () => {
     render(<MyFilesView {...renderProps} showNewFolder />);
-    expect(screen.getByTestId('mock-new-folder-input')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-new-folder-dialog')).toBeInTheDocument();
   });
 
-  it('does not render NewFolderInput when showNewFolder is false', () => {
+  it('does not render NewFolderDialog when showNewFolder is false', () => {
     render(<MyFilesView {...renderProps} showNewFolder={false} />);
-    expect(screen.queryByTestId('mock-new-folder-input')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-new-folder-dialog')).not.toBeInTheDocument();
   });
 
   it('renders FileUpload when showUpload is true', () => {
@@ -439,222 +553,225 @@ describe('MyFilesView — create flows', () => {
     expect(screen.queryByTestId('mock-file-upload')).not.toBeInTheDocument();
   });
 
-  it('completing the upload notifies the parent via onUploadDone', async () => {
+  it('seeds pickedFile from props into FileUpload as prefilledFile', () => {
+    const file = new File(['hi'], 'picked.txt', { type: 'text/plain' });
+    render(
+      <MyFilesView {...renderProps} showUpload pickedFile={file} />,
+    );
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      'picked.txt',
+    );
+  });
+
+  it('NewFolderDialog onOpenChange(false) calls onNewFolderDone', async () => {
+    const user = userEvent.setup();
+    const onNewFolderDone = vi.fn();
+    render(
+      <MyFilesView
+        {...renderProps}
+        showNewFolder
+        onNewFolderDone={onNewFolderDone}
+      />,
+    );
+    await user.click(screen.getByTestId('mock-new-folder-dialog-close'));
+    expect(onNewFolderDone).toHaveBeenCalledOnce();
+  });
+
+  it('NewFolderDialog onOpenChange(true) does not call onNewFolderDone', async () => {
+    const user = userEvent.setup();
+    const onNewFolderDone = vi.fn();
+    render(
+      <MyFilesView
+        {...renderProps}
+        showNewFolder
+        onNewFolderDone={onNewFolderDone}
+      />,
+    );
+    await user.click(screen.getByTestId('mock-new-folder-dialog-open'));
+    expect(onNewFolderDone).not.toHaveBeenCalled();
+  });
+
+  it('FileUpload onUploadSuccess clears the prefilled file and calls onUploadDone', async () => {
     const user = userEvent.setup();
     const onUploadDone = vi.fn();
+    const file = new File(['x'], 'pre.txt', { type: 'text/plain' });
     render(
-      <MyFilesView {...renderProps} showUpload onUploadDone={onUploadDone} />,
+      <MyFilesView
+        {...renderProps}
+        showUpload
+        pickedFile={file}
+        onUploadDone={onUploadDone}
+      />,
+    );
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      'pre.txt',
     );
     await user.click(screen.getByTestId('mock-file-upload-success'));
-    expect(onUploadDone).toHaveBeenCalledTimes(1);
+    expect(onUploadDone).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      '',
+    );
+  });
+
+  it('seeds prefilledFile when pickedFile prop changes between renders', () => {
+    const { rerender } = render(<MyFilesView {...renderProps} showUpload />);
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      '',
+    );
+    const file = new File(['x'], 'late.txt', { type: 'text/plain' });
+    rerender(<MyFilesView {...renderProps} showUpload pickedFile={file} />);
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      'late.txt',
+    );
   });
 });
 
-describe('MyFilesView — breadcrumb rendering', () => {
-  const baseDriveState = mockDriveState.current;
-
-  afterEach(() => {
-    mockDriveState.current = baseDriveState;
-  });
-
-  it('renders one button per breadcrumb crumb when depth > 1', () => {
-    mockDriveState.current = {
-      ...baseDriveState,
-      breadcrumbs: [
-        { label: 'My Pod', uri: 'https://pod/app/' },
-        { label: 'docs', uri: 'https://pod/app/docs/' },
-        { label: '2026', uri: 'https://pod/app/docs/2026/' },
-      ],
-      currentUri: 'https://pod/app/docs/2026/',
-    };
-    render(<MyFilesView {...renderProps} />);
-    const nav = screen.getByRole('navigation', { name: /breadcrumb/i });
-    expect(nav).toBeInTheDocument();
-    const crumbs = within(nav).getAllByRole('button');
-    expect(crumbs).toHaveLength(3);
-    expect(crumbs[0]).toHaveTextContent('My Pod');
-    expect(crumbs[2]).toHaveTextContent('2026');
-  });
-
-  it('disables the active (last) crumb so it is not clickable', () => {
-    mockDriveState.current = {
-      ...baseDriveState,
-      breadcrumbs: [
-        { label: 'My Pod', uri: 'https://pod/app/' },
-        { label: 'docs', uri: 'https://pod/app/docs/' },
-      ],
-      currentUri: 'https://pod/app/docs/',
-    };
-    render(<MyFilesView {...renderProps} />);
-    const crumbs = within(
-      screen.getByRole('navigation', { name: /breadcrumb/i }),
-    ).getAllByRole('button');
-    expect(crumbs[crumbs.length - 1]).toBeDisabled();
-    expect(crumbs[0]).not.toBeDisabled();
-  });
-
-  it('inserts a visual separator between adjacent crumbs', () => {
-    mockDriveState.current = {
-      ...baseDriveState,
-      breadcrumbs: [
-        { label: 'My Pod', uri: 'https://pod/app/' },
-        { label: 'docs', uri: 'https://pod/app/docs/' },
-      ],
-      currentUri: 'https://pod/app/docs/',
-    };
-    const { container } = render(<MyFilesView {...renderProps} />);
-    expect(container.querySelectorAll('.odl-breadcrumb__sep')).toHaveLength(1);
-  });
-
-  it('clicking a non-active crumb invokes the navigate-to-crumb handler', async () => {
-    const user = userEvent.setup();
-    mockDriveState.current = {
-      ...baseDriveState,
-      breadcrumbs: [
-        { label: 'My Pod', uri: 'https://pod/app/' },
-        { label: 'docs', uri: 'https://pod/app/docs/' },
-      ],
-      currentUri: 'https://pod/app/docs/',
-    };
-    render(<MyFilesView {...renderProps} />);
-    const firstCrumb = within(
-      screen.getByRole('navigation', { name: /breadcrumb/i }),
-    ).getAllByRole('button')[0];
-    // The click fires the per-crumb arrow — this is what bumped function
-    // coverage of the file from 50% to 100%.
-    await expect(user.click(firstCrumb)).resolves.toBeUndefined();
-    expect(firstCrumb).toHaveTextContent('My Pod');
-  });
-
-  it('falls back to the localized "My Drive" label when no breadcrumbs are available', () => {
-    mockDriveState.current = {
-      ...baseDriveState,
-      breadcrumbs: [],
-    };
-    // Rendering exercises the else branch of `currentFolderLabel` (line 134)
-    // — the value is consumed downstream by DropZone, but evaluating the
-    // ternary is enough to mark the statement covered.
-    expect(() => render(<MyFilesView {...renderProps} />)).not.toThrow();
-  });
-});
-
-describe('MyFilesView — unsupported drops', () => {
+describe('MyFilesView — folder navigation resets prefilled file', () => {
   beforeEach(() => {
-    mockHasUnsupportedFolderDrop.mockReset().mockReturnValue(true);
-    mockShowError.mockClear();
-    mockEnqueueInstant.mockClear();
+    mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseResource.mockImplementation(defaultUseResource);
   });
 
-  it('panel drop with an unsupported folder shows an error and does not enqueue', () => {
-    render(<MyFilesView {...renderProps} />);
-    const view = document.querySelector('[data-view-id="my-files"]')!;
-    fireEvent.drop(view, {
-      dataTransfer: {
-        files: [new File(['x'], 'x.txt', { type: 'text/plain' })],
-        types: ['Files'],
-      },
-    });
-    expect(mockShowError).toHaveBeenCalled();
-    expect(mockEnqueueInstant).not.toHaveBeenCalled();
-  });
-
-  it('folder-row drop with an unsupported folder shows an error and does not enqueue', () => {
-    render(<MyFilesView {...renderProps} />);
-    const folderRow = screen.getByText('folder1');
-    fireEvent.drop(folderRow, {
-      dataTransfer: {
-        files: [new File(['x'], 'x.txt', { type: 'text/plain' })],
-        types: ['Files'],
-      },
-    });
-    expect(mockShowError).toHaveBeenCalled();
-    expect(mockEnqueueInstant).not.toHaveBeenCalled();
+  it('clears the prefilled file when currentUri changes between renders', () => {
+    const file = new File(['x'], 'stale.txt', { type: 'text/plain' });
+    const { rerender } = render(
+      <MyFilesView {...renderProps} showUpload pickedFile={file} />,
+    );
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      'stale.txt',
+    );
+    mockUseDriveInitialization.mockImplementation(() => ({
+      ...driveInitDefaults(),
+      currentUri: 'https://pod/app/elsewhere/',
+    }));
+    rerender(<MyFilesView {...renderProps} showUpload pickedFile={file} />);
+    expect(screen.getByTestId('mock-file-upload')).toHaveAttribute(
+      'data-prefilled',
+      '',
+    );
   });
 });
 
-describe('MyFilesView — drag-over and folder-change resets', () => {
-  const baseDriveState = mockDriveState.current;
-
-  afterEach(() => {
-    mockDriveState.current = baseDriveState;
+describe('MyFilesView — catalog URI fallback', () => {
+  beforeEach(() => {
+    mockResolveCatalogUri.mockReset();
+    mockResolveCatalogUri.mockReturnValue('https://pod/catalog');
   });
 
-  it('drag-over with Files data does not crash and prevents default', () => {
-    render(<MyFilesView {...renderProps} />);
-    const view = document.querySelector('[data-view-id="my-files"]') as HTMLElement;
-    const event = new Event('dragover', { bubbles: true, cancelable: true });
-    Object.defineProperty(event, 'dataTransfer', { value: { types: ['Files'] } });
-    view.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(true);
-  });
-
-  it('drag-over with non-Files data does not prevent default', () => {
-    render(<MyFilesView {...renderProps} />);
-    const view = document.querySelector('[data-view-id="my-files"]') as HTMLElement;
-    const event = new Event('dragover', { bubbles: true, cancelable: true });
-    Object.defineProperty(event, 'dataTransfer', { value: { types: ['text/plain'] } });
-    view.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(false);
-  });
-
-  it('changing the current folder URI between renders resets prefilledFile (no crash on re-render)', () => {
-    const { rerender } = render(<MyFilesView {...renderProps} />);
-    mockDriveState.current = {
-      ...baseDriveState,
-      currentUri: 'https://pod/app/folder1/',
-    };
-    rerender(<MyFilesView {...renderProps} />);
-    // Re-rendering with a new currentUri exercises the previousUri !== currentUri
-    // branch that clears prefilledFile.
-    expect(
-      document.querySelector('[data-view-id="my-files"]'),
-    ).toBeInTheDocument();
+  it('skips rendering FileUpload when no catalog URI can be resolved', () => {
+    mockResolveCatalogUri.mockReturnValue(null);
+    render(<MyFilesView {...renderProps} showUpload />);
+    expect(screen.queryByTestId('mock-file-upload')).not.toBeInTheDocument();
   });
 });
 
-describe('MyFilesView — non-container current resource', () => {
-  const baseDriveState = mockDriveState.current;
-
-  afterEach(() => {
-    mockDriveState.current = baseDriveState;
-  });
-
-  it('renders an empty file list when the current resource is loaded but is not a container', () => {
-    // useResource returns truthy for any uri, but isSolidContainer requires
-    // a trailing slash — pointing at a leaf URI exercises the [] fallback.
-    mockDriveState.current = {
-      ...baseDriveState,
-      currentUri: 'https://pod/app/leaf',
-    };
+describe('MyFilesView — empty breadcrumbs fallback', () => {
+  it('falls back to the localized myDrive label when breadcrumbs are empty', () => {
+    mockUseDriveInitialization.mockImplementation(() => ({
+      ...driveInitDefaults(),
+      breadcrumbs: [],
+    }));
     const { container } = render(<MyFilesView {...renderProps} />);
-    expect(container.querySelector('[data-view-id="my-files"]')).toBeInTheDocument();
-    // The table head row remains, but there should be no folder/file rows.
-    expect(container.querySelector('.odl-files-row--folder')).not.toBeInTheDocument();
-    expect(container.querySelector('.odl-files-row--file')).not.toBeInTheDocument();
+    // Page title lives in OneDriveLayout, so check DropZone's destination instead.
+    const view = container.querySelector('onedrive-view');
+    if (!view) throw new Error('onedrive-view not found');
+    fireEvent.dragEnter(view, { dataTransfer: { types: ['Files'] } });
+    expect(screen.getByTestId('drop-zone')).toHaveAttribute(
+      'data-destination',
+      'fileExplorer.myDrive',
+    );
   });
 });
 
-describe('MyFilesView — empty / error states', () => {
-  const baseDriveState = mockDriveState.current;
-
-  afterEach(() => {
-    mockDriveState.current = baseDriveState;
+describe('MyFilesView — early-return states', () => {
+  beforeEach(() => {
+    mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseResource.mockImplementation(defaultUseResource);
     mockHandleRetryStorage.mockClear();
   });
 
-  it('renders a no-storage message and a Retry button when storage cannot be discovered', async () => {
+  it('renders the no-storage-found message and a Retry button when noStorageDetected is true', async () => {
+    mockUseDriveInitialization.mockImplementation(() => ({
+      ...driveInitDefaults(),
+      noStorageDetected: true,
+    }));
     const user = userEvent.setup();
-    mockDriveState.current = { ...baseDriveState, noStorageDetected: true };
     render(<MyFilesView {...renderProps} />);
-    expect(screen.getByText('fileExplorer.noStorageFound')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'fileExplorer.retry' }));
-    expect(mockHandleRetryStorage).toHaveBeenCalled();
+    expect(
+      screen.getByText('fileExplorer.noStorageFound'),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'fileExplorer.retry' }),
+    );
+    expect(mockHandleRetryStorage).toHaveBeenCalledOnce();
   });
 
-  it('renders a connecting spinner while currentUri is undefined', () => {
-    mockDriveState.current = { ...baseDriveState, currentUri: undefined };
+  it('renders the connecting spinner when no current container is loaded yet', () => {
+    mockUseResource.mockReturnValue(null);
     const { container } = render(<MyFilesView {...renderProps} />);
     expect(container.querySelector('.spinner')).toBeInTheDocument();
     expect(screen.getByText('fileExplorer.connecting')).toBeInTheDocument();
+  });
+
+  it('renders an empty file table when the current resource is not a container', () => {
+    mockUseResource.mockReturnValue({
+      uri: 'https://pod/app/notes.txt',
+      children: () => [folderChild, fileContainerChild],
+    });
+    render(<MyFilesView {...renderProps} />);
+    expect(screen.queryByText('folder1')).not.toBeInTheDocument();
+    expect(screen.queryByText('report.pdf')).not.toBeInTheDocument();
+  });
+});
+
+describe('MyFilesView — breadcrumbs', () => {
+  beforeEach(() => {
+    mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseResource.mockImplementation(defaultUseResource);
+  });
+
+  it('renders the breadcrumb when depth > 1 and disables the active crumb', () => {
+    mockUseDriveInitialization.mockImplementation(() => ({
+      ...driveInitDefaults(),
+      currentUri: 'https://pod/app/docs/',
+      breadcrumbs: [
+        { label: 'My Pod', uri: 'https://pod/app/' },
+        { label: 'docs', uri: 'https://pod/app/docs/' },
+      ],
+    }));
+    render(<MyFilesView {...renderProps} />);
+    const nav = screen.getByRole('navigation', { name: /breadcrumb/i });
+    expect(nav).toBeInTheDocument();
+    const crumbs = screen.getAllByRole('button', { name: /My Pod|docs/ });
+    const active = crumbs.find((b) =>
+      b.className.includes('odl-breadcrumb__item--active'),
+    );
+    expect(active).toBeDefined();
+    expect(active).toBeDisabled();
+  });
+
+  it('clicking a non-active crumb navigates back to that level', async () => {
+    mockUseDriveInitialization.mockImplementation(() => ({
+      ...driveInitDefaults(),
+      currentUri: 'https://pod/app/docs/',
+      breadcrumbs: [
+        { label: 'My Pod', uri: 'https://pod/app/' },
+        { label: 'docs', uri: 'https://pod/app/docs/' },
+      ],
+    }));
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '/');
+    render(<MyFilesView {...renderProps} />);
+    await user.click(screen.getByRole('button', { name: 'My Pod' }));
+    expect(window.history.state).toMatchObject({
+      marker: 'odl-my-files',
+      currentUri: 'https://pod/app/',
+    });
   });
 });

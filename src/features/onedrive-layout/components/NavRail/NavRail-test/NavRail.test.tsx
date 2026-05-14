@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NavRail } from '../NavRail-file/NavRail';
 
 vi.mock('react-i18next', () => ({
@@ -68,5 +69,21 @@ describe('NavRail', () => {
   it('renders the chevron divider between the top items and the bottom items', () => {
     const { container } = render(<NavRail />);
     expect(container.querySelector('.rail-divider')).toBeInTheDocument();
+  });
+
+  it('renders the full CreateMenu (with menu items) when both create callbacks are wired', async () => {
+    const user = userEvent.setup();
+    const onNewFolder = vi.fn();
+    const onFilesPicked = vi.fn();
+    render(
+      <NavRail onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    expect(
+      await screen.findByRole('menuitem', { name: /new folder/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /upload files/i }),
+    ).toBeInTheDocument();
   });
 });

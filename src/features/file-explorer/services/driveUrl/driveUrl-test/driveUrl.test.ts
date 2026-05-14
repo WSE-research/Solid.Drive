@@ -52,6 +52,22 @@ describe("decodeDriveFolderSearchParam / encodeDriveFolderSearchValue", () => {
     );
   });
 
+  it("returns undefined for null input", () => {
+    expect(decodeDriveFolderSearchParam(null)).toBeUndefined();
+  });
+
+  it("returns undefined for whitespace-only input", () => {
+    expect(decodeDriveFolderSearchParam("   ")).toBeUndefined();
+  });
+
+  it("returns undefined for non-http strings", () => {
+    expect(decodeDriveFolderSearchParam("file:///etc/passwd")).toBeUndefined();
+  });
+
+  it("returns undefined when the decoded value is not a parseable URL", () => {
+    expect(decodeDriveFolderSearchParam("https://[bad")).toBeUndefined();
+  });
+
   it("documents the conventional search parameter name", () => {
     expect(DRIVE_FOLDER_SEARCH_PARAM).toBe("folder");
   });
@@ -61,6 +77,17 @@ describe("buildDriveBreadcrumbs", () => {
   it("builds only the storage root when folder equals storage", () => {
     const crumbs = buildDriveBreadcrumbs(
       "https://pod.example/",
+      "https://pod.example/",
+      "My Pod"
+    );
+    expect(crumbs).toEqual([
+      { label: "My Pod", uri: "https://pod.example/" },
+    ]);
+  });
+
+  it("returns only the storage root crumb when folder is not under storage", () => {
+    const crumbs = buildDriveBreadcrumbs(
+      "https://other.example/somewhere/",
       "https://pod.example/",
       "My Pod"
     );

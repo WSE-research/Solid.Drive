@@ -9,7 +9,8 @@
  *   - Drag-and-drop uploads (panel-level + per-folder), feeding the
  *     `useUploadQueue` hook that surfaces in-flight progress.
  *   - The local `prefilledFile` used by the upload form when the user
- *     drops a single file on the panel.
+ *     drops a single file on the panel or picks one via the rail's
+ *     Create menu (the picked file flows in via the `pickedFile` prop).
  *   - Branching between the browse table ({@link MyFilesTable}) and the
  *     search results table ({@link MyFilesSearchTable}).
  *
@@ -32,7 +33,7 @@ import { useFileSearch } from '@/features/file-explorer/hooks/useFileSearch';
 import { useUploadQueue } from '@/features/file-explorer/hooks/useUploadQueue';
 import { DropZone } from '@/features/file-explorer/components/DropZone';
 import { UploadTray } from '@/features/file-explorer/components/UploadTray';
-import { NewFolderInput } from '@/features/file-explorer/components/NewFolderInput';
+import { NewFolderDialog } from '@/features/onedrive-layout/components/NewFolderDialog';
 import { FileUpload } from '@/features/file-explorer/components/FileUpload';
 import { hasUnsupportedFolderDrop } from '@/features/file-explorer/services/dragAndDrop';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
@@ -50,6 +51,7 @@ interface MyFilesViewProps {
   sort: SortState;
   showNewFolder: boolean;
   showUpload: boolean;
+  pickedFile?: File;
   onNewFolderDone: () => void;
   onUploadDone: () => void;
   onRequestUpload: () => void;
@@ -68,6 +70,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   sort,
   showNewFolder,
   showUpload,
+  pickedFile,
   onNewFolderDone,
   onUploadDone,
   onRequestUpload,
@@ -124,7 +127,9 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   >('idle');
   const dragCounterRef = useRef(0);
   const isOverPanel = dragState === 'over-panel';
-  const [prefilledFile, setPrefilledFile] = useState<File | undefined>();
+  const [prefilledFile, setPrefilledFile] = useState<File | undefined>(
+    pickedFile,
+  );
 
   const currentContainer = useResource(currentUri);
 
@@ -143,6 +148,13 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   if (previousUri !== currentUri) {
     setPreviousUri(currentUri);
     setPrefilledFile(undefined);
+  }
+
+  // Same trick as the block above, for the pickedFile prop.
+  const [previousPickedFile, setPreviousPickedFile] = useState(pickedFile);
+  if (previousPickedFile !== pickedFile) {
+    setPreviousPickedFile(pickedFile);
+    if (pickedFile) setPrefilledFile(pickedFile);
   }
 
   const handleDragEnter = useCallback((event: DragEvent<HTMLElement>) => {
@@ -309,10 +321,13 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
               prefilledFile={prefilledFile}
             />
           )}
-          {showNewFolder && isSolidContainer(currentContainer) && (
-            <NewFolderInput
+          {isSolidContainer(currentContainer) && (
+            <NewFolderDialog
+              open={showNewFolder}
               parentContainer={currentContainer}
-              onDone={onNewFolderDone}
+              onOpenChange={(open) => {
+                if (!open) onNewFolderDone();
+              }}
             />
           )}
           <MyFilesTable

@@ -51,6 +51,16 @@ const GITHUB_REPO_URL =
  */
 const App: FunctionComponent = () => (
   <app-root>
+    <BrowserRouter
+      basename="/solid-hello-world-frontend-react"
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <BrowserSolidLdoProvider>
+        <NotificationProvider>
+          <AppShell />
+        </NotificationProvider>
+      </BrowserSolidLdoProvider>
+    </BrowserRouter>
     <a
       className="github-fork-ribbon fixed"
       href={GITHUB_REPO_URL}
@@ -61,13 +71,6 @@ const App: FunctionComponent = () => (
     >
       Fork me on GitHub
     </a>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <BrowserSolidLdoProvider>
-        <NotificationProvider>
-          <AppShell />
-        </NotificationProvider>
-      </BrowserSolidLdoProvider>
-    </BrowserRouter>
   </app-root>
 );
 

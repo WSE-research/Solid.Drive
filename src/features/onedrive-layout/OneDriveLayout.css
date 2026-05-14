@@ -866,6 +866,164 @@ selection-actions {
   outline-offset: 2px;
 }
 
+/* ─── Modal dialog (Radix) ────────────────────────────────────────────── */
+
+.odl-dialog__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 300;
+  animation: odl-dialog-overlay-in 140ms ease-out;
+}
+
+.odl-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 32px));
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-panel);
+  padding: var(--odl-space-5) var(--odl-space-6) var(--odl-space-4);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  z-index: 310;
+  animation: odl-dialog-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.odl-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--odl-space-4);
+}
+
+.odl-dialog__title {
+  font-size: var(--odl-font-size-lg);
+  font-weight: 600;
+  margin: 0;
+  color: var(--odl-text);
+}
+
+.odl-dialog__close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--odl-text-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--odl-radius-chip);
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast);
+}
+.odl-dialog__close:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+}
+
+.odl-dialog__field-label {
+  display: block;
+  font-size: var(--odl-font-size-md);
+  font-weight: 600;
+  color: var(--odl-text);
+  margin-bottom: var(--odl-space-2);
+}
+
+.odl-dialog .odl-dialog__input {
+  appearance: none;
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--odl-space-3);
+  background: var(--odl-bg-page);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-accent);
+  border-radius: var(--odl-radius-chip);
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  box-shadow: none;
+  transition: border-color var(--odl-transition-fast);
+}
+.odl-dialog .odl-dialog__input::placeholder { color: var(--odl-text-faint); }
+.odl-dialog .odl-dialog__input:focus {
+  border-color: var(--odl-accent);
+  box-shadow: 0 0 0 2px var(--odl-accent-soft);
+}
+.odl-dialog .odl-dialog__input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.odl-dialog__error {
+  display: block;
+  margin-top: var(--odl-space-2);
+  color: #f3a4a4;
+  font-size: var(--odl-font-size-sm);
+}
+
+.odl-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--odl-space-2);
+  margin-top: var(--odl-space-5);
+}
+
+.odl-dialog__btn {
+  appearance: none;
+  border: 1px solid var(--odl-border);
+  background: transparent;
+  color: var(--odl-text);
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--odl-radius-chip);
+  cursor: pointer;
+  transition: background var(--odl-transition-fast),
+              border-color var(--odl-transition-fast),
+              color var(--odl-transition-fast);
+}
+.odl-dialog__btn:hover:not(:disabled) {
+  background: var(--odl-bg-hover);
+}
+.odl-dialog__btn:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-dialog__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.odl-dialog__btn--primary {
+  background: var(--odl-bg-page);
+  border-color: var(--odl-border);
+  color: var(--odl-text-muted);
+}
+.odl-dialog__btn--primary:not(:disabled) {
+  background: var(--odl-accent);
+  border-color: var(--odl-accent);
+  color: #ffffff;
+}
+.odl-dialog__btn--primary:not(:disabled):hover {
+  background: var(--odl-accent-strong);
+  border-color: var(--odl-accent-strong);
+}
+
+@keyframes odl-dialog-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes odl-dialog-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .odl-dialog,
+  .odl-dialog__overlay { animation: none; }
+}
+
 /* ─── Detail panel ────────────────────────────────────────────────────── */
 
 detail-panel {

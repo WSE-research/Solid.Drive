@@ -1,61 +1,79 @@
 /**
- * Create menu rendered above the OneDrive-inspired NavRail. The trigger is
- * the `+` button; selecting an item invokes the matching prop callback so
- * the parent shell can open the right form (NewFolderInput or FileUpload).
+ * Create menu above the NavRail. "New folder" fires `onNewFolder`.
+ * "Upload files" opens the OS file picker via a hidden input and
+ * forwards the selection via `onFilesPicked`.
  *
  * @packageDocumentation
  */
 
-import type { FunctionComponent } from 'react';
+import { useRef, type ChangeEvent, type FunctionComponent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useTranslation } from 'react-i18next';
 import { PlusIcon } from '@/features/onedrive-layout/icons';
 
 interface CreateMenuProps {
   onNewFolder: () => void;
-  onUploadFiles: () => void;
+  onFilesPicked: (files: File[]) => void;
 }
 
 /**
- * Renders the rail's `+` button as a Radix DropdownMenu trigger with
- * two items: "New folder" and "Upload files". Selecting an item fires
- * the matching prop callback so the parent shell can open the right
- * inline form. The menu closes after selection (Radix default).
+ * Two-item dropdown anchored on the rail's `+` button. Upload files
+ * clicks a hidden file input so the OS picker opens on selection.
  *
  * @public
  */
 export const CreateMenu: FunctionComponent<CreateMenuProps> = ({
   onNewFolder,
-  onUploadFiles,
+  onFilesPicked,
 }) => {
   const [translate] = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const openFilePicker = () => fileInputRef.current?.click();
+
+  const handleFilesChosen = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length > 0) onFilesPicked(files);
+  };
+
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className="rail-create"
-          aria-label={translate('oneDriveLayout.create', 'Create')}
-        >
-          <PlusIcon aria-hidden focusable={false} />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content side="right" sideOffset={8} className="odl-create-menu">
-          <DropdownMenu.Item
-            className="odl-create-menu__item"
-            onSelect={onNewFolder}
+    <>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="rail-create"
+            aria-label={translate('oneDriveLayout.create', 'Create')}
           >
-            {translate('oneDriveLayout.createMenu.newFolder', 'New folder')}
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
-            className="odl-create-menu__item"
-            onSelect={onUploadFiles}
-          >
-            {translate('oneDriveLayout.createMenu.uploadFiles', 'Upload files')}
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+            <PlusIcon aria-hidden focusable={false} />
+          </button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content side="right" sideOffset={8} className="odl-create-menu">
+            <DropdownMenu.Item
+              className="odl-create-menu__item"
+              onSelect={onNewFolder}
+            >
+              {translate('oneDriveLayout.createMenu.newFolder', 'New folder')}
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="odl-create-menu__item"
+              onSelect={openFilePicker}
+            >
+              {translate('oneDriveLayout.createMenu.uploadFiles', 'Upload files')}
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        hidden
+        onChange={handleFilesChosen}
+        aria-hidden
+      />
+    </>
   );
 };

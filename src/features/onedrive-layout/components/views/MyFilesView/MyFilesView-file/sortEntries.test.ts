@@ -114,6 +114,28 @@ describe('sortEntries', () => {
     expect(result.map((e) => e.displayName)).toEqual(['a', 'c', 'b']);
   });
 
+  it('treats two entries with both undefined modified as equal (preserves input order)', () => {
+    const result = sortEntries(
+      [
+        fileFromCatalog('https://x/c/', { title: 'c' }),
+        fileFromCatalog('https://x/a/', { title: 'a' }),
+      ],
+      { key: 'modified', direction: 'asc' },
+    );
+    expect(result.map((e) => e.displayName)).toEqual(['c', 'a']);
+  });
+
+  it('treats two entries with both undefined byteSize as equal (preserves input order)', () => {
+    const result = sortEntries(
+      [
+        folder('https://x/c/'),
+        folder('https://x/a/'),
+      ],
+      { key: 'size', direction: 'asc' },
+    );
+    expect(result.map((e) => e.displayName)).toEqual(['c', 'a']);
+  });
+
   it('sort by sharing currently does not reorder (sharing kind is private until row resolves)', () => {
     const result = sortEntries(
       [
