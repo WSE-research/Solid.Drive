@@ -2,9 +2,10 @@
 :toc: macro
 :toclevels: 2
 
-End-to-end tests for the category-level access feature. They run two
-real browser contexts (Peach as owner, Parni as requester) against a
-local Community Solid Server (CSS) and the Vite dev build of the app.
+End-to-end tests for the app's core flows: the category-level access
+feature and the OneDrive-inspired layout shell. They run real browser
+contexts (Peach as owner, Parni as requester) against a local Community
+Solid Server (CSS) and the Vite dev build of the app.
 
 toc::[]
 
@@ -75,12 +76,17 @@ CI gets `reuseExistingServer: false` and a fresh CSS for every job.
 | `e2e/helpers/login-ui.ts`         | `loginAsViaUI` — drives the Solid OIDC dance through the app's Header.
 | `e2e/helpers/seed.ts`             | Pod-shaping helpers: profile basics, file upload, ACL grants, contact, cleanup.
 | `e2e/helpers/ui-actions.ts`       | UI-action helpers: add contact, request access, approve/deny, revoke via SharePanel, expand a type folder.
-3+| **Tests**
+| `e2e/helpers/onedrive.ts`         | OneDrive-layout helpers: `enterOneDriveLayout` (flip the layout preference, optionally on a `?view=`) and `navigateToView` (click a NavRail button).
+3+| **Tests — category-level access**
 | `e2e/tests/category-share.spec.ts`     | Focused: type request → approve → file appears as shared.
 | `e2e/tests/revoke-keeps-visible.spec.ts` | Focused: programmatic ACL revoke moves the file to "Also available", not gone.
 | `e2e/tests/revoke-ui.spec.ts`         | UI revoke via SharePanel; complements the focused revoke test.
 | `e2e/tests/deny.spec.ts`              | Denied request renders "Denied" + "Request Again" on the requester side.
 | `e2e/tests/full-journey.spec.ts`      | The complete UI journey from add-contact through type approve.
+3+| **Tests — OneDrive layout**
+| `e2e/tests/onedrive-layout.spec.ts`     | Opting into the OneDrive shell from the Classic header, and switching back via the TopBar settings menu.
+| `e2e/tests/onedrive-navigation.spec.ts` | NavRail switches between all five views; URL `?view=` and `aria-current` track the active view.
+| `e2e/tests/onedrive-topbar.spec.ts`     | TopBar avatar menu (profile name, WebID, View profile link), settings menu language switch, and log out.
 |===
 
 == How to add a test
@@ -196,10 +202,12 @@ binary URL of a shared file, that's a real bug — file it.
 
 === Drive only the parts of the UI we own
 
-The five specs exercise TypeFolder, RequestsPanel, SharePanel, the
-contact list, and the post-approval rendering in `useSharedCatalog`.
-Setup that doesn't matter to the assertion (file upload form, contact
-entry validation, etc.) goes through direct fetch in `seed.ts`. This:
+The category-access specs exercise TypeFolder, RequestsPanel,
+SharePanel, the contact list, and the post-approval rendering in
+`useSharedCatalog`; the OneDrive specs exercise that layout's shell,
+NavRail, and TopBar. Setup that doesn't matter to the assertion (file
+upload form, contact entry validation, etc.) goes through direct fetch
+in `seed.ts`. This:
 
 - Keeps each test focused on one or two new behaviors
 - Avoids brittle multi-step UI prerequisites
@@ -253,13 +261,22 @@ The `pod` field is the source of truth for URIs — never hard-code
 
 == Known limitations / not tested
 
-The suite focuses on category-level access. It does **not** cover:
+The suite focuses on category-level access and the OneDrive layout
+shell. It does **not** cover:
 
 - File upload UI (drag-and-drop, file picker, SHACL validation feedback) — has unit coverage in `useFileUpload-test`
 - Contact validation in the Add input — `useContacts-test`
 - Catalog editing / deletion via UI — `FileCard-test`
 - Concurrent requests from multiple contacts — single-user scenarios only
 - Federation across multiple Solid pod providers — local CSS only
+- Anything that survives a *full page reload* while logged in. The whole
+  suite uses fresh browser contexts (`freshLogin`) and never reloads —
+  the silent `solid-client-authn` re-auth on reload is unreliable here
+  (it drops the `?view=` query string from its redirect URI, and base-path
+  resolution on the re-auth bounce is flaky). `useSessionContinuity` and
+  the `useViewParam` URL-read path have unit coverage instead.
+- OneDrive view bodies — every view is still a `ViewStub` on this
+  branch, so the specs assert the shell, navigation, and chrome only
 
 == Performance
 

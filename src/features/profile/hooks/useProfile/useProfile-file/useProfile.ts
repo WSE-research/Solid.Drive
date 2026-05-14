@@ -43,7 +43,6 @@ export function useProfile({ suspendSync = false }: UseProfileOptions = {}): Use
   useEffect(() => {
     if (suspendSync) return;
     if (!profile) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(profile.name ?? "");
     setImgUrl(profile.img?.["@id"] ?? "");
   }, [profile, suspendSync]);

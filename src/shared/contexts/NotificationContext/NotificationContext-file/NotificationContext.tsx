@@ -1,16 +1,16 @@
 /**
- * Notification context for toasts and confirmation dialogs.
+ * The NotificationProvider component for toasts and confirmation dialogs.
+ *
+ * The context object and the useNotifications hook live alongside this in
+ * notificationContext.ts. They are kept in a separate file so that this
+ * file exports only a component, which is what React Fast Refresh needs.
  *
  * @packageDocumentation
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode, type FunctionComponent } from "react";
+import { useState, useCallback, type ReactNode, type FunctionComponent } from "react";
 import { Toast } from "@/shared/components/Toast";
-
-/**
- * Toast notification type.
- */
-type ToastType = "info" | "error" | "success";
+import { NotificationContext, type NotificationContextType, type ToastType } from "./notifications";
 
 /**
  * Internal toast message with unique ID.
@@ -20,36 +20,6 @@ type ToastMessage = {
   message: string;
   type: ToastType;
 };
-
-/**
- * Notification context value providing toast and confirm functions.
- */
-type NotificationContextType = {
-  showToast: (message: string, type?: ToastType) => void;
-  showError: (message: string) => void;
-  showSuccess: (message: string) => void;
-  showInfo: (message: string) => void;
-  confirm: (message: string) => Promise<boolean>;
-};
-
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-/**
- * Hook to access notification functions.
- * Must be used within NotificationProvider.
- *
- * @returns Notification context functions
- * @throws Error if used outside NotificationProvider
- *
- * @public
- */
-export function useNotifications(): NotificationContextType {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error("useNotifications must be used within NotificationProvider");
-  }
-  return context;
-}
 
 /**
  * Props for the NotificationProvider component.

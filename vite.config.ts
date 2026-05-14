@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
+  // Served behind the WSE reverse proxy under this path prefix; emitted
+  // asset and entry URLs must include it so requests land back on the
+  // same location block in nginx.conf.
+  base: '/solid-hello-world-frontend-react/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
