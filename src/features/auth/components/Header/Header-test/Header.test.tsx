@@ -148,9 +148,12 @@ describe('Header — logged in', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('displays the webId as the user identifier when no profile is loaded', () => {
+  it('falls back to a webId-derived identifier when no profile is loaded', () => {
     render(<Header />);
-    expect(screen.getByText('https://user.solidcommunity.net/profile/card#me')).toBeInTheDocument();
+    // getProfileDisplayName extracts the first meaningful segment from the WebID
+    // (skipping the scheme, "profile", and "card") so the user sees a recognisable
+    // host instead of the full URL.
+    expect(screen.getByText('user.solidcommunity.net')).toBeInTheDocument();
   });
 
   it('displays profile.fn as display name when available', () => {
@@ -174,5 +177,25 @@ describe('Header — logged in', () => {
     vi.mocked(isLoadable).mockReturnValue(true);
     render(<Header />);
     expect(screen.getByText('header.loading')).toBeInTheDocument();
+  });
+
+  it('renders the layout toggle in the logged-in branch', () => {
+    render(<Header />);
+    expect(screen.getByRole('group', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
+  });
+});
+
+describe('Header — layout toggle visible logged out', () => {
+  beforeEach(() => {
+    vi.mocked(useSolidAuth).mockReturnValue({
+      session: { isLoggedIn: false, webId: undefined },
+      login: mockLogin,
+      logout: mockLogout,
+    });
+  });
+
+  it('renders the layout toggle when logged out', () => {
+    render(<Header />);
+    expect(screen.getByRole('group', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
   });
 });

@@ -141,5 +141,30 @@
   },
   "languageSwitcher": {
     "label": "Sprache"
+  },
+  "oneDriveLayout": {
+    "layout": "Layout",
+    "classic": "Klassisch",
+    "onedrive": "OneDrive",
+    "navRail": "Navigation",
+    "create": "Erstellen",
+    "recent": "Startseite",
+    "myFiles": "Meine Dateien",
+    "shared": "Geteilt",
+    "requests": "Anfragen",
+    "people": "Personen",
+    "searchPlaceholder": "Suchen",
+    "settings": "Einstellungen",
+    "account": "Konto",
+    "logout": "Abmelden",
+    "viewProfile": "Profil anzeigen",
+    "signedIn": "Angemeldet",
+    "viewTitle": {
+      "recent": "Startseite",
+      "myFiles": "Meine Dateien",
+      "shared": "Geteilt",
+      "requests": "Anfragen",
+      "people": "Personen"
+    }
   }
 }

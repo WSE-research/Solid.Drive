@@ -11,6 +11,8 @@ import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "@/infrastructure/solid/resourceGuards";
 import { LanguageSwitcher } from "@/features/auth/components/LanguageSwitcher";
+import { LayoutToggle } from "@/features/onedrive-layout";
+import { getProfileDisplayName } from "@/shared/utils/getProfileDisplayName";
 import { APP_NAME, SOLID_PROVIDERS, CUSTOM_PROVIDER_VALUE, EXTERNAL_LINKS } from "@/config";
 
 /**
@@ -30,7 +32,7 @@ export const Header: FunctionComponent = () => {
 
   const displayName = isLoadable(webIdResource) && webIdResource.isLoading()
     ? translate("header.loading", "Loading…")
-    : profile?.fn || profile?.name || session.webId;
+    : getProfileDisplayName(profile ?? undefined, session.webId ?? "");
 
   const issuerUrl = selectedProvider === CUSTOM_PROVIDER_VALUE ? customIssuerUrl : selectedProvider;
   const registerUrl = SOLID_PROVIDERS.find((provider) => provider.value === selectedProvider)?.registerUrl;
@@ -56,6 +58,7 @@ export const Header: FunctionComponent = () => {
           <p className="auth-webid">
             {translate("header.loggedInAs")} <span className="auth-webid__name">{displayName}</span>
           </p>
+          <LayoutToggle />
           <LanguageSwitcher />
           <button className="btn btn--ghost" onClick={logout}>
             {translate("header.logOut")}
@@ -64,6 +67,7 @@ export const Header: FunctionComponent = () => {
       ) : (
         <auth-logged-out>
           <auth-input-row>
+            <LayoutToggle />
             <auth-field>
               <label className="auth-provider-label">{translate("header.provider")}</label>
               <auth-provider-row>

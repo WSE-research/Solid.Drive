@@ -1,0 +1,65 @@
+/*
+ * LayoutToggle — segmented Classic | OneDrive pill control rendered in two places:
+ *   1. The classic Header (light theme) — uses the tokens defined here.
+ *   2. The OneDrive TopBar's Settings dropdown (dark theme) — overridden in
+ *      OneDriveLayout.css under the `.topbar-menu .layout-toggle*` selectors.
+ * Light-theme styles below use the global tokens from src/app/App/App-file/App.css.
+ */
+
+.layout-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  gap: 1px;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.layout-toggle__pill {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+  min-width: 56px;
+  text-align: center;
+  user-select: none;
+}
+
+.layout-toggle__pill:hover {
+  color: var(--text-primary);
+}
+
+/* Radix ToggleGroup.Item exposes data-state="on" | "off" — drive the active style from there. */
+.layout-toggle__pill[data-state="on"] {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(22, 79, 201, 0.25);
+}
+
+.layout-toggle__pill[data-state="on"]:hover {
+  color: #ffffff;
+}
+
+.layout-toggle__pill:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.layout-toggle__pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

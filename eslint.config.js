@@ -47,6 +47,23 @@ export default defineConfig([
     },
   },
 
+  // ── Exception: useContactRejections ───────────────────────────────────────
+  // This hook lives in shared/ because both file-explorer and profile consume
+  // it, but it wraps the inbox infrastructure to read rejection notifications.
+  // It can't move into infrastructure/ (that layer is React-free), so it is
+  // allowed to reach into infrastructure/inbox while staying barred from app/
+  // and features/.
+  {
+    files: ['src/shared/hooks/useContactRejections/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@/app/*', '@/features/*'], message: 'shared/ must not import from app/ or features/.' },
+        ],
+      }],
+    },
+  },
+
   // ── Layer: infrastructure/ ────────────────────────────────────────────────
   // May import from shared/, types/, config/. Not from app/ or features/.
   {
@@ -68,7 +85,10 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
+          // @/features/onedrive-layout/* is intentionally allowed — auth/Header
+          // mounts the LayoutToggle shipped by the onedrive-layout feature.
           { group: ['@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
     },
@@ -80,7 +100,8 @@ export default defineConfig([
         patterns: [
           // @/features/validation/* is intentionally allowed — it is a pure-service feature
           // with no UI and is consumed by other features as a shared utility.
-          { group: ['@/features/auth/*', '@/features/profile/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/profile/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
     },
@@ -90,7 +111,8 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/validation/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
     },
@@ -100,7 +122,8 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/validation/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
     },
@@ -110,7 +133,41 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/features/onedrive-layout/**/*.{ts,tsx}'],
+    // The icons/ subdirectory is the SINGLE place permitted to import from
+    // @fluentui/react-icons. Excluding it from this block exempts it from
+    // BOTH the cross-feature rule AND the @fluentui/react-icons restriction
+    // declared below — which is what we want, since the icons module is the
+    // canonical re-export entry point everything else imports from.
+    ignores: ['src/features/onedrive-layout/icons/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
+        ],
+      }],
+    },
+  },
+
+  // ── Layer: app/ ───────────────────────────────────────────────────────────
+  // app/ is the composition root and is intentionally permitted to import
+  // from any feature — that is how AppShell wires the OneDriveLayout vs
+  // ClassicLayout choice. Documented here so a future maintainer doesn't
+  // mistake the absence of a layer rule for an oversight.
+  {
+    files: ['src/app/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
     },

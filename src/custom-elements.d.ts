@@ -98,6 +98,20 @@ declare module "react" {
       "upload-tray": El;
       "upload-tray-row": El;
       "upload-tray-row-actions": El;
+      // OneDriveLayout
+      "onedrive-layout": El;
+      "onedrive-view": El;
+      "nav-rail": El;
+      "top-bar": El;
+      "topbar-brand": El;
+      "topbar-actions": El;
+      "search-slot": El;
+      // OneDriveLayout — TopBar dropdown internals
+      "topbar-menu-row": El;
+      "topbar-menu-profile": El;
+      "topbar-menu-profile-info": El;
+      "topbar-menu-profile-name": El;
+      "topbar-menu-profile-webid": El;
     }
   }
 }
