@@ -47,6 +47,23 @@ export default defineConfig([
     },
   },
 
+  // ── Exception: useContactRejections ───────────────────────────────────────
+  // This hook lives in shared/ because both file-explorer and profile consume
+  // it, but it wraps the inbox infrastructure to read rejection notifications.
+  // It can't move into infrastructure/ (that layer is React-free), so it is
+  // allowed to reach into infrastructure/inbox while staying barred from app/
+  // and features/.
+  {
+    files: ['src/shared/hooks/useContactRejections/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@/app/*', '@/features/*'], message: 'shared/ must not import from app/ or features/.' },
+        ],
+      }],
+    },
+  },
+
   // ── Layer: infrastructure/ ────────────────────────────────────────────────
   // May import from shared/, types/, config/. Not from app/ or features/.
   {
