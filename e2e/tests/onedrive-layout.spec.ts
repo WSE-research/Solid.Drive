@@ -24,11 +24,14 @@ test("user opts into the OneDrive layout from the Classic header", async ({ brow
   await page.getByRole("radio", { name: "OneDrive" }).click();
 
   // Clicking the pill should swap the Classic shell out for the OneDrive
-  // shell: the nav rail, the top bar, and the default Home view.
+  // shell: the nav rail, the top bar, the page header, and the default
+  // Home view. OneDriveLayout renders the page title in its page header,
+  // and the main panel carries the active view id in data-view.
   await expect(page.getByTestId("onedrive-layout-root")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator("nav-rail")).toBeVisible();
   await expect(page.locator("top-bar")).toBeVisible();
-  await expect(page.getByTestId("view-recent")).toBeVisible();
+  await expect(page.locator(".odl-page-title")).toHaveText("Home");
+  await expect(page.locator("main.odl-main")).toHaveAttribute("data-view", "recent");
   await expect(page.locator("header.site-header")).toHaveCount(0);
 
   await close();

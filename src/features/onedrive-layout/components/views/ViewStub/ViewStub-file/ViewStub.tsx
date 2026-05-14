@@ -13,13 +13,13 @@ interface ViewStubProps {
 }
 
 /**
- * Renders the bare title for a view that has no implementation yet.
- * The body is intentionally left empty until the view is wired up.
+ * Empty placeholder body for a view that has no implementation yet.
+ * The page title is rendered by OneDriveLayout's page header — this stub
+ * keeps a `data-testid` anchor (and `data-title` for legacy tests) but
+ * adds no visible content.
  *
  * @public
  */
 export const ViewStub: FunctionComponent<ViewStubProps> = ({ title, testId }) => (
-  <onedrive-view data-testid={`view-${testId}`}>
-    <h1 className="odl-view-title">{title}</h1>
-  </onedrive-view>
+  <onedrive-view data-testid={`view-${testId}`} data-title={title} />
 );

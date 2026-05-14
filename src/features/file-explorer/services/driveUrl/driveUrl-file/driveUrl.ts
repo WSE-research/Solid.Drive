@@ -20,8 +20,8 @@ export function normalizeContainerUri(uri: string): string {
  */
 export function isContainerUnderStorage(candidate: string, storageRoot: string): boolean {
   const root = normalizeContainerUri(storageRoot);
-  const c = normalizeContainerUri(candidate);
-  return c === root || c.startsWith(root);
+  const normalizedCandidate = normalizeContainerUri(candidate);
+  return normalizedCandidate === root || normalizedCandidate.startsWith(root);
 }
 
 /**
@@ -56,22 +56,25 @@ export function buildDriveBreadcrumbs(
     return [{ label: storageLabel, uri: root as SolidContainerUri }];
   }
 
-  const crumbs: Breadcrumb[] = [{ label: storageLabel, uri: root as SolidContainerUri }];
+  const breadcrumbs: Breadcrumb[] = [
+    { label: storageLabel, uri: root as SolidContainerUri },
+  ];
   const remainder = folder.slice(root.length);
   const segments = remainder.replace(/^\//, "").split("/").filter(Boolean);
 
-  const rootNoTrail = root.replace(/\/$/, "");
-  for (let i = 0; i < segments.length; i += 1) {
-    const label = decodeURIComponent(segments[i]);
-    const pathAcc =
-      `${rootNoTrail}${segments.slice(0, i + 1).map((s) => `/${s}`).join("")}` + "/";
-    crumbs.push({
+  const rootWithoutTrailingSlash = root.replace(/\/$/, "");
+  for (let index = 0; index < segments.length; index += 1) {
+    const label = decodeURIComponent(segments[index]);
+    const segmentsUpToHere = segments.slice(0, index + 1);
+    const accumulatedPath =
+      `${rootWithoutTrailingSlash}${segmentsUpToHere.map((segment) => `/${segment}`).join("")}/`;
+    breadcrumbs.push({
       label,
-      uri: pathAcc as SolidContainerUri,
+      uri: accumulatedPath as SolidContainerUri,
     });
   }
 
-  return crumbs;
+  return breadcrumbs;
 }
 
 /**

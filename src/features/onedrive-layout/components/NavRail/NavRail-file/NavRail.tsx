@@ -28,6 +28,7 @@ import {
   useViewParam,
   type ViewId,
 } from '@/features/onedrive-layout/hooks/useViewParam';
+import { CreateMenu } from '@/features/onedrive-layout/components/CreateMenu';
 
 type IconCmp = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -86,35 +87,50 @@ const RailButton: FunctionComponent<RailButtonProps> = ({ item, active, onSelect
   );
 };
 
+interface NavRailProps {
+  onNewFolder?: () => void;
+  onFilesPicked?: (files: File[]) => void;
+}
+
 /**
  * Renders the navigation rail with logo, create button, and view switchers.
  *
  * @public
  */
-export const NavRail: FunctionComponent = () => {
+export const NavRail: FunctionComponent<NavRailProps> = ({
+  onNewFolder,
+  onFilesPicked,
+}) => {
   const [translate] = useTranslation();
   const [view, setView] = useViewParam();
 
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
       <nav-rail aria-label={translate('oneDriveLayout.navRail', 'Navigation')}>
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <button
-              type="button"
-              className="rail-create"
-              aria-label={translate('oneDriveLayout.create', 'Create')}
-            >
-              <PlusIcon aria-hidden focusable={false} />
-            </button>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content side="right" sideOffset={8} className="rail-tooltip">
-              {translate('oneDriveLayout.create', 'Create')}
-              <Tooltip.Arrow className="rail-tooltip__arrow" />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
+        {onNewFolder && onFilesPicked ? (
+          <CreateMenu
+            onNewFolder={onNewFolder}
+            onFilesPicked={onFilesPicked}
+          />
+        ) : (
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                type="button"
+                className="rail-create"
+                aria-label={translate('oneDriveLayout.create', 'Create')}
+              >
+                <PlusIcon aria-hidden focusable={false} />
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content side="right" sideOffset={8} className="rail-tooltip">
+                {translate('oneDriveLayout.create', 'Create')}
+                <Tooltip.Arrow className="rail-tooltip__arrow" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        )}
 
         {TOP_ITEMS.map((item) => (
           <RailButton

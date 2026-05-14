@@ -29,7 +29,9 @@
     "newFolder": "New Folder",
     "createFolder": "Create",
     "uploadFiles": "Upload files",
-    "newFolderPlaceholder": "Folder name",
+    "newFolderTitle": "Create a folder",
+    "newFolderName": "Name",
+    "newFolderPlaceholder": "Enter your folder name",
     "newFolderEmpty": "Folder name cannot be empty",
     "newFolderInvalidChars": "Name cannot contain: / \\ : * ? \" < > |",
     "newFolderError": "Failed to create folder",
@@ -159,12 +161,45 @@
     "logout": "Log out",
     "viewProfile": "View profile",
     "signedIn": "Signed in",
+    "breadcrumb": "Breadcrumb",
     "viewTitle": {
       "recent": "Home",
       "myFiles": "My Files",
       "shared": "Shared",
       "requests": "Requests",
       "people": "People"
+    },
+    "column": {
+      "name": "Name",
+      "modified": "Modified",
+      "size": "File size",
+      "sharing": "Sharing"
+    },
+    "sort": {
+      "name": "Name",
+      "modified": "Modified",
+      "size": "Size",
+      "sharing": "Sharing"
+    },
+    "sharing": {
+      "private": "Private",
+      "public": "Public",
+      "shared_other": "{{count}} people"
+    },
+    "toolbar": {
+      "sort": "Sort",
+      "details": "Details"
+    },
+    "details": {
+      "title": "Details",
+      "empty": "Select an item to see its details.",
+      "close": "Close",
+      "kindFile": "File",
+      "kindFolder": "Folder"
+    },
+    "createMenu": {
+      "newFolder": "New folder",
+      "uploadFiles": "Upload files"
     }
   }
 }

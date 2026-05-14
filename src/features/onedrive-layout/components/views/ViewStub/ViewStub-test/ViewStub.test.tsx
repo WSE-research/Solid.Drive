@@ -3,9 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { ViewStub } from '../ViewStub-file/ViewStub';
 
 describe('ViewStub', () => {
-  it('renders the provided title', () => {
-    render(<ViewStub title="My Files" testId="my-files" />);
-    expect(screen.getByRole('heading', { name: 'My Files' })).toBeInTheDocument();
+  it('exposes the title via data-title for legacy assertions', () => {
+    const { container } = render(<ViewStub title="My Files" testId="my-files" />);
+    expect(container.querySelector('onedrive-view')).toHaveAttribute(
+      'data-title',
+      'My Files',
+    );
   });
 
   it('exposes the testId on the root element for routing assertions', () => {

@@ -39,6 +39,9 @@ const AppShell: FunctionComponent = () => {
   );
 };
 
+const GITHUB_REPO_URL =
+  'https://github.com/WSE-research/Solid-Hello-World-Frontend-React';
+
 /**
  * Root application component.
  * Wraps the app with BrowserSolidLdoProvider for Solid authentication
@@ -46,9 +49,6 @@ const AppShell: FunctionComponent = () => {
  *
  * @public
  */
-const GITHUB_REPO_URL =
-  'https://github.com/WSE-research/Solid-Hello-World-Frontend-React';
-
 const App: FunctionComponent = () => (
   <app-root>
     <BrowserRouter

@@ -36,6 +36,8 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
 
 vi.mock('../App-file/App.css', () => ({}));
 
+vi.mock('../App-file/github-fork-ribbon.css', () => ({}));
+
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();

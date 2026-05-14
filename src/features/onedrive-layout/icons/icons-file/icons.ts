@@ -20,6 +20,9 @@ export {
   AddRegular          as PlusIcon,
   SettingsRegular     as GearIcon,
   CheckmarkRegular    as CheckmarkIcon,
+  ArrowSortDownLinesRegular as SortIcon,
+  InfoRegular         as InfoIcon,
+  DismissRegular      as CloseIcon,
 } from '@fluentui/react-icons';
 
 export {

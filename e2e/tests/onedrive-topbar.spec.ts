@@ -46,11 +46,11 @@ test("the settings menu switches the UI language", async ({ browser, parni }) =>
   await page.getByRole("menuitemradio", { name: "Deutsch" }).click();
 
   // The whole shell should re-render in German: the same rail button now
-  // reads "Meine Dateien" and the view title reads "Startseite".
+  // reads "Meine Dateien" and the page header title reads "Startseite".
   await expect(
     page.locator("nav-rail").getByRole("button", { name: "Meine Dateien", exact: true }),
   ).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator(".odl-view-title")).toHaveText("Startseite");
+  await expect(page.locator(".odl-page-title")).toHaveText("Startseite");
 
   await close();
 });
