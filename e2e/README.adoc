@@ -76,7 +76,7 @@ CI gets `reuseExistingServer: false` and a fresh CSS for every job.
 | `e2e/helpers/login-ui.ts`         | `loginAsViaUI` — drives the Solid OIDC dance through the app's Header.
 | `e2e/helpers/seed.ts`             | Pod-shaping helpers: profile basics, file upload, ACL grants, contact, cleanup.
 | `e2e/helpers/ui-actions.ts`       | UI-action helpers: add contact, request access, approve/deny, revoke via SharePanel, expand a type folder.
-| `e2e/helpers/onedrive.ts`         | OneDrive-layout helpers: `enterOneDriveLayout` (flip the layout preference, optionally on a `?view=`) and `navigateToView` (click a NavRail button).
+| `e2e/helpers/onedrive.ts`         | OneDrive-layout helpers: `enterOneDriveLayout` (flip the layout preference, optionally on a `?view=`), `navigateToView` (click a NavRail button), and `openMyFiles` (enter the My Files view and wait for its Pod browser table).
 3+| **Tests — category-level access**
 | `e2e/tests/category-share.spec.ts`     | Focused: type request → approve → file appears as shared.
 | `e2e/tests/revoke-keeps-visible.spec.ts` | Focused: programmatic ACL revoke moves the file to "Also available", not gone.
@@ -85,8 +85,9 @@ CI gets `reuseExistingServer: false` and a fresh CSS for every job.
 | `e2e/tests/full-journey.spec.ts`      | The complete UI journey from add-contact through type approve.
 3+| **Tests — OneDrive layout**
 | `e2e/tests/onedrive-layout.spec.ts`     | Opting into the OneDrive shell from the Classic header, and switching back via the TopBar settings menu.
-| `e2e/tests/onedrive-navigation.spec.ts` | NavRail switches between all five views; URL `?view=` and `aria-current` track the active view.
+| `e2e/tests/onedrive-navigation.spec.ts` | NavRail switches between all five views; the page header title, the main panel's `data-view`, and `aria-current` track the active view.
 | `e2e/tests/onedrive-topbar.spec.ts`     | TopBar avatar menu (profile name, WebID, View profile link), settings menu language switch, and log out.
+| `e2e/tests/onedrive-my-files.spec.ts`   | My Files Pod browser: the file table renders, browsing into a folder shows a seeded file and selecting it fills the detail panel, the Create menu creates a folder, and top-bar search filters the list.
 |===
 
 == How to add a test
@@ -205,9 +206,9 @@ binary URL of a shared file, that's a real bug — file it.
 The category-access specs exercise TypeFolder, RequestsPanel,
 SharePanel, the contact list, and the post-approval rendering in
 `useSharedCatalog`; the OneDrive specs exercise that layout's shell,
-NavRail, and TopBar. Setup that doesn't matter to the assertion (file
-upload form, contact entry validation, etc.) goes through direct fetch
-in `seed.ts`. This:
+NavRail, TopBar, and the My Files Pod browser. Setup that doesn't
+matter to the assertion (file upload form, contact entry validation,
+etc.) goes through direct fetch in `seed.ts`. This:
 
 - Keeps each test focused on one or two new behaviors
 - Avoids brittle multi-step UI prerequisites
@@ -275,8 +276,13 @@ shell. It does **not** cover:
   (it drops the `?view=` query string from its redirect URI, and base-path
   resolution on the re-auth bounce is flaky). `useSessionContinuity` and
   the `useViewParam` URL-read path have unit coverage instead.
-- OneDrive view bodies — every view is still a `ViewStub` on this
-  branch, so the specs assert the shell, navigation, and chrome only
+- Drag-and-drop uploads, the full upload form, and My Files sort
+  ordering. These are hard to drive reliably through a real browser and
+  already have thorough unit coverage (`MyFilesView-test`,
+  `MyFilesTable-test`, `sortEntries-test`, `useFileUpload-test`).
+- The Recent, Shared, Requests, and People views. These are still
+  `ViewStub` placeholders, so the specs assert their page title and the
+  NavRail switch only, not view bodies.
 
 == Performance
 

@@ -62,3 +62,14 @@ export async function enterOneDriveLayout(page: Page, view?: ViewId): Promise<vo
 export async function navigateToView(page: Page, label: string): Promise<void> {
   await page.locator("nav-rail").getByRole("button", { name: label, exact: true }).click();
 }
+
+/**
+ * Switches into the OneDrive shell on the My Files view and waits for the
+ * Pod browser's file table to render. The table only appears once the view
+ * has connected to the Pod and loaded the current container, so this gives
+ * it a generous timeout.
+ */
+export async function openMyFiles(page: Page): Promise<void> {
+  await enterOneDriveLayout(page, "my-files");
+  await expect(page.locator(".odl-files-table")).toBeVisible({ timeout: 45_000 });
+}
