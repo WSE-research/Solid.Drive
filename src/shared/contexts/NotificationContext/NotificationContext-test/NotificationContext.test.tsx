@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { NotificationProvider, useNotifications } from '../NotificationContext-file/NotificationContext';
+import { NotificationProvider } from '../NotificationContext-file/NotificationContext';
+import { useNotifications } from '../NotificationContext-file/notifications';
 
 type TestWindow = Window & { __confirmResult?: boolean };
 
