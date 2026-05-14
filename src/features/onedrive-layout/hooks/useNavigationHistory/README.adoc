@@ -1,0 +1,37 @@
+= useNavigationHistory
+
+Wraps the file explorer navigation handlers so that browser back and forward navigate the My Files folder stack, and so per folder scroll position is preserved when the user navigates in and out of folders.
+
+On every push the hook stores a snapshot of `{ currentUri, breadcrumbs }` in `history.state` and restores it on `popstate`.
+Scroll positions are kept in a ref keyed map and restored on the next animation frame after the new content has rendered.
+
+== Arguments
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `currentUri` | Current container URI, normally from link:../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+| `breadcrumbs` | Current breadcrumb trail
+| `setCurrentUri` | Updates the container URI
+| `setBreadcrumbs` | Replaces the breadcrumb trail
+|===
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `navigate(uri, label)` | Pushes a new folder onto the stack
+| `navigateToCrumb(index, uri)` | Truncates the stack to `index`
+| `attachScrollContainer(element)` | Ref callback the view's scroll container must call so positions can be tracked
+|===
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]
+
+.Uses
+* link:../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]

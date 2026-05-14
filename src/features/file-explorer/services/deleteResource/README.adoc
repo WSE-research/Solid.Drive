@@ -1,0 +1,24 @@
+= deleteResource
+
+Recursively deletes a Solid resource, container or leaf.
+Most Solid pods reject `DELETE` on a non empty container, so the service walks `ldp:contains`, deletes every descendant, then deletes the container itself.
+
+When `catalogUri` and `metadataUri` are both supplied, the matching DCAT entry is removed before the container is deleted.
+Catalog cleanup is best effort.
+A stale or already removed catalog entry never fails the user facing delete.
+
+Returns a `{ ok: true } | { ok: false; reason }` envelope rather than throwing, so callers can show the server message in a toast.
+
+== See also
+
+* link:../../../../infrastructure/solid/catalog/[catalog] provides `removeFromCatalog`, which this service calls before the container delete.
+* link:../downloadResource/[downloadResource] is the read side counterpart to this service.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../types/[types]

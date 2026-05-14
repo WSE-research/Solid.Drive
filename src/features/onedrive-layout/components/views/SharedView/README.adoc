@@ -1,0 +1,29 @@
+= SharedView
+
+Shared view for the OneDrive layout.
+
+Returns two sibling elements:
+
+* `<shared-toolbar>` claims the OneDriveLayout `toolbar` grid area and replaces the page header title row.
+* `<shared-body>` claims the `main` grid area.
+
+Both siblings share the filter state from link:../../../hooks/useSharedFilters/[useSharedFilters], the active tab, and an observed types collector, so the chip set always reflects the catalog data of whichever tab is active.
+
+Switching between With you and By you resets the chip selection and the observed types collector, so the other tab does not leak into the new one.
+
+== Internal pieces
+
+* `SharedToolbar` renders the tabs, the chip dropdown, and the person filter.
+* `SharedBody` wraps `SharedFilesTable` per tab.
+* `SharedFilesTable` renders the flat With you and By you rows.
+* `useObservedSharedTypes` collects schema.org class observations from child tables and derives the chip set.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]
+
+.Uses
+* link:../../../hooks/useSharedFilters/[useSharedFilters]
+* link:../../../../file-explorer/hooks/useContacts/[useContacts]
+* link:../../filters/TypeFilterChips/[TypeFilterChips]

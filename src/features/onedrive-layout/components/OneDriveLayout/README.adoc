@@ -1,0 +1,47 @@
+= OneDriveLayout
+
+Root component of the OneDrive layout.
+Renders the NavRail, TopBar, the active view, and the DetailPanel, and owns the state that crosses all of them: search text, sort, the current selection, whether the details panel is open, and the create menu.
+
+Hands the copy link, download, and delete actions off to `useOneDriveActions`, and shows the ShareDialog when the user clicks Share on the selection strip.
+
+When the user switches views the selection is cleared, so a file picked in My Files does not carry over to Shared or Recent.
+
+== Views
+
+Five views are routed via the `?view=` URL search param. See link:../../hooks/useViewParam/[useViewParam].
+
+* `recent` mounts link:../views/RecentView/[RecentView]
+* `my-files` mounts link:../views/MyFilesView/[MyFilesView]
+* `shared` mounts link:../views/SharedView/[SharedView]
+* `requests` mounts link:../views/RequestsView/[RequestsView]
+* `people` mounts link:../views/PeopleView/[PeopleView]
+
+Shared, People, and Recent each draw their own toolbar inline, so the standard page header is skipped for those.
+Shared also takes over the main grid slot.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../NavRail/[NavRail]
+* link:../TopBar/[TopBar]
+* link:../ContextualToolbar/[ContextualToolbar]
+* link:../SelectionActions/[SelectionActions]
+* link:../DetailPanel/[DetailPanel]
+* link:../ShareDialog/[ShareDialog]
+* link:../views/MyFilesView/[MyFilesView]
+* link:../views/SharedView/[SharedView]
+* link:../views/RecentView/[RecentView]
+* link:../views/RequestsView/[RequestsView]
+* link:../views/PeopleView/[PeopleView]
+* link:../../hooks/useViewParam/[useViewParam]
+* link:../../hooks/useMyFilesSort/[useMyFilesSort]
+* link:../../hooks/useSelectedResource/[useSelectedResource]
+* link:../../hooks/useResourceDetails/[useResourceDetails]
+* link:../../hooks/useOneDriveActions/[useOneDriveActions]
+* link:../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+* link:../../../file-explorer/hooks/useContacts/[useContacts]
+* link:../../../file-explorer/hooks/useCatalog/[useCatalog]

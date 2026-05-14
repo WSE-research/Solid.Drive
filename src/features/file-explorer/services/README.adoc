@@ -1,10 +1,15 @@
 = file-explorer/services
 
-Pure utility functions used by the file explorer (no React hooks).
+Pure functions used by the file explorer.
+No React hooks, no shared state.
 
 == Contents
 
-*fileFilter*:: `isVisibleLeaf(entry)` determines whether a leaf resource should be shown to the user. Filters out known system files and per-contact shared catalog files
+link:deleteResource/[deleteResource]:: Recursively deletes a Solid resource and removes its catalog entry. Returns a result envelope rather than throwing.
+link:downloadResource/[downloadResource]:: Fetches a Solid resource through the session bound fetch and triggers a browser download.
+link:dragAndDrop/[dragAndDrop]:: Helpers around the HTML5 drag and drop API, including folder drop detection.
+link:driveUrl/[driveUrl]:: Encode and decode the `?folder=` URL search param used for deep links and breadcrumbs.
+link:fileFilter/[fileFilter]:: `isVisibleLeaf(entry)`. Filters out system files and per contact shared catalogs.
 
 == Navigation
 

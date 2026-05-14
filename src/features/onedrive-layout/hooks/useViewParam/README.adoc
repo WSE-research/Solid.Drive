@@ -1,0 +1,21 @@
+= useViewParam
+
+Reads and writes the active view through the `?view=` URL search param.
+Uses plain `URLSearchParams` and `history.replaceState`, no router dependency, and subscribes to `popstate` so browser back and forward both work.
+
+Every setter dispatches a `solid-drive:view-changed` custom event that all live hook instances listen for, because `history.replaceState` does not fire `popstate` on the same tab.
+This is what keeps multiple instances in sync.
+
+Defaults to `'recent'` when the param is missing or unrecognised.
+
+== Returns
+
+A tuple `[view, setView]`.
+
+* `view` is one of `'recent'`, `'my-files'`, `'shared'`, `'requests'`, `'people'`.
+* `setView(next)` writes the param, dispatches the change event, and re renders every subscribed component.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

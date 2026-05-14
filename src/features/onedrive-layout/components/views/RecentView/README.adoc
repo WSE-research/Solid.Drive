@@ -1,0 +1,28 @@
+= RecentView
+
+Home / Recent view for the OneDrive layout.
+
+Reads the user's DCAT catalog, sorts entries by `modified` desc, and renders them in a flat Name / Opened / Owner table that mirrors the OneDrive Home recent section.
+
+The inline toolbar above the table carries the type chips derived from the catalog's observed schema.org classes plus a person and name filter input.
+At narrow viewports the chip row collapses into a dropdown.
+
+All filter, search, and sort state lives in link:../../../hooks/useRecentFilters/[useRecentFilters].
+
+== Internal pieces
+
+* `RecentFilesTable` renders the flat Name / Opened / Owner rows.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]
+
+.Uses
+* link:../../../hooks/useRecentFilters/[useRecentFilters]
+* link:../../filters/TypeFilterChips/[TypeFilterChips]
+* link:../../filters/PersonNameFilter/[PersonNameFilter]
+* link:../../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+* link:../../../../file-explorer/hooks/useCatalog/[useCatalog]
+* link:../../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../../shared/utils/getProfileDisplayName/[getProfileDisplayName]

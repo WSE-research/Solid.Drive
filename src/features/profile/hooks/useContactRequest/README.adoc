@@ -1,0 +1,30 @@
+= useContactRequest
+
+Owns the access request lifecycle for a single contact row.
+Discovers the contact's LDP inbox, posts a catalog access request, retries after a rejection, and exposes a small `idle | sending | sent | error` status state.
+
+Moved out of `ContactRow` so the component stays purely presentational.
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `status` | `'idle' \| 'sending' \| 'sent' \| 'error'`
+| `requestAccess()` | Discover the inbox and post the access request
+| `requestAgain()` | Delete the previous rejection notification, then run `requestAccess` again
+|===
+
+== See also
+
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess] provides the inbox discovery, post, and delete primitives this hook builds on.
+* link:../../components/ContactRow/[ContactRow] is the consumer. It stays purely presentational by delegating here.
+
+== Navigation
+
+.Parent
+link:../[profile/hooks]
+
+.Uses
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]

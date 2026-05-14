@@ -1,0 +1,35 @@
+= onedrive-layout/formatting
+
+Pure row formatting helpers shared by every table component in the OneDrive shell: My Files, Search, Recent, and Shared.
+Pulled out of the table files so the columns stay in sync when the date format or the size unit changes.
+
+== Exports
+
+[cols="1,3", options="header"]
+|===
+| Symbol | Description
+
+| `EMPTY_CELL` | The "—" placeholder for unknown column values
+| `isActivationKey(key)` | `true` for Enter and Space. Used by `role="row"` keyboard handlers.
+| `decodeUriTail(uri)` | Last URL decoded path segment. Useful for getting the folder name from a container URI.
+| `safeDecodeUriTail(uri)` | Same as above, but returns the raw tail when `decodeURIComponent` would throw on a foreign Pod's URI.
+| `parentFolderLabel(uri)` | Parent folder leaf used in the filename and parent sub caption.
+| `containerUriFromCatalogUri(uri)` | Strips a trailing `index.ttl` from a catalog URI.
+| `formatRowDate(iso, opts?, fallback?)` | Locale and format aware date formatter for table cells.
+| `formatModifiedDate(iso)` | `formatRowDate` with the project's default options.
+| `formatCatalogSize(byteSize)` | Byte count to human size, with `EMPTY_CELL` for `undefined`.
+| `pickFileIcon({ name, mediaType, conformsTo })` | Icon component and accent color for a file row.
+| `pickFolderIcon()` | Icon component and accent color for a folder row.
+|===
+
+The icon pickers reuse the same chip catalog that powers the SharedView toolbar, so icons stay visually consistent across views.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout]
+
+.Uses
+* link:../../../config/[config]
+* link:../../../shared/utils/formatBytes/[formatBytes]
+* link:../components/filters/TypeFilterChips/[TypeFilterChips]

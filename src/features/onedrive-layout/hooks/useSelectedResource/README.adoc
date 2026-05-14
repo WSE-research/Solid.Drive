@@ -1,0 +1,29 @@
+= useSelectedResource
+
+Tracks which resource is currently selected in the OneDrive layout's file list.
+The selection is either a file, a folder, or nothing.
+
+Selecting the same resource a second time toggles it off.
+Escape clears the selection.
+The Escape listener is only mounted while something is selected, so several hook instances running side by side, for example in tests, do not all fire on a single keypress.
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `selected` | `{ kind: 'file' \| 'folder', uri, name } \| null`
+| `select(resource)` | Sets the selection. Passing the currently selected URI toggles it off.
+| `clear()` | Clears the selection
+|===
+
+== See also
+
+* link:../useResourceDetails/[useResourceDetails] turns the selection into the DetailPanel data shape.
+* link:../../components/SelectionActions/[SelectionActions] renders the page header strip for the selection.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

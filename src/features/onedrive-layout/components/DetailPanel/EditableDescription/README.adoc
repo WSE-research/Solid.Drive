@@ -1,0 +1,32 @@
+= EditableDescription
+
+Inline editable description input for the DetailPanel.
+Writes `schema:description` into the file's `index.ttl` via LDO on blur or on Enter.
+
+The in progress value is reset when the selection moves to a different file.
+The comparison happens against `metadataUri` from the previous render, following React's "store information from previous renders" pattern instead of an effect.
+
+If the commit fails the input is rolled back to its initial value and an error toast is pushed through the notification context.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `metadataUri` | URI of the file's `index.ttl`
+| `initial` | The description currently stored on the file, or `undefined`
+| `onSaved` | Optional callback fired after a successful commit
+|===
+
+== See also
+
+* link:../[DetailPanel] is the only consumer.
+
+== Navigation
+
+.Parent
+link:../[DetailPanel]
+
+.Uses
+* link:../../../../../shared/contexts/NotificationContext/[NotificationContext]

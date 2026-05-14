@@ -1,0 +1,35 @@
+= ShareDialog
+
+Modal wrapper around the file explorer's SharePanel.
+Radix Dialog handles the focus trap, Esc handling, overlay click, scroll lock, and ARIA wiring.
+This component just wraps them around the panel.
+
+`OneDriveLayout` mounts this dialog when the user clicks Share on the selection strip.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `open` | Controls dialog visibility
+| `onOpenChange` | Fired when the user closes the dialog
+| `containerUri` | URI of the file container being shared
+| `catalogUri` | URI of the owner's DCAT catalog. SharePanel uses it to mirror the entry into each grantee's shared catalog.
+| `contacts` | Owner's `foaf:knows` WebIDs
+| `sharedEntry` | Catalog snapshot the per contact shared catalogs are written from
+|===
+
+== See also
+
+* link:../../../file-explorer/components/SharePanel/[SharePanel] is the panel rendered inside the dialog.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../../file-explorer/components/SharePanel/[SharePanel]
+* link:../../icons/[icons]
+* link:../../../../types/[types]

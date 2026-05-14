@@ -13,6 +13,9 @@ link:SearchInput/[SearchInput]:: Controlled pill-shaped search box with a clear 
 link:SearchResults/[SearchResults]:: Flat list of catalog entries matching the current query; renders a match count + one `FileCard` per hit, or an empty state when nothing matches
 link:SharePanel/[SharePanel]:: Grant/revoke per-file access to contacts via WAC ACLs and shared catalogs
 link:SharedWithMeSection/[SharedWithMeSection]:: Shows files shared by contacts; reads per-contact shared catalogs and checks accessibility
+link:ContactSharedFiles/[ContactSharedFiles]:: Renders the resources one specific contact shares with the viewer; used by `SharedWithMeSection` and the OneDrive Shared / People views
+link:DropZone/[DropZone]:: Drop-overlay surface highlighted while files are dragged over the explorer
+link:UploadTray/[UploadTray]:: Bottom-corner tray showing in-flight uploads with progress and retry
 link:TypeFolder/[TypeFolder]:: Collapsible folder grouped by schema.org type, with request access buttons per-file
 
 == Navigation

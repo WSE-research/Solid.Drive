@@ -1,0 +1,38 @@
+= SelectionActions
+
+Action strip rendered in the page header when something is selected.
+Shows Share, Copy link, Delete, and Download, plus Move to and Rename stubs that are reserved for follow up work.
+
+A `ResizeObserver` watches the strip's width.
+Actions that no longer fit inline spill into a kebab dropdown on the right, so the row never wraps.
+
+Renders nothing when `selection` is `null`.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `selection` | The current selected file or folder from link:../../hooks/useSelectedResource/[useSelectedResource]
+| `onShare` | Opens the ShareDialog
+| `onCopyLink` | Copies the resource URI to the clipboard
+| `onDelete` | Deletes the resource after a confirm prompt
+| `onDownload` | Downloads the binary
+| `onMoveTo` | Stub, reserved for follow up work
+| `onRename` | Stub, reserved for follow up work
+|===
+
+== See also
+
+* link:../../hooks/useOneDriveActions/[useOneDriveActions] produces the share, copy, download, and delete handlers wired in here.
+* link:../OneDriveLayout/[OneDriveLayout] mounts this strip in place of the page title whenever a resource is selected.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useSelectedResource/[useSelectedResource]
+* link:../../icons/[icons]

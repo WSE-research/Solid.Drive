@@ -1,0 +1,35 @@
+= TypeFilterChips
+
+Chip row that filters a catalog list by schema.org class.
+
+The chips are not hardcoded.
+The parent passes in a chip set derived from the entries actually present in the active view's catalog data.
+See `chipCatalog.deriveChipsFromEntries`.
+The row always leads with an "All" chip that highlights when the selection is empty.
+
+Two components are exported from this directory:
+
+* `TypeFilterChips`, the inline chip row used at wide viewports.
+* `TypeFilterChipsDropdown`, a chevron dropdown that wraps the same chips for narrow toolbars like the Recent view.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `chips` | Derived chip set, one per observed type
+| `selected` | Set of currently selected chip ids. Empty means "all".
+| `onToggle` | Toggles a single chip
+| `onReset` | Clears the selection so the row returns to "all"
+|===
+
+== See also
+
+* link:../../../hooks/useSharedFilters/[useSharedFilters] and link:../../../hooks/useRecentFilters/[useRecentFilters] own the chip selection state for the Shared and Recent views.
+* link:../../../formatting/[formatting] reuses the same chip catalog for the file row icons, so chips and rows stay visually consistent.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/filters]

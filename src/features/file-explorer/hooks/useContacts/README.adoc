@@ -1,0 +1,20 @@
+= useContacts
+
+Reads the signed in user's Solid profile and returns the WebID list of the agents they `foaf:knows`.
+Moved out of `useDriveInitialization` so the bootstrap hook only deals with storage and navigation.
+
+Returns an empty array until the profile resolves.
+The value is derived, so consumers can read it freely without further memoisation.
+
+== Returns
+
+`contactWebIds`:: `string[]`. WebIDs of the user's contacts, in profile order.
+
+== See also
+
+* link:../../../profile/hooks/useContacts/[profile/hooks/useContacts] adds write operations for add and remove on top of the same `foaf:knows` list.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]

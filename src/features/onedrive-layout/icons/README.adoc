@@ -1,0 +1,15 @@
+= onedrive-layout/icons
+
+SVG icon components and the branded chip icon catalog used across the OneDrive shell.
+
+`icons.ts` exports the chrome icons.
+Home, MyFiles, Shared, Requests, People, their `…Active` variants, ChevronDown, ChevronUp, Close, Search, Gear, Plus, Sort, DetailsPanel, Share, Link, Delete, Download, MoveTo, Rename, MoreHorizontal, and Checkmark.
+
+`chipIcons.tsx` defines the colored file type tiles consumed by `pickFileIcon` and the `TypeFilterChips` chip catalog: image, video, audio, document, spreadsheet, PDF, folder, and so on.
+
+All icons are plain `SVGProps<SVGSVGElement>` components, so they can be rendered as `<Icon aria-hidden focusable={false} />`.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout]

@@ -1,0 +1,34 @@
+= useResourceDetails
+
+Reduces the current selection plus the catalog lookup map into the data shape the DetailPanel needs.
+
+Centralises the catalog lookup, the container item count, and the metadata URI derivation so the panel itself stays declarative.
+
+`useResource` is called unconditionally with `undefined` when no folder is selected.
+That is the documented disabled state for `@ldo/solid-react`, and it keeps the hook order stable across renders.
+
+== Arguments
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `selection` | Current selection from link:../useSelectedResource/[useSelectedResource]
+| `catalogByContainer` | `Map<containerUri, CatalogEntry>` built by `OneDriveLayout` from the user's DCAT catalog
+|===
+
+== Returns
+
+`ResourceDetails | null`.
+A discriminated union of `{ kind: 'file', uri, name, metadataUri, description, mediaType, conformsTo, byteSize, modified, created }` and `{ kind: 'folder', uri, name, itemCount, modified }`.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]
+
+.Uses
+* link:../useSelectedResource/[useSelectedResource]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../config/[config]
+* link:../../../../types/[types]

@@ -4,8 +4,9 @@ React hooks for the file explorer feature.
 
 == Contents
 
-link:useAccessRequests/[useFileAccessRequests]:: Sends access requests to a contact's inbox for individual files or all files at once
+link:useAccessRequests/[useAccessRequests]:: Sends access requests to a contact's inbox for individual files or all files at once
 link:useCatalog/[useCatalog]:: Fetches and parses the user's DCAT catalog once; exposes entries and pre-computed container URIs
+link:useContacts/[useContacts]:: Returns the WebID list from the signed-in user's `foaf:knows`
 link:useCreateFolder/[useCreateFolder]:: Validates folder names and creates new LDP BasicContainers on a Solid pod
 link:useDriveInitialization/[useDriveInitialization]:: Discovers Pod storage, creates app container, sets up navigation state
 link:useFilePreview/[useFilePreview]:: Creates a blob URL for previewing a binary resource; revokes on cleanup
@@ -15,6 +16,7 @@ link:useFileTypes/[useFileTypes]:: Loads and caches file type definitions from `
 link:useFileUpload/[useFileUpload]:: Executes the full upload sequence (container, binary, metadata, catalog)
 link:useFileValidation/[useFileValidation]:: Validates upload form fields against SHACL shapes
 link:useNavigation/[useNavigation]:: Manages current folder URI and breadcrumb trail
+link:useUploadQueue/[useUploadQueue]:: Drives the multi-file upload tray with progress and retry
 link:usePodDiscovery/[usePodDiscovery]:: Finds `pim:storage` in the user's profile
 link:useSharedCatalog/[useSharedCatalog]:: Resolves shared files from a contact's Pod
 

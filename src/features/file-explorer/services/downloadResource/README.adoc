@@ -1,0 +1,18 @@
+= downloadResource
+
+Fetches a Solid resource through the supplied session bound fetch and triggers a browser download with the given filename.
+Wraps the blob in an anchor click and revokes the object URL on the same tick, so the caller does not have to manage cleanup.
+
+Returns a `{ ok: true } | { ok: false; reason }` envelope rather than throwing, so callers can surface the failure reason in a toast.
+
+== See also
+
+* link:../deleteResource/[deleteResource] is the write side counterpart to this service.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../../../types/[types]

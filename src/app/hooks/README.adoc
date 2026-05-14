@@ -1,0 +1,14 @@
+= app/hooks
+
+React hooks scoped to the application bootstrap layer.
+Hooks here coordinate concerns that span both layouts, like auth state and session continuity.
+Feature specific hooks live under `features/<name>/hooks/` instead.
+
+== Contents
+
+link:useSessionContinuity/[useSessionContinuity]:: Bridges the roughly one second gap between page load and the Solid auth provider restoring a saved session, so a refresh inside the OneDrive layout does not flash the logged out shell.
+
+== Navigation
+
+.Parent
+link:../[app]

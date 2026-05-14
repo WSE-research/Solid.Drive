@@ -1,0 +1,33 @@
+= NewFolderDialog
+
+Modal create folder dialog used by the OneDrive layout.
+Wraps the existing `useCreateFolder` hook in a Radix Dialog so the user lands on a centered overlay with a name field and Create / Cancel buttons, matching OneDrive's create a folder flow.
+
+Resets the input whenever the dialog reopens.
+Validation errors render inline under the input.
+Commit errors are pushed through the notification context.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `open` | Controls dialog visibility
+| `parentContainer` | LDP container that the new folder is created under
+| `onOpenChange` | Fired when the user closes the dialog, or after a successful create
+|===
+
+== See also
+
+* link:../../../file-explorer/hooks/useCreateFolder/[useCreateFolder] does the validation and the container creation. This dialog just wraps it.
+* link:../../../file-explorer/components/NewFolderInput/[NewFolderInput] is the inline equivalent used by the classic explorer.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../../file-explorer/hooks/useCreateFolder/[useCreateFolder]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]

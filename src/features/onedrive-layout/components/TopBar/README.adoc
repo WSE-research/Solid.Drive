@@ -1,0 +1,38 @@
+= TopBar
+
+Sticky top bar for the OneDrive layout.
+Hosts the centered pod search, a Settings dropdown with the language switcher and layout toggle, and an avatar dropdown that surfaces the signed in profile name, WebID, a View profile link, and a Log out action.
+
+At narrow viewports the centered search input collapses to an icon button via CSS.
+Clicking the icon opens a full width overlay search bar that replaces the topbar content until the user dismisses it with the close button, Escape, or by blurring the input.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `searchValue` | Current search query
+| `onSearchChange` | Fired whenever the user edits either the centered input or the overlay
+| `webId` | Signed in user's WebID, rendered in the avatar dropdown
+| `profileName` | Signed in user's display name
+| `avatarSrc` | URL of the avatar image, or `undefined`
+|===
+
+== See also
+
+* link:../LayoutToggle/[LayoutToggle] is mounted inside the Settings dropdown.
+* link:../../../auth/components/LanguageSwitcher/[LanguageSwitcher]. TopBar duplicates the language radio inline here, but the same `i18n.changeLanguage` plumbing applies.
+* link:../../../../shared/components/Avatar/[Avatar] renders the avatar circle.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../LayoutToggle/[LayoutToggle]
+* link:../../icons/[icons]
+* link:../../../../shared/components/Avatar/[Avatar]
+* link:../../../../shared/utils/getInitial/[getInitial]
+* link:../../../../config/[config]

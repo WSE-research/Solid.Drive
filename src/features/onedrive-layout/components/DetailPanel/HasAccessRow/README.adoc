@@ -1,0 +1,31 @@
+= HasAccessRow
+
+Horizontal strip of avatar circles for the DetailPanel's Has access row.
+
+Reads the resource's WAC ACL through link:../../../hooks/useSharingLabel/[useSharingLabel] and renders one of four states:
+
+* one avatar circle per non owner agent for the normal shared case,
+* a single "Public" marker when the ACL grants `foaf:Agent`,
+* an empty row for private resources,
+* `aria-busy="true"` while the ACL is being read.
+
+Each avatar resolves the contact's name and image through link:../../../../../shared/hooks/useContactProfile/[useContactProfile], which makes the SharePanel, the contacts list, and this row all render the same name and avatar for a given WebID.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `uri` | URI of the resource whose ACL should be read
+|===
+
+== Navigation
+
+.Parent
+link:../[DetailPanel]
+
+.Uses
+* link:../../../hooks/useSharingLabel/[useSharingLabel]
+* link:../../../../../shared/components/Avatar/[Avatar]
+* link:../../../../../shared/hooks/useContactProfile/[useContactProfile]

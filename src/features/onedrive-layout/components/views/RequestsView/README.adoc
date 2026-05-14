@@ -1,0 +1,23 @@
+= RequestsView
+
+Access requests view for the OneDrive layout.
+
+OneDrive itself has no direct access requests surface, so this view borrows the rest of the layout's vocabulary: an elevated panel, the shared design tokens, and the same card, action, and empty state patterns used by SharedView and the file table.
+
+Requests are read from the user's LDP inbox by `useAccessRequests`, which needs the storage root and the catalog URI.
+Until both are ready a quiet "Connecting…" placeholder is rendered instead of the empty state.
+
+== Internal pieces
+
+* `RequestsList` is the list and empty state container around `useAccessRequests`.
+* `RequestCard` renders one card per pending request with Approve and Deny actions.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]
+
+.Uses
+* link:../../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+* link:../../../../file-explorer/hooks/useAccessRequests/[useAccessRequests]
+* link:../../../../../infrastructure/solid/catalog/[catalog]

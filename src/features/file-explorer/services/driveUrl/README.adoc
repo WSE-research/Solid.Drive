@@ -1,0 +1,33 @@
+= driveUrl
+
+URL helpers for syncing the active folder to a `?folder=` search param.
+This is what makes browser back and forward and deep links work inside the drive.
+
+All helpers are pure: encode, decode, validate, build breadcrumb trails.
+The consumer, `useDriveInitialization`, owns the React state and the history side effects.
+
+== Exports
+
+[cols="1,3", options="header"]
+|===
+| Symbol | Description
+
+| `DRIVE_FOLDER_SEARCH_PARAM` | Constant name of the URL param, `"folder"`
+| `normalizeContainerUri(uri)` | Makes sure the URI ends with exactly one trailing slash
+| `isContainerUnderStorage(candidate, root)` | Guard against navigating to a foreign Pod
+| `decodeDriveFolderSearchParam(raw)` | Parses the raw param into a typed `SolidContainerUri` or `undefined`
+| `encodeDriveFolderSearchValue(uri)` | `encodeURIComponent` wrapper used when writing the param
+| `buildDriveBreadcrumbs(folderUri, root, rootLabel)` | Storage root anchored breadcrumb list, one entry per path segment
+|===
+
+== See also
+
+* link:../../hooks/useDriveInitialization/[useDriveInitialization] is the only consumer. It owns the navigation state.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../hooks/useNavigation/[useNavigation]
