@@ -3,6 +3,11 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import App from '../App-file/App';
 
+// App mounts BrowserRouter with basename="/solid-hello-world-frontend-react";
+// jsdom's default URL is "/", so without aligning the path the router would
+// refuse to render any of its children and every assertion below would fail.
+const ROUTER_BASENAME_PATH = '/solid-hello-world-frontend-react/';
+
 // Mock all child components and providers
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: vi.fn(() => ({ session: { isLoggedIn: false } })),
@@ -40,6 +45,10 @@ vi.mock('../App-file/github-fork-ribbon.css', () => ({}));
 import { useSolidAuth } from '@ldo/solid-react';
 
 describe('App', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', ROUTER_BASENAME_PATH);
+  });
+
   it('renders the app-root element', () => {
     const { container } = render(<App />);
     expect(container.querySelector('app-root')).toBeInTheDocument();

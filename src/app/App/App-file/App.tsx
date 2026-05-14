@@ -51,7 +51,10 @@ const GITHUB_REPO_URL =
 
 const App: FunctionComponent = () => (
   <app-root>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter
+      basename="/solid-hello-world-frontend-react"
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <BrowserSolidLdoProvider>
         <NotificationProvider>
           <AppShell />
