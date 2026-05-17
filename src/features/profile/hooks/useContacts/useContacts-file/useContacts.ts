@@ -25,7 +25,9 @@ interface UseContactsReturn {
  */
 export function useContacts(ownerWebId: string): UseContactsReturn {
   const { fetch: solidFetch } = useSolidAuth();
-  const webIdResource = useResource(ownerWebId);
+  // Subscribe so an added or removed foaf:knows from another tab or
+  // device is picked up without a reload.
+  const webIdResource = useResource(ownerWebId, { subscribe: true });
   const profile = useSubject(SolidProfileShapeType, ownerWebId);
   const [contacts, setContacts] = useState<string[]>([]);
   const [isAdding, setIsAdding] = useState(false);

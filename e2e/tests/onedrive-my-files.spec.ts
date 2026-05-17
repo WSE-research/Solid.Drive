@@ -1,25 +1,18 @@
 import { test, expect, freshLogin } from "../helpers/fixtures";
 import { seedFile } from "../helpers/seed";
 import { openMyFiles } from "../helpers/onedrive";
+import { TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 
 /**
- * Tests for the My Files view in the OneDrive shell: the Pod browser, the
- * detail panel, the Create menu, and search.
- *
- * Unlike the layout/navigation/topbar specs, these need real Pod content,
- * so they use the `peach` fixture (which wipes Peach's pod and seeds her
- * profile) and seed files through `seedFile` before driving the UI. Peach
- * starts at her Pod root, where the seeded files live one level down in
- * `my-solid-app/`.
- *
- * Drag-and-drop uploads, the full upload form, and sort ordering are left
- * to the unit suites (MyFilesView-test, MyFilesTable-test, sortEntries-test);
- * they are hard to drive reliably through a real browser and already have
- * thorough coverage there.
+ * My Files view in the OneDrive shell: Pod browser, detail panel, Create
+ * menu, search. Needs real Pod content, so the `peach` fixture seeds the
+ * profile and `seedFile` writes the catalog rows before driving the UI.
+ * Drag-and-drop uploads, the full upload form, and sort ordering live in
+ * the unit suites.
  */
 
 test("My Files renders the Pod browser table", async ({ browser, peach }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(TEST_TIMEOUTS.short);
 
   const { page, close } = await freshLogin(browser, peach);
   await openMyFiles(page);
@@ -38,7 +31,7 @@ test("My Files renders the Pod browser table", async ({ browser, peach }) => {
 });
 
 test("browsing into a folder shows a seeded file and selecting it fills the detail panel", async ({ browser, peach }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(TEST_TIMEOUTS.medium);
 
   await seedFile({
     authedFetch: peach.authedFetch,
@@ -59,7 +52,7 @@ test("browsing into a folder shows a seeded file and selecting it fills the deta
 
   // The seeded file shows as a file row, titled from its catalog entry.
   const fileRow = page.locator(".odl-files-row--file").filter({ hasText: "Holiday Snapshot" });
-  await expect(fileRow).toBeVisible({ timeout: 30_000 });
+  await expect(fileRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
 
   // Clicking the row selects it; the detail panel is opened separately via
   // the Details toggle and then reflects the selected file.
@@ -75,7 +68,7 @@ test("browsing into a folder shows a seeded file and selecting it fills the deta
 });
 
 test("the Create menu opens the New folder dialog and creates a folder", async ({ browser, peach }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(TEST_TIMEOUTS.short);
 
   const { page, close } = await freshLogin(browser, peach);
   await openMyFiles(page);
@@ -97,13 +90,13 @@ test("the Create menu opens the New folder dialog and creates a folder", async (
   await expect(dialog).toHaveCount(0);
   await expect(
     page.locator(".odl-files-row--folder").filter({ hasText: folderName }),
-  ).toBeVisible({ timeout: 30_000 });
+  ).toBeVisible({ timeout: UI_TIMEOUTS.medium });
 
   await close();
 });
 
 test("searching from the top bar filters to matching files", async ({ browser, peach }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(TEST_TIMEOUTS.medium);
 
   await seedFile({
     authedFetch: peach.authedFetch,
@@ -134,7 +127,7 @@ test("searching from the top bar filters to matching files", async ({ browser, p
 
   await expect(
     page.locator(".odl-files-row--file").filter({ hasText: "Holiday Snapshot" }),
-  ).toBeVisible({ timeout: 30_000 });
+  ).toBeVisible({ timeout: UI_TIMEOUTS.medium });
   await expect(
     page.locator(".odl-files-row").filter({ hasText: "Birthday Bash" }),
   ).toHaveCount(0);

@@ -1,9 +1,11 @@
 /**
- * Top-level shell for the OneDrive-inspired layout.
- * Owns search, sort, selection, details-open, and create-menu state and
- * composes the NavRail, TopBar, ContextualToolbar, the active view, and
- * the DetailPanel. Also wires the selection-aware action handlers
- * (Share / Copy link / Download / Move to / Rename) and the ShareDialog.
+ * Top-level shell for the OneDrive layout.
+ *
+ * Owns search, sort, selection, the details-panel toggle, and the
+ * create-menu state. Composes the nav rail, top bar, contextual
+ * toolbar, the active view, and the detail panel. Wires the
+ * selection actions (share, copy link, download, delete, plus the
+ * move and rename placeholders) and the share dialog.
  *
  * @packageDocumentation
  */
@@ -33,10 +35,7 @@ import { MyFilesView } from '@/features/onedrive-layout/components/views/MyFiles
 import { SharedView } from '@/features/onedrive-layout/components/views/SharedView';
 import { RequestsView } from '@/features/onedrive-layout/components/views/RequestsView';
 import { PeopleView } from '@/features/onedrive-layout/components/views/PeopleView';
-import {
-  containerUriFromCatalogUri,
-  decodeUriTail,
-} from '@/features/onedrive-layout/components/views/MyFilesView/MyFilesView-file/fileRowFormatting';
+import { containerUriFromCatalogUri, decodeUriTail } from '@/features/onedrive-layout/components/views/MyFilesView/MyFilesView-file/fileRowFormatting';
 import { useViewParam, type ViewId } from '@/features/onedrive-layout/hooks/useViewParam';
 import { useMyFilesSort } from '@/features/onedrive-layout/hooks/useMyFilesSort';
 import { useSelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
@@ -54,12 +53,10 @@ const VIEW_TITLE_KEYS: Record<ViewId, string> = {
 };
 
 /**
- * Builds a {@link SharedEntry} from the current selection plus its catalog
- * entry (if any). The metadata URI is derived from the container URI plus
- * the project's `INDEX_FILE`. Catalog-backed fields fall back to the
- * selection name and empty / zero values when no entry exists, which
- * keeps the share flow usable for folders and freshly-uploaded files
- * that haven't appeared in the catalog yet.
+ * Builds a SharedEntry from the current selection and its catalog entry.
+ * Catalog-backed fields fall back to the selection name and empty
+ * values when no entry exists, which keeps the share flow usable for
+ * folders and for freshly uploaded files not yet in the catalog.
  *
  * @internal
  */
@@ -97,6 +94,9 @@ export const OneDriveLayout: FunctionComponent = () => {
   const { fetch: solidFetch, session } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const { storageRootUri, contacts } = useDriveInitialization();
+  // Bumped after a successful delete so the My Files view re-reads the
+  // open folder in the background. Only the change matters.
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
   const { entries: catalogEntries } = useCatalog(catalogUri);
   const { showSuccess, showError, confirm } = useNotifications();
@@ -140,10 +140,10 @@ export const OneDriveLayout: FunctionComponent = () => {
     const ok = await copyToClipboard(selected.uri);
     if (ok) {
       showSuccess(
-        translate(
-          'oneDriveLayout.toast.linkCopied',
-          'Link copied to clipboard',
-        ),
+        translate('oneDriveLayout.toast.linkCopied', {
+          defaultValue: 'Link to "{{name}}" copied to clipboard',
+          name: selected.name,
+        }),
       );
     } else {
       showError(
@@ -163,11 +163,10 @@ export const OneDriveLayout: FunctionComponent = () => {
     }
   };
 
-  // Hard-deletes the selected resource: prompts the user, removes the
-  // catalog entry (best-effort — folders typically aren't catalogued),
-  // then deletes the container itself. Mirrors the existing FileCard
-  // delete flow. On success the selection is cleared and the details
-  // panel is closed.
+  // Hard-deletes the selected resource after a confirmation. Removes
+  // the catalog entry where one exists (folders generally do not have
+  // one), then deletes the container itself. On success the selection
+  // clears and the detail panel closes.
   const handleDelete = async () => {
     if (!selected) return;
     const confirmed = await confirm(
@@ -198,93 +197,115 @@ export const OneDriveLayout: FunctionComponent = () => {
     );
     clear();
     setDetailsOpen(false);
+    // The delete goes through a plain fetch, so LDO's cached copy of the
+    // open folder still lists the now-deleted child. Nudge the My Files
+    // view to re-read so the row drops.
+    setRefreshNonce((current) => current + 1);
   };
 
-  // Move To / Rename — UI present, behavior tracked in #36.
+  // Move and rename are placeholders. Behaviour tracked in #36.
   const handleNoOp = () => {
     /* no-op stub */
   };
 
-  // The panel's close button clears the selection AND closes the panel.
+  // The panel's close button clears the selection as well.
   const handleDetailsClose = () => {
     clear();
     setDetailsOpen(false);
   };
 
-  // Selecting a row marks it active but does NOT open the details panel.
-  // The user opens / closes the panel manually via the Details button —
-  // when open, it reflects whichever row is currently selected (or shows
-  // an empty hint when nothing is selected).
-  // Clear selection when the active view changes, handled during render
-  // to satisfy the project's react-hooks/set-state-in-effect rule.
+  const toggleDetailsOpen = () => setDetailsOpen((open) => !open);
+  const closeNewFolder = () => setShowNewFolder(false);
+  const openUpload = () => setShowUpload(true);
+
+  // Clearing the selection when the active view changes is handled during
+  // render to satisfy the project's react-hooks/set-state-in-effect rule.
   const [previousView, setPreviousView] = useState(view);
   if (previousView !== view) {
     setPreviousView(view);
     clear();
   }
 
+  const isMyFiles = view === 'my-files';
+  const selectionActive = !!selected && isMyFiles;
+  const pageTitle = translate(VIEW_TITLE_KEYS[view]);
+  const clearSelectionLabel = translate(
+    'oneDriveLayout.action.clearSelection',
+    'Clear selection',
+  );
+  const selectionCountLabel = translate(
+    'oneDriveLayout.action.selectionCount',
+    '{{count}} selected',
+    { count: 1 },
+  );
+
+  const pageHeaderContent = selected && selectionActive ? (
+    <SelectionActions
+      selection={selected}
+      onShare={handleShare}
+      onCopyLink={handleCopyLink}
+      onDelete={handleDelete}
+      onDownload={handleDownload}
+      onMoveTo={handleNoOp}
+      onRename={handleNoOp}
+    />
+  ) : (
+    <h1 className="odl-page-title">{pageTitle}</h1>
+  );
+
+  const shareDialog = selected && catalogUri && sharedEntry ? (
+    <ShareDialog
+      open={shareOpen}
+      onOpenChange={setShareOpen}
+      containerUri={selected.uri}
+      catalogUri={catalogUri}
+      contacts={contacts}
+      sharedEntry={sharedEntry}
+    />
+  ) : null;
+
   return (
     <onedrive-layout data-testid="onedrive-layout-root">
       <TopBar searchValue={searchValue} onSearchChange={setSearchValue} />
       <NavRail onNewFolder={requestNewFolder} onFilesPicked={handleFilesPicked} />
-      <page-header
-        data-selection-active={selected && view === 'my-files' ? 'true' : undefined}
-      >
-        {selected && view === 'my-files' ? (
-          <SelectionActions
-            selection={selected}
-            onShare={handleShare}
-            onCopyLink={handleCopyLink}
-            onDelete={handleDelete}
-            onDownload={handleDownload}
-            onMoveTo={handleNoOp}
-            onRename={handleNoOp}
-          />
-        ) : (
-          <h1 className="odl-page-title">{translate(VIEW_TITLE_KEYS[view])}</h1>
-        )}
+      <page-header data-selection-active={selectionActive ? 'true' : undefined}>
+        {pageHeaderContent}
         <page-header-right>
-          {selected && view === 'my-files' && (
+          {selectionActive && (
             <button
               type="button"
               className="odl-selection-badge"
-              aria-label={translate(
-                'oneDriveLayout.action.clearSelection',
-                'Clear selection',
-              )}
+              aria-label={clearSelectionLabel}
               onClick={clear}
             >
               <CloseIcon aria-hidden focusable={false} />
-              <span>
-                {translate('oneDriveLayout.action.selectionCount', '{{count}} selected', {
-                  count: 1,
-                })}
-              </span>
+              <span>{selectionCountLabel}</span>
             </button>
           )}
-          {view === 'my-files' && (
+          {isMyFiles && (
             <ContextualToolbar
               sort={sort}
               onSortChange={setSort}
               detailsOpen={detailsOpen}
-              onToggleDetails={() => setDetailsOpen((open) => !open)}
+              onToggleDetails={toggleDetailsOpen}
             />
           )}
         </page-header-right>
       </page-header>
       <main data-view={view} className="odl-main">
-        {view === 'my-files' && (
+        {isMyFiles && (
           <MyFilesView
             searchValue={searchValue}
             sort={sort}
             showNewFolder={showNewFolder}
             showUpload={showUpload}
             pickedFile={pickedFile}
-            onNewFolderDone={() => setShowNewFolder(false)}
+            onNewFolderDone={closeNewFolder}
             onUploadDone={handleUploadDone}
-            onRequestUpload={() => setShowUpload(true)}
+            onRequestUpload={openUpload}
             selectedUri={selected?.uri}
             onSelect={select}
+            refreshNonce={refreshNonce}
           />
         )}
         {view === 'recent' && <RecentView />}
@@ -298,16 +319,7 @@ export const OneDriveLayout: FunctionComponent = () => {
         details={details}
         onClose={handleDetailsClose}
       />
-      {selected && catalogUri && sharedEntry && (
-        <ShareDialog
-          open={shareOpen}
-          onOpenChange={setShareOpen}
-          containerUri={selected.uri}
-          catalogUri={catalogUri}
-          contacts={contacts}
-          sharedEntry={sharedEntry}
-        />
-      )}
+      {shareDialog}
     </onedrive-layout>
   );
 };

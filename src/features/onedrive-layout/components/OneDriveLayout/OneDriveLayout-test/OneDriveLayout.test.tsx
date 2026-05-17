@@ -59,6 +59,7 @@ interface MockMyFilesViewProps {
   showNewFolder: boolean;
   pickedFile?: File;
   selectedUri?: string;
+  refreshNonce?: number;
   onUploadDone: () => void;
   onRequestUpload: () => void;
   onNewFolderDone: () => void;
@@ -169,13 +170,17 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string, fallback?: string) => fallback ?? key],
 }));
 
+// The unmocked useResourceDetails reads children() from useResource for
+// folder selections, so the mock returns a minimal container shape.
+const mockCurrentContainer = { children: () => [] };
+
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({
     session: { webId: 'https://owner/me', isLoggedIn: true },
     fetch: vi.fn(),
   }),
   useSubject: () => null,
-  useResource: () => null,
+  useResource: () => mockCurrentContainer,
 }));
 
 const mockDeleteResource = vi.fn().mockResolvedValue({ ok: true });
@@ -225,6 +230,7 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isSolidContainer: () => true,
   isLoadable: () => false,
   isReadable: () => false,
+  isReloadable: () => false,
 }));
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
@@ -556,6 +562,7 @@ describe('OneDriveLayout — handler outcomes', () => {
     mockDownloadResource.mockClear().mockResolvedValue({ ok: true });
     mockDeleteResource.mockClear().mockResolvedValue({ ok: true });
     mockClear.mockClear();
+    mockMyFilesViewProps.mockClear();
     window.history.replaceState({}, '', '/?view=my-files');
   });
 
@@ -637,6 +644,29 @@ describe('OneDriveLayout — handler outcomes', () => {
     expect(mockShowError).toHaveBeenCalled();
     expect(mockShowSuccess).not.toHaveBeenCalled();
     expect(mockClear).not.toHaveBeenCalled();
+  });
+
+  it('bumps the MyFilesView refreshNonce after a successful delete so the listing re-reads', async () => {
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    const nonceBefore =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+    const nonceAfter =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    expect(nonceAfter).toBeGreaterThan(nonceBefore);
+  });
+
+  it('does not bump the refreshNonce when Delete fails', async () => {
+    mockDeleteResource.mockResolvedValueOnce({ ok: false, reason: '500' });
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    const nonceBefore =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+    const nonceAfter =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    expect(nonceAfter).toBe(nonceBefore);
   });
 
   it('Move To and Rename are present but inert (no notifications, no service calls)', async () => {

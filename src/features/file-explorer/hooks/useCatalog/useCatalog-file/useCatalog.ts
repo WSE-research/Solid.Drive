@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useSolidAuth } from "@ldo/solid-react";
+import { useResource, useSolidAuth } from "@ldo/solid-react";
 import { parseCatalog } from "@/infrastructure/solid/catalog";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import type { CatalogEntry } from "@/types";
@@ -34,6 +34,21 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Catalog mutations go through plain SPARQL PATCH, so LDO never knows
+  // about them. Subscribe to the catalog resource so the pod's
+  // notifications tell us when to re-fetch. The result of useResource
+  // itself is unused; only its 'update' event matters.
+  const catalogResource = useResource(catalogUri, {
+    subscribe: true,
+    suppressInitialRead: true,
+  });
+
+  // `status` changes whenever the resource is re-fetched, including on
+  // server-pushed updates. Reading it here makes the parse effect below
+  // depend on a value that changes on every update, which triggers a
+  // re-fetch and a re-parse.
+  const updateSignal = catalogResource?.status;
 
   useEffect(() => {
     if (!catalogUri) {
@@ -66,7 +81,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     })();
 
     return () => { cancelled = true; };
-  }, [catalogUri, solidFetch]);
+  }, [catalogUri, solidFetch, updateSignal]);
 
   const containerUris = useMemo(
     () => new Set(entries.map((entry) => toContainerUri(entry.uri))),

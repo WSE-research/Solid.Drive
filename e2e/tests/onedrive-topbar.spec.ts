@@ -1,18 +1,15 @@
 import { test, expect, freshLogin } from "../helpers/fixtures";
 import { enterOneDriveLayout } from "../helpers/onedrive";
+import { TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 
 /**
- * Tests for the OneDrive TopBar. It has two menus: the avatar menu, which
- * shows the signed-in profile and the log out action, and the settings menu,
- * which switches the UI language.
- *
- * The profile fields shown in the avatar menu come from the signed-in user's
- * Pod. The test fixture seeds Parni's profile with the name "Parni", so the
- * menu is expected to show that name along with her WebID.
+ * The OneDrive TopBar's two menus: the avatar menu (signed-in profile and
+ * log out) and the settings menu (UI language). The avatar menu reads from
+ * the signed-in user's Pod; the fixture seeds Parni's name as "Parni".
  */
 
 test("the avatar menu surfaces the signed-in profile", async ({ browser, parni }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(TEST_TIMEOUTS.short);
 
   const { page, close } = await freshLogin(browser, parni);
   await enterOneDriveLayout(page);
@@ -20,7 +17,7 @@ test("the avatar menu surfaces the signed-in profile", async ({ browser, parni }
   // Open the avatar menu. It should show the seeded profile name and WebID.
   await page.getByRole("button", { name: "Account", exact: true }).click();
 
-  await expect(page.locator("topbar-menu-profile-name")).toHaveText("Parni", { timeout: 15_000 });
+  await expect(page.locator("topbar-menu-profile-name")).toHaveText("Parni", { timeout: UI_TIMEOUTS.short });
   await expect(page.locator("topbar-menu-profile-webid")).toContainText(parni.pod.webId);
   // Radix applies the menuitem role to the underlying <a> through its
   // asChild prop, so this element is not exposed as a link. Match it by
@@ -31,7 +28,7 @@ test("the avatar menu surfaces the signed-in profile", async ({ browser, parni }
 });
 
 test("the settings menu switches the UI language", async ({ browser, parni }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(TEST_TIMEOUTS.short);
 
   const { page, close } = await freshLogin(browser, parni);
   await enterOneDriveLayout(page);
@@ -49,14 +46,14 @@ test("the settings menu switches the UI language", async ({ browser, parni }) =>
   // reads "Meine Dateien" and the page header title reads "Startseite".
   await expect(
     page.locator("nav-rail").getByRole("button", { name: "Meine Dateien", exact: true }),
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await expect(page.locator(".odl-page-title")).toHaveText("Startseite");
 
   await close();
 });
 
 test("the user logs out from the avatar menu", async ({ browser, parni }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(TEST_TIMEOUTS.short);
 
   const { page, close } = await freshLogin(browser, parni);
   await enterOneDriveLayout(page);
@@ -68,7 +65,7 @@ test("the user logs out from the avatar menu", async ({ browser, parni }) => {
   // Logging out clears the session, and with it the session-continuity flag
   // that keeps the OneDrive shell mounted. The app should fall back to the
   // Classic logged-out view, which shows the auth provider row.
-  await expect(page.getByTestId("onedrive-layout-root")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByTestId("onedrive-layout-root")).toHaveCount(0, { timeout: UI_TIMEOUTS.short });
   await expect(page.locator("auth-provider-row")).toBeVisible();
 
   await close();

@@ -1,9 +1,12 @@
 /**
- * Recursively deletes a Solid resource (container or leaf). Most Solid
- * pods reject `DELETE` on a non empty container, so the service walks
- * `ldp:contains` first, deletes every descendant, then deletes the
- * container itself. Catalog cleanup is best effort (silent failures
- * are acceptable — folders aren't always catalogued).
+ * Recursively deletes a Solid resource (container or leaf). Solid pods
+ * reject DELETE on a non-empty container, so the service walks
+ * ldp:contains first, deletes every descendant, then deletes the
+ * container itself. Pods also reject DELETE on a resource whose
+ * companion .acl still exists (this is what CSS and NSS both do), so
+ * each DELETE is preceded by a best-effort DELETE on the matching
+ * `.acl` URI. Catalog cleanup is also best effort, since folders are
+ * not always catalogued.
  *
  * @packageDocumentation
  */
@@ -45,10 +48,19 @@ export interface DeleteResourceArgs {
 }
 
 /**
- * Reads `ldp:contains` triples from a container's Turtle representation
+ * Drops the companion `.acl` for a resource. Pods reject DELETE on a
+ * resource that still has an ACL attached. Most resources do not have
+ * one, so the 404 path is the common case; failures are ignored.
+ */
+async function dropCompanionAcl(uri: string, fetch: FetchFn): Promise<void> {
+  await fetch(`${uri}.acl`, { method: 'DELETE' }).catch(() => {});
+}
+
+/**
+ * Reads ldp:contains triples from a container's Turtle representation
  * and returns the absolute URIs of every immediate child. An empty list
- * is returned for any non-2xx response — callers should still attempt
- * the parent delete in that case (the parent itself may be missing).
+ * is returned for any non-2xx response, since the parent delete still
+ * needs to be attempted (the parent itself may already be missing).
  */
 async function listContainerChildren(
   containerUri: string,
@@ -92,6 +104,7 @@ export async function deleteResource(
         });
         if (!childResult.ok) return childResult;
       } else {
+        await dropCompanionAcl(childUri, args.fetch);
         const response = await args.fetch(childUri, { method: 'DELETE' });
         if (!response.ok && response.status !== 404) {
           return {
@@ -102,6 +115,7 @@ export async function deleteResource(
       }
     }
 
+    await dropCompanionAcl(args.containerUri, args.fetch);
     const response = await args.fetch(args.containerUri, { method: 'DELETE' });
     if (!response.ok && response.status !== 404) {
       return {

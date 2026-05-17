@@ -47,8 +47,11 @@ export function useResourceDetails({
 }: UseResourceDetailsArgs): ResourceDetails | null {
   // Call useResource unconditionally to keep hook order stable across
   // renders; pass an empty string when no folder is selected.
+  // `subscribe: true` opens a notifications subscription so the
+  // item-count stays in sync when files are added or removed.
   const folderResource = useResource(
     selection?.kind === 'folder' ? selection.uri : '',
+    { subscribe: true },
   );
 
   if (!selection) return null;

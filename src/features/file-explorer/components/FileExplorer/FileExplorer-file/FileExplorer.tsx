@@ -76,7 +76,10 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const { debouncedQuery, results: searchResults } = useFileSearch(catalogEntries, searchQuery);
   const isSearching = debouncedQuery.length > 0;
 
-  const currentContainer = useResource(currentUri);
+  // Live updates: see the matching comment in MyFilesView for what
+  // `subscribe: true` does and how it degrades when the pod does not
+  // implement the notifications protocol.
+  const currentContainer = useResource(currentUri, { subscribe: true });
 
   const [dragState, setDragState] = useState<"idle" | "over-panel" | "over-card">("idle");
   const dragCounterRef = useRef(0);

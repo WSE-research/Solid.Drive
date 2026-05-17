@@ -225,7 +225,7 @@
       "selectionCount_other": "{{count}} ausgewählt"
     },
     "toast": {
-      "linkCopied": "Link in die Zwischenablage kopiert",
+      "linkCopied": "Link zu „{{name}}\" in die Zwischenablage kopiert",
       "linkCopyFail": "Link konnte nicht kopiert werden",
       "downloadFail": "Download fehlgeschlagen",
       "deleteConfirm": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",

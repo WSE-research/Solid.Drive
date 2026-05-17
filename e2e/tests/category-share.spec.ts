@@ -1,18 +1,14 @@
 import { test, expect, freshLogin } from "../helpers/fixtures";
 import { addContact, grantDiscoveryAccess, seedFile } from "../helpers/seed";
+import { TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 
 /**
- * Type-level access flow, focused.
- *
- * Validates that one click of "Request all <type>" goes out as a single
- * inbox message, not N per-file requests, and that approving it grants
- * Parni read access to every file of that schema.org class.
- *
- * Setup is direct fetch (catalog + ACLs); only the request and approve
- * surfaces are driven through the UI.
+ * Type-level access flow. One click of "Request all <type>" must go out as
+ * a single inbox message, and approving it grants the requester read access
+ * to every file of that schema.org class.
  */
 test("Parni requests all images, Peach approves, the images appears in the ShareWithMe section", async ({ browser, peach, parni }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(TEST_TIMEOUTS.medium);
 
   // Pre-state: one image in Peach's catalog, Parni has discovery + contact 
   await seedFile({
@@ -30,21 +26,21 @@ test("Parni requests all images, Peach approves, the images appears in the Share
   // Parni: click "Request all Image" 
   const parniSession = await freshLogin(browser, parni);
   const requestAllButton = parniSession.page.getByRole("button", { name: /Request all Image/i });
-  await expect(requestAllButton).toBeVisible({ timeout: 15_000 });
+  await expect(requestAllButton).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await requestAllButton.click();
-  await expect(parniSession.page.getByText(/Requested|Angefragt/).first()).toBeVisible({ timeout: 15_000 });
+  await expect(parniSession.page.getByText(/Requested|Angefragt/).first()).toBeVisible({ timeout: UI_TIMEOUTS.short });
 
   // Peach: approve the type-level request 
   const peachSession = await freshLogin(browser, peach);
   await peachSession.page.getByRole("button", { name: /^(Requests|Anfragen)/ }).click();
-  await expect(peachSession.page.getByText(/all Image|alle Image/i)).toBeVisible({ timeout: 15_000 });
+  await expect(peachSession.page.getByText(/all Image|alle Image/i)).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await peachSession.page.getByRole("button", { name: /^(Approve|Genehmigen)$/ }).click();
-  await expect(peachSession.page.getByText(/all Image|alle Image/i)).toHaveCount(0, { timeout: 15_000 });
+  await expect(peachSession.page.getByText(/all Image|alle Image/i)).toHaveCount(0, { timeout: UI_TIMEOUTS.short });
 
   // Parni reloads in a fresh context so the new ACL is picked up and sees the image in the ShareWithMe section, without any pending requests
   await parniSession.close();
   const parniAfter = await freshLogin(browser, parni);
-  await expect(parniAfter.page.getByText("Holiday Photo")).toBeVisible({ timeout: 30_000 });
+  await expect(parniAfter.page.getByText("Holiday Photo")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
   await expect(parniAfter.page.getByRole("button", { name: /Request all Image/i })).toHaveCount(0);
 
   await parniAfter.close();

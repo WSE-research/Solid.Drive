@@ -2,10 +2,10 @@
 :toc: macro
 :toclevels: 2
 
-End-to-end tests for the app's core flows: the category-level access
-feature and the OneDrive-inspired layout shell. They run real browser
-contexts (Peach as owner, Parni as requester) against a local Community
-Solid Server (CSS) and the Vite dev build of the app.
+End-to-end tests for two flows: category-level access sharing, and the
+OneDrive-inspired layout shell. They run real browser contexts (Peach
+as owner, Parni as requester) against a local Community Solid Server
+and the Vite dev build.
 
 toc::[]
 
@@ -13,8 +13,8 @@ toc::[]
 
 [source,bash]
 ----
-npm run test:e2e         # headless, list reporter
-npm run test:e2e:ui      # Playwright UI mode (great for debugging)
+npm run test:e2e         # headless
+npm run test:e2e:ui      # Playwright UI mode, best for debugging
 
 # focus on a single file
 npx playwright test e2e/tests/category-share.spec.ts
@@ -27,39 +27,18 @@ First time only:
 
 [source,bash]
 ----
-npx playwright install chromium     # downloads the headless browser
+npx playwright install chromium
 ----
 
-Once the suite is green, the post-mortem artifacts (screenshots, video,
-trace) for any failure are under `test-results/`.
+On failure, screenshots, video, and trace land under `test-results/`.
 
-== What boots when you run
+== What runs
 
-`playwright test` launches two services via the `webServer` config in
-`playwright.config.ts`:
-
-[cols="1,3", options="header"]
-|===
-| Service | Notes
-
-| Vite dev server on `:5173`
-| The app under test, served by `npm run dev`.
-
-| Community Solid Server on `:3001`
-| In-memory, seeded with two accounts via `e2e/fixtures/seed.json`:
-+
-* `peach@e2e.test` / `peachy` → pod at `/peach/`
-* `parni@e2e.test` / `parnitest` → pod at `/parni/`
-|===
-
-`reuseExistingServer: !process.env.CI` is on locally, so back-to-back
-runs share the same CSS process. State accumulates in CSS memory across
-those runs; the per-test fixtures (see <<test-fixture>>) wipe Peach's
-pod and Parni's profile state at the start of every test, so leakage
-doesn't matter in practice. To guarantee a fresh CSS, kill the
-`community-solid-server` process before running.
-
-CI gets `reuseExistingServer: false` and a fresh CSS for every job.
+`playwright.config.ts` boots Vite on `:5173` and Community Solid
+Server on `:3001`. CSS is seeded from `e2e/fixtures/seed.json` with
+two accounts: `peach@e2e.test` / `peachy` at `/peach/`, and
+`parni@e2e.test` / `parnitest` at `/parni/`. Locally,
+`reuseExistingServer` is on; CI gets a fresh CSS per job.
 
 == Layout
 
@@ -67,44 +46,102 @@ CI gets `reuseExistingServer: false` and a fresh CSS for every job.
 |===
 | Path | Purpose
 
-| `playwright.config.ts`            | Test runner config + `webServer` boot for Vite and CSS.
-| `e2e/fixtures/seed.json`          | CSS seed config (two accounts, two pods).
-| `e2e/fixtures/assets/*.png`       | Real PNGs uploaded as the binary content of seeded files.
-3+| **Helpers**
-| `e2e/helpers/fixtures.ts`         | Playwright fixture (`peach`, `parni`) + `freshLogin`. Use this in new tests.
-| `e2e/helpers/css-auth.ts`         | `getAuthenticatedFetch` — CSS account API → client-credentials → DPoP-bound `fetch`.
-| `e2e/helpers/login-ui.ts`         | `loginAsViaUI` — drives the Solid OIDC dance through the app's Header.
-| `e2e/helpers/seed.ts`             | Pod-shaping helpers: profile basics, file upload, ACL grants, contact, cleanup.
-| `e2e/helpers/ui-actions.ts`       | UI-action helpers: add contact, request access, approve/deny, revoke via SharePanel, expand a type folder.
-| `e2e/helpers/onedrive.ts`         | OneDrive-layout helpers: `enterOneDriveLayout` (flip the layout preference, optionally on a `?view=`), `navigateToView` (click a NavRail button), and `openMyFiles` (enter the My Files view and wait for its Pod browser table).
-3+| **Tests — category-level access**
-| `e2e/tests/category-share.spec.ts`     | Focused: type request → approve → file appears as shared.
-| `e2e/tests/revoke-keeps-visible.spec.ts` | Focused: programmatic ACL revoke moves the file to "Also available", not gone.
-| `e2e/tests/revoke-ui.spec.ts`         | UI revoke via SharePanel; complements the focused revoke test.
-| `e2e/tests/deny.spec.ts`              | Denied request renders "Denied" + "Request Again" on the requester side.
-| `e2e/tests/full-journey.spec.ts`      | The complete UI journey from add-contact through type approve.
-3+| **Tests — OneDrive layout**
-| `e2e/tests/onedrive-layout.spec.ts`     | Opting into the OneDrive shell from the Classic header, and switching back via the TopBar settings menu.
-| `e2e/tests/onedrive-navigation.spec.ts` | NavRail switches between all five views; the page header title, the main panel's `data-view`, and `aria-current` track the active view.
-| `e2e/tests/onedrive-topbar.spec.ts`     | TopBar avatar menu (profile name, WebID, View profile link), settings menu language switch, and log out.
-| `e2e/tests/onedrive-my-files.spec.ts`   | My Files Pod browser: the file table renders, browsing into a folder shows a seeded file and selecting it fills the detail panel, the Create menu creates a folder, and top-bar search filters the list.
+| `playwright.config.ts`
+| Test runner config and `webServer` boot.
+
+| `e2e/config.ts`
+| Shared knobs for the suite: CSS and app URLs, timeout budgets,
+the localStorage key and event names the helpers reach into.
+
+| `e2e/fixtures/seed.json`
+| CSS seed config.
+
+| `e2e/fixtures/assets/*.png`
+| Real PNGs uploaded as the binary content of seeded files.
+
+2+| **Helpers**
+
+| `e2e/helpers/fixtures.ts`
+| Playwright fixtures (`peach`, `parni`) and `freshLogin`. Use this
+in new tests. `freshLogin` takes an optional `permissions` array
+granted on the browser context.
+
+| `e2e/helpers/css-auth.ts`
+| `getAuthenticatedFetch`: CSS account API to client credentials to a
+DPoP-bound `fetch`.
+
+| `e2e/helpers/login-ui.ts`
+| Drives the Solid OIDC dance through the app's header.
+
+| `e2e/helpers/seed.ts`
+| Pod-shaping helpers: profile basics, file upload, ACL grants,
+contacts, cleanup. `ensureProfileBasics` patches the triples the
+app's profile-driven UI needs (`pim:storage`, `foaf:name`,
+`ldp:inbox`, `dcat:catalog`, plus public `acl:Append` on the inbox).
+
+| `e2e/helpers/ui-actions.ts`
+| UI helpers: add contact, request access, approve or deny, revoke
+through the share panel, expand a type folder.
+
+| `e2e/helpers/onedrive.ts`
+| OneDrive-layout helpers: switch the layout preference, navigate
+between rail views, jump to My Files and wait for the table.
+
+2+| **Tests, category-level access**
+
+| `e2e/tests/category-share.spec.ts`
+| Type-level request, approve, file appears as shared.
+
+| `e2e/tests/revoke-keeps-visible.spec.ts`
+| A programmatic ACL revoke moves the file into "Also available",
+not out of view.
+
+| `e2e/tests/revoke-ui.spec.ts`
+| Revoke through the share panel UI.
+
+| `e2e/tests/deny.spec.ts`
+| Denied request renders "Denied" and "Request Again" on the
+requester side.
+
+| `e2e/tests/full-journey.spec.ts`
+| Full UI journey: add contact through type-level approve.
+
+2+| **Tests, OneDrive layout**
+
+| `e2e/tests/onedrive-layout.spec.ts`
+| Opting into the OneDrive shell and switching back.
+
+| `e2e/tests/onedrive-navigation.spec.ts`
+| The nav rail switches between all five views.
+
+| `e2e/tests/onedrive-topbar.spec.ts`
+| Avatar menu, settings menu language switch, log out.
+
+| `e2e/tests/onedrive-my-files.spec.ts`
+| Pod browser renders, browsing a folder shows a seeded file,
+selecting fills the detail panel, create menu makes a folder, search
+filters the list.
+
+| `e2e/tests/onedrive-selection.spec.ts`
+| Selection action strip, copy link with toast and clipboard, delete
+with confirm and background re-read, share dialog.
 |===
 
-== How to add a test
+== Adding a test
 
-Every test starts from a Playwright fixture that authenticates both
-users and wipes Peach's pod. Pull `peach` and `parni` from the fixture
-and call seeders for your specific scenario.
+Start from the fixture. It authenticates both users and wipes
+Peach's pod before every test. Pull `peach` and `parni` and call the
+seeders your scenario needs.
 
 [source,typescript]
 ----
 import { test, expect, freshLogin } from "../helpers/fixtures";
 import { addContact, grantDiscoveryAccess, seedFile } from "../helpers/seed";
+import { TEST_TIMEOUTS } from "../config";
 
 test("describe what is being asserted", async ({ browser, peach, parni }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(TEST_TIMEOUTS.medium);
 
-  // 1. Direct fetch: shape the world the way your scenario expects.
   await seedFile({
     authedFetch: peach.authedFetch,
     pod: peach.pod,
@@ -117,191 +154,95 @@ test("describe what is being asserted", async ({ browser, peach, parni }) => {
   await grantDiscoveryAccess(peach.authedFetch, peach.pod, parni.pod.webId);
   await addContact(parni.authedFetch, parni.pod.webId, peach.pod.webId);
 
-  // 2. UI: drive the surfaces this test cares about.
   const session = await freshLogin(browser, parni);
   await session.page.getByRole("button", { name: /Request all Image/i }).click();
   // ...
-
   await session.close();
 });
 ----
 
-=== When to use direct fetch vs. drive the UI
+Use the direct fetch (`peach.authedFetch`, `parni.authedFetch`) for
+setup: catalog rows, ACLs, contacts, profile triples. Anything that
+is not the surface under test goes through fetch. Use the UI for the
+assertion: the actual button, the expected text, the disappearance
+of a folder.
 
-Direct fetch (`peach.authedFetch`, `parni.authedFetch`) is for
-**setup**: catalog rows, ACLs, contacts, profile triples. Anything that
-isn't the surface under test goes through fetch — much faster, less
-brittle, and the backing helpers in `seed.ts` mirror what the real
-production code does.
+After the other side changes server state, close the old context and
+call `freshLogin` again. The existing context still holds pre-change
+auth tokens and LDO subject caches, so reading the new state through
+it is unreliable.
 
-The UI is for the **assertion**: the actual button, the expected text,
-the disappearance of a folder. Drive only what your test claims to
-verify.
-
-=== When to call `freshLogin` vs. reuse a page
-
-After **the other side** changes server state (Peach approves Parni's
-request, Peach revokes), Parni's existing browser context still holds
-pre-change auth tokens and LDO subject caches. Reading the new state
-through the existing context is unreliable. Close the old context and
-call `freshLogin` again — it's a one-liner now.
+`pod` is the source of truth for URIs (`pod.webId`, `pod.appContainer`,
+`pod.catalogUri`, ...). Never hard-code `http://localhost:3001/...`
+in a test.
 
 == Debugging
 
-=== Playwright UI mode
+UI mode (`npm run test:e2e:ui`) is best for understanding a flake or
+building a new test. Step through actions, inspect the network panel
+per step, re-run a single test without restarting CSS.
 
-Best for understanding a flaky failure or a new test:
+On a headless failure, look under `test-results/` for the failing
+test's directory: `test-failed-*.png` screenshots, `video.webm`, and
+`trace.zip`. Open the trace with
+`npx playwright show-trace test-results/<dir>/trace.zip` for a
+timeline of every action, request, and DOM snapshot.
 
-[source,bash]
-----
-npm run test:e2e:ui
-----
+=== Expected noise in the network panel
 
-Lets you step through actions, see network calls per step, and re-run a
-single test without restarting CSS.
-
-=== Failure artifacts
-
-When headless runs fail, look under `test-results/` for the failing
-test's directory. Each contains:
-
-- `test-failed-1.png` (and possibly more) — screenshots at the assertion
-- `video.webm` — full run
-- `trace.zip` — open with `npx playwright show-trace test-results/<dir>/trace.zip` for a timeline of every action, request, and DOM snapshot
-
-=== Reading the network panel
-
-If you open Playwright UI mode you'll see red entries even on green
-tests. Most are by design:
+UI mode shows red entries even on a green run. Most are intentional.
 
 [cols="1,3", options="header"]
 |===
 | Error | What it means
 
 | `catalog.ttl 404`
-| The contact's main catalog doesn't exist (yet, or for this contact).
-  `useSharedCatalog` falls back gracefully.
+| The contact's main catalog does not exist yet, or not for this
+contact. `useSharedCatalog` falls back gracefully.
 
-| `.shared-…/profile/card.ttl 403` (×2)
-| Path A in `useSharedCatalog` probes two candidate URIs (with and
-  without `#me` fragment). When neither exists, the hook falls through
-  to the main catalog.
+| `.shared-…/profile/card.ttl 403` (twice)
+| `useSharedCatalog` probes two candidate URIs with and without the
+`#me` fragment. When neither exists, the hook falls through to the
+main catalog.
 
-| `index.ttl 403` on a per-file metadata
-| `hasAccess` HEAD on a file the viewer can't read. That's how the hook
-  decides "shared vs. browsable".
+| `index.ttl 403` on a per-file metadata document
+| A HEAD on a file the viewer cannot read. That is how the hook
+decides whether the file is shared or browsable.
 
 | `.acl 403`
-| `useAclManager.loadAcl` fired on a file the viewer doesn't own. Only
-  happens if the SharePanel was opened on a non-owned file.
+| `loadAcl` fired on a file the viewer does not own. Only happens
+when the share panel opens on a non-owned file.
 |===
 
-If you see something not on this list, especially a `404` for the
-binary URL of a shared file, that's a real bug — file it.
+A 404 on the binary URL of a shared file is not on this list, and is
+a real bug.
 
-== Architecture and design notes
+== Not covered, and where it lives instead
 
-=== Drive only the parts of the UI we own
-
-The category-access specs exercise TypeFolder, RequestsPanel,
-SharePanel, the contact list, and the post-approval rendering in
-`useSharedCatalog`; the OneDrive specs exercise that layout's shell,
-NavRail, TopBar, and the My Files Pod browser. Setup that doesn't
-matter to the assertion (file upload form, contact entry validation,
-etc.) goes through direct fetch in `seed.ts`. This:
-
-- Keeps each test focused on one or two new behaviors
-- Avoids brittle multi-step UI prerequisites
-- Doesn't re-test flows that already have unit coverage
-
-=== Why the seed helpers exist
-
-CSS produces minimal accounts and bare profiles. `ensureProfileBasics`
-adds what the app's profile-driven UI needs:
-
-. `pim:storage` triple → tells the app where the pod root is
-. `foaf:name` → display name in the contacts list
-. `ldp:inbox` triple → request notifications can find a target
-. `dcat:catalog` triple → catalog discovery works
-. Public `acl:Append` on the inbox → contacts can post requests
-
-`grantDiscoveryAccess` mirrors what the production
-`ensureDiscoveryAccess` does after approving any request: read on the
-main catalog, list-only on the app container. Without it, tests for
-"Parni sees Peach's catalog" can't get past the discovery step.
-
-=== State across tests
-
-Each test starts by:
-
-. Authenticating both users via client-credentials (cheap; ~250 ms each).
-. Patching profile basics (idempotent — duplicate triples are merged by RDF).
-. Wiping every child of Peach's `my-solid-app/` container, every inbox message, and the catalog file. The container itself is not deleted (CSS rejects DELETE once an ACL is attached).
-
-The fixture in `e2e/helpers/fixtures.ts` does this automatically. New
-tests don't need to call `cleanPod` or `ensureProfileBasics`
-themselves.
-
-[[test-fixture]]
-=== The `peach` and `parni` fixture
-
-Each test gets a `UserFixture`:
-
-[source,typescript]
-----
-type UserFixture = {
-  pod: PodIdentity;        // WebID, storageRoot, appContainer, catalogUri, inboxUri
-  email: string;
-  password: string;
-  authedFetch: typeof fetch;  // DPoP-bound, talks directly to CSS
-};
-----
-
-The `pod` field is the source of truth for URIs — never hard-code
-`http://localhost:3001/peach/...` in a test.
-
-== Known limitations / not tested
-
-The suite focuses on category-level access and the OneDrive layout
-shell. It does **not** cover:
-
-- File upload UI (drag-and-drop, file picker, SHACL validation feedback) — has unit coverage in `useFileUpload-test`
-- Contact validation in the Add input — `useContacts-test`
-- Catalog editing / deletion via UI — `FileCard-test`
-- Concurrent requests from multiple contacts — single-user scenarios only
-- Federation across multiple Solid pod providers — local CSS only
-- Anything that survives a *full page reload* while logged in. The whole
-  suite uses fresh browser contexts (`freshLogin`) and never reloads —
-  the silent `solid-client-authn` re-auth on reload is unreliable here
-  (it drops the `?view=` query string from its redirect URI, and base-path
-  resolution on the re-auth bounce is flaky). `useSessionContinuity` and
-  the `useViewParam` URL-read path have unit coverage instead.
-- Drag-and-drop uploads, the full upload form, and My Files sort
-  ordering. These are hard to drive reliably through a real browser and
-  already have thorough unit coverage (`MyFilesView-test`,
-  `MyFilesTable-test`, `sortEntries-test`, `useFileUpload-test`).
-- The Recent, Shared, Requests, and People views. These are still
-  `ViewStub` placeholders, so the specs assert their page title and the
-  NavRail switch only, not view bodies.
+* File upload UI (drag and drop, file picker, SHACL validation
+feedback): `useFileUpload-test`.
+* Contact validation in the Add input: `useContacts-test`.
+* Catalog editing and deletion through the UI: `FileCard-test`.
+* My Files sort ordering and the full upload form: `MyFilesView-test`,
+`MyFilesTable-test`, `sortEntries-test`.
+* Concurrent requests from multiple contacts: single-user scenarios
+only.
+* Federation across multiple Solid pod providers: local CSS only.
+* Anything that depends on a full page reload while logged in. The
+suite uses fresh browser contexts and never reloads. The session
+continuity and URL-read paths have unit coverage instead.
+* The Recent, Shared, Requests, and People views are still
+view-stub placeholders; the navigation spec asserts page title and
+rail switch only.
 
 == Performance
 
-Cold (first invocation, CSS + Vite booting fresh):
+Roughly 3 minutes cold (CSS plus Vite booting fresh) and 1 minute 40
+seconds warm. Per spec, 7 to 25 seconds. If a spec drifts much
+beyond that, switch to UI mode and look for what is timing out.
 
-- Suite: ~3 minutes
-- CSS Components.js discovery alone: ~30 seconds
-
-Warm (CSS already running from a previous run, `reuseExistingServer`):
-
-- Suite: ~1 min 40 sec
-- Per spec: 7-25 seconds
-
-If a spec gets noticeably slower than that, reach for `--ui` mode to
-spot whatever is timing out.
-
-The current setup is intentionally unoptimized — every test logs in
-through the OIDC redirect dance, and `freshLogin` does so a second time
-after the other party changes server state. Cutting that to a single
-client-credentials token grant or to `storageState` reuse would shave
-the bulk of per-test overhead, but neither is on the table until we
-have a reason to spend more CI budget.
+Every test logs in through the OIDC redirect dance, and `freshLogin`
+runs it again after the other party changes server state. Cutting to
+a single client-credentials token or to `storageState` reuse would
+shave most per-test overhead, but it has not been worth the work so
+far.
