@@ -67,6 +67,7 @@ export const test = base.extend<TestFixtures>({
       pod.webId,
     );
     await ensureProfileBasics(authedFetch, pod, "Parni");
+    await cleanPod(authedFetch, pod);
     await provide({ pod, ...PARNI_CREDENTIALS, authedFetch });
   },
 });

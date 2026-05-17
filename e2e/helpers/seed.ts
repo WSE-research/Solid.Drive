@@ -104,9 +104,11 @@ async function deleteRecursive(authedFetch: typeof fetch, uri: string): Promise<
 
 /**
  * Wipes any leftover state from previous runs. Deletes every child of the
- * app container, every inbox message, and the catalog. The app container
- * and inbox themselves are left in place because CSS rejects DELETE on a
- * container once it's been ACL'd.
+ * app container, every inbox message, the catalog, and any stray pod-root
+ * children left behind by tests that create resources outside `my-solid-app/`
+ * (for example the OneDrive "New folder" test which creates folders at the
+ * pod root). The durable root containers (`profile/`, `inbox/`, `my-solid-app/`)
+ * are kept because CSS rejects DELETE on a container once it has been ACL'd.
  *
  * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
  * @param pod - the pod whose state should be wiped
@@ -121,6 +123,21 @@ export async function cleanPod(authedFetch: typeof fetch, pod: PodIdentity): Pro
     await deleteRecursive(authedFetch, message);
   }
   await authedFetch(pod.catalogUri, { method: "DELETE" }).catch(() => {});
+
+  // Wipe stray pod-root resources left by tests that create folders or files
+  // outside the app container. The durable containers above are preserved;
+  // the catalog was already deleted in the explicit DELETE above.
+  const durableRootChildren = new Set<string>([
+    `${pod.storageRoot}profile/`,
+    pod.inboxUri,
+    pod.appContainer,
+  ]);
+  const rootChildren = await listContainerChildren(authedFetch, pod.storageRoot).catch(() => []);
+  for (const child of rootChildren) {
+    if (durableRootChildren.has(child)) continue;
+    if (child === pod.catalogUri) continue;
+    await deleteRecursive(authedFetch, child);
+  }
 }
 
 async function ensureCatalogExists(authedFetch: typeof fetch, catalogUri: string): Promise<void> {
