@@ -45,7 +45,16 @@ export interface DeleteResourceArgs {
 }
 
 /**
- * Reads `ldp:contains` triples from a container's Turtle representation
+ * Drops the companion `.acl` for a resource. Pods reject DELETE on a
+ * resource that still has an ACL attached. Most resources do not have
+ * one, so the 404 path is the common case; failures are ignored.
+ */
+async function dropCompanionAcl(uri: string, fetch: FetchFn): Promise<void> {
+  await fetch(`${uri}.acl`, { method: 'DELETE' }).catch(() => {});
+}
+
+/**
+ * Reads ldp:contains triples from a container's Turtle representation
  * and returns the absolute URIs of every immediate child. An empty list
  * is returned for any non-2xx response — callers should still attempt
  * the parent delete in that case, since the parent itself may be missing.
@@ -98,6 +107,7 @@ export async function deleteResource(
         });
         if (!childResult.ok) return childResult;
       } else {
+        await dropCompanionAcl(childUri, args.fetch);
         const response = await args.fetch(childUri, { method: 'DELETE' });
         if (!response.ok && response.status !== 404) {
           return {
@@ -108,6 +118,7 @@ export async function deleteResource(
       }
     }
 
+    await dropCompanionAcl(args.containerUri, args.fetch);
     const response = await args.fetch(args.containerUri, { method: 'DELETE' });
     if (!response.ok && response.status !== 404) {
       return {

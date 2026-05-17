@@ -1,6 +1,5 @@
 /**
- * My Files view — the Pod browser surface inside the OneDrive-inspired
- * layout.
+ * My Files view: the pod browser inside the OneDrive layout.
  *
  * Owns:
  *   - Folder navigation via {@link useNavigationHistory}, which wraps
@@ -20,7 +19,7 @@
  * @packageDocumentation
  */
 
-import { Fragment, useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent, FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigationHistory } from '@/features/onedrive-layout/hooks/useNavigationHistory';
@@ -57,11 +56,15 @@ interface MyFilesViewProps {
   onRequestUpload: () => void;
   selectedUri?: string;
   onSelect: (next: NonNullable<SelectedResource>) => void;
+  /**
+   * Counter the parent shell bumps when the open folder needs to be
+   * re-read from the pod. Only the change matters, the value is opaque.
+   */
+  refreshNonce?: number;
 }
 
 /**
- * Renders the My Files Pod browser surface. See the file-level docstring
- * for the responsibility breakdown.
+ * Renders the My Files pod browser. See the file-level docstring.
  *
  * @public
  */
@@ -76,6 +79,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   onRequestUpload,
   selectedUri,
   onSelect,
+  refreshNonce,
 }) => {
   const [translate] = useTranslation();
   const { session } = useSolidAuth();
@@ -131,26 +135,47 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     pickedFile,
   );
 
-  const currentContainer = useResource(currentUri);
+  // `subscribe: true` opens a WebSocket subscription to the pod's
+  // notifications endpoint, so external changes (a delete from another
+  // tab, an upload from another device, a contact sharing a file) push
+  // an 'update' event and React re-renders. On pods that do not
+  // implement the protocol the subscription silently fails and the view
+  // still works through manual reads.
+  const currentContainer = useResource(currentUri, { subscribe: true });
+
+  // When the parent signals a stale folder, re-fetch from the pod and
+  // bump local state so React re-evaluates the rendered children. The
+  // fetch on its own does not trigger a re-render. Skip the initial
+  // render so the view does not double-fetch on mount.
+  const [, setReloadTick] = useState(0);
+  useEffect(() => {
+    if (!refreshNonce) return;
+    if (!isSolidContainer(currentContainer)) return;
+    let cancelled = false;
+    void currentContainer.read().then(() => {
+      if (!cancelled) setReloadTick((current) => current + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshNonce, currentContainer]);
 
   const currentFolderLabel =
     breadcrumbs.length > 0
       ? breadcrumbs[breadcrumbs.length - 1].label
       : translate('fileExplorer.myDrive');
 
-  // Form open state is owned by the parent; we just clear our local
-  // prefilled file when the user navigates folders. We reset during
-  // render via the "adjusting state on prop change" pattern documented
-  // by React (https://react.dev/reference/react/useState#storing-information-from-previous-renders),
-  // which avoids the cascading-render anti-pattern of resetting in
-  // useEffect.
+  // Clear the prefilled file when the user navigates folders. The reset
+  // happens during render rather than in an effect so we avoid the
+  // cascading-render anti-pattern.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [previousUri, setPreviousUri] = useState(currentUri);
   if (previousUri !== currentUri) {
     setPreviousUri(currentUri);
     setPrefilledFile(undefined);
   }
 
-  // Same trick as the block above, for the pickedFile prop.
+  // Same approach for the pickedFile prop.
   const [previousPickedFile, setPreviousPickedFile] = useState(pickedFile);
   if (previousPickedFile !== pickedFile) {
     setPreviousPickedFile(pickedFile);
@@ -234,6 +259,13 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     onUploadDone();
   }, [onUploadDone]);
 
+  const handleNewFolderOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) onNewFolderDone();
+    },
+    [onNewFolderDone],
+  );
+
   if (noStorageDetected) {
     return (
       <onedrive-view>
@@ -258,13 +290,18 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     );
   }
 
-  const entries = isSolidContainer(currentContainer)
-    ? currentContainer.children()
-    : [];
+  const containerIsContainer = isSolidContainer(currentContainer);
+  const entries = containerIsContainer ? currentContainer.children() : [];
   const folderEntries = entries.filter(isSolidContainer);
   const leafEntries = entries
     .filter((entry) => !isSolidContainer(entry))
     .filter(isVisibleLeaf) as SolidLeaf[];
+
+  const showBreadcrumb = breadcrumbs.length > 1;
+  const lastCrumbIndex = breadcrumbs.length - 1;
+  const breadcrumbLabel = translate('oneDriveLayout.breadcrumb', 'Breadcrumb');
+  const canShowUpload = showUpload && containerIsContainer && !!catalogUri;
+  const canShowNewFolderDialog = containerIsContainer;
 
   return (
     <onedrive-view
@@ -284,35 +321,36 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
         />
       ) : (
         <>
-          {breadcrumbs.length > 1 && (
-            <nav
-              className="odl-breadcrumb"
-              aria-label={translate('oneDriveLayout.breadcrumb', 'Breadcrumb')}
-            >
-              {breadcrumbs.map((crumb, index) => (
-                <Fragment key={crumb.uri}>
-                  {index > 0 && <span className="odl-breadcrumb__sep">/</span>}
-                  <button
-                    type="button"
-                    className={`odl-breadcrumb__item${
-                      index === breadcrumbs.length - 1
-                        ? ' odl-breadcrumb__item--active'
-                        : ''
-                    }`}
-                    onClick={() => navigateToCrumb(index, crumb.uri)}
-                    disabled={index === breadcrumbs.length - 1}
-                  >
-                    {crumb.label}
-                  </button>
-                </Fragment>
-              ))}
+          {showBreadcrumb && (
+            <nav className="odl-breadcrumb" aria-label={breadcrumbLabel}>
+              {breadcrumbs.map((crumb, index) => {
+                const isActive = index === lastCrumbIndex;
+                const itemClass = isActive
+                  ? 'odl-breadcrumb__item odl-breadcrumb__item--active'
+                  : 'odl-breadcrumb__item';
+                return (
+                  <Fragment key={crumb.uri}>
+                    {index > 0 && (
+                      <span className="odl-breadcrumb__sep">/</span>
+                    )}
+                    <button
+                      type="button"
+                      className={itemClass}
+                      onClick={() => navigateToCrumb(index, crumb.uri)}
+                      disabled={isActive}
+                    >
+                      {crumb.label}
+                    </button>
+                  </Fragment>
+                );
+              })}
             </nav>
           )}
           <DropZone
             visible={isOverPanel}
             destinationLabel={currentFolderLabel}
           />
-          {showUpload && isSolidContainer(currentContainer) && catalogUri && (
+          {canShowUpload && (
             <FileUpload
               mainContainer={currentContainer}
               catalogUri={catalogUri}
@@ -321,13 +359,11 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
               prefilledFile={prefilledFile}
             />
           )}
-          {isSolidContainer(currentContainer) && (
+          {canShowNewFolderDialog && (
             <NewFolderDialog
               open={showNewFolder}
               parentContainer={currentContainer}
-              onOpenChange={(open) => {
-                if (!open) onNewFolderDone();
-              }}
+              onOpenChange={handleNewFolderOpenChange}
             />
           )}
           <MyFilesTable

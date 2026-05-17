@@ -134,4 +134,20 @@ describe('NavRail', () => {
       screen.getByRole('menuitem', { name: /upload files/i }),
     ).toBeInTheDocument();
   });
+
+  it('renders the full CreateMenu (with menu items) when both create callbacks are wired', async () => {
+    const user = userEvent.setup();
+    const onNewFolder = vi.fn();
+    const onFilesPicked = vi.fn();
+    render(
+      <NavRail onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    expect(
+      await screen.findByRole('menuitem', { name: /new folder/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /upload files/i }),
+    ).toBeInTheDocument();
+  });
 });

@@ -2,31 +2,43 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Parser } from "n3";
+import { URLS } from "../config";
 
 const HELPERS_DIR = dirname(fileURLToPath(import.meta.url));
 const LDP_CONTAINS = "http://www.w3.org/ns/ldp#contains";
 
+/** URI map for a CSS pod, derived from the pod owner's account name. */
 export type PodIdentity = {
+  /** The pod owner's WebID, e.g. `${storageRoot}profile/card#me`. */
   webId: string;
+  /** Pod storage root, e.g. `http://localhost:3001/peach/`. */
   storageRoot: string;
+  /** The app's working container, `${storageRoot}my-solid-app/`. */
   appContainer: string;
+  /** Pod-level catalog, `${storageRoot}catalog.ttl`. */
   catalogUri: string;
+  /** Pod inbox container, `${storageRoot}inbox/`. */
   inboxUri: string;
 };
 
-const CSS_BASE_URL = "http://localhost:3001/";
 const TURTLE = "text/turtle";
 const SPARQL_UPDATE = "application/sparql-update";
 const N3_PATCH = "text/n3";
 
+/**
+ * Builds the URI map for a CSS pod from its account name. The catalog URI
+ * uses `resolveCatalogUri`'s fallback path so the app finds it without
+ * having to read the `dcat:catalog` triple from the profile first.
+ *
+ * @param podName - the pod's CSS account name, e.g. `"peach"` or `"parni"`
+ * @returns the WebID, storage root, app container, catalog and inbox URIs
+ */
 export function podOf(podName: string): PodIdentity {
-  const storageRoot = `${CSS_BASE_URL}${podName}/`;
+  const storageRoot = `${URLS.css}${podName}/`;
   return {
     webId: `${storageRoot}profile/card#me`,
     storageRoot,
     appContainer: `${storageRoot}my-solid-app/`,
-    // Match resolveCatalogUri's fallback path so the app finds the catalog
-    // without needing to read the dcat:catalog triple from the profile.
     catalogUri: `${storageRoot}catalog.ttl`,
     inboxUri: `${storageRoot}inbox/`,
   };
@@ -92,9 +104,14 @@ async function deleteRecursive(authedFetch: typeof fetch, uri: string): Promise<
 
 /**
  * Wipes any leftover state from previous runs. Deletes every child of the
- * app container, every inbox message, and the catalog. The app container
- * and inbox themselves are left in place (CSS rejects DELETE on a
- * container once it's been ACL'd).
+ * app container, every inbox message, the catalog, and any stray pod-root
+ * children left behind by tests that create resources outside `my-solid-app/`
+ * (for example the OneDrive "New folder" test which creates folders at the
+ * pod root). The durable root containers (`profile/`, `inbox/`, `my-solid-app/`)
+ * are kept because CSS rejects DELETE on a container once it has been ACL'd.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
+ * @param pod - the pod whose state should be wiped
  */
 export async function cleanPod(authedFetch: typeof fetch, pod: PodIdentity): Promise<void> {
   const appChildren = await listContainerChildren(authedFetch, pod.appContainer).catch(() => []);
@@ -106,6 +123,21 @@ export async function cleanPod(authedFetch: typeof fetch, pod: PodIdentity): Pro
     await deleteRecursive(authedFetch, message);
   }
   await authedFetch(pod.catalogUri, { method: "DELETE" }).catch(() => {});
+
+  // Wipe stray pod-root resources left by tests that create folders or files
+  // outside the app container. The durable containers above are preserved;
+  // the catalog was already deleted in the explicit DELETE above.
+  const durableRootChildren = new Set<string>([
+    `${pod.storageRoot}profile/`,
+    pod.inboxUri,
+    pod.appContainer,
+  ]);
+  const rootChildren = await listContainerChildren(authedFetch, pod.storageRoot).catch(() => []);
+  for (const child of rootChildren) {
+    if (durableRootChildren.has(child)) continue;
+    if (child === pod.catalogUri) continue;
+    await deleteRecursive(authedFetch, child);
+  }
 }
 
 async function ensureCatalogExists(authedFetch: typeof fetch, catalogUri: string): Promise<void> {
@@ -121,19 +153,42 @@ async function ensureCatalogExists(authedFetch: typeof fetch, catalogUri: string
   }
 }
 
+/** Arguments for {@link seedFile}. */
+export type SeedFileArgs = {
+  /** DPoP-bound fetch authenticated as the pod owner. */
+  authedFetch: typeof fetch;
+  /** Pod the file is uploaded into. */
+  pod: PodIdentity;
+  /** File name; used both for the container slug and for the binary resource name. */
+  fileName: string;
+  /** schema.org dataset class IRI; recorded in `dcterms:conformsTo`. */
+  classUri: string;
+  /** The binary's MIME type. */
+  mediaType: string;
+  /** Human-readable title; written to `schema:name` and `dcterms:title`. */
+  title: string;
+  /** Asset file name under `e2e/fixtures/assets/` used as the binary body. */
+  asset: string;
+};
+
+/** URIs returned by {@link seedFile} for follow-up assertions or ACL work. */
+export type SeededFile = {
+  /** The per-file `index.ttl` carrying the dataset metadata. */
+  instanceUri: string;
+  /** The uploaded binary resource. */
+  binaryUri: string;
+  /** The per-file container holding the binary and `index.ttl`. */
+  containerUri: string;
+};
+
 /**
  * Uploads a binary file to a per-file container and registers it in the
  * owner's catalog using the same shape the React upload flow produces.
+ *
+ * @param args - upload spec; see {@link SeedFileArgs} for each field
+ * @returns the per-file `instanceUri`, `binaryUri`, and `containerUri`
  */
-export async function seedFile(args: {
-  authedFetch: typeof fetch;
-  pod: PodIdentity;
-  fileName: string;
-  classUri: string;
-  mediaType: string;
-  title: string;
-  asset: string;
-}): Promise<{ instanceUri: string; binaryUri: string; containerUri: string }> {
+export async function seedFile(args: SeedFileArgs): Promise<SeededFile> {
   const { authedFetch, pod, fileName, classUri, mediaType, title, asset } = args;
   const slug = encodeURIComponent(fileName);
   const containerUri = `${pod.appContainer}${slug}/`;
@@ -241,7 +296,12 @@ ${defaultLine}  acl:mode acl:Read, acl:Write, acl:Control .
 
 /**
  * Mirrors what `ensureDiscoveryAccess` does in production: grants the contact
- * read on the owner's main catalog and read on the app container.
+ * read access on the owner's main catalog and read access on the app
+ * container, so the contact can discover and browse files.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
+ * @param pod - the pod whose catalog and app container the contact gains read on
+ * @param contactWebId - WebID of the contact being granted read access
  */
 export async function grantDiscoveryAccess(
   authedFetch: typeof fetch,
@@ -342,7 +402,11 @@ async function ensureInbox(authedFetch: typeof fetch, pod: PodIdentity): Promise
  * Ensures the WebID profile has `pim:storage` pointing at the pod root,
  * a `foaf:name`, an `ldp:inbox` link, and a `dcat:catalog` link. CSS-generated
  * profiles do not include these by default and the app's profile-driven UI
- * breaks without them.
+ * breaks without them. Also creates the inbox and opens it to public append.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
+ * @param pod - the pod whose profile is being patched
+ * @param displayName - human-readable name written to `foaf:name`
  */
 export async function ensureProfileBasics(
   authedFetch: typeof fetch,
@@ -364,9 +428,14 @@ export async function ensureProfileBasics(
 }
 
 /**
- * Writes a per-file ACL granting `contactWebId` read access on the file's
- * per-file container (with acl:default so they can read children too). Mirrors
- * what `useAclManager.grant` does on the owner side.
+ * Writes a per-file ACL granting the contact read access on the file's
+ * per-file container (with `acl:default` so they can read children too).
+ * Mirrors what `useAclManager.grant` does on the owner side.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
+ * @param pod - the owner's pod, whose WebID is written as `acl:agent` for the owner rule
+ * @param contactWebId - WebID of the contact being granted read access
+ * @param fileContainerUri - per-file container URI to ACL, as returned by {@link seedFile}
  */
 export async function shareFileWith(
   authedFetch: typeof fetch,
@@ -400,9 +469,14 @@ export async function shareFileWith(
 }
 
 /**
- * Drops `contactWebId` from the file's ACL — the same WAC change the share
- * panel's Revoke action makes. The per-viewer shared catalog is left intact,
- * mirroring our useAclManager.revoke fix.
+ * Drops every non-owner grant from the file's ACL by writing an owner-only
+ * ACL back, the same WAC change the share panel's Revoke action makes. The
+ * per-viewer shared catalog is left intact so the file stays discoverable
+ * as browsable instead of disappearing, mirroring `useAclManager.revoke`.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
+ * @param pod - the owner's pod, whose WebID is written as `acl:agent` for the owner rule
+ * @param fileContainerUri - per-file container URI whose ACL is being rewritten
  */
 export async function unshareFileWith(
   authedFetch: typeof fetch,
@@ -429,7 +503,12 @@ export async function unshareFileWith(
 }
 
 /**
- * Adds `contactWebId` to `viewerWebId`'s profile via foaf:knows.
+ * Adds the contact to the viewer's profile via `foaf:knows`, so the viewer's
+ * Contacts list picks them up the same way `addContact` does in production.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the viewer
+ * @param viewerWebId - WebID of the viewer whose profile is being patched
+ * @param contactWebId - WebID being added as a contact
  */
 export async function addContact(
   authedFetch: typeof fetch,

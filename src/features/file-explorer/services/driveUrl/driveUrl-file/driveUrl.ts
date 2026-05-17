@@ -33,6 +33,7 @@ export function decodeDriveFolderSearchParam(raw: string | null): SolidContainer
     /^https?:\/\//i.test(raw.trim()) ? raw.trim() : decodeURIComponent(raw.trim());
   if (!decoded || !decoded.startsWith("http")) return undefined;
   try {
+    // Constructed only to validate the URL shape; the value is discarded.
     new URL(decoded);
   } catch {
     return undefined;

@@ -4,6 +4,10 @@ import { renderHook, waitFor } from '@testing-library/react';
 const mockFetch = vi.fn();
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
+  // `useCatalog` subscribes to the catalog resource so notifications
+  // trigger re-fetches. The hook only reads `resource.status` from the
+  // result to detect updates; tests do not exercise that path.
+  useResource: () => undefined,
 }));
 
 const mockParseCatalog = vi.fn();

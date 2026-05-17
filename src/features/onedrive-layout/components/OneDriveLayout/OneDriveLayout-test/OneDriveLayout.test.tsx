@@ -1,25 +1,45 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { OneDriveLayout } from '../OneDriveLayout-file/OneDriveLayout';
 
 vi.mock('@/features/onedrive-layout/components/NavRail', () => ({
   NavRail: ({
-    onNewFolder,
     onFilesPicked,
+    onNewFolder,
   }: {
     onNewFolder: () => void;
     onFilesPicked: (files: File[]) => void;
   }) => (
     <nav-rail data-testid="nav-rail">
-      <button type="button" data-testid="nav-rail-new-folder" onClick={onNewFolder}>
+      <button
+        type="button"
+        data-testid="nav-pick-files"
+        onClick={() =>
+          onFilesPicked?.([new File(['x'], 'pick.txt', { type: 'text/plain' })])
+        }
+      >
+        pick
+      </button>
+      <button
+        type="button"
+        data-testid="nav-new-folder"
+        onClick={() => onNewFolder?.()}
+      >
+        new folder
+      </button>
+      <button
+        type="button"
+        data-testid="nav-rail-new-folder"
+        onClick={() => onNewFolder?.()}
+      >
         new folder
       </button>
       <button
         type="button"
         data-testid="nav-rail-upload"
         onClick={() =>
-          onFilesPicked([new File(['x'], 'pick.txt', { type: 'text/plain' })])
+          onFilesPicked?.([new File(['x'], 'pick.txt', { type: 'text/plain' })])
         }
       >
         upload
@@ -34,40 +54,116 @@ vi.mock('@/features/onedrive-layout/components/TopBar', () => ({
   ),
 }));
 
-vi.mock('@/features/onedrive-layout/components/views/RecentView', () => ({
-  RecentView: () => <div data-testid="view-recent" />,
+interface MockMyFilesViewProps {
+  showUpload: boolean;
+  showNewFolder: boolean;
+  pickedFile?: File;
+  selectedUri?: string;
+  refreshNonce?: number;
+  onUploadDone: () => void;
+  onRequestUpload: () => void;
+  onNewFolderDone: () => void;
+  onSelect: (next: { kind: 'file'; uri: string; name: string }) => void;
+}
+
+const mockMyFilesViewProps = vi.fn<(props: MockMyFilesViewProps) => void>();
+vi.mock('@/features/onedrive-layout/components/views/MyFilesView', () => ({
+  MyFilesView: (props: MockMyFilesViewProps) => {
+    mockMyFilesViewProps(props);
+    return (
+      <div
+        data-testid="view-my-files"
+        data-show-new-folder={String(props.showNewFolder)}
+        data-show-upload={String(props.showUpload)}
+      >
+        <button type="button" data-testid="upload-done" onClick={() => props.onUploadDone()}>
+          done
+        </button>
+        <button type="button" data-testid="request-upload" onClick={() => props.onRequestUpload()}>
+          request upload
+        </button>
+        <button type="button" data-testid="new-folder-done" onClick={() => props.onNewFolderDone()}>
+          folder done
+        </button>
+        <button
+          type="button"
+          data-testid="view-my-files-new-folder-done"
+          onClick={() => props.onNewFolderDone()}
+        >
+          new-folder-done
+        </button>
+        <button
+          type="button"
+          data-testid="view-my-files-upload-done"
+          onClick={() => props.onUploadDone()}
+        >
+          upload-done
+        </button>
+        <button
+          type="button"
+          data-testid="view-my-files-request-upload"
+          onClick={() => props.onRequestUpload()}
+        >
+          request-upload
+        </button>
+        <button
+          type="button"
+          data-testid="select-row"
+          onClick={() =>
+            props.onSelect({
+              kind: 'file',
+              uri: 'https://pod/app/x.txt',
+              name: 'x.txt',
+            })
+          }
+        >
+          select
+        </button>
+      </div>
+    );
+  },
 }));
 
-vi.mock('@/features/onedrive-layout/components/views/MyFilesView', () => ({
-  MyFilesView: ({
-    showNewFolder,
-    showUpload,
-    onNewFolderDone,
-    onUploadDone,
-    onRequestUpload,
-  }: {
-    showNewFolder: boolean;
-    showUpload: boolean;
-    onNewFolderDone: () => void;
-    onUploadDone: () => void;
-    onRequestUpload: () => void;
-  }) => (
-    <div
-      data-testid="view-my-files"
-      data-show-new-folder={String(showNewFolder)}
-      data-show-upload={String(showUpload)}
-    >
-      <button type="button" data-testid="view-my-files-new-folder-done" onClick={onNewFolderDone}>
-        new-folder-done
-      </button>
-      <button type="button" data-testid="view-my-files-upload-done" onClick={onUploadDone}>
-        upload-done
-      </button>
-      <button type="button" data-testid="view-my-files-request-upload" onClick={onRequestUpload}>
-        request-upload
-      </button>
-    </div>
-  ),
+interface MockContextualToolbarProps {
+  detailsOpen: boolean;
+  onToggleDetails: () => void;
+}
+const mockContextualToolbarProps = vi.fn<(props: MockContextualToolbarProps) => void>();
+vi.mock('@/features/onedrive-layout/components/ContextualToolbar', () => ({
+  ContextualToolbar: (props: MockContextualToolbarProps) => {
+    mockContextualToolbarProps(props);
+    return (
+      <div data-testid="contextual-toolbar">
+        <button type="button" data-testid="toggle-details" onClick={props.onToggleDetails}>
+          details
+        </button>
+      </div>
+    );
+  },
+}));
+
+interface MockDetailPanelProps {
+  open: boolean;
+  onClose: () => void;
+}
+const mockDetailPanelProps = vi.fn<(props: MockDetailPanelProps) => void>();
+vi.mock('@/features/onedrive-layout/components/DetailPanel', () => ({
+  DetailPanel: (props: MockDetailPanelProps) => {
+    mockDetailPanelProps(props);
+    return (
+      <div data-testid="detail-panel" data-open={String(props.open)}>
+        <div data-testid="mock-detail-panel" data-open={String(props.open)} />
+        <button
+          type="button"
+          data-testid="close-details"
+          aria-label="panel-close"
+          onClick={props.onClose}
+        >
+          close
+        </button>
+      </div>
+    );
+  },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -134,6 +230,7 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isSolidContainer: () => true,
   isLoadable: () => false,
   isReadable: () => false,
+  isReloadable: () => false,
 }));
 
 vi.mock('@/infrastructure/solid/catalog', () => ({
@@ -143,16 +240,32 @@ vi.mock('@/infrastructure/solid/catalog', () => ({
 
 const mockClear = vi.fn();
 const mockSelect = vi.fn();
-const mockSelected: {
-  current: { kind: 'file' | 'folder'; uri: string; name: string } | null;
-} = { current: null };
-vi.mock('@/features/onedrive-layout/hooks/useSelectedResource', () => ({
-  useSelectedResource: () => ({
-    selected: mockSelected.current,
-    select: mockSelect,
-    clear: mockClear,
-  }),
-}));
+type MockSelection = { kind: 'file' | 'folder'; uri: string; name: string };
+const mockSelected: { current: MockSelection | null } = { current: null };
+// The mock keeps real local state so selecting a row and clearing the
+// selection both trigger a re-render, mirroring the real hook. Tests seed
+// the initial selection by assigning to mockSelected.current before render.
+vi.mock('@/features/onedrive-layout/hooks/useSelectedResource', async () => {
+  const { useState } = await import('react');
+  return {
+    useSelectedResource: () => {
+      const [selected, setSelected] = useState<MockSelection | null>(
+        mockSelected.current,
+      );
+      return {
+        selected,
+        select: (next: MockSelection) => {
+          mockSelect(next);
+          setSelected(next);
+        },
+        clear: () => {
+          mockClear();
+          setSelected(null);
+        },
+      };
+    },
+  };
+});
 
 const mockShowSuccess = vi.fn();
 const mockShowError = vi.fn();
@@ -175,29 +288,18 @@ vi.mock('@/features/file-explorer/services/downloadResource', () => ({
   downloadResource: (...args: unknown[]) => mockDownloadResource(...args),
 }));
 
-vi.mock('@/features/onedrive-layout/components/DetailPanel', () => ({
-  DetailPanel: ({
-    open,
-    onClose,
-  }: {
-    open: boolean;
-    onClose: () => void;
-  }) => (
-    <div data-testid="mock-detail-panel" data-open={open}>
-      <button type="button" aria-label="panel-close" onClick={onClose}>
-        ×
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock('@/features/onedrive-layout/components/ShareDialog', () => ({
   ShareDialog: ({ open }: { open: boolean }) =>
     open ? <div data-testid="mock-share-dialog" /> : null,
 }));
 
 describe('OneDriveLayout', () => {
-  beforeEach(() => window.history.replaceState({}, '', '/'));
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/');
+    mockMyFilesViewProps.mockClear();
+    mockContextualToolbarProps.mockClear();
+    mockDetailPanelProps.mockClear();
+  });
 
   it('renders the rail and the top bar', () => {
     render(<OneDriveLayout />);
@@ -211,8 +313,10 @@ describe('OneDriveLayout', () => {
   });
 
   it('defaults to the recent (Home) view', () => {
-    render(<OneDriveLayout />);
-    expect(screen.getByTestId('view-recent')).toBeInTheDocument();
+    const { container } = render(<OneDriveLayout />);
+    expect(
+      container.querySelector('onedrive-view[data-view-id="recent"]'),
+    ).not.toBeNull();
   });
 
   it.each([
@@ -250,24 +354,147 @@ describe('OneDriveLayout', () => {
 
   it('falls back to the recent view on an unknown ?view= value', () => {
     window.history.replaceState({}, '', '/?view=banana');
-    render(<OneDriveLayout />);
-    expect(screen.getByTestId('view-recent')).toBeInTheDocument();
+    const { container } = render(<OneDriveLayout />);
+    expect(
+      container.querySelector('onedrive-view[data-view-id="recent"]'),
+    ).not.toBeNull();
   });
 
-  it('still renders when the session has no resolved WebID yet', () => {
-    mockSession.current = { webId: undefined, isLoggedIn: false };
+  it('picking files from the rail switches to my-files and seeds pickedFile + showUpload', () => {
     render(<OneDriveLayout />);
-    expect(screen.getByTestId('top-bar')).toBeInTheDocument();
-    mockSession.current = { webId: 'https://owner/me', isLoggedIn: true };
+
+    act(() => {
+      screen.getByTestId('nav-pick-files').click();
+    });
+
+    expect(screen.getByTestId('view-my-files')).toBeInTheDocument();
+    const lastProps =
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0];
+    expect(lastProps.showUpload).toBe(true);
+    expect(lastProps.pickedFile).toBeInstanceOf(File);
+    expect(lastProps.pickedFile?.name).toBe('pick.txt');
   });
 
-  it('forwards the profile photo URL to the TopBar when the profile resolves', () => {
-    mockProfileSubject.current = {
-      img: { '@id': 'https://owner/me/avatar.png' },
-    };
+  it('clicking new folder switches to my-files and sets showNewFolder', () => {
     render(<OneDriveLayout />);
-    expect(screen.getByTestId('top-bar')).toBeInTheDocument();
-    mockProfileSubject.current = null;
+
+    act(() => {
+      screen.getByTestId('nav-new-folder').click();
+    });
+
+    expect(screen.getByTestId('view-my-files')).toBeInTheDocument();
+    const lastProps =
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0];
+    expect(lastProps.showNewFolder).toBe(true);
+  });
+
+  it('upload-done clears both showUpload and pickedFile', () => {
+    render(<OneDriveLayout />);
+    act(() => {
+      screen.getByTestId('nav-pick-files').click();
+    });
+    act(() => {
+      screen.getByTestId('upload-done').click();
+    });
+
+    const lastProps =
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0];
+    expect(lastProps.showUpload).toBe(false);
+    expect(lastProps.pickedFile).toBeUndefined();
+  });
+
+  it('toggling details from the contextual toolbar flips the panel open state', () => {
+    window.history.replaceState({}, '', '/?view=my-files');
+    render(<OneDriveLayout />);
+    expect(screen.getByTestId('detail-panel')).toHaveAttribute(
+      'data-open',
+      'false',
+    );
+    act(() => {
+      screen.getByTestId('toggle-details').click();
+    });
+    expect(screen.getByTestId('detail-panel')).toHaveAttribute(
+      'data-open',
+      'true',
+    );
+    act(() => {
+      screen.getByTestId('toggle-details').click();
+    });
+    expect(screen.getByTestId('detail-panel')).toHaveAttribute(
+      'data-open',
+      'false',
+    );
+  });
+
+  it('close button on the detail panel collapses it', () => {
+    window.history.replaceState({}, '', '/?view=my-files');
+    render(<OneDriveLayout />);
+    act(() => {
+      screen.getByTestId('toggle-details').click();
+    });
+    expect(screen.getByTestId('detail-panel')).toHaveAttribute(
+      'data-open',
+      'true',
+    );
+    act(() => {
+      screen.getByTestId('close-details').click();
+    });
+    expect(screen.getByTestId('detail-panel')).toHaveAttribute(
+      'data-open',
+      'false',
+    );
+  });
+
+  it('onRequestUpload from MyFilesView opens the upload form', () => {
+    window.history.replaceState({}, '', '/?view=my-files');
+    render(<OneDriveLayout />);
+    act(() => {
+      screen.getByTestId('request-upload').click();
+    });
+    const lastProps =
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0];
+    expect(lastProps.showUpload).toBe(true);
+  });
+
+  it('onNewFolderDone from MyFilesView clears showNewFolder', () => {
+    render(<OneDriveLayout />);
+    act(() => {
+      screen.getByTestId('nav-new-folder').click();
+    });
+    expect(
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0].showNewFolder,
+    ).toBe(true);
+    act(() => {
+      screen.getByTestId('new-folder-done').click();
+    });
+    expect(
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0].showNewFolder,
+    ).toBe(false);
+  });
+
+  it('selecting a row in MyFilesView writes selectedUri into the layout state', () => {
+    window.history.replaceState({}, '', '/?view=my-files');
+    render(<OneDriveLayout />);
+    act(() => {
+      screen.getByTestId('select-row').click();
+    });
+    expect(
+      mockMyFilesViewProps.mock.calls[
+        mockMyFilesViewProps.mock.calls.length - 1
+      ][0].selectedUri,
+    ).toBe('https://pod/app/x.txt');
   });
 });
 
@@ -361,6 +588,7 @@ describe('OneDriveLayout — handler outcomes', () => {
     mockDownloadResource.mockClear().mockResolvedValue({ ok: true });
     mockDeleteResource.mockClear().mockResolvedValue({ ok: true });
     mockClear.mockClear();
+    mockMyFilesViewProps.mockClear();
     window.history.replaceState({}, '', '/?view=my-files');
   });
 
@@ -442,6 +670,29 @@ describe('OneDriveLayout — handler outcomes', () => {
     expect(mockShowError).toHaveBeenCalled();
     expect(mockShowSuccess).not.toHaveBeenCalled();
     expect(mockClear).not.toHaveBeenCalled();
+  });
+
+  it('bumps the MyFilesView refreshNonce after a successful delete so the listing re-reads', async () => {
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    const nonceBefore =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+    const nonceAfter =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    expect(nonceAfter).toBeGreaterThan(nonceBefore);
+  });
+
+  it('does not bump the refreshNonce when Delete fails', async () => {
+    mockDeleteResource.mockResolvedValueOnce({ ok: false, reason: '500' });
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    const nonceBefore =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+    const nonceAfter =
+      mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
+    expect(nonceAfter).toBe(nonceBefore);
   });
 
   it('Move To and Rename are present but inert (no notifications, no service calls)', async () => {

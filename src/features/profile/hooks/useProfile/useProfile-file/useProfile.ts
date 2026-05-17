@@ -34,7 +34,9 @@ interface UseProfileOptions {
  */
 export function useProfile({ suspendSync = false }: UseProfileOptions = {}): UseProfileReturn {
   const { session, fetch: solidFetch } = useSolidAuth();
-  const webIdResource = useResource(session.webId);
+  // Subscribe to profile changes so name, avatar, contacts edits made
+  // elsewhere flow back into the UI without a manual reload.
+  const webIdResource = useResource(session.webId, { subscribe: true });
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const [name, setName] = useState("");
   const [imgUrl, setImgUrl] = useState("");
@@ -43,7 +45,6 @@ export function useProfile({ suspendSync = false }: UseProfileOptions = {}): Use
   useEffect(() => {
     if (suspendSync) return;
     if (!profile) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(profile.name ?? "");
     setImgUrl(profile.img?.["@id"] ?? "");
   }, [profile, suspendSync]);

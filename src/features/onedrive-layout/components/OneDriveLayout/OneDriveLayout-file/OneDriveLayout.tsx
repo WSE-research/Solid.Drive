@@ -1,14 +1,17 @@
 /**
- * Top-level shell for the OneDrive-inspired layout. Owns search, sort,
- * selection, details-open, and create-menu state, composes the NavRail
- * + TopBar + active view + DetailPanel, and wires the selection-aware
- * action handlers and the ShareDialog.
+ * Top-level shell for the OneDrive layout.
+ *
+ * Owns search, sort, selection, the details-panel toggle, and the
+ * create-menu state. Composes the nav rail, top bar, contextual
+ * toolbar, the active view, and the detail panel. Wires the
+ * selection actions (share, copy link, download, delete, plus the
+ * move and rename placeholders) and the share dialog.
  *
  * @packageDocumentation
  */
 
 import type { FunctionComponent } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useResource, useSolidAuth, useSubject } from '@ldo/solid-react';
 import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
@@ -51,10 +54,10 @@ const VIEW_TITLE_KEYS: Record<ViewId, string> = {
 };
 
 /**
- * Builds a {@link SharedEntry} from the current selection. Catalog-backed
- * fields fall back to selection name and empty values so the share flow
- * stays usable for folders and freshly-uploaded files that haven't been
- * indexed yet.
+ * Builds a {@link SharedEntry} from the current selection and its catalog entry.
+ * Catalog-backed fields fall back to the selection name and empty
+ * values when no entry exists, which keeps the share flow usable for
+ * folders and for freshly uploaded files not yet in the catalog.
  *
  * @internal
  */
@@ -86,14 +89,17 @@ export const OneDriveLayout: FunctionComponent = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [pickedFile, setPickedFile] = useState<File | undefined>();
   const [shareOpen, setShareOpen] = useState(false);
+  const [pickedFile, setPickedFile] = useState<File | undefined>();
 
   const { fetch: solidFetch, session } = useSolidAuth();
   void useResource(session.webId);
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const { storageRootUri } = useDriveInitialization();
   const contacts = useContacts();
+  // Bumped after a successful delete so the My Files view re-reads the
+  // open folder in the background. Only the change matters.
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
   const { entries: catalogEntries } = useCatalog(catalogUri);
 
@@ -122,6 +128,7 @@ export const OneDriveLayout: FunctionComponent = () => {
   const handleAfterDelete = useCallback(() => {
     clear();
     setDetailsOpen(false);
+    setRefreshNonce((current) => current + 1);
   }, [clear]);
 
   const { handleCopyLink, handleDownload, handleDelete } = useOneDriveActions({
@@ -156,15 +163,13 @@ export const OneDriveLayout: FunctionComponent = () => {
     setDetailsOpen(false);
   }, [clear]);
 
-  // Clear the active selection when the user navigates between views.
-  // Skip the initial mount so the first render does not stomp a
-  // selection set programmatically before the layout renders.
-  const previousViewRef = useRef(view);
-  useEffect(() => {
-    if (previousViewRef.current === view) return;
-    previousViewRef.current = view;
+  // Clearing the selection when the active view changes is handled during
+  // render to satisfy the project's react-hooks/set-state-in-effect rule.
+  const [previousView, setPreviousView] = useState(view);
+  if (previousView !== view) {
+    setPreviousView(view);
     clear();
-  }, [view, clear]);
+  }
 
   // Shared, People, and Recent each render their own toolbar inline,
   // so we suppress the standard page-header for those views. Shared
@@ -247,6 +252,7 @@ export const OneDriveLayout: FunctionComponent = () => {
                 onRequestUpload={() => setShowUpload(true)}
                 selectedUri={selected?.uri}
                 onSelect={select}
+                refreshNonce={refreshNonce}
               />
             )}
             {view === 'recent' && <RecentView />}

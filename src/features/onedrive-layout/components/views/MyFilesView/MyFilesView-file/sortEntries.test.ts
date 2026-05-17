@@ -114,17 +114,6 @@ describe('sortEntries', () => {
     expect(result.map((e) => e.displayName)).toEqual(['a', 'c', 'b']);
   });
 
-  it('treats two missing modified dates as equal (preserves their relative order)', () => {
-    const result = sortEntries(
-      [
-        fileFromCatalog('https://x/a/', { title: 'a' }),
-        fileFromCatalog('https://x/b/', { title: 'b' }),
-      ],
-      { key: 'modified', direction: 'asc' },
-    );
-    expect(result.map((e) => e.displayName)).toEqual(['a', 'b']);
-  });
-
   it('treats two entries with both undefined modified as equal (preserves input order)', () => {
     const result = sortEntries(
       [

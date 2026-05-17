@@ -1,9 +1,17 @@
 import type { Page } from "@playwright/test";
-import { CSS_BASE_URL } from "./css-auth";
+import { URLS, UI_TIMEOUTS } from "../config";
+
+const cssUrlPattern = new RegExp(new URL(URLS.css).host);
+const appUrlPattern = new RegExp(new URL(URLS.app).host);
 
 /**
- * Drives the full Solid OIDC login flow against a CSS instance.
- * Assumes the app is on baseURL and CSS is at CSS_BASE_URL.
+ * Drives the full Solid OIDC login flow against a CSS instance via the
+ * Classic shell's auth form. Assumes the app is served at `URLS.app` and
+ * CSS at `URLS.css`.
+ *
+ * @param page - Playwright page; starts at any URL, returns landed on the app
+ * @param email - CSS account email
+ * @param password - CSS account password
  */
 export async function loginAsViaUI(
   page: Page,
@@ -12,10 +20,10 @@ export async function loginAsViaUI(
 ): Promise<void> {
   await page.goto("/");
   await page.locator("auth-provider-row select").selectOption("custom");
-  await page.locator("auth-provider-row input").fill(CSS_BASE_URL);
+  await page.locator("auth-provider-row input").fill(URLS.css);
 
   await Promise.all([
-    page.waitForURL(/localhost:3001/, { timeout: 30_000 }),
+    page.waitForURL(cssUrlPattern, { timeout: UI_TIMEOUTS.medium }),
     page.getByRole("button", { name: /log ?in|anmelden/i }).first().click(),
   ]);
 
@@ -30,5 +38,5 @@ export async function loginAsViaUI(
     .click({ timeout: 5_000 })
     .catch(() => {});
 
-  await page.waitForURL(/localhost:5173/, { timeout: 30_000 });
+  await page.waitForURL(appUrlPattern, { timeout: UI_TIMEOUTS.medium });
 }

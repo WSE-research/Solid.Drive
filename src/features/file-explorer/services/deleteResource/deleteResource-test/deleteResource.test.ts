@@ -43,7 +43,51 @@ describe('deleteResource', () => {
 
     expect(result).toEqual({ ok: true });
     const deletes = calls.filter((call) => call.method === 'DELETE').map((call) => call.url);
-    expect(deletes).toEqual([childBinary, childIndex, containerUri]);
+    // Each DELETE is preceded by a best-effort drop of the companion .acl.
+    expect(deletes).toEqual([
+      `${childBinary}.acl`,
+      childBinary,
+      `${childIndex}.acl`,
+      childIndex,
+      `${containerUri}.acl`,
+      containerUri,
+    ]);
+  });
+
+  it('drops the companion .acl before the container DELETE', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const aclUri = `${containerUri}.acl`;
+    const deletes: string[] = [];
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') {
+        deletes.push(url);
+        return okResponse();
+      }
+      return okResponse('');
+    });
+
+    await deleteResource({ containerUri, fetch: fetchFn });
+
+    expect(deletes).toContain(aclUri);
+    expect(deletes.indexOf(aclUri)).toBeLessThan(deletes.indexOf(containerUri));
+  });
+
+  it('ignores a failing .acl DELETE so the resource DELETE still runs', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const aclUri = `${containerUri}.acl`;
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE' && url === aclUri) {
+        throw new Error('network down');
+      }
+      if (init?.method === 'DELETE') return okResponse();
+      return okResponse('');
+    });
+
+    const result = await deleteResource({ containerUri, fetch: fetchFn });
+
+    expect(result).toEqual({ ok: true });
   });
 
   it('removes the catalog entry when catalogUri + metadataUri are provided', async () => {
@@ -91,7 +135,14 @@ describe('deleteResource', () => {
     const deletes = fetchFn.mock.calls
       .filter(([, init]) => (init as RequestInit | undefined)?.method === 'DELETE')
       .map(([url]) => url);
-    expect(deletes).toEqual([leaf, sub, root]);
+    expect(deletes).toEqual([
+      `${leaf}.acl`,
+      leaf,
+      `${sub}.acl`,
+      sub,
+      `${root}.acl`,
+      root,
+    ]);
   });
 
   it('returns { ok: false, reason } with a child failure', async () => {

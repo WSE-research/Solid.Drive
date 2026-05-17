@@ -103,9 +103,9 @@ describe("buildDriveBreadcrumbs", () => {
     ]);
   });
 
-  it("returns just the storage root when folder is outside it", () => {
+  it("returns only the storage root crumb when folder is not under storage", () => {
     const crumbs = buildDriveBreadcrumbs(
-      "https://other-pod.example/foo/",
+      "https://other.example/somewhere/",
       "https://pod.example/",
       "My Pod"
     );

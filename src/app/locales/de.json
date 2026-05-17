@@ -231,7 +231,7 @@
     "itemCount_one": "{{count}} Element",
     "itemCount_other": "{{count}} Elemente",
     "toast": {
-      "linkCopied": "Link in die Zwischenablage kopiert",
+      "linkCopied": "Link zu „{{name}}\" in die Zwischenablage kopiert",
       "linkCopyFail": "Link konnte nicht kopiert werden",
       "downloadFail": "Download fehlgeschlagen",
       "deleteConfirm": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",

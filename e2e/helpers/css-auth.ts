@@ -1,22 +1,18 @@
 import { Session } from "@inrupt/solid-client-authn-node";
-
-export const CSS_BASE_URL = "http://localhost:3001/";
+import { URLS } from "../config";
 
 type Credentials = { id: string; secret: string };
 
-/**
- * Logs into a CSS account via the password endpoint and creates a
- * client-credentials token bound to the given WebID.
- */
+/** Logs into a CSS account and creates a client-credentials token bound to the given WebID. */
 async function createClientCredentials(
   email: string,
   password: string,
   webId: string,
   name: string,
 ): Promise<Credentials> {
-  const indexResponse = await fetch(`${CSS_BASE_URL}.account/`);
+  const indexResponse = await fetch(`${URLS.css}.account/`);
   if (!indexResponse.ok) {
-    throw new Error(`GET ${CSS_BASE_URL}.account/ returned ${indexResponse.status}`);
+    throw new Error(`GET ${URLS.css}.account/ returned ${indexResponse.status}`);
   }
   const index = await indexResponse.json();
   const loginUrl = index.controls.password.login;
@@ -31,7 +27,7 @@ async function createClientCredentials(
   }
   const { authorization } = await loginResponse.json();
 
-  const authedIndexResponse = await fetch(`${CSS_BASE_URL}.account/`, {
+  const authedIndexResponse = await fetch(`${URLS.css}.account/`, {
     headers: { Authorization: `CSS-Account-Token ${authorization}` },
   });
   const authedIndex = await authedIndexResponse.json();
@@ -53,12 +49,14 @@ async function createClientCredentials(
 }
 
 /**
- * Returns a DPoP-bound `fetch` authenticated as the given WebID.
+ * Returns a DPoP-bound `fetch` authenticated as the given WebID. The token
+ * is created via the CSS account API with a fresh client-credentials pair.
  *
  * @param email - CSS account email
  * @param password - CSS account password
  * @param webId - the WebID the token should bind to
- * @param sessionLabel - free-form label for the credentials (tests can reuse)
+ * @param sessionLabel - label for the credentials record; tests can reuse a shared value
+ * @returns a `fetch` that signs requests for the bound WebID
  */
 export async function getAuthenticatedFetch(
   email: string,
@@ -71,7 +69,7 @@ export async function getAuthenticatedFetch(
   await session.login({
     clientId: id,
     clientSecret: secret,
-    oidcIssuer: CSS_BASE_URL,
+    oidcIssuer: URLS.css,
     tokenType: "DPoP",
   });
   if (!session.info.isLoggedIn) {
