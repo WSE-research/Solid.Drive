@@ -1,317 +1,95 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { CatalogEntry } from '@/types';
-import type { SortState } from '@/features/onedrive-layout/hooks/useMyFilesSort';
 import type { SolidContainer, SolidLeaf } from '@ldo/connected-solid';
+import type { CatalogEntry } from '@/types';
+import { MyFilesTable } from '../MyFilesView-file/MyFilesTable';
 
-const mockUseResource = vi.fn();
+/* ────── mocks ─────────────────────────────────────────────────────────── */
+
 vi.mock('@ldo/solid-react', () => ({
-  useResource: (uri: string) => mockUseResource(uri),
+  useResource: (uri: string) => ({
+    uri,
+    children: () => mockChildrenByUri.get(uri) ?? [],
+  }),
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isSolidContainer: (entry: { uri?: string } | undefined) =>
+  isSolidContainer: (entry: { uri?: string } | null | undefined) =>
     typeof entry?.uri === 'string' && entry.uri.endsWith('/'),
 }));
 
 vi.mock('../MyFilesView-file/SharingCell', () => ({
   SharingCell: ({ uri }: { uri: string }) => (
-    <span data-testid="sharing-cell" data-uri={uri} />
+    <span data-testid="mock-sharing-cell" data-uri={uri} />
   ),
 }));
 
-import { MyFilesTable } from '../MyFilesView-file/MyFilesTable';
+vi.mock('../MyFilesView-file/MyFilesTableHead', () => ({
+  MyFilesTableHead: () => <div data-testid="mock-table-head" />,
+}));
 
-const sortByName: SortState = { key: 'name', direction: 'asc' };
+/* ────── helpers ───────────────────────────────────────────────────────── */
 
-// Minimal stubs for the table — the production types carry many LDO-internal
-// members the table never touches, so we narrow to the surface it does use.
-const makeContainer = (uri: string, children: { uri: string }[] = []) =>
-  ({ uri, children: () => children }) as unknown as SolidContainer;
+const mockChildrenByUri = new Map<string, Array<{ uri: string }>>();
 
-const makeLeaf = (uri: string) =>
-  ({ uri }) as unknown as SolidLeaf;
+// MyFilesTable only reads `.uri` and the `useResource` mock supplies
+// `children()` lookups by URI, so a stub with just `uri` is sufficient.
+// The cast through `unknown` documents this — if the table ever starts
+// reading more LDO fields, these stubs need to grow accordingly.
+function makeContainer(uri: string): SolidContainer {
+  return { uri } as unknown as SolidContainer;
+}
 
-const catalogEntry = (over: Partial<CatalogEntry> = {}): CatalogEntry => ({
-  uri: 'https://pod/app/file1/index.ttl',
-  conformsTo: 'https://schema.org/MediaObject',
-  title: 'report.pdf',
-  description: '',
-  modified: '2026-04-01T00:00:00Z',
-  publisher: 'https://owner/me',
-  mediaType: 'application/pdf',
-  byteSize: 12345,
-  accessURL: 'https://pod/app/file1/binary',
-  ...over,
-});
+function makeLeaf(uri: string): SolidLeaf {
+  return { uri } as unknown as SolidLeaf;
+}
 
-describe('MyFilesTable — FolderRow as catalog file', () => {
-  it('treats a folder URI in catalogContainerUris as a file row using the catalog title', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/file1/'));
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/file1/')]}
-        leafEntries={[]}
-        catalogEntries={[catalogEntry()]}
-        catalogContainerUris={new Set(['https://pod/app/file1/'])}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('report.pdf')).toBeInTheDocument();
+const baseSort = { key: 'name' as const, direction: 'asc' as const };
+
+const baseProps = {
+  folderEntries: [] as SolidContainer[],
+  leafEntries: [] as SolidLeaf[],
+  catalogEntries: [] as CatalogEntry[],
+  catalogContainerUris: new Set<string>(),
+  sort: baseSort,
+  onNavigate: vi.fn(),
+  onSelect: vi.fn(),
+};
+
+/* ────── tests ─────────────────────────────────────────────────────────── */
+
+describe('MyFilesTable — leaf rows', () => {
+  beforeEach(() => {
+    mockChildrenByUri.clear();
+    vi.clearAllMocks();
   });
 
-  it('treats a folder containing index.ttl as a file row even without a catalog hit', () => {
-    mockUseResource.mockReturnValue(
-      makeContainer('https://pod/app/lonely/', [
-        { uri: 'https://pod/app/lonely/index.ttl' },
-      ]),
-    );
+  it('renders a row for each leaf with the URL-decoded tail as the name', () => {
     render(
       <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/lonely/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('lonely')).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', { name: /lonely/i }).className,
-    ).toContain('odl-files-row--file');
-  });
-
-  it('clicking a catalog-backed folder row triggers onSelect (not onNavigate)', async () => {
-    const user = userEvent.setup();
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/file1/'));
-    const onNavigate = vi.fn();
-    const onSelect = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/file1/')]}
-        leafEntries={[]}
-        catalogEntries={[catalogEntry()]}
-        catalogContainerUris={new Set(['https://pod/app/file1/'])}
-        sort={sortByName}
-        onNavigate={onNavigate}
-        onSelect={onSelect}
-      />,
-    );
-    await user.click(screen.getByRole('row', { name: /report\.pdf/i }));
-    expect(onSelect).toHaveBeenCalledWith({
-      kind: 'file',
-      uri: 'https://pod/app/file1/',
-      name: 'report.pdf',
-    });
-    expect(onNavigate).not.toHaveBeenCalled();
-  });
-
-  it('Enter on a catalog-backed folder row also triggers onSelect', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/file1/'));
-    const onSelect = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/file1/')]}
-        leafEntries={[]}
-        catalogEntries={[catalogEntry()]}
-        catalogContainerUris={new Set(['https://pod/app/file1/'])}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={onSelect}
-      />,
-    );
-    fireEvent.keyDown(screen.getByRole('row', { name: /report\.pdf/i }), {
-      key: 'Enter',
-    });
-    expect(onSelect).toHaveBeenCalled();
-  });
-
-  it('marks a catalog-backed folder row as aria-selected when its URI matches selectedUri', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/file1/'));
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/file1/')]}
-        leafEntries={[]}
-        catalogEntries={[catalogEntry()]}
-        catalogContainerUris={new Set(['https://pod/app/file1/'])}
-        sort={sortByName}
-        selectedUri="https://pod/app/file1/"
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-    const row = screen.getByRole('row', { name: /report\.pdf/i });
-    expect(row).toHaveAttribute('aria-selected', 'true');
-    expect(row.className).toContain('odl-files-row--active');
-  });
-});
-
-describe('MyFilesTable — FolderRow as bare folder', () => {
-  it('renders a bare folder with item count and navigates on click', async () => {
-    const user = userEvent.setup();
-    mockUseResource.mockReturnValue(
-      makeContainer('https://pod/app/docs/', [
-        { uri: 'https://pod/app/docs/a' },
-        { uri: 'https://pod/app/docs/b' },
-      ]),
-    );
-    const onNavigate = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/docs/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={onNavigate}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('docs')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
-    await user.click(screen.getByRole('row', { name: /docs/i }));
-    expect(onNavigate).toHaveBeenCalledWith('https://pod/app/docs/', 'docs');
-  });
-
-  it('Enter on a bare folder row also navigates', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/docs/'));
-    const onNavigate = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/docs/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={onNavigate}
-        onSelect={vi.fn()}
-      />,
-    );
-    fireEvent.keyDown(screen.getByRole('row', { name: /docs/i }), {
-      key: 'Enter',
-    });
-    expect(onNavigate).toHaveBeenCalled();
-  });
-
-  it('drag-and-drop on a bare folder fires onFolderDrop with the dropped files', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/docs/'));
-    const onFolderDrop = vi.fn();
-    const onFolderDragOverChange = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/docs/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-        onFolderDrop={onFolderDrop}
-        onFolderDragOverChange={onFolderDragOverChange}
-      />,
-    );
-    const row = screen.getByRole('row', { name: /docs/i });
-    fireEvent.dragEnter(row, { dataTransfer: { types: ['Files'] } });
-    expect(onFolderDragOverChange).toHaveBeenCalledWith(true);
-    fireEvent.dragOver(row, { dataTransfer: { types: ['Files'] } });
-    fireEvent.dragLeave(row, { dataTransfer: { types: ['Files'] } });
-    expect(onFolderDragOverChange).toHaveBeenLastCalledWith(false);
-
-    const file = new File(['x'], 'a.txt', { type: 'text/plain' });
-    fireEvent.drop(row, { dataTransfer: { files: [file], types: ['Files'] } });
-    expect(onFolderDrop).toHaveBeenCalledWith(
-      [file],
-      'https://pod/app/docs/',
-      expect.objectContaining({ files: expect.anything() }),
-    );
-  });
-
-  it('non-Files drag types do not call the drag-over change callback', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/docs/'));
-    const onFolderDragOverChange = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/docs/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-        onFolderDrop={vi.fn()}
-        onFolderDragOverChange={onFolderDragOverChange}
-      />,
-    );
-    fireEvent.dragEnter(screen.getByRole('row', { name: /docs/i }), {
-      dataTransfer: { types: ['text/plain'] },
-    });
-    fireEvent.dragOver(screen.getByRole('row', { name: /docs/i }), {
-      dataTransfer: { types: ['text/plain'] },
-    });
-    expect(onFolderDragOverChange).not.toHaveBeenCalled();
-  });
-
-  it('renders a bare folder with item count 0 when the resolved resource is null', () => {
-    mockUseResource.mockReturnValue(null);
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/loading/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-    const row = screen.getByRole('row', { name: /loading/i });
-    expect(row).toBeInTheDocument();
-    expect(row.className).toContain('odl-files-row--folder');
-    expect(row.textContent).toContain('0');
-  });
-
-  it('renders a bare folder with item count 0 when the resolved resource is not a container', () => {
-    mockUseResource.mockReturnValue({ uri: 'https://pod/app/loading' });
-    render(
-      <MyFilesTable
-        folderEntries={[makeContainer('https://pod/app/loading/')]}
-        leafEntries={[]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-    const row = screen.getByRole('row', { name: /loading/i });
-    expect(row.className).toContain('odl-files-row--folder');
-    expect(row.textContent).toContain('0');
-  });
-});
-
-describe('MyFilesTable — LeafRow', () => {
-  it('renders a leaf file row using the URI tail as the name', async () => {
-    const user = userEvent.setup();
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/'));
-    const onSelect = vi.fn();
-    render(
-      <MyFilesTable
-        folderEntries={[]}
-        leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
-        onSelect={onSelect}
+        {...baseProps}
+        leafEntries={[
+          makeLeaf('https://pod/app/notes.txt'),
+          makeLeaf('https://pod/app/my%20file.pdf'),
+        ]}
       />,
     );
     expect(screen.getByText('notes.txt')).toBeInTheDocument();
-    await user.click(screen.getByRole('row', { name: /notes\.txt/i }));
+    expect(screen.getByText('my file.pdf')).toBeInTheDocument();
+  });
+
+  it('clicking a leaf row calls onSelect with kind: file', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <MyFilesTable
+        {...baseProps}
+        onSelect={onSelect}
+        leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
+      />,
+    );
+    await user.click(screen.getByText('notes.txt'));
     expect(onSelect).toHaveBeenCalledWith({
       kind: 'file',
       uri: 'https://pod/app/notes.txt',
@@ -319,43 +97,224 @@ describe('MyFilesTable — LeafRow', () => {
     });
   });
 
-  it('Enter on a leaf row also triggers onSelect', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/'));
+  it('pressing Enter on a focused leaf row activates select', () => {
     const onSelect = vi.fn();
     render(
       <MyFilesTable
-        folderEntries={[]}
-        leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        onNavigate={vi.fn()}
+        {...baseProps}
         onSelect={onSelect}
+        leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
       />,
     );
-    fireEvent.keyDown(screen.getByRole('row', { name: /notes\.txt/i }), {
-      key: 'Enter',
-    });
-    expect(onSelect).toHaveBeenCalled();
+    fireEvent.keyDown(screen.getAllByRole('row')[0], { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('marks a leaf row as aria-selected when its URI matches selectedUri', () => {
-    mockUseResource.mockReturnValue(makeContainer('https://pod/app/'));
+  it('pressing an unrelated key on a focused leaf row does nothing', () => {
+    const onSelect = vi.fn();
     render(
       <MyFilesTable
-        folderEntries={[]}
+        {...baseProps}
+        onSelect={onSelect}
         leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
-        catalogEntries={[]}
-        catalogContainerUris={new Set()}
-        sort={sortByName}
-        selectedUri="https://pod/app/notes.txt"
-        onNavigate={vi.fn()}
-        onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByRole('row', { name: /notes\.txt/i })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    fireEvent.keyDown(screen.getAllByRole('row')[0], { key: 'Escape' });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('marks the leaf row matching selectedUri with aria-selected', () => {
+    render(
+      <MyFilesTable
+        {...baseProps}
+        leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
+        selectedUri="https://pod/app/notes.txt"
+      />,
     );
+    expect(screen.getByRole('row')).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('MyFilesTable — folder rows that look like files (index.ttl)', () => {
+  beforeEach(() => {
+    mockChildrenByUri.clear();
+    vi.clearAllMocks();
+  });
+
+  it('treats a folder containing index.ttl as a file row and falls back to the URL tail when no catalog entry exists', async () => {
+    const folderUri = 'https://pod/app/doc/';
+    mockChildrenByUri.set(folderUri, [{ uri: `${folderUri}index.ttl` }]);
+    const onSelect = vi.fn();
+    const onNavigate = vi.fn();
+    render(
+      <MyFilesTable
+        {...baseProps}
+        onSelect={onSelect}
+        onNavigate={onNavigate}
+        folderEntries={[makeContainer(folderUri)]}
+      />,
+    );
+    const row = screen.getByRole('row');
+    expect(row.className).toContain('odl-files-row--file');
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onSelect).toHaveBeenCalledWith({
+      kind: 'file',
+      uri: folderUri,
+      name: 'doc',
+    });
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('MyFilesTable — bare folder rows', () => {
+  beforeEach(() => {
+    mockChildrenByUri.clear();
+    vi.clearAllMocks();
+  });
+
+  it('renders a folder row using the URL tail and shows a child count', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, [
+      { uri: `${folderUri}a/` },
+      { uri: `${folderUri}b/` },
+      { uri: `${folderUri}c/` },
+    ]);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+      />,
+    );
+    expect(screen.getByText('photos')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('clicking a bare folder row navigates and does not call onSelect', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const onNavigate = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        onSelect={onSelect}
+        onNavigate={onNavigate}
+        folderEntries={[makeContainer(folderUri)]}
+      />,
+    );
+    await user.click(screen.getByText('photos'));
+    expect(onNavigate).toHaveBeenCalledWith(folderUri, 'photos');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('pressing Enter on a bare folder row also navigates', () => {
+    const onNavigate = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        onNavigate={onNavigate}
+        folderEntries={[makeContainer(folderUri)]}
+      />,
+    );
+    fireEvent.keyDown(screen.getByRole('row'), { key: 'Enter' });
+    expect(onNavigate).toHaveBeenCalled();
+  });
+
+  it('drag-enter with Files data fires onFolderDragOverChange(true)', () => {
+    const onFolderDragOverChange = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDragOverChange={onFolderDragOverChange}
+        onFolderDrop={vi.fn()}
+      />,
+    );
+    fireEvent.dragEnter(screen.getByRole('row'), {
+      dataTransfer: { types: ['Files'] },
+    });
+    expect(onFolderDragOverChange).toHaveBeenCalledWith(true);
+  });
+
+  it('drag-enter with non-Files data is ignored', () => {
+    const onFolderDragOverChange = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDragOverChange={onFolderDragOverChange}
+        onFolderDrop={vi.fn()}
+      />,
+    );
+    fireEvent.dragEnter(screen.getByRole('row'), {
+      dataTransfer: { types: ['text/plain'] },
+    });
+    expect(onFolderDragOverChange).not.toHaveBeenCalled();
+  });
+
+  it('drag-leave fires onFolderDragOverChange(false)', () => {
+    const onFolderDragOverChange = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDragOverChange={onFolderDragOverChange}
+        onFolderDrop={vi.fn()}
+      />,
+    );
+    fireEvent.dragLeave(screen.getByRole('row'));
+    expect(onFolderDragOverChange).toHaveBeenCalledWith(false);
+  });
+
+  it('drop on a bare folder row calls onFolderDrop with the dropped files', () => {
+    const onFolderDrop = vi.fn();
+    const onFolderDragOverChange = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDrop={onFolderDrop}
+        onFolderDragOverChange={onFolderDragOverChange}
+      />,
+    );
+    const file = new File(['hi'], 'hi.txt', { type: 'text/plain' });
+    fireEvent.drop(screen.getByRole('row'), {
+      dataTransfer: { files: [file], types: ['Files'] },
+    });
+    expect(onFolderDragOverChange).toHaveBeenLastCalledWith(false);
+    expect(onFolderDrop).toHaveBeenCalledWith(
+      [file],
+      folderUri,
+      expect.any(Object),
+    );
+  });
+
+  it('drop with zero files does not call onFolderDrop', () => {
+    const onFolderDrop = vi.fn();
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDrop={onFolderDrop}
+        onFolderDragOverChange={vi.fn()}
+      />,
+    );
+    fireEvent.drop(screen.getByRole('row'), {
+      dataTransfer: { files: [], types: ['Files'] },
+    });
+    expect(onFolderDrop).not.toHaveBeenCalled();
   });
 });

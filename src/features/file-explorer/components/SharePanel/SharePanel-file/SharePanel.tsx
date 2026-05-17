@@ -6,13 +6,11 @@
 
 import { useEffect } from "react";
 import type { FunctionComponent } from "react";
-import { useSolidAuth, useSubject, useResource } from "@ldo/solid-react";
+import { useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
-import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
-import { isLoadable } from "@/infrastructure/solid/resourceGuards";
 import { useAclManager } from "@/features/sharing/hooks/useAclManager";
-import { getInitial } from "@/shared/utils";
-import { getProfileDisplayName } from "@/shared/utils/getProfileDisplayName";
+import { Avatar } from "@/shared/components/Avatar";
+import { useContactProfile } from "@/shared/hooks/useContactProfile";
 import type { SharedEntry } from "@/types";
 
 /**
@@ -26,25 +24,15 @@ const GranteeRow: FunctionComponent<{ webId: string; onRevoke: () => void; disab
   disabled,
 }) => {
   const [translate] = useTranslation();
-  const contactResource = useResource(webId.split("#")[0]);
-  const contact = useSubject(SolidProfileShapeType, webId);
-  const isLoading = isLoadable(contactResource) && contactResource.isLoading();
-  const displayName = getProfileDisplayName(contact ?? undefined, webId);
-  const avatarContent = isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName);
+  const { displayName, avatarUrl, initial, isLoading } = useContactProfile(webId);
   const nameContent = isLoading ? translate("sharePanel.loading") : displayName;
 
   return (
     <share-panel-row>
-      <div className="share-panel__avatar share-panel__avatar--grantee">
-        {avatarContent}
-      </div>
+      <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
       <share-panel-name>
-        <span className="share-panel__name-text">
-          {nameContent}
-        </span>
-        <span className="share-panel__mode">
-          {translate("sharePanel.accessMode")}
-        </span>
+        <span className="share-panel__name-text">{nameContent}</span>
+        <span className="share-panel__mode">{translate("sharePanel.accessMode")}</span>
       </share-panel-name>
       <button
         className="btn btn--delete btn--small share-panel__revoke"
@@ -68,21 +56,20 @@ const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; 
   disabled,
 }) => {
   const [translate] = useTranslation();
-  const contactResource = useResource(webId.split("#")[0]);
-  const contact = useSubject(SolidProfileShapeType, webId);
-  const isLoading = isLoadable(contactResource) && contactResource.isLoading();
-  const displayName = getProfileDisplayName(contact ?? undefined, webId);
-  const avatarContent = isLoading ? <div className="spinner spinner--tiny" /> : getInitial(displayName);
+  const { 
+    displayName, 
+    avatarUrl, 
+    initial, 
+    isLoading 
+  } = useContactProfile(webId);
   const nameContent = isLoading ? translate("sharePanel.loading") : displayName;
 
   return (
     <share-panel-row className="share-panel__row--available">
-      <div className="share-panel__avatar share-panel__avatar--pending">
-        {avatarContent}
-      </div>
-      <span className="share-panel__name-text--pending">
-        {nameContent}
+      <span className="share-panel__avatar--pending-wrap">
+        <Avatar src={avatarUrl} alt={displayName} initial={initial} size="sm" isLoading={isLoading} />
       </span>
+      <span className="share-panel__name-text--pending">{nameContent}</span>
       <button
         className="btn btn--ghost btn--small"
         onClick={onGrant}

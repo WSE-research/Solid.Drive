@@ -195,11 +195,42 @@
       "empty": "Wählen Sie ein Element aus, um Details anzuzeigen.",
       "close": "Schließen",
       "kindFile": "Datei",
-      "kindFolder": "Ordner"
+      "kindFolder": "Ordner",
+      "moreDetails": "Weitere Details",
+      "type": "Typ",
+      "size": "Größe",
+      "itemCount": "Elemente",
+      "created": "Erstellt",
+      "modified": "Geändert",
+      "podUri": "Pod-URI",
+      "hasAccess": "Hat Zugriff",
+      "addDescription": "Beschreibung hinzufügen…",
+      "saving": "Speichert…",
+      "saveError": "Beschreibung konnte nicht gespeichert werden",
+      "sharedWith": "Geteilt mit {{name}}"
     },
     "createMenu": {
       "newFolder": "Neuer Ordner",
       "uploadFiles": "Dateien hochladen"
+    },
+    "action": {
+      "share": "Teilen",
+      "link": "Link kopieren",
+      "delete": "Löschen",
+      "download": "Herunterladen",
+      "moveTo": "Verschieben",
+      "rename": "Umbenennen",
+      "clearSelection": "Auswahl aufheben",
+      "selectionCount_one": "{{count}} ausgewählt",
+      "selectionCount_other": "{{count}} ausgewählt"
+    },
+    "toast": {
+      "linkCopied": "Link zu „{{name}}\" in die Zwischenablage kopiert",
+      "linkCopyFail": "Link konnte nicht kopiert werden",
+      "downloadFail": "Download fehlgeschlagen",
+      "deleteConfirm": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",
+      "deleteSuccess": "„{{name}}\" gelöscht",
+      "deleteFail": "Löschen fehlgeschlagen"
     }
   }
 }

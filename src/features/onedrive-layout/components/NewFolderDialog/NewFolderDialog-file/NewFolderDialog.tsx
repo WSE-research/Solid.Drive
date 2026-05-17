@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { ChangeEvent, FunctionComponent, KeyboardEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslation } from 'react-i18next';
@@ -39,13 +39,17 @@ export const NewFolderDialog: FunctionComponent<NewFolderDialogProps> = ({
   const [folderName, setFolderName] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Reset the form whenever the dialog reopens.
-  useEffect(() => {
+  // Reset the form whenever the dialog reopens. Tracked during render via
+  // the previous open state, which is the pattern the project uses to
+  // satisfy the react-hooks/set-state-in-effect rule.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
     if (open) {
       setFolderName('');
       setValidationError(null);
     }
-  }, [open]);
+  }
 
   const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFolderName(event.target.value);

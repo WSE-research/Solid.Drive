@@ -775,3 +775,62 @@ describe('MyFilesView — breadcrumbs', () => {
     });
   });
 });
+
+describe('MyFilesView — refreshNonce reload', () => {
+  beforeEach(() => {
+    mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+  });
+
+  it('re-reads the open folder when refreshNonce changes from the initial value', () => {
+    const read = vi.fn().mockResolvedValue(undefined);
+    mockUseResource.mockImplementation((uri) => ({
+      uri: uri ?? '',
+      children: () => [folderChild, fileContainerChild],
+      read,
+    }));
+
+    const { rerender } = render(
+      <MyFilesView {...renderProps} refreshNonce={0} />,
+    );
+    expect(read).not.toHaveBeenCalled();
+
+    rerender(<MyFilesView {...renderProps} refreshNonce={1} />);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    rerender(<MyFilesView {...renderProps} refreshNonce={2} />);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not call read on the initial render', () => {
+    const read = vi.fn().mockResolvedValue(undefined);
+    mockUseResource.mockImplementation((uri) => ({
+      uri: uri ?? '',
+      children: () => [folderChild, fileContainerChild],
+      read,
+    }));
+
+    render(<MyFilesView {...renderProps} refreshNonce={0} />);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when the open resource is not a container', () => {
+    // The isSolidContainer mock treats trailing slash as a container. A
+    // leaf URI fails the guard and the effect short-circuits before
+    // touching read.
+    mockUseDriveInitialization.mockImplementation(() => ({
+      ...driveInitDefaults(),
+      currentUri: 'https://pod/app/leaf',
+    }));
+    mockUseResource.mockImplementation((uri) => ({
+      uri: uri ?? '',
+      children: () => [folderChild, fileContainerChild],
+    }));
+
+    const { rerender } = render(
+      <MyFilesView {...renderProps} refreshNonce={0} />,
+    );
+    expect(() =>
+      rerender(<MyFilesView {...renderProps} refreshNonce={1} />),
+    ).not.toThrow();
+  });
+});

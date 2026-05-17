@@ -33,9 +33,9 @@ export const isActivationKey = (key: string): boolean =>
   ACTIVATION_KEYS.includes(key);
 
 /**
- * Returns the human-readable last segment of a URI, URL-decoded. The
- * trailing slash on container URIs is stripped first so a folder URI
- * like `https://pod/app/docs/` yields `"docs"` rather than `""`.
+ * Returns the URL-decoded last segment of a URI. The trailing slash
+ * on container URIs is stripped first so a folder URI like
+ * `https://pod/app/docs/` yields `"docs"` rather than `""`.
  *
  * @public
  */

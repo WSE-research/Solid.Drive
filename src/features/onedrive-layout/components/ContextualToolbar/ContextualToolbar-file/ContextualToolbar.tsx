@@ -1,7 +1,7 @@
 /**
  * Right-zone toolbar above the My Files table. Owns no state — reads
  * `sort` + `detailsOpen` from props and forwards user actions back to
- * the parent shell.
+ * the parent shell. Hosts the Sort dropdown and the Details toggle.
  *
  * @packageDocumentation
  */
@@ -22,10 +22,10 @@ interface ContextualToolbarProps {
 }
 
 /**
- * Renders the right-zone toolbar for My Files: a Sort dropdown and a
- * Details toggle. The component owns no state — `sort` + `detailsOpen`
- * are driven by the parent shell, and every interaction is forwarded
- * through `onSortChange` / `onToggleDetails`.
+ * Renders the contextual toolbar for My Files. Hosts a Sort dropdown
+ * and a Details toggle. 
+ * The component owns no state.
+ * every interaction is forwarded through the matching callback prop.
  *
  * @public
  */
@@ -50,7 +50,6 @@ export const ContextualToolbar: FunctionComponent<ContextualToolbarProps> = ({
 
   return (
     <contextual-toolbar>
-      <toolbar-left />
       <toolbar-right>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>

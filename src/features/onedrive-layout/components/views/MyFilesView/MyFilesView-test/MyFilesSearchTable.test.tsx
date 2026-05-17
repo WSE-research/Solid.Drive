@@ -1,35 +1,31 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { CatalogEntry } from '@/types';
+import { MyFilesSearchTable } from '../MyFilesView-file/MyFilesSearchTable';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => [
-    (
-      key: string,
-      fallback?: string,
-      vars?: Record<string, string | number>,
-    ) => {
-      let out = fallback ?? key;
-      if (vars) {
-        for (const [k, v] of Object.entries(vars)) {
-          out = out.replace(`{{${k}}}`, String(v));
-        }
+    (key: string, fallback?: string, vars?: Record<string, unknown>) => {
+      if (vars?.query !== undefined && fallback) {
+        return fallback.replace('{{query}}', String(vars.query));
       }
-      return out;
+      return fallback ?? key;
     },
   ],
 }));
 
 vi.mock('../MyFilesView-file/SharingCell', () => ({
   SharingCell: ({ uri }: { uri: string }) => (
-    <span data-testid="sharing-cell" data-uri={uri} />
+    <span data-testid="mock-sharing-cell" data-uri={uri} />
   ),
 }));
 
-import { MyFilesSearchTable } from '../MyFilesView-file/MyFilesSearchTable';
+vi.mock('../MyFilesView-file/MyFilesTableHead', () => ({
+  MyFilesTableHead: () => <div data-testid="mock-table-head" />,
+}));
 
-const entry = (over: Partial<CatalogEntry> = {}): CatalogEntry => ({
+const baseEntry: CatalogEntry = {
   uri: 'https://pod/app/file1/index.ttl',
   conformsTo: 'https://schema.org/MediaObject',
   title: 'report.pdf',
@@ -39,47 +35,52 @@ const entry = (over: Partial<CatalogEntry> = {}): CatalogEntry => ({
   mediaType: 'application/pdf',
   byteSize: 12345,
   accessURL: 'https://pod/app/file1/binary',
-  ...over,
-});
+};
 
 describe('MyFilesSearchTable', () => {
-  it('renders the empty state with the query interpolated when there are no results', () => {
+  let onSelect: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    onSelect = vi.fn();
+  });
+
+  it('renders a no-results placeholder when results is empty', () => {
     render(
       <MyFilesSearchTable
-        query="banana"
+        query="missing"
         results={[]}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('No files match "banana"')).toBeInTheDocument();
-  });
-
-  it('renders one row per catalog entry with the title, modified date, and size', () => {
-    render(
-      <MyFilesSearchTable
-        query="rep"
-        results={[entry()]}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole('row', { name: /report\.pdf/i })).toBeInTheDocument();
-    expect(screen.getByTestId('sharing-cell')).toHaveAttribute(
-      'data-uri',
-      'https://pod/app/file1/',
-    );
-  });
-
-  it('clicking a row calls onSelect with the container URI and title', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    render(
-      <MyFilesSearchTable
-        query="rep"
-        results={[entry()]}
         onSelect={onSelect}
       />,
     );
-    await user.click(screen.getByRole('row', { name: /report\.pdf/i }));
+    expect(
+      screen.getByText('No files match "missing"'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-table-head')).not.toBeInTheDocument();
+  });
+
+  it('renders one row per result with the entry title', () => {
+    render(
+      <MyFilesSearchTable
+        query="rep"
+        results={[baseEntry, { ...baseEntry, uri: 'https://pod/app/file2/index.ttl', title: 'notes.md' }]}
+        onSelect={onSelect}
+      />,
+    );
+    expect(screen.getByText('report.pdf')).toBeInTheDocument();
+    expect(screen.getByText('notes.md')).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+  });
+
+  it('clicking a row calls onSelect with kind: file and the container URI derived from the catalog URI', async () => {
+    const user = userEvent.setup();
+    render(
+      <MyFilesSearchTable
+        query="rep"
+        results={[baseEntry]}
+        onSelect={onSelect}
+      />,
+    );
+    await user.click(screen.getByText('report.pdf'));
     expect(onSelect).toHaveBeenCalledWith({
       kind: 'file',
       uri: 'https://pod/app/file1/',
@@ -87,48 +88,52 @@ describe('MyFilesSearchTable', () => {
     });
   });
 
-  it('Enter and Space keys also trigger row selection', () => {
-    const onSelect = vi.fn();
+  it('pressing Enter on a focused row activates the same select handler', () => {
     render(
       <MyFilesSearchTable
         query="rep"
-        results={[entry()]}
+        results={[baseEntry]}
         onSelect={onSelect}
       />,
     );
-    const row = screen.getByRole('row', { name: /report\.pdf/i });
+    const row = screen.getByRole('row');
     fireEvent.keyDown(row, { key: 'Enter' });
-    fireEvent.keyDown(row, { key: ' ' });
-    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('non-activation keys do not select the row', () => {
-    const onSelect = vi.fn();
+  it('pressing Space on a focused row also activates the select handler', () => {
     render(
       <MyFilesSearchTable
         query="rep"
-        results={[entry()]}
+        results={[baseEntry]}
         onSelect={onSelect}
       />,
     );
-    fireEvent.keyDown(screen.getByRole('row', { name: /report\.pdf/i }), {
-      key: 'a',
-    });
+    fireEvent.keyDown(screen.getByRole('row'), { key: ' ' });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('non-activation keys do not trigger select', () => {
+    render(
+      <MyFilesSearchTable
+        query="rep"
+        results={[baseEntry]}
+        onSelect={onSelect}
+      />,
+    );
+    fireEvent.keyDown(screen.getByRole('row'), { key: 'Tab' });
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('marks the row as aria-selected when its container URI matches selectedUri', () => {
+  it('marks the row matching selectedUri with aria-selected', () => {
     render(
       <MyFilesSearchTable
         query="rep"
-        results={[entry()]}
+        results={[baseEntry]}
         selectedUri="https://pod/app/file1/"
-        onSelect={vi.fn()}
+        onSelect={onSelect}
       />,
     );
-    expect(screen.getByRole('row', { name: /report\.pdf/i })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    expect(screen.getByRole('row')).toHaveAttribute('aria-selected', 'true');
   });
 });

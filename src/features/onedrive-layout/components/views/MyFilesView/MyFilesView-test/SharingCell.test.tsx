@@ -1,116 +1,86 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { SharingCell } from '../MyFilesView-file/SharingCell';
 
-const mockUseSharingLabel = vi.fn();
+const mockSharingLabel = vi.fn();
+const mockContactProfile = vi.fn();
+
 vi.mock('@/features/onedrive-layout/hooks/useSharingLabel', () => ({
-  useSharingLabel: (uri: string) => mockUseSharingLabel(uri),
+  useSharingLabel: () => mockSharingLabel(),
 }));
 
-const mockUseSubject = vi.fn();
-vi.mock('@ldo/solid-react', () => ({
-  useResource: (uri: string) => ({ uri }),
-  useSubject: (_shape: unknown, webId: string) => mockUseSubject(webId),
-}));
-
-vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
-  SolidProfileShapeType: {},
+vi.mock('@/shared/hooks/useContactProfile', () => ({
+  useContactProfile: (webId: string) => mockContactProfile(webId),
 }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => [
-    (key: string, fallback?: string | object, vars?: { count?: number }) => {
-      const fb =
-        typeof fallback === 'string'
-          ? fallback
-          : (fallback as { defaultValue?: string })?.defaultValue ?? key;
-      if (vars && typeof vars.count === 'number') {
-        return fb.replace('{{count}}', String(vars.count));
+    (key: string, fallback?: string, vars?: Record<string, unknown>) => {
+      if (vars?.count !== undefined && fallback) {
+        return fallback.replace('{{count}}', String(vars.count));
       }
-      return fb;
+      return fallback ?? key;
     },
   ],
 }));
 
-import { SharingCell } from '../MyFilesView-file/SharingCell';
-
 describe('SharingCell', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseSubject.mockReturnValue(undefined);
+    mockContactProfile.mockReturnValue({
+      displayName: 'Alice',
+      avatarUrl: undefined,
+      initial: 'A',
+      isLoading: false,
+    });
   });
 
-  it('renders an ellipsis while the sharing label is loading', () => {
-    mockUseSharingLabel.mockReturnValue({
-      kind: 'private',
-      agentWebIds: [],
-      loading: true,
-    });
-    const { container } = render(<SharingCell uri="https://pod/a/" />);
+  it('renders an ellipsis placeholder while sharing data is loading', () => {
+    mockSharingLabel.mockReturnValue({ kind: 'private', agentWebIds: [], loading: true });
+    const { container } = render(<SharingCell uri="https://pod/x/" />);
     expect(container.querySelector('.odl-sharing-cell--loading')).toBeInTheDocument();
-    expect(screen.getByText('…')).toBeInTheDocument();
+    expect(container.textContent).toContain('…');
   });
 
-  it('renders "Public" when the resource is public', () => {
-    mockUseSharingLabel.mockReturnValue({
-      kind: 'public',
-      agentWebIds: [],
-      loading: false,
-    });
-    render(<SharingCell uri="https://pod/a/" />);
+  it('renders "Private" when the resource has no non-owner grantees', () => {
+    mockSharingLabel.mockReturnValue({ kind: 'private', agentWebIds: [], loading: false });
+    render(<SharingCell uri="https://pod/x/" />);
+    expect(screen.getByText('Private')).toBeInTheDocument();
+  });
+
+  it('renders "Public" when the resource is shared with foaf:Agent', () => {
+    mockSharingLabel.mockReturnValue({ kind: 'public', agentWebIds: [], loading: false });
+    render(<SharingCell uri="https://pod/x/" />);
     expect(screen.getByText('Public')).toBeInTheDocument();
   });
 
-  it('renders the agent display name for a single shared agent', () => {
-    mockUseSharingLabel.mockReturnValue({
+  it('renders the resolved display name for a single grantee', () => {
+    mockSharingLabel.mockReturnValue({
       kind: 'shared',
       agentWebIds: ['https://alice.example/profile/card#me'],
       loading: false,
     });
-    mockUseSubject.mockReturnValue({ fn: 'Alice', name: 'Alice Doe' });
-    render(<SharingCell uri="https://pod/a/" />);
+    render(<SharingCell uri="https://pod/x/" />);
     expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByTitle('https://alice.example/profile/card#me')).toBeInTheDocument();
   });
 
-  it('falls back to vcard:fn missing → foaf:name when fn is undefined', () => {
-    mockUseSharingLabel.mockReturnValue({
+  it('renders the count label for multi-agent shares', () => {
+    mockSharingLabel.mockReturnValue({
       kind: 'shared',
-      agentWebIds: ['https://alice.example/profile/card#me'],
+      agentWebIds: [
+        'https://alice.example/profile/card#me',
+        'https://bob.example/profile/card#me',
+        'https://charlie.example/profile/card#me',
+      ],
       loading: false,
     });
-    mockUseSubject.mockReturnValue({ name: 'Alice Doe' });
-    render(<SharingCell uri="https://pod/a/" />);
-    expect(screen.getByText('Alice Doe')).toBeInTheDocument();
+    render(<SharingCell uri="https://pod/x/" />);
+    expect(screen.getByText('3 people')).toBeInTheDocument();
   });
 
-  it('falls back to the raw WebID when no profile is loaded', () => {
-    const webId = 'https://alice.example/profile/card#me';
-    mockUseSharingLabel.mockReturnValue({
-      kind: 'shared',
-      agentWebIds: [webId],
-      loading: false,
-    });
-    mockUseSubject.mockReturnValue(undefined);
-    render(<SharingCell uri="https://pod/a/" />);
-    expect(screen.getByText(webId)).toBeInTheDocument();
-  });
-
-  it('renders "{N} people" when the resource is shared with multiple agents', () => {
-    mockUseSharingLabel.mockReturnValue({
-      kind: 'shared',
-      agentWebIds: ['https://alice.example/#me', 'https://bob.example/#me'],
-      loading: false,
-    });
-    render(<SharingCell uri="https://pod/a/" />);
-    expect(screen.getByText('2 people')).toBeInTheDocument();
-  });
-
-  it('renders "Private" by default for non-public, non-shared resources', () => {
-    mockUseSharingLabel.mockReturnValue({
-      kind: 'private',
-      agentWebIds: [],
-      loading: false,
-    });
-    render(<SharingCell uri="https://pod/a/" />);
-    expect(screen.getByText('Private')).toBeInTheDocument();
+  it('falls back to the count label when shared kind has zero agents', () => {
+    mockSharingLabel.mockReturnValue({ kind: 'shared', agentWebIds: [], loading: false });
+    render(<SharingCell uri="https://pod/x/" />);
+    expect(screen.getByText('0 people')).toBeInTheDocument();
   });
 });

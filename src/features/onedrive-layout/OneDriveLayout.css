@@ -108,6 +108,16 @@ page-header {
   background: transparent;
 }
 
+/* When a row is selected the entire toolbar row gets the same elevated
+   "cushion" treatment as the search input.*/
+page-header[data-selection-active="true"] {
+  background: var(--odl-bg-elevated);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-pill);
+  padding: var(--odl-space-1) var(--odl-space-3);
+  margin: var(--odl-space-2) var(--odl-space-4);
+}
+
 .odl-page-title {
   font-size: 22px;
   font-weight: 600;
@@ -115,6 +125,43 @@ page-header {
   line-height: 1.25;
   margin: 0;
   color: var(--odl-text);
+}
+
+page-header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+}
+
+.odl-selection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--odl-space-3);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-pill);
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-selection-badge:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+  border-color: var(--odl-text-muted);
+}
+.odl-selection-badge:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.odl-selection-badge svg {
+  width: 14px;
+  height: 14px;
 }
 
 @keyframes onedrive-layout-enter {
@@ -224,7 +271,6 @@ topbar-brand {
 }
 
 .topbar-logo {
-  /* 2× the size of the .rail-create (+) button below it (40 → 80). */
   width: 80px;
   height: 80px;
   object-fit: contain;
@@ -375,7 +421,7 @@ topbar-menu-row {
   padding: 4px 8px 8px;
 }
 
-/* Dark-theme override for the LayoutToggle when it's mounted inside the
+/* Dark theme override for the LayoutToggle when it's mounted inside the
    topbar menu (its default colours target the Classic light theme). */
 .topbar-menu .layout-toggle {
   background: var(--odl-bg-page);
@@ -450,8 +496,6 @@ topbar-menu-profile-webid {
 
 .odl-main {
   background: var(--odl-bg-panel);
-  /* The contextual toolbar now sits above main in its own grid row, so
-     keep main's margins symmetric — no extra top gap is needed. */
   margin: 0 var(--odl-space-4) var(--odl-space-4);
   padding: var(--odl-space-6);
   border-radius: var(--odl-radius-panel);
@@ -517,8 +561,15 @@ contextual-toolbar {
   align-items: center;
   background: transparent;
 }
-toolbar-left { display: inline-flex; gap: var(--odl-space-2); }
 toolbar-right { display: inline-flex; gap: var(--odl-space-2); margin-left: auto; }
+
+/* Selection actions */
+
+selection-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-1);
+}
 
 .odl-toolbar-button {
   display: inline-flex;
@@ -1022,10 +1073,287 @@ detail-panel-empty {
   font-size: var(--odl-font-size-md);
   text-align: center;
 }
-.odl-details__kind {
+
+/* ─── Selection-action toolbar buttons (stub variant) ─────────────────── */
+
+.odl-toolbar-button[data-stub="true"] {
+  /* Move To and Rename are UI-only until #36; keep them muted so the
+     user understands they're parked. */
+  color: var(--odl-text-faint);
+  cursor: not-allowed;
+}
+.odl-toolbar-button[data-stub="true"]:hover {
+  background: transparent;
+  color: var(--odl-text-faint);
+}
+
+/* ─── Detail panel sections ───────────────────────────────────────────── */
+
+detail-panel-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 10;
+  background: var(--odl-bg-elevated);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-card);
+  color: var(--odl-text-faint);
+  margin-bottom: var(--odl-space-2);
+}
+detail-panel-thumbnail svg {
+  width: 48px;
+  height: 48px;
+}
+
+detail-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--odl-space-2);
+  margin-top: var(--odl-space-3);
+}
+.odl-details__section-title {
   margin: 0;
   font-size: var(--odl-font-size-sm);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--odl-text-muted);
+}
+
+detail-panel-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-3);
+  margin: var(--odl-space-4) 0 var(--odl-space-2);
+  font-size: var(--odl-font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--odl-text-muted);
+}
+detail-panel-divider::before,
+detail-panel-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--odl-divider);
+}
+
+detail-panel-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--odl-space-3);
+  font-size: var(--odl-font-size-md);
+}
+.odl-details__label {
+  color: var(--odl-text-muted);
+}
+.odl-details__value {
+  color: var(--odl-text);
+  text-align: right;
+  word-break: break-word;
+  max-width: 65%;
+}
+
+/* ─── Editable description (rename / describe a resource) ─────────────── */
+
+editable-description {
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+}
+/* Selector chain `editable-description input.odl-editable-description__input`
+   beats the global `input[type="text"]` and `input[type="text"]:focus` rules
+   from App.css so we don't inherit the light-theme box-shadow halo. */
+editable-description input.odl-editable-description__input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  background: var(--odl-bg-panel);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-chip);
+  padding: 8px 12px;
+  color: var(--odl-text);
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  box-shadow: none;
+  transition: border-color var(--odl-transition-fast),
+              background var(--odl-transition-fast),
+              box-shadow var(--odl-transition-fast);
+  width: 100%;
+}
+editable-description input.odl-editable-description__input::placeholder {
+  color: var(--odl-text-faint);
+  opacity: 1;
+}
+editable-description input.odl-editable-description__input:hover:not(:disabled) {
+  border-color: var(--odl-text-faint);
+}
+editable-description input.odl-editable-description__input:focus,
+editable-description input.odl-editable-description__input:focus-visible {
+  border-color: var(--odl-accent);
+  background: var(--odl-bg-elevated);
+  box-shadow: 0 0 0 3px var(--odl-accent-soft);
+}
+editable-description input.odl-editable-description__input:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  box-shadow: none;
+}
+.odl-editable-description__saving {
+  font-size: var(--odl-font-size-sm);
+  color: var(--odl-text-muted);
+}
+
+/* ─── HasAccessRow — stacked avatar group ─────────────────────────────── */
+
+has-access-row {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+.odl-access-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  /* Overlap subsequent avatars and punch them out from the panel
+     surface so they read as a stacked group. */
+  box-shadow: 0 0 0 2px var(--odl-bg-panel);
+  margin-left: -8px;
+}
+.odl-access-avatar:first-child {
+  margin-left: 0;
+}
+.odl-access-avatar > .avatar { width: 100%; height: 100%; font-size: var(--odl-font-size-sm); }
+.odl-access-avatar > .avatar--placeholder { background: var(--odl-accent-soft); color: var(--odl-accent); }
+.odl-access-avatar--public {
+  width: auto;
+  padding: 0 var(--odl-space-3);
+  border-radius: var(--odl-radius-pill);
+  background: var(--odl-accent);
+  color: #ffffff;
+  border: 0;
+  margin-left: 0;
+  font-size: var(--odl-font-size-sm);
+}
+
+/* ─── Share modal (Radix Dialog) ──────────────────────────────────────── */
+
+.odl-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 300;
+  animation: onedrive-overlay-enter 160ms ease;
+}
+
+@keyframes onedrive-overlay-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.odl-dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - var(--odl-space-6)));
+  max-height: calc(100vh - var(--odl-space-8));
+  overflow: auto;
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-panel);
+  padding: var(--odl-space-5);
+  z-index: 301;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  animation: onedrive-dialog-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes onedrive-dialog-enter {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.odl-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--odl-space-4);
+}
+
+.odl-dialog-title {
+  font-size: var(--odl-font-size-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Share panel embedded inside the OneDrive dialog — re-skin its
+   light-theme tokens onto the dark dialog surface. */
+.odl-dialog-content share-panel { color: var(--odl-text); }
+.odl-dialog-content .share-panel__heading,
+.odl-dialog-content .share-panel__subheading {
+  color: var(--odl-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: var(--odl-space-3) 0 var(--odl-space-2);
+}
+.odl-dialog-content share-panel > .share-panel__heading:first-child { margin-top: 0; }
+.odl-dialog-content .share-panel__name-text { color: var(--odl-text); font-size: 14px; }
+.odl-dialog-content .share-panel__name-text--pending { color: var(--odl-text-muted); font-size: 14px; }
+.odl-dialog-content .share-panel__mode { color: var(--odl-text-faint); }
+.odl-dialog-content .share-panel__placeholder { color: var(--odl-text-faint); }
+.odl-dialog-content share-panel-row { padding: var(--odl-space-2) 0; gap: var(--odl-space-3); }
+.odl-dialog-content share-panel-row .avatar--sm { width: 32px; height: 32px; }
+.odl-dialog-content share-panel-row .avatar--placeholder {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+  font-weight: 600;
+}
+.odl-dialog-content .share-panel__avatar--pending-wrap { opacity: 0.75; }
+
+/* Grant / Revoke buttons in the dark dialog — replace the light-theme
+   pill defaults with subtle outline buttons that match the OneDrive
+   accent and destructive colors. */
+.odl-dialog-content share-panel-row .btn {
+  background: transparent;
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.odl-dialog-content share-panel-row .btn--ghost {
+  color: var(--odl-accent);
+  border-color: rgba(15, 108, 189, 0.45);
+}
+.odl-dialog-content share-panel-row .btn--ghost:hover:not(:disabled) {
+  background: var(--odl-accent-soft);
+  border-color: var(--odl-accent);
+}
+.odl-dialog-content share-panel-row .btn--ghost:active:not(:disabled) {
+  background: rgba(15, 108, 189, 0.28);
+}
+.odl-dialog-content share-panel-row .btn--delete {
+  color: #ff8a8a;
+  border-color: rgba(255, 138, 138, 0.45);
+}
+.odl-dialog-content share-panel-row .btn--delete:hover:not(:disabled) {
+  background: rgba(255, 138, 138, 0.12);
+  border-color: #ff8a8a;
+}
+.odl-dialog-content share-panel-row .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

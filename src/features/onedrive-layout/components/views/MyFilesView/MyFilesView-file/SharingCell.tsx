@@ -7,26 +7,21 @@
 
 import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useResource, useSubject } from '@ldo/solid-react';
-import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
 import { useSharingLabel } from '@/features/onedrive-layout/hooks/useSharingLabel';
+import { useContactProfile } from '@/shared/hooks/useContactProfile';
 
 interface SharingCellProps {
   uri: string;
 }
 
 /**
- * Resolves a single agent's WebID into their human-readable display
- * name (foaf:name / vcard:fn). Falls back to the raw WebID when the
- * profile document can't be loaded. The WebID is preserved as a
- * `title` attribute so it stays discoverable via tooltip.
+ * Resolves a single agent's WebID into their display name via the
+ * shared {@link useContactProfile} hook so SharePanel, HasAccessRow,
+ * and this cell all surface the same name. The WebID is preserved as
+ * a `title` attribute so it stays discoverable via tooltip.
  */
 const FirstAgentName: FunctionComponent<{ webId: string }> = ({ webId }) => {
-  // Trigger the profile document fetch so useSubject has data to bind to;
-  // without this, the hook returns undefined and we fall back to the WebID.
-  void useResource(webId);
-  const profile = useSubject(SolidProfileShapeType, webId);
-  const displayName = profile?.fn ?? profile?.name ?? webId;
+  const { displayName } = useContactProfile(webId);
   return <span title={webId}>{displayName}</span>;
 };
 

@@ -150,10 +150,10 @@ describe('Header — logged in', () => {
 
   it('falls back to a webId-derived identifier when no profile is loaded', () => {
     render(<Header />);
-    // getProfileDisplayName extracts the first meaningful segment from the WebID
-    // (skipping the scheme, "profile", and "card") so the user sees a recognisable
-    // host instead of the full URL.
-    expect(screen.getByText('user.solidcommunity.net')).toBeInTheDocument();
+    // Extracts the leftmost subdomain for Pod per-subdomain
+    // WebIDs (e.g. user.solidcommunity.net → "user") so a profile without a
+    // vcard:fn / foaf:name still shows a friendly identifier.
+    expect(screen.getByText('user')).toBeInTheDocument();
   });
 
   it('displays profile.fn as display name when available', () => {

@@ -115,6 +115,8 @@ declare module "react" {
       "topbar-menu-profile-webid": El;
       // OneDriveLayout — page header (title + toolbar row above main)
       "page-header": El;
+      "page-header-right": El;
+      "selection-actions": El;
       // OneDriveLayout — ContextualToolbar
       "contextual-toolbar": El;
       "toolbar-left": El;
@@ -124,6 +126,12 @@ declare module "react" {
       "detail-panel-header": El;
       "detail-panel-body": El;
       "detail-panel-empty": El;
+      "detail-panel-thumbnail": El;
+      "detail-panel-section": El;
+      "detail-panel-divider": El;
+      "detail-panel-row": El;
+      "editable-description": El;
+      "has-access-row": El;
     }
   }
 }

@@ -45,9 +45,13 @@ vi.mock('@/features/sharing/hooks/useAclManager', () => ({
   useAclManager: () => mockAclState,
 }));
 
-vi.mock('@/shared/utils', () => ({
-  getInitial: (name: string) => name.charAt(0).toUpperCase(),
-}));
+vi.mock('@/shared/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/utils')>();
+  return {
+    ...actual,
+    getInitial: (name: string) => name.charAt(0).toUpperCase(),
+  };
+});
 
 const baseProps = {
   containerUri: 'https://pod.example/my-solid-app/files/doc/',
@@ -196,7 +200,7 @@ describe('SharePanel', () => {
     mockResourceLoading = true;
     mockAclState.grantees = ['https://alice.example/profile/card#me'];
     render(<SharePanel {...baseProps} />);
-    expect(document.querySelector('.spinner--tiny')).toBeInTheDocument();
+    expect(document.querySelector('.avatar .spinner')).toBeInTheDocument();
     expect(screen.getAllByText('sharePanel.loading').length).toBeGreaterThan(0);
   });
 
@@ -204,7 +208,7 @@ describe('SharePanel', () => {
     mockResourceLoading = true;
     render(<SharePanel {...baseProps} />);
     // Alice and Bob are available contacts → ContactPickerRow renders for each
-    const spinners = document.querySelectorAll('.spinner--tiny');
+    const spinners = document.querySelectorAll('.avatar .spinner');
     expect(spinners.length).toBeGreaterThan(0);
   });
 
@@ -230,17 +234,14 @@ describe('SharePanel', () => {
     mockSubjectMap = {};
     mockAclState.grantees = ['https://unknown.example/profile/card#me'];
     render(<SharePanel {...baseProps} />);
-    // webId without fragment → 'https://unknown.example/profile/card'
-    // split('/') → ['https:', '', 'unknown.example', 'profile', 'card']
-    // filter(Boolean) → ['https:', 'unknown.example', 'profile', 'card']
-    // find: 'https:' starts with 'http' → skip; 'unknown.example' → found!
+    // host 'unknown.example' has only 2 parts → no subdomain to extract;
+    // path is '/profile/card' → all scaffolding → fall back to the host.
     expect(screen.getByText('unknown.example')).toBeInTheDocument();
   });
 
-  it('falls back to webId itself when all path segments are filtered out', () => {
-    // webId where all segments match exclusion conditions
-    // 'profile', 'card' are excluded; segments starting with 'http' are excluded
-    // So if URL is only http://profile/card#me → all filtered → ?? webId
+  it('falls back to the host when subdomain and path are uninformative', () => {
+    // host has a single label and path segments are all scaffolding
+    // ('card' / 'profile'), so we fall back to the host itself.
     mockSubjectMap = {};
     const webId = 'https://profile/card#me';
     mockAclState.grantees = [webId];
@@ -248,9 +249,6 @@ describe('SharePanel', () => {
       'https://owner.example/profile/card#me',
       webId,
     ]} />);
-    // After filter(Boolean) and removing 'https:', 'profile', 'card':
-    // 'https:' starts with 'http' → skip; 'profile' → excluded; 'card' → excluded
-    // find returns undefined → falls back to ?? webId
-    expect(screen.getByText(webId)).toBeInTheDocument();
+    expect(screen.getByText('profile')).toBeInTheDocument();
   });
 });

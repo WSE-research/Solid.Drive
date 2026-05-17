@@ -195,11 +195,42 @@
       "empty": "Select an item to see its details.",
       "close": "Close",
       "kindFile": "File",
-      "kindFolder": "Folder"
+      "kindFolder": "Folder",
+      "moreDetails": "More details",
+      "type": "Type",
+      "size": "Size",
+      "itemCount": "Items",
+      "created": "Created",
+      "modified": "Modified",
+      "podUri": "Pod URI",
+      "hasAccess": "Has access",
+      "addDescription": "Add a description…",
+      "saving": "Saving…",
+      "saveError": "Could not save description",
+      "sharedWith": "Shared with {{name}}"
     },
     "createMenu": {
       "newFolder": "New folder",
       "uploadFiles": "Upload files"
+    },
+    "action": {
+      "share": "Share",
+      "link": "Copy link",
+      "delete": "Delete",
+      "download": "Download",
+      "moveTo": "Move to",
+      "rename": "Rename",
+      "clearSelection": "Clear selection",
+      "selectionCount_one": "{{count}} selected",
+      "selectionCount_other": "{{count}} selected"
+    },
+    "toast": {
+      "linkCopied": "Link to \"{{name}}\" copied to clipboard",
+      "linkCopyFail": "Could not copy link",
+      "downloadFail": "Download failed",
+      "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+      "deleteSuccess": "\"{{name}}\" deleted",
+      "deleteFail": "Delete failed"
     }
   }
 }
