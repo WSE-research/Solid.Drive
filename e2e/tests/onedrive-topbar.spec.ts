@@ -43,11 +43,13 @@ test("the settings menu switches the UI language", async ({ browser, parni }) =>
   await page.getByRole("menuitemradio", { name: "Deutsch" }).click();
 
   // The whole shell should re-render in German: the same rail button now
-  // reads "Meine Dateien" and the page header title reads "Startseite".
+  // reads "Meine Dateien" and the Recent view's heading reads "Zuletzt".
+  // The default Recent view has no page-header, so the language check
+  // targets its own internal heading instead.
   await expect(
     page.locator("nav-rail").getByRole("button", { name: "Meine Dateien", exact: true }),
   ).toBeVisible({ timeout: UI_TIMEOUTS.short });
-  await expect(page.locator(".odl-page-title")).toHaveText("Startseite");
+  await expect(page.locator(".odl-recent__heading")).toHaveText("Zuletzt");
 
   await close();
 });

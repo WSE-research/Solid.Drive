@@ -50,7 +50,10 @@ export function useOneDriveActions({
     const ok = await copyToClipboard(selected.uri);
     if (ok) {
       showSuccess(
-        translate('oneDriveLayout.toast.linkCopied', 'Link copied to clipboard'),
+        translate('oneDriveLayout.toast.linkCopied', {
+          defaultValue: 'Link to "{{name}}" copied to clipboard',
+          name: selected.name,
+        }),
       );
     } else {
       showError(
