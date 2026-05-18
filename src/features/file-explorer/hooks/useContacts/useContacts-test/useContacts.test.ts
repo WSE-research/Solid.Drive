@@ -6,6 +6,7 @@ let mockProfileOverride: Record<string, unknown> | null | undefined = undefined;
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ session: { webId: 'https://pod.example/profile/card#me' } }),
   useSubject: () => mockProfileOverride,
+  useResource: () => undefined,
 }));
 
 vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
