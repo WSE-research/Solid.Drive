@@ -826,6 +826,15 @@ describe('OneDriveLayout — extra branch coverage', () => {
     render(<OneDriveLayout />);
     expect(screen.queryByTestId('mock-share-dialog')).not.toBeInTheDocument();
   });
+
+  it('falls back to an empty webId when the session has none yet', () => {
+    mockSession.current = { webId: undefined, isLoggedIn: false };
+    mockSelected.current = null;
+    render(<OneDriveLayout />);
+    // Render does not throw and the shell still mounts with no signed-in user.
+    expect(screen.getByTestId('onedrive-layout-root')).toBeInTheDocument();
+    mockSession.current = { webId: 'https://owner/me', isLoggedIn: true };
+  });
 });
 
 describe('OneDriveLayout — view change clears the active selection', () => {

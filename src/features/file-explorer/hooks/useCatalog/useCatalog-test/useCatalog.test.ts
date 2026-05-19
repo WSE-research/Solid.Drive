@@ -19,13 +19,17 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
   toContainerUri: (uri: string) => uri.replace(/index\.ttl$/, ''),
 }));
 
-import { useCatalog } from '../useCatalog-file/useCatalog';
+import {
+  __resetCatalogCacheForTests,
+  useCatalog,
+} from '../useCatalog-file/useCatalog';
 
 const CATALOG_URI = 'https://pod.example/catalog.ttl';
 
 describe('useCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __resetCatalogCacheForTests();
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('TTL') });
     mockParseCatalog.mockReturnValue([]);
   });
@@ -110,5 +114,19 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.loading).toBe(true));
     resolveFetch?.({ ok: true, text: () => Promise.resolve('TTL') });
     await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  it('serves a second consumer from the module cache without re-fetching', async () => {
+    mockParseCatalog.mockReturnValue([
+      { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
+    ]);
+    const { result: first } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(first.current.entries).toHaveLength(1));
+    const fetchCountAfterFirst = mockFetch.mock.calls.length;
+
+    const { result: second } = renderHook(() => useCatalog(CATALOG_URI));
+    expect(second.current.entries).toEqual(first.current.entries);
+    expect(second.current.loading).toBe(false);
+    expect(mockFetch.mock.calls.length).toBe(fetchCountAfterFirst);
   });
 });

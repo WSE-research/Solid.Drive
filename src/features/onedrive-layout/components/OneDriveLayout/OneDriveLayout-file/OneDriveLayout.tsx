@@ -28,6 +28,8 @@ import { ContextualToolbar } from '@/features/onedrive-layout/components/Context
 import { SelectionActions } from '@/features/onedrive-layout/components/SelectionActions';
 import { DetailPanel } from '@/features/onedrive-layout/components/DetailPanel';
 import { ShareDialog } from '@/features/onedrive-layout/components/ShareDialog';
+import { CatalogsPrefetcher } from '@/features/onedrive-layout/components/CatalogsPrefetcher';
+import { useRefreshCatalogsOnFocus } from '@/shared/hooks/useRefreshCatalogsOnFocus';
 import { CloseIcon } from '@/features/onedrive-layout/icons';
 import { RecentView } from '@/features/onedrive-layout/components/views/RecentView';
 import { MyFilesView } from '@/features/onedrive-layout/components/views/MyFilesView';
@@ -107,6 +109,11 @@ export const OneDriveLayout: FunctionComponent = () => {
   const profileName = getProfileDisplayName(profile, webId);
   const avatarSrc = profile?.img?.['@id'];
 
+  // Refresh the user's own catalog plus every cached shared catalog
+  // the moment the tab regains focus, so changes made from another
+  // tab or device land before the user navigates back to a view.
+  useRefreshCatalogsOnFocus(catalogUri);
+
   const catalogByContainer = useMemo(() => {
     const map = new Map<string, CatalogEntry>();
     for (const entry of catalogEntries) {
@@ -154,6 +161,10 @@ export const OneDriveLayout: FunctionComponent = () => {
   const handleUploadDone = useCallback(() => {
     setShowUpload(false);
     setPickedFile(undefined);
+    // Re-read the open folder so the newly uploaded container shows up
+    // without the user having to refresh. The catalog re-fetch is handled
+    // separately by the useCatalogVersion notification fired in useFileUpload.
+    setRefreshNonce((current) => current + 1);
   }, []);
 
   const handleShare = useCallback(() => setShareOpen(true), []);
@@ -180,6 +191,7 @@ export const OneDriveLayout: FunctionComponent = () => {
 
   return (
     <onedrive-layout data-testid="onedrive-layout-root">
+      <CatalogsPrefetcher contacts={contacts} viewerWebId={webId} />
       <TopBar
         searchValue={searchValue}
         onSearchChange={setSearchValue}

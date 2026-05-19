@@ -10,6 +10,7 @@
 
 import { Parser } from 'n3';
 import { removeFromCatalog } from '@/infrastructure/solid/catalog';
+import { notifyCatalogChanged } from '@/shared/hooks/useCatalogVersion';
 import type { FetchFn } from '@/types/solid';
 
 const LDP_CONTAINS = 'http://www.w3.org/ns/ldp#contains';
@@ -56,7 +57,7 @@ async function dropCompanionAcl(uri: string, fetch: FetchFn): Promise<void> {
 /**
  * Reads ldp:contains triples from a container's Turtle representation
  * and returns the absolute URIs of every immediate child. An empty list
- * is returned for any non-2xx response — callers should still attempt
+ * is returned for any non-2xx response. Callers should still attempt
  * the parent delete in that case, since the parent itself may be missing.
  */
 async function listContainerChildren(
@@ -94,6 +95,12 @@ export async function deleteResource(
       // delete.
       void error;
     });
+    // The catalog PATCH bypassed LDO, so push a local notification to
+    // wake every useCatalog consumer (file table, share dialog, etc.).
+    // Fires on both success and a swallowed error: in the error case
+    // the entry may still have been partially patched, and forcing a
+    // re-fetch is the safe choice over leaving consumers stale.
+    notifyCatalogChanged(args.catalogUri);
   }
 
   try {

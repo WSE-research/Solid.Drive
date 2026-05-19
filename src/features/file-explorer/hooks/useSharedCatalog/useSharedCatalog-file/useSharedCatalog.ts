@@ -8,7 +8,8 @@ import { useSolidAuth, useResource, useSubject } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { parseCatalog } from "@/infrastructure/solid/catalog";
 import { getAppContainerUri, getCandidateSharedCatalogUris, hasAccess } from "@/infrastructure/solid/sharedCatalog";
-import { DEFAULT_FILE_TYPE_URI } from "@/config";
+import { useSharedCatalogVersion } from "@/shared/hooks/useSharedCatalogVersion";
+import { DEFAULT_FILE_TYPE_URI, DEFAULT_CATALOG_FILENAME } from "@/config";
 import type { CatalogEntry } from "@/types";
 
 interface UseSharedCatalogReturn {
@@ -17,6 +18,157 @@ interface UseSharedCatalogReturn {
   resolvedCatalogUri: string | null;
   catalogAccessible: boolean;
   isProfileLoading: boolean;
+}
+
+interface ResolvedSharedCatalog {
+  sharedEntries: CatalogEntry[];
+  typeGroups: Map<string, CatalogEntry[]>;
+  resolvedCatalogUri: string | null;
+  catalogAccessible: boolean;
+}
+
+const EMPTY_RESOLVED: ResolvedSharedCatalog = {
+  sharedEntries: [],
+  typeGroups: new Map(),
+  resolvedCatalogUri: null,
+  catalogAccessible: false,
+};
+
+// Module-level cache. `SharedFilesTable` calls `useSharedCatalog` once
+// per contact, and `ContactSharedFiles` may render the same contact
+// alongside it in the People view, so two consumers can hit the same
+// (host, target) pair simultaneously. Without the cache, each consumer
+// re-runs the full fetch chain (per-viewer probe → main catalog fetch →
+// N hasAccess checks) from scratch.
+const sharedCatalogCache = new Map<string, ResolvedSharedCatalog>();
+const sharedCatalogInflight = new Map<string, Promise<ResolvedSharedCatalog>>();
+
+type SolidFetch = typeof fetch;
+
+function cacheKey(
+  catalogUris: string[],
+  mainCatalogUri: string | null,
+  version: number,
+): string {
+  return `${catalogUris.join("|")}::${mainCatalogUri ?? ""}#v${version}`;
+}
+
+function bucketByClass(entries: CatalogEntry[]): Map<string, CatalogEntry[]> {
+  const groups = new Map<string, CatalogEntry[]>();
+  for (const entry of entries) {
+    const key = entry.conformsTo || DEFAULT_FILE_TYPE_URI;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  return groups;
+}
+
+async function loadSharedCatalog(
+  catalogUris: string[],
+  mainCatalogUri: string | null,
+  solidFetch: SolidFetch,
+): Promise<ResolvedSharedCatalog> {
+  let foundShared: CatalogEntry[] = [];
+  let foundCatalogUri: string | null = null;
+  let perContactAccessible = false;
+
+  for (const catalogUri of catalogUris) {
+    try {
+      const response = await solidFetch(catalogUri);
+      if (!response.ok) continue;
+      const text = await response.text();
+      const parsed = parseCatalog(text, catalogUri);
+      perContactAccessible = true;
+      if (parsed.length > 0) {
+        foundShared = parsed;
+        foundCatalogUri = catalogUri;
+        break;
+      }
+    } catch {
+      // try next
+    }
+  }
+
+  if (perContactAccessible) {
+    const perViewerChecks = await Promise.all(
+      foundShared.map(async (entry) => ({
+        entry,
+        accessible: await hasAccess(entry.uri, solidFetch),
+      })),
+    );
+
+    const accessibleShared: CatalogEntry[] = [];
+    const browsable: CatalogEntry[] = [];
+    for (const { entry, accessible } of perViewerChecks) {
+      if (accessible) accessibleShared.push(entry);
+      else browsable.push(entry);
+    }
+
+    const extraAccessible: CatalogEntry[] = [];
+    if (mainCatalogUri) {
+      try {
+        const mainResponse = await solidFetch(mainCatalogUri);
+        if (mainResponse.ok) {
+          const mainText = await mainResponse.text();
+          const allMainEntries = parseCatalog(mainText, mainCatalogUri);
+          const sharedUris = new Set(foundShared.map((entry) => entry.uri));
+          const notYetShared = allMainEntries.filter((entry) => !sharedUris.has(entry.uri));
+
+          const accessChecks = await Promise.all(
+            notYetShared.map(async (entry) => ({
+              entry,
+              accessible: await hasAccess(entry.uri, solidFetch),
+            })),
+          );
+
+          for (const { entry, accessible } of accessChecks) {
+            if (accessible) extraAccessible.push(entry);
+            else browsable.push(entry);
+          }
+        }
+      } catch {
+        // silently ignore
+      }
+    }
+
+    return {
+      sharedEntries: [...accessibleShared, ...extraAccessible],
+      typeGroups: bucketByClass(browsable),
+      resolvedCatalogUri: foundCatalogUri,
+      catalogAccessible: true,
+    };
+  }
+
+  if (mainCatalogUri) {
+    try {
+      const response = await solidFetch(mainCatalogUri);
+      if (response.ok) {
+        const text = await response.text();
+        const parsed = parseCatalog(text, mainCatalogUri);
+        if (parsed.length > 0) {
+          const accessChecks = await Promise.all(
+            parsed.map(async (entry) => ({
+              entry,
+              accessible: await hasAccess(entry.uri, solidFetch),
+            })),
+          );
+
+          const accessible = accessChecks.filter((c) => c.accessible).map((c) => c.entry);
+          const browsable = accessChecks.filter((c) => !c.accessible).map((c) => c.entry);
+
+          return {
+            sharedEntries: accessible,
+            typeGroups: bucketByClass(browsable),
+            resolvedCatalogUri: mainCatalogUri,
+            catalogAccessible: true,
+          };
+        }
+      }
+    } catch {
+      // not accessible
+    }
+  }
+
+  return EMPTY_RESOLVED;
 }
 
 /**
@@ -47,156 +199,63 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
     () => storageRoot ? getCandidateSharedCatalogUris(getAppContainerUri(storageRoot), viewerWebId) : [],
     [storageRoot, viewerWebId]
   );
-  const mainCatalogUri = profile?.catalog?.["@id"] ?? (storageRoot ? `${storageRoot}catalog.ttl` : null);
+  const mainCatalogUri = profile?.catalog?.["@id"] ?? (storageRoot ? `${storageRoot}${DEFAULT_CATALOG_FILENAME}` : null);
 
-  const [sharedEntries, setSharedEntries] = useState<CatalogEntry[]>([]);
-  const [resolvedCatalogUri, setResolvedCatalogUri] = useState<string | null>(null);
-  const [typeGroups, setTypeGroups] = useState<Map<string, CatalogEntry[]>>(new Map());
-  const [catalogAccessible, setCatalogAccessible] = useState(false);
+  const [resolved, setResolved] = useState<ResolvedSharedCatalog>(EMPTY_RESOLVED);
+
+  // Global invalidation signal. Bumped by `notifySharedCatalogsChanged`
+  // (focus refresh, manual invalidation). Folded into the cache key so a
+  // bump becomes a cache miss across every consumer in one shot.
+  const sharedCatalogVersion = useSharedCatalogVersion();
 
   useEffect(() => {
     if (catalogUris.length === 0 && !mainCatalogUri) return;
+
+    const key = cacheKey(catalogUris, mainCatalogUri, sharedCatalogVersion);
+    const cached = sharedCatalogCache.get(key);
+    if (cached) {
+      setResolved(cached);
+      return;
+    }
+
     let cancelled = false;
 
-    void (async () => {
-      let foundShared: CatalogEntry[] = [];
-      let foundCatalogUri: string | null = null;
-      let perContactAccessible = false;
-
-      for (const catalogUri of catalogUris) {
+    let promise = sharedCatalogInflight.get(key);
+    if (!promise) {
+      promise = (async () => {
         try {
-          const response = await solidFetch(catalogUri);
-          if (!response.ok) continue;
-          const text = await response.text();
-          const parsed = parseCatalog(text, catalogUri);
-          if (cancelled) return;
-          perContactAccessible = true;
-          if (parsed.length > 0) {
-            foundShared = parsed;
-            foundCatalogUri = catalogUri;
-            break;
-          }
-        } catch {
-          // try next
+          const result = await loadSharedCatalog(catalogUris, mainCatalogUri, solidFetch);
+          sharedCatalogCache.set(key, result);
+          return result;
+        } finally {
+          sharedCatalogInflight.delete(key);
         }
-      }
+      })();
+      sharedCatalogInflight.set(key, promise);
+    }
 
-      /* v8 ignore next 2 */
-      if (cancelled) return;
-
-      if (perContactAccessible) {
-        const perViewerChecks = await Promise.all(
-          foundShared.map(async (entry) => ({
-            entry,
-            accessible: await hasAccess(entry.uri, solidFetch),
-          }))
-        );
-        if (cancelled) return;
-
-        const accessibleShared: CatalogEntry[] = [];
-        const groups = new Map<string, CatalogEntry[]>();
-        const addBrowsable = (entry: CatalogEntry) => {
-          const key = entry.conformsTo || DEFAULT_FILE_TYPE_URI;
-          groups.set(key, [...(groups.get(key) ?? []), entry]);
-        };
-
-        for (const { entry, accessible } of perViewerChecks) {
-          if (accessible) accessibleShared.push(entry);
-          else addBrowsable(entry);
-        }
-
-        setCatalogAccessible(true);
-        setSharedEntries(accessibleShared);
-        setResolvedCatalogUri(foundCatalogUri);
-
-        if (mainCatalogUri) {
-          try {
-            const mainResponse = await solidFetch(mainCatalogUri);
-            if (mainResponse.ok) {
-              const mainText = await mainResponse.text();
-              const allMainEntries = parseCatalog(mainText, mainCatalogUri);
-              const sharedUris = new Set(foundShared.map((entry) => entry.uri));
-              const notYetShared = allMainEntries.filter((entry) => !sharedUris.has(entry.uri));
-
-              const accessChecks = await Promise.all(
-                notYetShared.map(async (entry) => ({
-                  entry,
-                  accessible: await hasAccess(entry.uri, solidFetch),
-                }))
-              );
-
-              if (cancelled) return;
-
-              const recoveredShared: CatalogEntry[] = [];
-
-              for (const { entry, accessible } of accessChecks) {
-                if (accessible) recoveredShared.push(entry);
-                else addBrowsable(entry);
-              }
-
-              if (recoveredShared.length > 0) {
-                setSharedEntries((prev) => [...prev, ...recoveredShared]);
-              }
-            }
-          } catch {
-            // silently ignore
-          }
-        }
-
-        setTypeGroups(groups);
-        return;
-      }
-
-      if (mainCatalogUri) {
-        try {
-          const response = await solidFetch(mainCatalogUri);
-          if (response.ok) {
-            const text = await response.text();
-            const parsed = parseCatalog(text, mainCatalogUri);
-            if (cancelled) return;
-            if (parsed.length > 0) {
-              const accessChecks = await Promise.all(
-                parsed.map(async (entry) => ({
-                  entry,
-                  accessible: await hasAccess(entry.uri, solidFetch),
-                }))
-              );
-              if (cancelled) return;
-
-              const accessible = accessChecks.filter((c) => c.accessible).map((c) => c.entry);
-              const browsable = accessChecks.filter((c) => !c.accessible).map((c) => c.entry);
-
-              setSharedEntries(accessible);
-              setResolvedCatalogUri(mainCatalogUri);
-              setCatalogAccessible(true);
-
-              if (browsable.length > 0) {
-                const groups = new Map<string, CatalogEntry[]>();
-                for (const entry of browsable) {
-                  const key = entry.conformsTo || DEFAULT_FILE_TYPE_URI;
-                  const existing = groups.get(key) ?? [];
-                  groups.set(key, [...existing, entry]);
-                }
-                setTypeGroups(groups);
-              }
-              return;
-            }
-          }
-        } catch {
-          // not accessible
-        }
-      }
-
-      if (!cancelled) {
-        setSharedEntries([]);
-        setTypeGroups(new Map());
-        setResolvedCatalogUri(null);
-        setCatalogAccessible(false);
-      }
-    })();
+    void promise.then((result) => {
+      if (!cancelled) setResolved(result);
+    });
 
     return () => { cancelled = true; };
-  }, [catalogUris, mainCatalogUri, solidFetch]);
+  }, [catalogUris, mainCatalogUri, solidFetch, sharedCatalogVersion]);
 
-  return { sharedEntries, typeGroups, resolvedCatalogUri, catalogAccessible, isProfileLoading };
+  return {
+    sharedEntries: resolved.sharedEntries,
+    typeGroups: resolved.typeGroups,
+    resolvedCatalogUri: resolved.resolvedCatalogUri,
+    catalogAccessible: resolved.catalogAccessible,
+    isProfileLoading,
+  };
+}
+
+/**
+ * Test-only helper that wipes the module cache.
+ *
+ * @internal
+ */
+export function __resetSharedCatalogCacheForTests(): void {
+  sharedCatalogCache.clear();
+  sharedCatalogInflight.clear();
 }

@@ -14,7 +14,7 @@
  *     search results table ({@link MyFilesSearchTable}).
  *
  * The page heading and contextual toolbar (Sort / Details) live in
- * {@link OneDriveLayout}'s page header — not in this component.
+ * {@link OneDriveLayout}'s page header, not in this component.
  *
  * @packageDocumentation
  */
@@ -28,6 +28,7 @@ import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
 import { resolveCatalogUri } from '@/infrastructure/solid/catalog';
 import { useDriveInitialization } from '@/features/file-explorer/hooks/useDriveInitialization';
 import { useCatalog } from '@/features/file-explorer/hooks/useCatalog';
+import { useCatalogVersion } from '@/shared/hooks/useCatalogVersion';
 import { useFileSearch } from '@/features/file-explorer/hooks/useFileSearch';
 import { useUploadQueue } from '@/features/file-explorer/hooks/useUploadQueue';
 import { DropZone } from '@/features/file-explorer/components/DropZone';
@@ -109,6 +110,11 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
   const { entries: catalogEntries, containerUris: catalogContainerUris } =
     useCatalog(catalogUri);
+  // Bumped whenever any catalog PATCH (upload, delete) fires
+  // notifyCatalogChanged. Drives the container re-read below so bulk
+  // uploads, single uploads, and out-of-band deletes all show new
+  // files without the user having to refresh.
+  const catalogVersion = useCatalogVersion(catalogUri);
   const { debouncedQuery, results: searchResults } = useFileSearch(
     catalogEntries,
     searchValue,
@@ -143,13 +149,15 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   // still works through manual reads.
   const currentContainer = useResource(currentUri, { subscribe: true });
 
-  // When the parent signals a stale folder, re-fetch from the pod and
-  // bump local state so React re-evaluates the rendered children. The
-  // fetch on its own does not trigger a re-render. Skip the initial
-  // render so the view does not double-fetch on mount.
+  // When the parent signals a stale folder OR any catalog mutation
+  // fires (upload, delete via notifyCatalogChanged), re-fetch the
+  // container from the pod and bump local state so React re-evaluates
+  // the rendered children. The fetch on its own does not trigger a
+  // re-render. Skip the initial render so the view does not
+  // double-fetch on mount.
   const [, setReloadTick] = useState(0);
   useEffect(() => {
-    if (!refreshNonce) return;
+    if (!refreshNonce && !catalogVersion) return;
     if (!isSolidContainer(currentContainer)) return;
     let cancelled = false;
     void currentContainer.read().then(() => {
@@ -158,7 +166,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [refreshNonce, currentContainer]);
+  }, [refreshNonce, catalogVersion, currentContainer]);
 
   const currentFolderLabel =
     breadcrumbs.length > 0
