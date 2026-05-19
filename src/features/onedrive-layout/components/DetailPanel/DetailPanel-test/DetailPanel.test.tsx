@@ -21,16 +21,22 @@ vi.mock('../HasAccessRow', () => ({
 }));
 
 let mockPreviewUrl: string | undefined;
+let mockPreviewCalls: Array<string | undefined> = [];
 vi.mock('@/features/file-explorer', () => ({
-  useFilePreview: () => ({ previewUrl: mockPreviewUrl }),
+  useFilePreview: (uri: string | undefined) => {
+    mockPreviewCalls.push(uri);
+    return { previewUrl: mockPreviewUrl };
+  },
 }));
 
+let mockResource: unknown = null;
 vi.mock('@ldo/solid-react', () => ({
-  useResource: () => null,
+  useResource: () => mockResource,
 }));
 
+let mockIsContainer: (entry: unknown) => boolean = () => false;
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isSolidContainer: () => false,
+  isSolidContainer: (entry: unknown) => mockIsContainer(entry),
 }));
 
 const fileSelected = {
@@ -50,6 +56,7 @@ const fileDetails = {
   uri: 'https://pod/app/report/',
   name: 'report.pdf',
   metadataUri: 'https://pod/app/report/index.ttl',
+  binaryUri: undefined,
   description: undefined,
   mediaType: 'application/pdf',
   conformsTo: undefined,
@@ -363,5 +370,69 @@ describe('DetailPanel', () => {
     expect(
       container.querySelector('[data-preview-kind="icon"]'),
     ).not.toBeNull();
+  });
+
+  it('uses details.binaryUri directly when the catalog already knows it (no container scan)', () => {
+    mockPreviewUrl = 'blob:preview-direct';
+    mockPreviewCalls = [];
+    mockResource = null;
+    mockIsContainer = () => false;
+    render(
+      <DetailPanel
+        open
+        selected={fileSelected}
+        details={{
+          ...fileDetails,
+          mediaType: 'image/png',
+          binaryUri: 'https://pod/app/report/photo.png',
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(mockPreviewCalls).toContain('https://pod/app/report/photo.png');
+    mockPreviewUrl = undefined;
+  });
+
+  it('renders the Type row with the empty-cell placeholder when mediaType is missing', () => {
+    render(
+      <DetailPanel
+        open
+        selected={fileSelected}
+        details={{ ...fileDetails, mediaType: undefined }}
+        onClose={vi.fn()}
+      />,
+    );
+    // No mediaType, no preview kind, no preview element.
+    expect(screen.queryByText('application/pdf')).not.toBeInTheDocument();
+  });
+
+  it('falls back to a container scan when binaryUri is missing and picks the non-index leaf', () => {
+    mockPreviewUrl = 'blob:preview-scanned';
+    mockPreviewCalls = [];
+    const binaryChild = { uri: 'https://pod/app/report/photo.png' };
+    const indexChild = { uri: 'https://pod/app/report/index.ttl' };
+    mockResource = {
+      uri: 'https://pod/app/report/',
+      children: () => [binaryChild, indexChild],
+    };
+    mockIsContainer = (entry: unknown) => {
+      if (entry === binaryChild || entry === indexChild) return false;
+      return entry === mockResource;
+    };
+
+    render(
+      <DetailPanel
+        open
+        selected={fileSelected}
+        details={{ ...fileDetails, mediaType: 'image/png', binaryUri: undefined }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(mockPreviewCalls).toContain('https://pod/app/report/photo.png');
+
+    mockPreviewUrl = undefined;
+    mockResource = null;
+    mockIsContainer = () => false;
   });
 });

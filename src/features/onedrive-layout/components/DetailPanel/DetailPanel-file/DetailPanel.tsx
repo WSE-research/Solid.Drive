@@ -78,11 +78,16 @@ interface FilePreviewProps {
 }
 
 const FilePreview: FunctionComponent<FilePreviewProps> = ({ details }) => {
-  // `details.uri` is the file's container, not the binary. Mirror
-  // FileCard: scan the children for the non-`index.ttl` leaf and feed
-  // that to the auth-aware preview hook.
-  const containerResource = useResource(details.uri);
-  const binaryUri = useMemo(() => {
+  // When the catalog already knows the binary URI (the common case for
+  // catalog-backed files), use it directly so the image fetch can start
+  // immediately. Fall back to a container scan only for files that
+  // are selected but not in the catalog yet.
+  const needsContainerScan = !details.binaryUri;
+  const containerResource = useResource(
+    needsContainerScan ? details.uri : undefined,
+  );
+  const scannedBinaryUri = useMemo(() => {
+    if (!needsContainerScan) return undefined;
     if (!isSolidContainer(containerResource)) return undefined;
     const leaf = containerResource
       .children()
@@ -91,8 +96,8 @@ const FilePreview: FunctionComponent<FilePreviewProps> = ({ details }) => {
           !isSolidContainer(child) && !child.uri.endsWith(INDEX_FILE),
       );
     return leaf?.uri;
-  }, [containerResource]);
-  const { previewUrl } = useFilePreview(binaryUri);
+  }, [needsContainerScan, containerResource]);
+  const { previewUrl } = useFilePreview(details.binaryUri ?? scannedBinaryUri);
   const kind = pickPreviewKind(details.mediaType);
 
   if (!previewUrl || kind === 'none') {
@@ -105,9 +110,20 @@ const FilePreview: FunctionComponent<FilePreviewProps> = ({ details }) => {
 
   return (
     <detail-panel-thumbnail data-preview-kind={kind}>
-      {kind === 'image' && <img src={previewUrl} alt={details.name} />}
-      {kind === 'video' && <video src={previewUrl} controls />}
-      {kind === 'audio' && <audio src={previewUrl} controls />}
+      {kind === 'image' && (
+        <img
+          src={previewUrl}
+          alt={details.name}
+          decoding="async"
+          loading="eager"
+        />
+      )}
+      {kind === 'video' && (
+        <video src={previewUrl} controls preload="metadata" />
+      )}
+      {kind === 'audio' && (
+        <audio src={previewUrl} controls preload="metadata" />
+      )}
       {kind === 'document' && (
         <iframe src={previewUrl} title={details.name} />
       )}

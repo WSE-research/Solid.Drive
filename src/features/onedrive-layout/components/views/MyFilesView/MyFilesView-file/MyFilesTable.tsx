@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { DragEvent, FunctionComponent } from 'react';
 import { useResource } from '@ldo/solid-react';
 import { useTranslation } from 'react-i18next';
@@ -42,8 +42,8 @@ const ROW_ICON_PX = 24;
 
 /**
  * Renders the leading file/folder icon used by every row's Name cell.
- * Self-contained branded SVG with no CSS tile background — for example
- * a yellow folder or a blue Word document glyph. Width and height are
+ * Self-contained branded SVG with no CSS tile background (for example a
+ * yellow folder or a blue Word document glyph). Width and height are
  * passed as props so the SVG has explicit attributes regardless of
  * cascading styles.
  *
@@ -76,7 +76,7 @@ interface MyFilesTableProps {
 
 interface FolderRowProps {
   entry: SolidContainer;
-  catalogContainerUris: Set<string>;
+  isCatalogContainer: boolean;
   catalogEntry: CatalogEntry | undefined;
   selected: boolean;
   onNavigate: (uri: string, label: string) => void;
@@ -101,7 +101,7 @@ interface CatalogFileRowProps {
  * but its `index.ttl` carries the metadata we surface as the row title,
  * size, modified date, and sharing state.
  */
-const CatalogFileRow: FunctionComponent<CatalogFileRowProps> = ({
+const CatalogFileRow = memo<CatalogFileRowProps>(({
   uri,
   catalogEntry,
   selected,
@@ -145,11 +145,12 @@ const CatalogFileRow: FunctionComponent<CatalogFileRowProps> = ({
       </span>
     </div>
   );
-};
+});
+CatalogFileRow.displayName = 'CatalogFileRow';
 
-const FolderRow: FunctionComponent<FolderRowProps> = ({
+const FolderRow = memo<FolderRowProps>(({
   entry,
-  catalogContainerUris,
+  isCatalogContainer,
   catalogEntry,
   selected,
   onNavigate,
@@ -158,7 +159,6 @@ const FolderRow: FunctionComponent<FolderRowProps> = ({
   onFolderDragOverChange,
 }) => {
   const [translate] = useTranslation();
-  const isCatalogContainer = catalogContainerUris.has(entry.uri);
   // Skip the fetch when the catalog already tells us this URI is a file.
   // Pass undefined to useResource so it does not request the container.
   const resource = useResource(isCatalogContainer ? undefined : entry.uri);
@@ -246,7 +246,8 @@ const FolderRow: FunctionComponent<FolderRowProps> = ({
       </span>
     </div>
   );
-};
+});
+FolderRow.displayName = 'FolderRow';
 
 interface LeafRowProps {
   entry: SolidLeaf;
@@ -254,7 +255,7 @@ interface LeafRowProps {
   onSelect: (resource: NonNullable<SelectedResource>) => void;
 }
 
-const LeafRow: FunctionComponent<LeafRowProps> = ({ entry, selected, onSelect }) => {
+const LeafRow = memo<LeafRowProps>(({ entry, selected, onSelect }) => {
   const name = decodeUriTail(entry.uri);
   const fileIcon = pickFileIcon({ name });
   const handleSelect = () => onSelect({ kind: 'file', uri: entry.uri, name });
@@ -287,7 +288,8 @@ const LeafRow: FunctionComponent<LeafRowProps> = ({ entry, selected, onSelect })
       </span>
     </div>
   );
-};
+});
+LeafRow.displayName = 'LeafRow';
 
 /**
  * Browse-mode table body. Renders sorted folder rows followed by sorted
@@ -374,7 +376,7 @@ export const MyFilesTable: FunctionComponent<MyFilesTableProps> = ({
           <FolderRow
             key={entry.uri}
             entry={entry}
-            catalogContainerUris={catalogContainerUris}
+            isCatalogContainer={catalogContainerUris.has(entry.uri)}
             catalogEntry={catalogByContainer.get(entry.uri)}
             selected={selectedUri === entry.uri}
             onNavigate={onNavigate}

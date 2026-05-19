@@ -31,11 +31,33 @@ export const FileMediaPreview: FunctionComponent<FileMediaPreviewProps> = ({
   const isDocument = mimeType === CONTENT_TYPES.PDF || mimeType.startsWith(MIME_PREFIXES.TEXT);
 
   if (mimeType.startsWith(MIME_PREFIXES.IMAGE))
-    return <img className="file-card__preview" src={previewUrl} alt={previewLabel} />;
+    return (
+      <img
+        className="file-card__preview"
+        src={previewUrl}
+        alt={previewLabel}
+        decoding="async"
+        loading="lazy"
+      />
+    );
   if (mimeType.startsWith(MIME_PREFIXES.VIDEO))
-    return <video className="file-card__preview" src={previewUrl} controls />;
+    return (
+      <video
+        className="file-card__preview"
+        src={previewUrl}
+        controls
+        preload="metadata"
+      />
+    );
   if (mimeType.startsWith(MIME_PREFIXES.AUDIO))
-    return <audio className="file-card__preview--audio" src={previewUrl} controls />;
+    return (
+      <audio
+        className="file-card__preview--audio"
+        src={previewUrl}
+        controls
+        preload="metadata"
+      />
+    );
   if (isDocument)
     return <iframe className="file-card__preview--doc" src={previewUrl} title={previewLabel} />;
   return null;

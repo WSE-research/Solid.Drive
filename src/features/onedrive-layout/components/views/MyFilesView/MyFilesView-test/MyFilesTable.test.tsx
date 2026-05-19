@@ -347,4 +347,38 @@ describe('MyFilesTable — bare folder rows', () => {
     });
     // No error thrown = the empty dropHandlers {} branch was exercised
   });
+
+  it('drag-over with Files preventDefaults the event so the drop handler fires', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDrop={vi.fn()}
+        onFolderDragOverChange={vi.fn()}
+      />,
+    );
+    const prevented = !fireEvent.dragOver(screen.getByRole('row'), {
+      dataTransfer: { types: ['Files'] },
+    });
+    expect(prevented).toBe(true);
+  });
+
+  it('drag-over with non-Files data is ignored and does not preventDefault', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDrop={vi.fn()}
+        onFolderDragOverChange={vi.fn()}
+      />,
+    );
+    const prevented = !fireEvent.dragOver(screen.getByRole('row'), {
+      dataTransfer: { types: ['text/plain'] },
+    });
+    expect(prevented).toBe(false);
+  });
 });

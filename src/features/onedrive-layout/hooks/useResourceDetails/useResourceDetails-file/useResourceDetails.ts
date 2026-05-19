@@ -19,6 +19,7 @@ export type ResourceDetails =
       uri: string;
       name: string;
       metadataUri: string;
+      binaryUri: string | undefined;
       description: string | undefined;
       mediaType: string | undefined;
       conformsTo: string | undefined;
@@ -40,6 +41,10 @@ export interface UseResourceDetailsArgs {
 }
 
 /**
+ * Returns the catalog-enriched view of the currently selected resource,
+ * or `null` when nothing is selected. For folders, the child count is
+ * read from the live container resource.
+ *
  * @public
  */
 export function useResourceDetails({
@@ -48,7 +53,7 @@ export function useResourceDetails({
 }: UseResourceDetailsArgs): ResourceDetails | null {
   // Call useResource unconditionally to keep hook order stable. Passing
   // `undefined` when no folder is selected is the documented disabled
-  // state for `@ldo/solid-react`'s useResource — it skips fetching and
+  // state for `@ldo/solid-react`'s useResource: it skips fetching and
   // returns undefined.
   const folderUri = selection?.kind === 'folder' ? selection.uri : undefined;
   const folderResource = useResource(folderUri);
@@ -62,6 +67,7 @@ export function useResourceDetails({
       uri: selection.uri,
       name: entry?.title ?? selection.name,
       metadataUri: `${selection.uri}${INDEX_FILE}`,
+      binaryUri: entry?.accessURL,
       description: entry?.description,
       mediaType: entry?.mediaType,
       conformsTo: entry?.conformsTo,
