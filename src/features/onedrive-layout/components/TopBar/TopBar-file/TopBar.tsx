@@ -1,8 +1,8 @@
 /**
  * Sticky top bar for the OneDrive inspired layout.
- * Hosts the search input, a Settings dropdown with the language switcher
- * and layout toggle, and an avatar dropdown that surfaces the signed-in
- * profile name, WebID, a View profile link, and a Log out action.
+ * Hosts the search input, a Settings dropdown (language, theme, and layout
+ * toggles), and an avatar dropdown that surfaces the signed-in profile name,
+ * WebID, a View profile link, and a Log out action.
  *
  * The centered search input collapses to an icon button at narrow
  * viewports via CSS. Clicking the icon expands a full-width overlay
@@ -19,13 +19,9 @@ import { useSolidAuth } from '@ldo/solid-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/shared/components/Avatar';
 import { getInitial } from '@/shared/utils/getInitial';
-import {
-  GearIcon,
-  CheckmarkIcon,
-  SearchIcon,
-  CloseIcon,
-} from '@/features/onedrive-layout/icons';
+import { GearIcon, CheckmarkIcon, SearchIcon, CloseIcon } from '@/features/onedrive-layout/icons';
 import { LayoutToggle } from '@/features/onedrive-layout/components/LayoutToggle';
+import { ThemeToggle } from '@/features/onedrive-layout/components/ThemeToggle';
 import { SUPPORTED_LANGUAGES } from '@/config';
 import logoUrl from '@/assets/solid-drive-logo.png';
 
@@ -66,7 +62,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
   const openSearch = useCallback(() => setSearchExpanded(true), []);
   const closeSearch = useCallback(() => setSearchExpanded(false), []);
 
-  // Auto-focus the overlay input when it opens, and let Escape close it.
   useEffect(() => {
     if (!searchExpanded) return;
     overlayInputRef.current?.focus();
@@ -100,9 +95,7 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
 
       <topbar-actions>
 
-      {/* Compact search trigger — anchored on the right alongside the
-          gear/avatar. Hidden on wide viewports via CSS; clicking it
-          opens the full-width search overlay rendered below. */}
+      {/* Hidden on wide viewports via CSS; opens the full-width overlay below. */}
       <button
         type="button"
         className="topbar-icon topbar-search-trigger"
@@ -112,7 +105,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
         <SearchIcon aria-hidden focusable={false} />
       </button>
 
-      {/* Settings dropdown: language switcher + layout toggle */}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
@@ -153,6 +145,15 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
             <DropdownMenu.Separator className="topbar-menu__separator" />
 
             <DropdownMenu.Label className="topbar-menu__label">
+              {translate('oneDriveLayout.theme', 'Theme')}
+            </DropdownMenu.Label>
+            <topbar-menu-row>
+              <ThemeToggle />
+            </topbar-menu-row>
+
+            <DropdownMenu.Separator className="topbar-menu__separator" />
+
+            <DropdownMenu.Label className="topbar-menu__label">
               {translate('oneDriveLayout.layout', 'Layout')}
             </DropdownMenu.Label>
             <topbar-menu-row>
@@ -162,7 +163,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
-      {/* Avatar dropdown: profile header + View profile + Log out */}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
@@ -219,11 +219,7 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
 
       </topbar-actions>
 
-      {/* Full-width search overlay — replaces the topbar content row
-          when the user activates the compact search button. Magnifier
-          icon on the left, input fills the rest, close button on the
-          right. The overlay shares state with the centered search
-          input, so the typed query persists when it closes. */}
+      {/* Shares state with the centered search input, so the typed query persists when it closes. */}
       {searchExpanded && (
         <topbar-search-overlay role="search" data-testid="topbar-search-overlay">
           <span className="topbar-search-overlay__icon" aria-hidden>

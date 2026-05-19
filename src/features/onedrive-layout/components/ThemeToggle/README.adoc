@@ -1,0 +1,15 @@
+= ThemeToggle
+
+Labeled `Theme [Light v]` dropdown bound to the persisted theme preference.
+Mounted inside the TopBar's Settings dropdown above the LayoutToggle.
+
+Stateless wrapper around link:../../hooks/useThemePreference/[useThemePreference].
+The hook owns the value, mirrors it onto `document.documentElement` as `data-theme`, and writes to `localStorage`.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useThemePreference/[useThemePreference]
