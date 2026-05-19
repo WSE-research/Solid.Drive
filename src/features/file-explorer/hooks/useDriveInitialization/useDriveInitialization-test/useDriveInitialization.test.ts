@@ -248,4 +248,40 @@ describe('useDriveInitialization', () => {
     });
     expect(result.current.currentUri).toBe(before);
   });
+
+  it('handleNavigate ignores URIs outside the storage root', () => {
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    const before = result.current.currentUri;
+    act(() => {
+      result.current.handleNavigate('https://other-pod.example/foo/');
+    });
+    expect(result.current.currentUri).toBe(before);
+  });
+
+  it('handleBreadcrumbClick ignores URIs outside the storage root', () => {
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    const before = result.current.currentUri;
+    act(() => {
+      result.current.handleBreadcrumbClick(
+        0,
+        'https://other-pod.example/foo/' as import('@ldo/connected-solid').SolidContainerUri,
+      );
+    });
+    expect(result.current.currentUri).toBe(before);
+  });
+
+  it('handleNavigate and handleBreadcrumbClick early-return when storageRootUri is undefined', () => {
+    mockProfileValue = null;
+    const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    expect(result.current.storageRootUri).toBeUndefined();
+    act(() => {
+      result.current.handleNavigate('https://anything.example/foo/');
+      result.current.handleBreadcrumbClick(
+        0,
+        'https://anything.example/foo/' as import('@ldo/connected-solid').SolidContainerUri,
+      );
+    });
+    // No navigation occurred, currentUri remains undefined.
+    expect(result.current.currentUri).toBeUndefined();
+  });
 });

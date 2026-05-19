@@ -1043,6 +1043,22 @@ selection-actions-kebab {
   font-size: var(--odl-font-size-sm);
 }
 
+/* Drop-zone banner reskin. App.css's `drop-zone.drop-zone--active` rule has
+   higher specificity than a single class, so the scoped `.odl-main` prefix
+   is needed for the dark tokens to take effect over the classic light ones. */
+.odl-main drop-zone.drop-zone--active {
+  background: var(--odl-bg-elevated);
+  border: 2px dashed var(--odl-accent);
+  border-radius: var(--odl-radius-card);
+  color: var(--odl-text);
+}
+.odl-main drop-zone-icon {
+  color: var(--odl-accent);
+}
+.odl-main drop-zone-label {
+  color: var(--odl-text);
+}
+
 /* Primary action button (Create / Upload). Both `new-folder-input` and
    `file-upload` host their submit button as the FIRST `<button>` in the
    form — that's the one we paint accent-blue. */
@@ -2232,7 +2248,10 @@ people-list-add {
   align-items: center;
 }
 
-.odl-people-list__add-input {
+/* The `input[type="text"]` rule in App.css has type+attribute specificity
+   (0,1,1), which beats a single class selector. Qualifying with the tag
+   bumps this rule to the same level, so the dark tokens stick. */
+input[type="text"].odl-people-list__add-input {
   appearance: none;
   flex: 1;
   min-width: 0;
@@ -2247,11 +2266,15 @@ people-list-add {
   outline: none;
   transition: border-color var(--odl-transition-fast),
               background var(--odl-transition-fast);
+  box-shadow: none;
 }
-.odl-people-list__add-input::placeholder { color: var(--odl-text-faint); }
-.odl-people-list__add-input:focus {
+input[type="text"].odl-people-list__add-input::placeholder {
+  color: var(--odl-text-faint);
+}
+input[type="text"].odl-people-list__add-input:focus {
   border-color: var(--odl-accent);
   background: var(--odl-bg-panel);
+  box-shadow: none;
 }
 
 .odl-people-list__add-submit {

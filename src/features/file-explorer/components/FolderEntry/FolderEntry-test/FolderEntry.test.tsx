@@ -83,4 +83,32 @@ describe('FolderEntry', () => {
     fireEvent.dragLeave(button);
     expect(button.classList.contains('folder-entry--drop-target')).toBe(false);
   });
+
+  it('drag-over with Files preventDefaults so the browser fires drop', () => {
+    const { container } = render(
+      <FolderEntry uri="https://pod.example/photos/" onNavigate={vi.fn()} onDrop={vi.fn()} onDragOverChange={vi.fn()} />
+    );
+    const button = container.querySelector('button')!;
+    const prevented = !fireEvent.dragOver(button, { dataTransfer: { types: ['Files'] } });
+    expect(prevented).toBe(true);
+  });
+
+  it('drag-over with non-Files data does not preventDefault', () => {
+    const { container } = render(
+      <FolderEntry uri="https://pod.example/photos/" onNavigate={vi.fn()} onDrop={vi.fn()} onDragOverChange={vi.fn()} />
+    );
+    const button = container.querySelector('button')!;
+    const prevented = !fireEvent.dragOver(button, { dataTransfer: { types: ['text/plain'] } });
+    expect(prevented).toBe(false);
+  });
+
+  it('drag-enter with non-Files data is ignored', () => {
+    const onDragOverChange = vi.fn();
+    const { container } = render(
+      <FolderEntry uri="https://pod.example/photos/" onNavigate={vi.fn()} onDrop={vi.fn()} onDragOverChange={onDragOverChange} />
+    );
+    const button = container.querySelector('button')!;
+    fireEvent.dragEnter(button, { dataTransfer: { types: ['text/plain'] } });
+    expect(onDragOverChange).not.toHaveBeenCalled();
+  });
 });
