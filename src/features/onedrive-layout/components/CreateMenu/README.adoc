@@ -1,10 +1,11 @@
 = CreateMenu
 
-Dropdown rendered above the OneDrive NavRail.
-The trigger is the rail's `+` button.
+Dropdown anchored on the NavRail's Create control.
 
-"New folder":: Fires the `onNewFolder` callback.
-"Upload files":: Clicks a hidden `<input type="file" multiple>` so the OS file picker opens, then forwards the chosen files to `onFilesPicked` so the parent shell can prefill the upload form.
+* "New folder" fires `onNewFolder`.
+* "Upload files" opens the OS file picker via a hidden input and forwards the chosen files to `onFilesPicked`.
+
+The trigger renders as an icon-only `+` circle when `expanded` is false, or as a `+ Create or upload` pill when true.
 
 == Props
 
@@ -12,18 +13,18 @@ The trigger is the rail's `+` button.
 |===
 | Prop | Description
 
-| `onNewFolder` | Fired when the user picks "New folder"
-| `onFilesPicked` | Fired with the picked files when the user picks "Upload files"
+| `onNewFolder` | "New folder" handler.
+| `onFilesPicked` | "Upload files" handler.
+| `expanded` | When true, renders the pill trigger. Defaults to false.
+| `labelShort` | Override for the collapsed accessible name. Defaults to the `oneDriveLayout.create` i18n string.
+| `labelLong` | Override for the expanded label and accessible name. Defaults to `oneDriveLayout.createOrUpload`.
 |===
 
 == See also
 
-* link:../NavRail/[NavRail] anchors this menu on its `+` button, and falls back to a disabled `+` button when no create callbacks are wired.
+* link:../NavRail/[NavRail]
 
 == Navigation
 
 .Parent
 link:../[onedrive-layout/components]
-
-.Uses
-* link:../../icons/[icons]

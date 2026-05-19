@@ -7,6 +7,7 @@ Each hook owns one piece of state that the layout, a view, or a toolbar needs: t
 
 link:useViewParam/[useViewParam]:: Reads and writes the active view through the `?view=` URL search param.
 link:useLayoutPreference/[useLayoutPreference]:: Reads and writes the user's Classic vs OneDrive choice in `localStorage`.
+link:useNavRailExpanded/[useNavRailExpanded]:: Reads and writes whether the OneDrive nav rail is shown as the wide pane or the icon-only rail in `localStorage`.
 link:useMyFilesSort/[useMyFilesSort]:: Per session sort key and direction for the My Files table.
 link:useNavigationHistory/[useNavigationHistory]:: Wraps the drive navigation handlers so browser back and forward navigate the folder stack and per folder scroll position is preserved.
 link:useSelectedResource/[useSelectedResource]:: Tracks the selected file or folder. Re selecting toggles off, Escape clears.
