@@ -1,23 +1,29 @@
 /**
  * Sticky top bar for the OneDrive inspired layout.
- * Hosts the search input, a Settings dropdown (language + layout switch),
- * and an avatar dropdown that surfaces the signed-in profile (name, WebID,
- * View profile link, Log out).
+ * Hosts the search input, a Settings dropdown with the language switcher
+ * and layout toggle, and an avatar dropdown that surfaces the signed-in
+ * profile name, WebID, a View profile link, and a Log out action.
+ *
+ * The centered search input collapses to an icon button at narrow
+ * viewports via CSS. Clicking the icon expands a full-width overlay
+ * search bar that replaces the topbar content until the user either
+ * dismisses it with the close button or Escape, or blurs the input.
  *
  * @packageDocumentation
  */
 
-import type { ChangeEvent, FunctionComponent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ChangeEvent, FunctionComponent, KeyboardEvent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { useResource, useSolidAuth, useSubject } from '@ldo/solid-react';
+import { useSolidAuth } from '@ldo/solid-react';
 import { useTranslation } from 'react-i18next';
-import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
 import { Avatar } from '@/shared/components/Avatar';
 import { getInitial } from '@/shared/utils/getInitial';
-import { getProfileDisplayName } from '@/shared/utils/getProfileDisplayName';
 import {
   GearIcon,
   CheckmarkIcon,
+  SearchIcon,
+  CloseIcon,
 } from '@/features/onedrive-layout/icons';
 import { LayoutToggle } from '@/features/onedrive-layout/components/LayoutToggle';
 import { SUPPORTED_LANGUAGES } from '@/config';
@@ -26,6 +32,9 @@ import logoUrl from '@/assets/solid-drive-logo.png';
 interface TopBarProps {
   searchValue: string;
   onSearchChange: (next: string) => void;
+  webId: string;
+  profileName: string;
+  avatarSrc: string | undefined;
 }
 
 /**
@@ -36,26 +45,41 @@ interface TopBarProps {
 export const TopBar: FunctionComponent<TopBarProps> = ({
   searchValue,
   onSearchChange,
+  webId,
+  profileName,
+  avatarSrc,
 }) => {
   const [translate, i18n] = useTranslation();
-  const { session, logout } = useSolidAuth();
+  const { logout } = useSolidAuth();
 
-  void useResource(session.webId);
-  const profile = useSubject(SolidProfileShapeType, session.webId);
-
-  const webId = session.webId ?? '';
-
-  const profileName = getProfileDisplayName(profile, webId);
-  const avatarSrc = profile?.img?.['@id'];
-  
   const displayName = profileName || translate('oneDriveLayout.signedIn', 'Signed in');
   const avatarAlt = profileName || translate('oneDriveLayout.account', 'Account');
   const initial = getInitial(profileName);
 
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const overlayInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) =>
     onSearchChange(event.target.value);
-
   const handleLanguageChange = (next: string) => i18n.changeLanguage(next);
+
+  const openSearch = useCallback(() => setSearchExpanded(true), []);
+  const closeSearch = useCallback(() => setSearchExpanded(false), []);
+
+  // Auto-focus the overlay input when it opens, and let Escape close it.
+  useEffect(() => {
+    if (!searchExpanded) return;
+    overlayInputRef.current?.focus();
+  }, [searchExpanded]);
+
+  const handleOverlayKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSearch();
+    }
+  };
+
+  const searchPlaceholder = translate('oneDriveLayout.searchPlaceholder', 'Search');
 
   return (
     <top-bar>
@@ -68,13 +92,25 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
           type="search"
           value={searchValue}
           onChange={handleSearchChange}
-          placeholder={translate('oneDriveLayout.searchPlaceholder', 'Search')}
-          aria-label={translate('oneDriveLayout.searchPlaceholder', 'Search')}
+          placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder}
           className="topbar-search"
         />
       </search-slot>
 
       <topbar-actions>
+
+      {/* Compact search trigger — anchored on the right alongside the
+          gear/avatar. Hidden on wide viewports via CSS; clicking it
+          opens the full-width search overlay rendered below. */}
+      <button
+        type="button"
+        className="topbar-icon topbar-search-trigger"
+        aria-label={searchPlaceholder}
+        onClick={openSearch}
+      >
+        <SearchIcon aria-hidden focusable={false} />
+      </button>
 
       {/* Settings dropdown: language switcher + layout toggle */}
       <DropdownMenu.Root>
@@ -182,6 +218,37 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
       </DropdownMenu.Root>
 
       </topbar-actions>
+
+      {/* Full-width search overlay — replaces the topbar content row
+          when the user activates the compact search button. Magnifier
+          icon on the left, input fills the rest, close button on the
+          right. The overlay shares state with the centered search
+          input, so the typed query persists when it closes. */}
+      {searchExpanded && (
+        <topbar-search-overlay role="search" data-testid="topbar-search-overlay">
+          <span className="topbar-search-overlay__icon" aria-hidden>
+            <SearchIcon />
+          </span>
+          <input
+            ref={overlayInputRef}
+            type="search"
+            value={searchValue}
+            onChange={handleSearchChange}
+            onKeyDown={handleOverlayKeyDown}
+            placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
+            className="topbar-search-overlay__input"
+          />
+          <button
+            type="button"
+            className="topbar-icon topbar-search-overlay__close"
+            aria-label={translate('oneDriveLayout.details.close', 'Close')}
+            onClick={closeSearch}
+          >
+            <CloseIcon aria-hidden focusable={false} />
+          </button>
+        </topbar-search-overlay>
+      )}
     </top-bar>
   );
 };

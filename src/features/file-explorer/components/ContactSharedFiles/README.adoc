@@ -1,0 +1,40 @@
+= ContactSharedFiles
+
+Renders the resources a single contact shares with the viewer.
+Extracted from `SharedWithMeSection` so the OneDrive Shared and People views can render the same list with their own filtering applied.
+
+Reads the contact's shared catalog through `useSharedCatalog`, resolves the contact's display name from their Solid profile, and renders one read only `FileCard` per shared file plus collapsible `TypeFolder` groups for files the contact has only made available by class.
+
+Returns nothing when the contact's catalog is not readable by the viewer.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `contactWebId` | WebID of the contact whose shares we are reading
+| `viewerWebId` | WebID of the viewer. Used for ACL checks.
+| `entryFilter` | Optional predicate applied to each catalog entry. SharedView and PeopleView use it to scope the list to a chip selection.
+| `hideFromHeading` | Hides the "From {{name}}" header when a parent surface already shows the contact's name, for example the People detail view
+|===
+
+== See also
+
+* link:../SharedWithMeSection/[SharedWithMeSection] is the classic explorer surface that wraps one `ContactSharedFiles` per contact.
+* link:../../hooks/useSharedCatalog/[useSharedCatalog] resolves the contact's shared catalog into entries and per type groups.
+* link:../FileCard/[FileCard] renders each individual shared file.
+* link:../TypeFolder/[TypeFolder] is the per class collapsible group.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/components]
+
+.Uses
+* link:../FileCard/[FileCard]
+* link:../TypeFolder/[TypeFolder]
+* link:../../hooks/useSharedCatalog/[useSharedCatalog]
+* link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog]
+* link:../../../../shared/hooks/useContactRejections/[useContactRejections]
+* link:../../../../shared/utils/getProfileDisplayName/[getProfileDisplayName]

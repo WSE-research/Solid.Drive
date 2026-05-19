@@ -66,9 +66,73 @@ describe('NavRail', () => {
     expect(activeItem!.getAttribute('aria-label')).toBe('People');
   });
 
-  it('renders the chevron divider between the top items and the bottom items', () => {
+  it('renders the chevron toggle that controls the bottom panel', () => {
     const { container } = render(<NavRail />);
-    expect(container.querySelector('.rail-divider')).toBeInTheDocument();
+    expect(container.querySelector('.rail-divider-toggle')).toBeInTheDocument();
+  });
+
+  it('renders the bottom panel (Requests + People) by default', () => {
+    const { container } = render(<NavRail />);
+    expect(container.querySelector('rail-bottom-panel')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Requests' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'People' })).toBeInTheDocument();
+  });
+
+  it('hides the bottom panel when the chevron is clicked, and reveals it on a second click', () => {
+    const { container } = render(<NavRail />);
+    const toggle = container.querySelector('.rail-divider-toggle') as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(container.querySelector('rail-bottom-panel')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelector('rail-bottom-panel')).not.toBeNull();
+  });
+
+  it('lets the user collapse the panel even while on a bottom-panel view', () => {
+    window.history.replaceState({}, '', '/?view=people');
+    const { container } = render(<NavRail />);
+    const toggle = container.querySelector('.rail-divider-toggle') as HTMLButtonElement;
+    fireEvent.click(toggle);
+    expect(container.querySelector('rail-bottom-panel')).toBeNull();
+  });
+
+  it('renders a plain disabled Create button when onNewFolder is not provided', () => {
+    // Without both onNewFolder and onUploadFiles the rail renders a plain
+    // tooltip-wrapped button instead of the CreateMenu component.
+    render(<NavRail />);
+    const createBtn = screen.getByRole('button', { name: 'Create' });
+    expect(createBtn).toBeInTheDocument();
+    expect(createBtn).not.toHaveAttribute('aria-haspopup');
+  });
+
+  it('renders the CreateMenu when both onNewFolder and onFilesPicked are provided', () => {
+    const onNewFolder = vi.fn();
+    const onFilesPicked = vi.fn();
+    render(<NavRail onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />);
+    // OneDriveLayout supplies both — the CreateMenu takes over
+    // and exposes its own Create button with aria-haspopup.
+    // We just check we still have a Create button visible.
+    expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+  });
+
+  it('renders the full CreateMenu (with menu items) when both create callbacks are wired', async () => {
+    const user = userEvent.setup();
+    const onNewFolder = vi.fn();
+    const onFilesPicked = vi.fn();
+    render(
+      <NavRail onNewFolder={onNewFolder} onFilesPicked={onFilesPicked} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    expect(
+      await screen.findByRole('menuitem', { name: /new folder/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /upload files/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders the full CreateMenu (with menu items) when both create callbacks are wired', async () => {

@@ -17,6 +17,7 @@ import { isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
+import { useContacts } from "@/features/file-explorer/hooks/useContacts";
 import { useCatalog } from "@/features/file-explorer/hooks/useCatalog";
 import { useFileSearch } from "@/features/file-explorer/hooks/useFileSearch";
 import { useUploadQueue } from "@/features/file-explorer/hooks/useUploadQueue";
@@ -67,8 +68,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     handleRetryStorage,
     handleNavigate,
     handleBreadcrumbClick,
-    contacts,
   } = useDriveInitialization(storageRetryDelayMs);
+  const contacts = useContacts();
 
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
   const { entries: catalogEntries, containerUris: catalogContainerUris } = useCatalog(catalogUri);

@@ -103,6 +103,7 @@ const baseFileMeta = {
 };
 
 const mockConfirm = vi.fn();
+const mockShowError = vi.fn();
 
 // ── default mock wiring ───────────────────────────────────────────────────────
 
@@ -122,8 +123,13 @@ beforeEach(() => {
 
   vi.mocked(useFileSharing).mockReturnValue(false);
   vi.mocked(useFilePreview).mockReturnValue({ previewUrl: undefined });
-  vi.mocked(useNotifications).mockReturnValue({ confirm: mockConfirm } as unknown as ReturnType<typeof useNotifications>);
+  vi.mocked(useNotifications).mockReturnValue({
+    confirm: mockConfirm,
+    showError: mockShowError,
+  } as unknown as ReturnType<typeof useNotifications>);
   mockConfirm.mockResolvedValue(false);
+  mockShowError.mockClear();
+  vi.mocked(deleteResource).mockResolvedValue({ ok: true });
 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -382,6 +388,15 @@ describe('FileCard — delete action', () => {
         fetch: expect.any(Function),
       }),
     );
+  });
+
+  it('surfaces a showError toast when the delete fails', async () => {
+    mockConfirm.mockResolvedValue(true);
+    vi.mocked(deleteResource).mockResolvedValueOnce({ ok: false, reason: '500 Server Error' });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(mockShowError.mock.calls[0][0]).toContain('500 Server Error');
   });
 });
 

@@ -1,0 +1,19 @@
+= copyToClipboard
+
+Writes a string to the system clipboard.
+Returns `true` on success and `false` when the API is unavailable, for example in an insecure context, or when the write rejects, for example after a user denied permission prompt.
+
+The optional `write` argument defaults to `navigator.clipboard.writeText`, so production callers do not need to pass anything.
+Tests and Node environments can inject a stub instead of monkey patching `navigator`.
+
+== Signature
+
+[source,ts]
+----
+copyToClipboard(text: string, write?: ClipboardWriter | null): Promise<boolean>
+----
+
+== Navigation
+
+.Parent
+link:../[shared/utils]

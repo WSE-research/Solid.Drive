@@ -1,6 +1,6 @@
 /**
- * Hook for reading and persisting the user's layout preference
- * (classic explorer vs OneDrive-inspired layout).
+ * Hook for reading and persisting the user's choice between the
+ * classic explorer and the OneDrive-inspired layout.
  *
  * @packageDocumentation
  */
@@ -17,9 +17,8 @@ const CHANGE_EVENT = 'solid-drive:layout-changed';
 
 /**
  * Type guard for the {@link Layout} union. Exported so call sites that
- * receive untyped values (URL params, DOM event payloads, Radix value
- * callbacks, …) can narrow them with the same single source of truth as the
- * hook itself.
+ * receive untyped values from URL params, DOM events, or Radix
+ * callbacks can narrow them with a single source of truth.
  *
  * @public
  */
@@ -27,18 +26,26 @@ export const isLayout = (value: unknown): value is Layout =>
   value === 'classic' || value === 'onedrive';
 
 const readFromStorage = (): Layout => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return isLayout(stored) ? stored : 'classic';
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return isLayout(stored) ? stored : 'classic';
+  } catch {
+    // Some browsers reject storage access in private mode or when
+    // third-party storage is blocked. Fall back to the default so the
+    // UI still renders.
+    return 'classic';
+  }
 };
 
 /**
- * Reads/writes the active layout preference, persisting to localStorage.
- * Defaults to "classic" so existing users see no change on first load.
- * Corrupted or missing values fall back to "classic".
+ * Reads and writes the active layout preference, persisting to
+ * localStorage. Defaults to the classic layout so existing users see
+ * no change on first load; corrupted or missing values fall back to
+ * the same default.
  *
- * Multiple hook instances stay in sync: every setter dispatches a custom
- * event that all live instances listen for, so flipping the preference
- * from one component immediately updates every other component reading it.
+ * Multiple hook instances stay in sync: every setter dispatches a
+ * custom event that all live instances listen for, so flipping the
+ * preference in one component immediately updates the rest.
  *
  * @public
  */
@@ -56,9 +63,20 @@ export const useLayoutPreference = (): readonly [Layout, (next: Layout) => void]
   }, []);
 
   const setLayout = useCallback((next: Layout) => {
-    localStorage.setItem(STORAGE_KEY, next);
+    let persisted = true;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Quota exceeded or storage denied; in-memory state still updates
+      // so the UI flips for this session, but skip the cross-instance
+      // sync event so other live hooks don't overwrite their state from
+      // the stale stored value.
+      persisted = false;
+    }
     setLayoutState(next);
-    window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+    if (persisted) {
+      window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+    }
   }, []);
 
   return [layout, setLayout] as const;

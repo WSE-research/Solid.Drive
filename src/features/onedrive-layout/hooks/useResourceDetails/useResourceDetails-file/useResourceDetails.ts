@@ -19,8 +19,10 @@ export type ResourceDetails =
       uri: string;
       name: string;
       metadataUri: string;
+      binaryUri: string | undefined;
       description: string | undefined;
       mediaType: string | undefined;
+      conformsTo: string | undefined;
       byteSize: number | undefined;
       modified: string | undefined;
       created: string | undefined;
@@ -39,20 +41,22 @@ export interface UseResourceDetailsArgs {
 }
 
 /**
+ * Returns the catalog-enriched view of the currently selected resource,
+ * or `null` when nothing is selected. For folders, the child count is
+ * read from the live container resource.
+ *
  * @public
  */
 export function useResourceDetails({
   selection,
   catalogByContainer,
 }: UseResourceDetailsArgs): ResourceDetails | null {
-  // Call useResource unconditionally to keep hook order stable across
-  // renders; pass an empty string when no folder is selected.
-  // `subscribe: true` opens a notifications subscription so the
-  // item-count stays in sync when files are added or removed.
-  const folderResource = useResource(
-    selection?.kind === 'folder' ? selection.uri : '',
-    { subscribe: true },
-  );
+  // Call useResource unconditionally to keep hook order stable. Passing
+  // `undefined` when no folder is selected is the documented disabled
+  // state for `@ldo/solid-react`'s useResource: it skips fetching and
+  // returns undefined.
+  const folderUri = selection?.kind === 'folder' ? selection.uri : undefined;
+  const folderResource = useResource(folderUri);
 
   if (!selection) return null;
 
@@ -63,8 +67,10 @@ export function useResourceDetails({
       uri: selection.uri,
       name: entry?.title ?? selection.name,
       metadataUri: `${selection.uri}${INDEX_FILE}`,
+      binaryUri: entry?.accessURL,
       description: entry?.description,
       mediaType: entry?.mediaType,
+      conformsTo: entry?.conformsTo,
       byteSize: entry?.byteSize,
       modified: entry?.modified,
       created: undefined,

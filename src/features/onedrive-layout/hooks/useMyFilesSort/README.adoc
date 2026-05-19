@@ -1,0 +1,31 @@
+= useMyFilesSort
+
+Tracks the current sort order for the My Files table.
+Persists for the browser session in `sessionStorage`, so a reload inside the same tab restores the user's choice and a new tab starts on the default.
+
+Defaults to `{ key: 'name', direction: 'asc' }`.
+If storage is denied, full, or holds malformed JSON, the hook falls back to the default and the in memory state keeps working.
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `sort` | Current sort state as `{ key, direction }`
+| `setSort` | Updates the sort state and persists it
+|===
+
+`SortKey` is `'name' \| 'modified' \| 'size' \| 'sharing'`.
+`SortDirection` is `'asc' \| 'desc'`.
+
+`isSortState(value)` is also exported, so call sites that receive untyped values from URL params, Radix callbacks, etc. can narrow with the same source of truth.
+
+== See also
+
+* link:../../components/ContextualToolbar/[ContextualToolbar] is the dropdown that drives this hook.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

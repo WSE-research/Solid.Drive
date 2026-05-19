@@ -52,7 +52,7 @@ type FileCardProps = {
 export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri, readOnly = false }) => {
   const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
-  const { confirm } = useNotifications();
+  const { confirm, showError } = useNotifications();
 
   const metadataResource = useResource(metadataUri);
   const containerResource = useResource(containerUri);
@@ -89,13 +89,16 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm(translate("fileCard.deleteConfirm"));
     if (!confirmed) return;
-    await deleteResource({
+    const result = await deleteResource({
       containerUri,
       metadataUri,
       catalogUri,
       fetch: solidFetch,
     });
-  }, [containerUri, metadataUri, catalogUri, solidFetch, translate, confirm]);
+    if (!result.ok) {
+      showError(`${translate("fileCard.deleteFail")}: ${result.reason}`);
+    }
+  }, [containerUri, metadataUri, catalogUri, solidFetch, translate, confirm, showError]);
 
   const isMetaLoading =
     (isLoadable(metadataResource) && (metadataResource.isLoading() || metadataResource.isUnfetched())) ||

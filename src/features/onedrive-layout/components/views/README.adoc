@@ -1,0 +1,19 @@
+= onedrive-layout/components/views
+
+One component per nav rail destination.
+Each view owns its own toolbar and main content.
+The OneDriveLayout shell decides which view is active by reading the `?view=` URL parameter through link:../../hooks/useViewParam/[useViewParam].
+
+== Contents
+
+link:RecentView/[RecentView]:: Home view. A flat catalog list sorted by `modified` desc, with type chips and a person and name filter.
+link:MyFilesView/[MyFilesView]:: Pod file table with selection, sharing column, drag and drop upload, and a search results table.
+link:SharedView/[SharedView]:: With you and By you tabs, type filter chips, and the person filter. One row per shared entry.
+link:RequestsView/[RequestsView]:: Pending inbox based access requests with approve and deny.
+link:PeopleView/[PeopleView]:: List and detail switch over the contact roster. The detail view shows files shared by the selected person.
+link:ViewStub/[ViewStub]:: Shared placeholder body used by views that do not have a real implementation yet.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]

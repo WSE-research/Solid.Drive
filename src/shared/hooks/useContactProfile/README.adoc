@@ -1,0 +1,33 @@
+= useContactProfile
+
+Resolves a Solid WebID into the display fields needed to render a contact row: a display name, an avatar URL, an initial, and a loading flag.
+
+Used by the SharePanel, the OneDrive DetailPanel's Has access row, and the contacts list, so all three render the same name and avatar for a given WebID.
+
+The `#me` fragment is split off the WebID so `useResource` always points at the profile document.
+The display name flows through `getProfileDisplayName`, which makes sure every caller produces the same name and initial.
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `displayName` | Best effort name from the profile, falling back to the WebID
+| `avatarUrl` | URL of the profile image, or `undefined`
+| `initial` | First character of the display name, uppercased
+| `isLoading` | `true` while the profile document is in flight
+|===
+
+== See also
+
+* link:../../utils/getProfileDisplayName/[getProfileDisplayName] is the display name resolver this hook delegates to.
+* link:../../utils/getInitial/[getInitial] produces the avatar initial.
+
+== Navigation
+
+.Parent
+link:../[shared/hooks]
+
+.Uses
+* link:../../utils/[utils]

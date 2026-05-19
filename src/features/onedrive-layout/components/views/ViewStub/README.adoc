@@ -1,0 +1,20 @@
+= ViewStub
+
+Shared placeholder body for any view that does not have a real implementation yet.
+
+The page title is rendered by `OneDriveLayout`'s page header.
+This stub just keeps a `data-testid` anchor and adds no visible content.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `testId` | Suffix appended to `data-testid="view-{testId}"`. Tests use it to assert which view rendered.
+|===
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]

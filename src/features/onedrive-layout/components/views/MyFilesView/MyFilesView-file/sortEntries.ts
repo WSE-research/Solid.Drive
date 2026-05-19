@@ -9,8 +9,9 @@
  * know it yet. The Sharing column still reflects the live value via
  * useSharingLabel; this helper just preserves input order in that case.
  *
- * Bare folders carry no catalogEntry, so for `modified`/`size`/`sharing`
- * they are treated as "missing" (sorted to the end of their group).
+ * Bare folders carry no catalogEntry, so for `modified`, `size`, and
+ * `sharing` they are treated as missing values and sorted to the end
+ * of their group.
  *
  * @packageDocumentation
  */
@@ -68,22 +69,12 @@ export function sortEntries(
   entries: readonly SortableEntry[],
   state: SortState,
 ): SortableEntry[] {
-  const folders: SortableEntry[] = [];
-  const files: SortableEntry[] = [];
-  for (const entry of entries) {
-    if (entry.kind === 'folder') {
-      folders.push(entry);
-    } else {
-      files.push(entry);
-    }
-  }
   const compare = (left: SortableEntry, right: SortableEntry): number =>
     compareEntries(left, right, state);
-  folders.sort(compare);
-  files.sort(compare);
+  const folders = [...entries.filter((entry) => entry.kind === 'folder')].sort(compare);
+  const files = [...entries.filter((entry) => entry.kind === 'file')].sort(compare);
   if (state.direction === 'desc') {
-    folders.reverse();
-    files.reverse();
+    return [...folders.reverse(), ...files.reverse()];
   }
   return [...folders, ...files];
 }

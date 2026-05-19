@@ -1,0 +1,24 @@
+= onedrive-layout/components
+
+UI building blocks for the OneDrive layout shell.
+Holds the chrome pieces (NavRail, TopBar, ContextualToolbar, DetailPanel) alongside the dialogs, the create menu, and the per view components under `views/`.
+
+== Contents
+
+link:OneDriveLayout/[OneDriveLayout]:: Top level shell. Wires the rail, top bar, active view, detail panel, and share dialog together.
+link:NavRail/[NavRail]:: Left edge navigation rail with the Create button and view switchers.
+link:TopBar/[TopBar]:: Full width top bar. Holds the logo, search, settings dropdown with language and layout, and the avatar dropdown.
+link:CreateMenu/[CreateMenu]:: Two item dropdown anchored on the rail's `+` button. Items are "New folder" and "Upload files".
+link:ContextualToolbar/[ContextualToolbar]:: Right zone toolbar above the My Files table. Holds the Sort dropdown and the Details toggle.
+link:SelectionActions/[SelectionActions]:: Page header action strip for the current selection. Overflowing actions spill into a kebab dropdown.
+link:DetailPanel/[DetailPanel]:: Right edge slide in panel showing metadata for the selected file or folder.
+link:NewFolderDialog/[NewFolderDialog]:: Modal create folder dialog used by My Files.
+link:ShareDialog/[ShareDialog]:: Modal wrapper around `file-explorer/SharePanel`.
+link:LayoutToggle/[LayoutToggle]:: Segmented Classic ↔ OneDrive control bound to the persisted layout preference.
+link:views/[views/]:: One component per nav rail destination: Recent, My Files, Shared, Requests, People.
+link:filters/[filters/]:: Shared filter widgets, the type chips and the person filter, used by Shared, Recent, and People.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout]

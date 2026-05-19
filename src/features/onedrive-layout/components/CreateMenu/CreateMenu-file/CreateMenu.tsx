@@ -1,7 +1,9 @@
 /**
- * Create menu above the NavRail. "New folder" fires `onNewFolder`.
- * "Upload files" opens the OS file picker via a hidden input and
- * forwards the selection via `onFilesPicked`.
+ * Create menu rendered above the OneDrive-inspired NavRail. The trigger
+ * is the `+` button. "New folder" fires `onNewFolder`. "Upload files"
+ * opens the OS file picker via a hidden input and forwards the selected
+ * files to `onFilesPicked` so the parent shell can prefill the upload
+ * form.
  *
  * @packageDocumentation
  */
@@ -17,7 +19,7 @@ interface CreateMenuProps {
 }
 
 /**
- * Two-item dropdown anchored on the rail's `+` button. Upload files
+ * Two-item dropdown anchored on the rail's `+` button. "Upload files"
  * clicks a hidden file input so the OS picker opens on selection.
  *
  * @public

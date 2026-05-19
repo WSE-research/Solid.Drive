@@ -1,18 +1,16 @@
 /**
- * Recursively deletes a Solid resource (container or leaf). Solid pods
- * reject DELETE on a non-empty container, so the service walks
- * ldp:contains first, deletes every descendant, then deletes the
- * container itself. Pods also reject DELETE on a resource whose
- * companion .acl still exists (this is what CSS and NSS both do), so
- * each DELETE is preceded by a best-effort DELETE on the matching
- * `.acl` URI. Catalog cleanup is also best effort, since folders are
- * not always catalogued.
+ * Recursively deletes a Solid resource, container or leaf. Most Solid
+ * pods reject `DELETE` on a non empty container, so the service walks
+ * `ldp:contains` first, deletes every descendant, then deletes the
+ * container itself. Catalog cleanup is best effort and silent failures
+ * are acceptable, since folders aren't always catalogued.
  *
  * @packageDocumentation
  */
 
 import { Parser } from 'n3';
 import { removeFromCatalog } from '@/infrastructure/solid/catalog';
+import { notifyCatalogChanged } from '@/shared/hooks/useCatalogVersion';
 import type { FetchFn } from '@/types/solid';
 
 const LDP_CONTAINS = 'http://www.w3.org/ns/ldp#contains';
@@ -59,8 +57,8 @@ async function dropCompanionAcl(uri: string, fetch: FetchFn): Promise<void> {
 /**
  * Reads ldp:contains triples from a container's Turtle representation
  * and returns the absolute URIs of every immediate child. An empty list
- * is returned for any non-2xx response, since the parent delete still
- * needs to be attempted (the parent itself may already be missing).
+ * is returned for any non-2xx response. Callers should still attempt
+ * the parent delete in that case, since the parent itself may be missing.
  */
 async function listContainerChildren(
   containerUri: string,
@@ -90,7 +88,19 @@ export async function deleteResource(
       args.catalogUri,
       args.metadataUri,
       args.fetch,
-    ).catch(() => {});
+    ).catch((error: unknown) => {
+      // Catalog cleanup is best-effort: the container delete below is the
+      // source of truth for whether the resource is gone. Swallow here so a
+      // stale or already-removed catalog entry doesn't fail the user-facing
+      // delete.
+      void error;
+    });
+    // The catalog PATCH bypassed LDO, so push a local notification to
+    // wake every useCatalog consumer (file table, share dialog, etc.).
+    // Fires on both success and a swallowed error: in the error case
+    // the entry may still have been partially patched, and forcing a
+    // re-fetch is the safe choice over leaving consumers stale.
+    notifyCatalogChanged(args.catalogUri);
   }
 
   try {

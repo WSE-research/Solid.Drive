@@ -1,0 +1,41 @@
+= useRecentFilters
+
+Filter, search, and sort state for the Home / Recent view.
+
+Owns the chip selection, which is single select like SharedView, the query input, the chip set derived from observed catalog entries, and the recency ordered visible entries projection.
+
+The query matches against both the entry title and the owner's display name, so the user can filter the Recent list down to their own files or to a named contact with the same input.
+
+== Arguments
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `catalogEntries` | All entries from the user's DCAT catalog
+| `ownerName` | Display name of the signed in user. Used so query terms can match "owned by me" rows.
+|===
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `chips` | Derived chip set from observed types
+| `selectedChips` | Currently selected chip id, single select
+| `query` | Current person and name query
+| `visibleEntries` | Catalog entries that pass both the query and the chip filter, sorted by `modified` desc
+| `setQuery` | Updates the query
+| `toggleChip(chipId)` | Switches the active chip
+| `resetChips()` | Clears the chip filter
+|===
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]
+
+.Uses
+* link:../../components/filters/TypeFilterChips/[TypeFilterChips]
+* link:../../../../types/[types]

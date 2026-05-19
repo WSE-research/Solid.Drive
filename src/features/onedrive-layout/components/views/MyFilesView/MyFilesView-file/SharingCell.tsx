@@ -1,6 +1,7 @@
 /**
- * Sharing column cell. Calls useSharingLabel and renders a localized
- * label: "Private" / "Public" / "{name}" / "N people".
+ * Sharing column cell. Renders one of four localized labels depending
+ * on the WAC ACL: private, public, a single grantee's display name, or
+ * a count of grantees for multi-agent shares.
  *
  * @packageDocumentation
  */
@@ -26,10 +27,6 @@ const FirstAgentName: FunctionComponent<{ webId: string }> = ({ webId }) => {
 };
 
 /**
- * Single-row Sharing column cell. Renders a localized label that
- * reflects the resource's WAC ACL: "Private", "Public", a single
- * agent's display name, or "{N} people" for multi-agent shares.
- *
  * @public
  */
 export const SharingCell: FunctionComponent<SharingCellProps> = ({ uri }) => {

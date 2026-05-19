@@ -50,6 +50,7 @@ describe('useResourceDetails', () => {
       name: 'doc.pdf',
       metadataUri: 'https://pod/app/doc/index.ttl',
       mediaType: 'application/pdf',
+      conformsTo: 'https://schema.org/MediaObject',
       byteSize: 12345,
       modified: '2026-04-01T00:00:00Z',
     });

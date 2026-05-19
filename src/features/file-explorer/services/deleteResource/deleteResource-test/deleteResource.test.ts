@@ -196,4 +196,45 @@ describe('deleteResource', () => {
     });
     expect(result).toEqual({ ok: false, reason: 'offline' });
   });
+
+  it('treats a non-2xx GET on the container as empty children and still deletes the parent', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const fetchFn = vi.fn<FetchFn>(async (_input, init) => {
+      if (init?.method === 'DELETE') return okResponse();
+      return errorResponse(403, 'Forbidden');
+    });
+
+    const result = await deleteResource({ containerUri, fetch: fetchFn });
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('propagates a nested child container failure up to the top caller', async () => {
+    const root = 'https://pod/app/folder/';
+    const sub = 'https://pod/app/folder/sub/';
+    const leaf = 'https://pod/app/folder/sub/locked.pdf';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') {
+        return url === leaf ? errorResponse(403, 'Forbidden') : okResponse();
+      }
+      if (url === root) return okResponse(turtleWithChildren(root, [sub]));
+      if (url === sub) return okResponse(turtleWithChildren(sub, [leaf]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    const result = await deleteResource({ containerUri: root, fetch: fetchFn });
+    expect(result).toEqual({ ok: false, reason: `${leaf}: 403 Forbidden` });
+  });
+
+  it('returns "Unknown error" when fetch throws a non-Error value', async () => {
+    const fetchFn = vi.fn<FetchFn>(async () => {
+      throw 'plain string failure';
+    });
+
+    const result = await deleteResource({
+      containerUri: 'https://pod/app/file/',
+      fetch: fetchFn,
+    });
+    expect(result).toEqual({ ok: false, reason: 'Unknown error' });
+  });
 });

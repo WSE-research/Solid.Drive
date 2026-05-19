@@ -35,13 +35,18 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
 
 vi.mock('@/config', () => ({
   DEFAULT_FILE_TYPE_URI: 'http://schema.org/DigitalDocument',
+  DEFAULT_CATALOG_FILENAME: 'catalog.ttl',
 }));
 
-import { useSharedCatalog } from '../useSharedCatalog-file/useSharedCatalog';
+import {
+  __resetSharedCatalogCacheForTests,
+  useSharedCatalog,
+} from '../useSharedCatalog-file/useSharedCatalog';
 
 describe('useSharedCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __resetSharedCatalogCacheForTests();
     mockProfileOverride = null;
     mockGetCandidateUris.mockReturnValue(['https://contact.example/my-solid-app/.shared-viewer.ttl']);
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
@@ -280,7 +285,7 @@ describe('useSharedCatalog', () => {
   });
 
   it('ignores main catalog error and uses per-contact catalog when it is accessible', async () => {
-    // Per-contact accessible but main catalog throws
+  
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('.shared-viewer')) {
         return Promise.resolve({ ok: true, text: () => Promise.resolve('') });
@@ -302,7 +307,7 @@ describe('useSharedCatalog', () => {
   });
 
   it('returns empty entries when both per-contact and main catalog fetches throw', async () => {
-    // Per-contact catalogs fail (not accessible), main catalog also throws
+    
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('.shared-viewer')) {
         return Promise.resolve({ ok: false });
@@ -371,12 +376,7 @@ describe('useSharedCatalog', () => {
       catalog: null,
     };
 
-    // Override to also make mainCatalogUri null by making storageRoot falsy
-    // Since storageRoot always falls back to a string, we instead
-    // test that the effect runs but early-returns because catalogUris is [] and mainCatalogUri must also be null
-    // However mainCatalogUri = profile?.catalog?.['@id'] ?? (storageRoot ? `${storageRoot}catalog.ttl` : null)
-    // storageRoot is always a string, so mainCatalogUri is always a string
-    // So we test the path where catalogUris is empty but mainCatalogUri exists (fallback path)
+
     const { result } = renderHook(() =>
       useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
     );
@@ -484,11 +484,31 @@ describe('useSharedCatalog', () => {
     expect(result.current.catalogAccessible).toBe(true);
   });
 
+  it('serves a second consumer from the module cache without re-fetching', async () => {
+    const entries = [{ uri: 'https://contact.example/files/photo/index.ttl', title: 'Photo', conformsTo: '' }];
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('turtle') });
+    mockParseCatalog.mockReturnValue(entries);
+    mockHasAccess.mockResolvedValue(true);
+
+    const { result: first } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+    await waitFor(() => {
+      expect(first.current.sharedEntries.length).toBeGreaterThan(0);
+    });
+
+    const fetchCountAfterFirst = mockFetch.mock.calls.length;
+
+    const { result: second } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    expect(second.current.sharedEntries).toEqual(first.current.sharedEntries);
+    expect(mockFetch.mock.calls.length).toBe(fetchCountAfterFirst);
+  });
+
   it('returns empty catalogUris and null mainCatalogUri when storageRoot is empty string', () => {
-    // Make storageRoot falsy by having storage @id be empty string
-    // "" is not nullish, so ?? won't trigger, and storageRoot = ""
-    // storageRoot ? ... : [] → false → catalogUris = []
-    // mainCatalogUri = profile?.catalog?.['@id'] ?? (storageRoot ? ... : null) → null
+
     mockProfileOverride = {
       storage: { toArray: () => [{ '@id': '' }] },
       catalog: null,

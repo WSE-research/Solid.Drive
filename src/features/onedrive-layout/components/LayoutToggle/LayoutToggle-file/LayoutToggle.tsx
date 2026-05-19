@@ -34,18 +34,10 @@ export const LayoutToggle: FunctionComponent = () => {
       aria-label={translate('oneDriveLayout.layout', 'Layout')}
       className="layout-toggle"
     >
-      <ToggleGroup.Item
-        value="classic"
-        aria-checked={layout === 'classic'}
-        className="layout-toggle__pill"
-      >
+      <ToggleGroup.Item value="classic" className="layout-toggle__pill">
         {translate('oneDriveLayout.classic', 'Classic')}
       </ToggleGroup.Item>
-      <ToggleGroup.Item
-        value="onedrive"
-        aria-checked={layout === 'onedrive'}
-        className="layout-toggle__pill"
-      >
+      <ToggleGroup.Item value="onedrive" className="layout-toggle__pill">
         {translate('oneDriveLayout.onedrive', 'OneDrive')}
       </ToggleGroup.Item>
     </ToggleGroup.Root>

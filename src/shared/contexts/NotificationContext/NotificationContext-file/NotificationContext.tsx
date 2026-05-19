@@ -1,14 +1,15 @@
 /**
  * Notification provider component. Renders the toast container and the
- * confirmation dialog overlay, exposing the toast / confirm API through
- * a React context. The hook and context object live in a sibling file
- * (notificationContext.ts) so this file exports a component only —
- * required for React Fast Refresh to hot-replace edits cleanly.
+ * confirmation dialog overlay, exposing the toast and confirm API
+ * through a React context. The hook and context object live in the
+ * sibling notificationContext.ts file so this file exports a component
+ * only, which is required for React Fast Refresh to hot-replace edits
+ * cleanly.
  *
  * @packageDocumentation
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import type { FunctionComponent, ReactNode, MouseEvent } from "react";
 import { Toast } from "@/shared/components/Toast";
 import { NotificationContext } from "./notificationContextValue";
@@ -50,16 +51,31 @@ function nextToastId(): string {
 export const NotificationProvider: FunctionComponent<NotificationProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const dismissToast = useCallback((id: string) => {
+    const timer = timersRef.current.get(id);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timersRef.current.delete(id);
+    }
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = "info") => {
     const id = nextToastId();
     setToasts((current) => [...current, { id, message, type }]);
-    setTimeout(() => dismissToast(id), TOAST_AUTO_DISMISS_MS);
+    const timer = setTimeout(() => dismissToast(id), TOAST_AUTO_DISMISS_MS);
+    timersRef.current.set(id, timer);
   }, [dismissToast]);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
 
   const showError = useCallback((message: string) => showToast(message, "error"), [showToast]);
   const showSuccess = useCallback((message: string) => showToast(message, "success"), [showToast]);

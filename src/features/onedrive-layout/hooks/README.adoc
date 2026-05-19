@@ -1,0 +1,22 @@
+= onedrive-layout/hooks
+
+React hooks scoped to the OneDrive shell.
+Each hook owns one piece of state that the layout, a view, or a toolbar needs: the active view, the current selection, sort, filters, the layout preference, and so on.
+
+== Contents
+
+link:useViewParam/[useViewParam]:: Reads and writes the active view through the `?view=` URL search param.
+link:useLayoutPreference/[useLayoutPreference]:: Reads and writes the user's Classic vs OneDrive choice in `localStorage`.
+link:useMyFilesSort/[useMyFilesSort]:: Per session sort key and direction for the My Files table.
+link:useNavigationHistory/[useNavigationHistory]:: Wraps the drive navigation handlers so browser back and forward navigate the folder stack and per folder scroll position is preserved.
+link:useSelectedResource/[useSelectedResource]:: Tracks the selected file or folder. Re selecting toggles off, Escape clears.
+link:useResourceDetails/[useResourceDetails]:: Turns the current selection and the catalog lookup into the data shape the DetailPanel needs.
+link:useOneDriveActions/[useOneDriveActions]:: Action handlers tied to the selection: copy link, download, delete with confirm.
+link:useSharingLabel/[useSharingLabel]:: Resolves a Solid resource URI into a `private \| public \| shared` kind, plus the agent list.
+link:useSharedFilters/[useSharedFilters]:: Filter state shared between the SharedView and PeopleView. Chip selection and person query.
+link:useRecentFilters/[useRecentFilters]:: Filter, search, and sort state for the Recent view.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout]

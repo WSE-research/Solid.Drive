@@ -5,7 +5,7 @@ import {
   HomeIconActive, MyFilesIconActive, SharedIconActive, RequestsIconActive,
   PeopleIconActive,
   ChevronDownIcon, PlusIcon, GearIcon, CheckmarkIcon,
-  SortIcon, InfoIcon, CloseIcon,
+  SortIcon, InfoIcon, CloseIcon, DetailsPanelIcon, DetailsPanelIconActive,
   ShareIcon, LinkIcon, DeleteIcon, DownloadIcon, MoveToIcon, RenameIcon,
 } from '../icons-file/icons';
 
@@ -23,6 +23,8 @@ describe('icons module', () => {
     ['SortIcon', SortIcon],
     ['InfoIcon', InfoIcon],
     ['CloseIcon', CloseIcon],
+    ['DetailsPanelIcon', DetailsPanelIcon],
+    ['DetailsPanelIconActive', DetailsPanelIconActive],
     ['ShareIcon', ShareIcon],
     ['LinkIcon', LinkIcon],
     ['DeleteIcon', DeleteIcon],

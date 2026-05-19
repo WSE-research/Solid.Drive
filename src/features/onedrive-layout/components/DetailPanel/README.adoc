@@ -1,0 +1,53 @@
+= DetailPanel
+
+Right edge slide in panel that shows metadata for the selected file or folder.
+
+Stateless.
+The parent shell controls `open`, `selected`, and `details`.
+The closed state is reported through `aria-hidden`, which lets CSS collapse the grid column with a transition.
+
+For files the panel shows a thumbnail preview, an inline editable description, the Has access row, and Type, Size, Created, and Modified rows.
+For folders the layout is the same minus the thumbnail, the description, and Type, and Size is replaced with an item count.
+
+The preview kind is derived from the MIME type.
+Images, video, audio, PDFs, and text files are embedded inline.
+Everything else falls back to the branded chip icon.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `open` | Whether the panel is currently visible
+| `selected` | Current selection from link:../../hooks/useSelectedResource/[useSelectedResource]
+| `details` | Resolved details from link:../../hooks/useResourceDetails/[useResourceDetails]
+| `onClose` | Fired when the user clicks the close button
+|===
+
+== Subcomponents
+
+link:EditableDescription/[EditableDescription]:: Inline editable description input that persists to `schema:description` in the file's `index.ttl` via LDO.
+link:HasAccessRow/[HasAccessRow]:: Horizontal strip of avatar circles, one per non owner agent in the WAC ACL.
+
+== See also
+
+* link:../../hooks/useResourceDetails/[useResourceDetails] turns the selection and the catalog map into the shape this panel renders.
+* link:../../../file-explorer/hooks/useFilePreview/[useFilePreview] resolves the blob URL used by the inline preview.
+* link:../../formatting/[formatting] supplies the icon picker and the date and size formatters.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:EditableDescription/[EditableDescription]
+* link:HasAccessRow/[HasAccessRow]
+* link:../../formatting/[formatting]
+* link:../../icons/[icons]
+* link:../../hooks/useSelectedResource/[useSelectedResource]
+* link:../../hooks/useResourceDetails/[useResourceDetails]
+* link:../../../file-explorer/hooks/useFilePreview/[useFilePreview]
+* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../../../config/[config]

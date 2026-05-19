@@ -1,19 +1,19 @@
 = useDriveInitialization
 
-Composes `usePodDiscovery` with URL-backed folder navigation so the file explorer can use browser history and shareable links.
+Composes `usePodDiscovery` with URL backed folder navigation, so the file explorer can use browser history and shareable links.
 
 == Features
 
-Pod setup:: Delegates to `usePodDiscovery` for storage root discovery and app container creation
-Navigation state:: Keeps `currentUri` and `breadcrumbs` in sync with React Router (`?folder=`); invalid or missing values fall back to the storage root chosen at discovery time
-Contact list:: Reads the user's `foaf:knows` list and exposes it so `SharedWithMeSection` can load shared files
-Storage retry:: Exposes `handleRetryStorage` (from `usePodDiscovery`) for both manual and auto-retry
+Pod setup:: Delegates to `usePodDiscovery` for storage root discovery and app container creation.
+Navigation state:: Keeps `currentUri` and `breadcrumbs` in sync with React Router via the `?folder=` search param. Invalid or missing values fall back to the storage root chosen at discovery time.
+Storage retry:: Exposes `handleRetryStorage` from `usePodDiscovery` for both manual and auto retry.
+
+The contact list used to live here too.
+It was moved into a standalone link:../useContacts/[useContacts] hook so this one only deals with storage and navigation.
 
 == Returns
 
-`usePodDiscovery` fields (`appContainerUri`, `storageRootUri`, etc.) plus navigation helpers: `currentUri`, `setCurrentUri`, `breadcrumbs`, `setBreadcrumbs`, `handleNavigate`, `handleBreadcrumbClick`.
-
-`contacts`:: WebIDs from the user's `foaf:knows` list
+The `usePodDiscovery` fields `appContainerUri`, `storageRootUri`, `noStorageDetected`, and `handleRetryStorage`, plus navigation helpers `currentUri`, `setCurrentUri`, `breadcrumbs`, `setBreadcrumbs`, `handleNavigate`, and `handleBreadcrumbClick`.
 
 == Navigation
 
@@ -23,5 +23,5 @@ link:../[file-explorer/hooks]
 .Uses
 * link:../../../../config/[config]
 * link:../../services/driveUrl/[driveUrl]
-* link:../useNavigation/[useNavigation] (breadcrumb type only)
+* link:../useNavigation/[useNavigation] for the breadcrumb type
 * link:../usePodDiscovery/[usePodDiscovery]

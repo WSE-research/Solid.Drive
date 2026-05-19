@@ -1,0 +1,15 @@
+= assets
+
+Static image assets bundled with the app.
+
+== Contents
+
+`solid-drive-logo.png`:: Brand logo rendered in the OneDrive TopBar.
+`react.svg`:: React logo. Kept from the original Vite template footer.
+
+Files are imported directly from TypeScript modules, for example `import logoUrl from '@/assets/...'`, and emitted by Vite.
+
+== Navigation
+
+.Parent
+link:../[src]

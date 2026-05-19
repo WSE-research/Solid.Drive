@@ -1,0 +1,47 @@
+= useOneDriveActions
+
+Action handlers for the OneDrive shell that depend on the current selection.
+Owns the toast wiring and the delete confirmation prompt so `OneDriveLayout` is reduced to composition.
+
+== Arguments
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `selected` | Current selection from link:../useSelectedResource/[useSelectedResource]
+| `catalogByContainer` | `Map<containerUri, CatalogEntry>` from `OneDriveLayout`
+| `catalogUri` | URI of the owner's DCAT catalog. Needed for catalog cleanup on delete.
+| `solidFetch` | Authenticated Solid fetch
+| `onAfterDelete` | Fired after a successful delete so the shell can clear the selection and close the panel
+|===
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `handleCopyLink` | Copies the selection URI to the clipboard and toasts the result
+| `handleDownload` | Downloads the file binary, toasts on failure
+| `handleDelete` | Confirms, deletes the resource, removes the catalog entry, then toasts
+|===
+
+== See also
+
+* link:../../../file-explorer/services/deleteResource/[deleteResource] is the delete service this hook calls.
+* link:../../../file-explorer/services/downloadResource/[downloadResource] is the download service this hook calls.
+* link:../../../../shared/utils/copyToClipboard/[copyToClipboard] is the clipboard helper this hook calls.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]
+
+.Uses
+* link:../useSelectedResource/[useSelectedResource]
+* link:../../formatting/[formatting]
+* link:../../../file-explorer/services/deleteResource/[deleteResource]
+* link:../../../file-explorer/services/downloadResource/[downloadResource]
+* link:../../../../shared/utils/copyToClipboard/[copyToClipboard]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]

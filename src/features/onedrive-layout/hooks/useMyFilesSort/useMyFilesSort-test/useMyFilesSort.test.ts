@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMyFilesSort } from '../useMyFilesSort-file/useMyFilesSort';
 
@@ -53,5 +53,29 @@ describe('useMyFilesSort', () => {
     );
     expect(result.current.sort).toEqual({ key: 'name', direction: 'asc' });
     expect(sessionStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('treats a JSON null value as invalid and falls back to default', () => {
+    sessionStorage.setItem(KEY, 'null');
+    const { result } = renderHook(() => useMyFilesSort());
+    expect(result.current.sort).toEqual({ key: 'name', direction: 'asc' });
+  });
+
+  it('treats a JSON primitive (string) as invalid and falls back to default', () => {
+    sessionStorage.setItem(KEY, JSON.stringify('not-an-object'));
+    const { result } = renderHook(() => useMyFilesSort());
+    expect(result.current.sort).toEqual({ key: 'name', direction: 'asc' });
+  });
+
+  it('still updates in-memory state when sessionStorage.setItem throws', () => {
+    const spy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+    const { result } = renderHook(() => useMyFilesSort());
+    act(() => result.current.setSort({ key: 'modified', direction: 'desc' }));
+    expect(result.current.sort).toEqual({ key: 'modified', direction: 'desc' });
+    spy.mockRestore();
   });
 });

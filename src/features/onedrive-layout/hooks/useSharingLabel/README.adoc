@@ -1,0 +1,30 @@
+= useSharingLabel
+
+Resolves a Solid resource URI into a sharing kind, one of `'private'`, `'public'`, or `'shared'`, by reading the resource's WAC ACL.
+
+The hook also returns the list of non owner agents, so the DetailPanel's `HasAccessRow` can render avatar circles without re fetching the ACL.
+
+Subscribes to link:../../../../shared/hooks/useAclVersion/[useAclVersion], which means the label refreshes after `SharePanel` writes a new ACL.
+
+ACL read failures collapse to `'private'` quietly.
+A pod that refuses the ACL request should not hard fail the file row.
+
+== Returns
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `kind` | `'private' \| 'public' \| 'shared'`
+| `agentWebIds` | Non owner WebIDs in the ACL. Empty for `private` and `public`.
+| `loading` | `true` while the ACL is being read
+|===
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]
+
+.Uses
+* link:../../../../infrastructure/wac/aclManager/[aclManager]
+* link:../../../../shared/hooks/useAclVersion/[useAclVersion]

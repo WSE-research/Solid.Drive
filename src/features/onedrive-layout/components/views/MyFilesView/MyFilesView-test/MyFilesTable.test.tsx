@@ -7,6 +7,17 @@ import { MyFilesTable } from '../MyFilesView-file/MyFilesTable';
 
 /* ────── mocks ─────────────────────────────────────────────────────────── */
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => [
+    (key: string, fallback?: string, vars?: Record<string, unknown>) => {
+      if (vars?.count !== undefined && fallback) {
+        return fallback.replace('{{count}}', String(vars.count));
+      }
+      return fallback ?? key;
+    },
+  ],
+}));
+
 vi.mock('@ldo/solid-react', () => ({
   useResource: (uri: string) => ({
     uri,
@@ -186,7 +197,7 @@ describe('MyFilesTable — bare folder rows', () => {
       />,
     );
     expect(screen.getByText('photos')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('3 items')).toBeInTheDocument();
   });
 
   it('clicking a bare folder row navigates and does not call onSelect', async () => {
@@ -316,5 +327,58 @@ describe('MyFilesTable — bare folder rows', () => {
       dataTransfer: { files: [], types: ['Files'] },
     });
     expect(onFolderDrop).not.toHaveBeenCalled();
+  });
+
+  it('renders a folder row with no drag handlers when onFolderDrop is not provided', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        // onFolderDrop and onFolderDragOverChange are intentionally omitted
+      />,
+    );
+    // The folder row should still render normally with no drop event handlers
+    expect(screen.getByText('photos')).toBeInTheDocument();
+    // Dragging over should silently do nothing (no onFolderDragOverChange to call)
+    fireEvent.dragEnter(screen.getByRole('row'), {
+      dataTransfer: { types: ['Files'] },
+    });
+    // No error thrown = the empty dropHandlers {} branch was exercised
+  });
+
+  it('drag-over with Files preventDefaults the event so the drop handler fires', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDrop={vi.fn()}
+        onFolderDragOverChange={vi.fn()}
+      />,
+    );
+    const prevented = !fireEvent.dragOver(screen.getByRole('row'), {
+      dataTransfer: { types: ['Files'] },
+    });
+    expect(prevented).toBe(true);
+  });
+
+  it('drag-over with non-Files data is ignored and does not preventDefault', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        onFolderDrop={vi.fn()}
+        onFolderDragOverChange={vi.fn()}
+      />,
+    );
+    const prevented = !fireEvent.dragOver(screen.getByRole('row'), {
+      dataTransfer: { types: ['text/plain'] },
+    });
+    expect(prevented).toBe(false);
   });
 });

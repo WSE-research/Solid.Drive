@@ -71,6 +71,24 @@ describe("decodeDriveFolderSearchParam / encodeDriveFolderSearchValue", () => {
   it("documents the conventional search parameter name", () => {
     expect(DRIVE_FOLDER_SEARCH_PARAM).toBe("folder");
   });
+
+  it("returns undefined for null input", () => {
+    expect(decodeDriveFolderSearchParam(null)).toBeUndefined();
+  });
+
+  it("returns undefined for whitespace-only input", () => {
+    expect(decodeDriveFolderSearchParam("   ")).toBeUndefined();
+  });
+
+  it("returns undefined for inputs that decode to a non-http(s) string", () => {
+    expect(decodeDriveFolderSearchParam("ftp%3A%2F%2Fx")).toBeUndefined();
+  });
+
+  it("returns undefined when the decoded value is not a parseable URL", () => {
+    // Starts with "http" so it gets through the prefix check but is not a
+    // valid URL (no host).
+    expect(decodeDriveFolderSearchParam("http://")).toBeUndefined();
+  });
 });
 
 describe("buildDriveBreadcrumbs", () => {

@@ -8,6 +8,7 @@ import { useSolidAuth } from "@ldo/solid-react";
 import { discoverAclUri, ensureDiscoveryAccess, readAclAgents, writeAcl, writeResourceAcl } from "@/infrastructure/wac/aclManager";
 import { appendToCatalog } from "@/infrastructure/solid/catalog";
 import { getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
+import { notifyAclChanged } from "@/shared/hooks/useAclVersion";
 import type { SharedEntry } from "@/types";
 
 interface UseAclManagerReturn {
@@ -94,6 +95,7 @@ export function useAclManager(
       await syncSharedCatalog(contactWebId);
       await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
       setGrantees(newGrantees);
+      notifyAclChanged(containerUri);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -109,6 +111,7 @@ export function useAclManager(
       const newGrantees = grantees.filter((granteeWebId) => granteeWebId !== contactWebId);
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
       setGrantees(newGrantees);
+      notifyAclChanged(containerUri);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

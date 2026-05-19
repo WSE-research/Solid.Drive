@@ -13,6 +13,7 @@ import { CatalogEntryShShapeType } from "@/.ldo/catalogEntry.shapeTypes";
 import { isSolidLeaf } from "@/infrastructure/solid/resourceGuards";
 import { appendToCatalog, linkCatalogToProfile } from "@/infrastructure/solid/catalog";
 import { resolveClass } from "@/infrastructure/validation/fileTypeRegistry";
+import { notifyCatalogChanged } from "@/shared/hooks/useCatalogVersion";
 import type { ContainerCreationResult } from "@/types";
 import type { SolidContainer, SolidContainerUri } from "@ldo/connected-solid";
 import { INDEX_FILE } from "@/config";
@@ -134,6 +135,11 @@ export function useFileUpload(): UseFileUploadReturn {
       if (!profileHasCatalog) {
         await linkCatalogToProfile(catalogUri, session.webId!, solidFetch).catch(() => {});
       }
+
+      // The catalog PATCH bypassed LDO, so the resource subscription
+      // in useCatalog has no way of knowing the catalog changed. Push
+      // a local notification so consumers re-fetch immediately.
+      notifyCatalogChanged(catalogUri);
     } finally {
       setIsUploading(false);
     }

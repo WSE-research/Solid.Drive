@@ -1,0 +1,29 @@
+= ContextualToolbar
+
+Right zone toolbar above the My Files table.
+Holds the Sort dropdown with Name, Modified, Size, and Sharing entries plus an asc/desc toggle, and the Details panel toggle.
+
+Stateless.
+Every interaction is forwarded through a callback prop.
+The active sort and the details open flag are owned by `OneDriveLayout`.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `sort` | Current sort state from link:../../hooks/useMyFilesSort/[useMyFilesSort]
+| `onSortChange` | Fired when the user picks a column or toggles direction
+| `detailsOpen` | `true` when the DetailPanel is currently visible
+| `onToggleDetails` | Fired when the user clicks the Details button
+|===
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useMyFilesSort/[useMyFilesSort]
+* link:../../icons/[icons]

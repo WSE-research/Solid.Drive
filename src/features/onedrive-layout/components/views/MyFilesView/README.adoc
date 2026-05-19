@@ -1,0 +1,60 @@
+= MyFilesView
+
+My Files view.
+The Pod browser surface inside the OneDrive layout.
+
+Owns:
+
+* Folder navigation through link:../../../hooks/useNavigationHistory/[useNavigationHistory], which wraps `useDriveInitialization` so browser back and forward navigate the folder stack and the per folder scroll position is preserved.
+* Drag and drop uploads at both the panel level and per folder. The dropped files feed the `useUploadQueue` hook, which shows in flight progress in the upload tray.
+* A local `prefilledFile` that is handed to the upload form when the user drops a single file on the panel or picks one from the rail's Create menu.
+* Switching between the browse table `MyFilesTable` and the search results table `MyFilesSearchTable`.
+
+The page heading and the Sort and Details toggle live in `OneDriveLayout`'s page header, not in this component.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `searchValue` | Current top bar search query
+| `sort` | Sort state from link:../../../hooks/useMyFilesSort/[useMyFilesSort]
+| `showNewFolder` | Whether the NewFolderDialog should be open
+| `showUpload` | Whether the inline upload form should be mounted
+| `pickedFile` | File picked via the rail's Create menu, used to prefill the upload form
+| `onNewFolderDone` | Fired when the dialog closes
+| `onUploadDone` | Fired after a successful upload
+| `onRequestUpload` | Fired when a panel drop should open the upload form
+| `selectedUri` | URI of the currently selected resource
+| `onSelect` | Reports a new selection back to the shell
+|===
+
+== Internal pieces
+
+* `MyFilesTable` renders folder and file rows with selection, the sharing column, and drag and drop targets.
+* `MyFilesSearchTable` renders the flat search results table.
+* `MyFilesTableHead`, `SharingCell`, `myFilesColumns`, and `sortEntries` carry the column definitions, the sharing column renderer, and the pure sort helper.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]
+
+.Uses
+* link:../../../hooks/useNavigationHistory/[useNavigationHistory]
+* link:../../../hooks/useMyFilesSort/[useMyFilesSort]
+* link:../../../hooks/useSelectedResource/[useSelectedResource]
+* link:../../../formatting/[formatting]
+* link:../../NewFolderDialog/[NewFolderDialog]
+* link:../../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+* link:../../../../file-explorer/hooks/useCatalog/[useCatalog]
+* link:../../../../file-explorer/hooks/useFileSearch/[useFileSearch]
+* link:../../../../file-explorer/hooks/useUploadQueue/[useUploadQueue]
+* link:../../../../file-explorer/components/DropZone/[DropZone]
+* link:../../../../file-explorer/components/UploadTray/[UploadTray]
+* link:../../../../file-explorer/components/FileUpload/[FileUpload]
+* link:../../../../file-explorer/services/dragAndDrop/[dragAndDrop]
+* link:../../../../file-explorer/services/fileFilter/[fileFilter]
+* link:../../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../../infrastructure/solid/resourceGuards/[resourceGuards]

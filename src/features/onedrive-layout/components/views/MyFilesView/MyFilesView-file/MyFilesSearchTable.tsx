@@ -19,7 +19,8 @@ import {
   formatCatalogSize,
   formatModifiedDate,
   isActivationKey,
-} from './fileRowFormatting';
+  pickFileIcon,
+} from '@/features/onedrive-layout/formatting';
 
 interface MyFilesSearchTableProps {
   query: string;
@@ -30,8 +31,8 @@ interface MyFilesSearchTableProps {
 
 /**
  * Search-mode table body. Renders a flat list of catalog matches as
- * file rows (no folders, no sort, no navigation). Falls back to a
- * localized "no results" message when the query has no hits.
+ * file rows, with no folders, sort, or navigation. Falls back to a
+ * localized empty-state message when the query has no hits.
  *
  * @public
  */
@@ -65,6 +66,11 @@ export const MyFilesSearchTable: FunctionComponent<MyFilesSearchTableProps> = ({
           const containerUri = containerUriFromCatalogUri(entry.uri);
           const modified = formatModifiedDate(entry.modified);
           const size = formatCatalogSize(entry.byteSize);
+          const fileIcon = pickFileIcon({
+            name: entry.title,
+            mediaType: entry.mediaType,
+            conformsTo: entry.conformsTo,
+          });
           const selected = selectedUri === containerUri;
           const handleSelect = () =>
             onSelect({ kind: 'file', uri: containerUri, name: entry.title });
@@ -84,7 +90,10 @@ export const MyFilesSearchTable: FunctionComponent<MyFilesSearchTableProps> = ({
               }}
             >
               <span role="cell" className="odl-files-cell odl-files-cell--name">
-                {entry.title}
+                <span className="odl-files-row__icon" aria-hidden>
+                  <fileIcon.Icon width={24} height={24} />
+                </span>
+                <span className="odl-files-row__title">{entry.title}</span>
               </span>
               <span role="cell" className="odl-files-cell">
                 {modified}

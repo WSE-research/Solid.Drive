@@ -20,7 +20,9 @@ test("user opts into the OneDrive layout from the Classic header", async ({ brow
   await expect(page.getByTestId("onedrive-layout-root")).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await expect(page.locator("nav-rail")).toBeVisible();
   await expect(page.locator("top-bar")).toBeVisible();
-  await expect(page.locator(".odl-page-title")).toHaveText("Home");
+  // The Recent view renders its own toolbar with an internal heading;
+  // the page-header is suppressed for Recent, People, and Shared.
+  await expect(page.locator(".odl-recent__heading")).toHaveText("Recent");
   await expect(page.locator("main.odl-main")).toHaveAttribute("data-view", "recent");
   await expect(page.locator("header.site-header")).toHaveCount(0);
 

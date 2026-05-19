@@ -1,0 +1,15 @@
+= LayoutToggle
+
+Segmented Classic ↔ OneDrive pill control bound to the persisted layout preference.
+Mounted inside the TopBar's Settings dropdown.
+
+Stateless wrapper around link:../../hooks/useLayoutPreference/[useLayoutPreference].
+The hook owns the value, dispatches the cross instance change event, and writes to `localStorage`.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useLayoutPreference/[useLayoutPreference]

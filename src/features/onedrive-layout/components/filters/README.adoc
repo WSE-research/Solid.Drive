@@ -1,0 +1,16 @@
+= onedrive-layout/components/filters
+
+Filter widgets used by the Shared, Recent, and People views.
+All three are stateless.
+The parent view owns the selection state through link:../../hooks/useSharedFilters/[useSharedFilters] or link:../../hooks/useRecentFilters/[useRecentFilters].
+
+== Contents
+
+link:TypeFilterChips/[TypeFilterChips]:: Chip row that filters entries by schema.org class. Chips come from observed catalog data, never hardcoded. Ships a companion `TypeFilterChipsDropdown` for narrow toolbars.
+link:PersonNameFilter/[PersonNameFilter]:: Free text input that filters a list of contacts by display name or WebID.
+link:SharedFilters/[SharedFilters]:: Layout shell that pairs the chip row with the person filter. Used by SharedView.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]

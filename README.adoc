@@ -39,11 +39,15 @@ toc::[]
 == Features
 
 * *Authentication:* log in via any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self-hosted server)
-* *Pod navigation:* browse the full Pod directory tree with breadcrumb navigation
-* *URLs and history:* the open folder is reflected in the query string (`folder=…`); copy the address bar to share a deep link, and use the browser back/forward buttons to move through your navigation history
+* *Layout choice:* switch at runtime between the classic two pane shell and the OneDrive style shell; the preference is persisted in `localStorage`
+* *OneDrive views:* Home / Recent, My Files, Shared, Requests, and People; each view has its own toolbar, type filter chips, and a person and name filter; the Shared view has With you and By you tabs
+* *Pod navigation:* browse the full Pod directory tree with breadcrumb navigation; per folder scroll position is preserved across browser back and forward
+* *URLs and history:* the open folder is reflected in the query string (`folder=…`) and the active OneDrive view in `view=…`; copy the address bar to share a deep link, and use the browser back/forward buttons to move through your navigation history
 * *TBox-driven validation:* SHACL shapes are loaded from `public/tbox.ttl` at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before upload; missing fields are surfaced inline
 * *File adoption:* renders files that existed on the Pod before the app was used, showing folder name and download button for containers lacking `index.ttl`
-* *File upload:* accepts any file type; stores the binary and a metadata document (`index.ttl`) inside a dedicated container on the Pod
+* *File upload:* accepts any file type. Users can upload through the dialog form, by dragging files onto the panel or a folder row, or from the OneDrive Create menu. The binary and a metadata document `index.ttl` are stored inside a dedicated container on the Pod, and an upload tray surfaces progress and per file retry.
+* *Folder creation:* the classic explorer uses an inline form, and the OneDrive shell opens a modal dialog. Both create LDP BasicContainers under the active folder.
+* *Selection actions:* the OneDrive shell shows Share, Copy link, Delete, and Download in the page header, plus Move to and Rename stubs. Actions that no longer fit inline spill into a kebab dropdown at narrow viewports.
 * *Semantic classification:* MIME type is mapped to a schema.org class and written to `index.ttl` as `rdf:type`
 * *Inline preview:* images, videos, audio, PDFs, and text files preview directly in the browser, no request leaves the browser after the file is fetched
 * *Download:* triggers a browser native download from the blob URL
@@ -186,11 +190,12 @@ solid.drive/
 |-- src/
 |   |-- .shapes/              # ShEx shapes (edit here)
 |   |-- .ldo/                 # LDO bindings (auto generated)
-|   |-- app/                  # Root component, i18n, locales
+|   |-- app/                  # Root component, ClassicLayout, bootstrap hooks, i18n, locales
 |   |-- config/               # Constants and env vars
 |   |-- features/
 |   |   |-- auth/
 |   |   |-- file-explorer/
+|   |   |-- onedrive-layout/  # OneDrive style shell: rail, top bar, views, hooks
 |   |   |-- profile/
 |   |   `-- sharing/          # WAC/ACL hooks
 |   |-- infrastructure/       # Solid/RDF, no React
@@ -198,7 +203,7 @@ solid.drive/
 |   |   |-- solid/
 |   |   |-- validation/
 |   |   `-- wac/
-|   |-- shared/               # Components, contexts, utils
+|   |-- shared/               # Components, contexts, hooks, utils
 |   |-- types/
 |   `-- assets/
 |-- public/

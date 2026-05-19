@@ -1,0 +1,27 @@
+= SharedFilters
+
+Layout shell that pairs the `TypeFilterChips` chip row with the `PersonNameFilter` input.
+Purely presentational.
+All state comes from link:../../../hooks/useSharedFilters/[useSharedFilters] via the parent.
+
+Scoped under the `<shared-filters>` element so the layout CSS can target it.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `chips` | Chip set derived from observed catalog entries
+| `filters` | State and actions from link:../../../hooks/useSharedFilters/[useSharedFilters]
+|===
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/filters]
+
+.Uses
+* link:../TypeFilterChips/[TypeFilterChips]
+* link:../PersonNameFilter/[PersonNameFilter]
+* link:../../../hooks/useSharedFilters/[useSharedFilters]

@@ -31,10 +31,11 @@ const NON_NAME_PATH_SEGMENTS = new Set(["profile", "card", "card.ttl", "users", 
  * Extracts a fallback display name from a WebID.
  *
  * @remarks
- * Tries (in order) the leftmost subdomain of the host (Pod-per-subdomain
- * pattern, e.g. `alice.solidcommunity.net` → `alice`), then a meaningful
- * path segment (Pod-as-path pattern, e.g. `https://server/users/alice/...`
- * → `alice`), then the host itself, then the raw WebID.
+ * Tries each of the following in order: the leftmost subdomain of the
+ * host for the Pod-per-subdomain pattern, where `alice.solidcommunity.net`
+ * yields `alice`; then a meaningful path segment for the Pod-as-path
+ * pattern, where `https://server/users/alice/...` yields `alice`; then
+ * the host itself; then the raw WebID.
  *
  * @param webId - The WebID to extract from
  * @returns Extracted name segment or the full WebID

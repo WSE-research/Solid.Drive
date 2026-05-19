@@ -3,11 +3,8 @@
  * Initializes the file explorer with Pod storage and app container.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useSolidAuth, useSubject } from "@ldo/solid-react";
-import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import type { SolidContainerUri } from "@ldo/connected-solid";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { usePodDiscovery } from "@/features/file-explorer/hooks/usePodDiscovery";
@@ -28,17 +25,17 @@ type UseDriveInitializationReturn = {
   currentUri: SolidContainerUri | undefined;
   setCurrentUri: (uri: SolidContainerUri | undefined) => void;
   breadcrumbs: Breadcrumb[];
-  setBreadcrumbs: Dispatch<SetStateAction<Breadcrumb[]>>;
+  setBreadcrumbs: (breadcrumbs: Breadcrumb[]) => void;
   noStorageDetected: boolean;
   handleRetryStorage: () => Promise<void>;
   handleNavigate: (uri: string) => void;
   handleBreadcrumbClick: (index: number, uri: SolidContainerUri) => void;
-  contacts: string[];
 };
 
 /**
  * Sets up storage root, app container, navigation state, and contacts on login.
- * Folder navigation is synced to the URL (`?folder=`) so back/forward and deep links work.
+ * Folder navigation is synced to the `?folder=` URL search param so browser
+ * back/forward and deep links work.
  *
  * @param storageRetryDelayMs - Delay before retrying storage discovery
  *
@@ -49,8 +46,6 @@ export function useDriveInitialization(
 ): UseDriveInitializationReturn {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { session } = useSolidAuth();
-  const profile = useSubject(SolidProfileShapeType, session.webId);
 
   const {
     appContainerUri,
@@ -120,9 +115,8 @@ export function useDriveInitialization(
   );
 
   const setBreadcrumbs = useCallback(
-    (action: SetStateAction<Breadcrumb[]>) => {
-      if (typeof action === "function") return;
-      const last = action[action.length - 1];
+    (breadcrumbs: Breadcrumb[]) => {
+      const last = breadcrumbs[breadcrumbs.length - 1];
       if (
         last?.uri &&
         storageRootUri &&
@@ -151,13 +145,6 @@ export function useDriveInitialization(
     [navigateToFolder, storageRootUri]
   );
 
-  const [contacts, setContacts] = useState<string[]>([]);
-  useEffect(() => {
-    if (!profile) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setContacts(profile.knows?.toArray().map((contact: { "@id": string }) => contact["@id"]) ?? []);
-  }, [profile]);
-
   return {
     appContainerUri,
     storageRootUri,
@@ -169,6 +156,5 @@ export function useDriveInitialization(
     handleRetryStorage,
     handleNavigate,
     handleBreadcrumbClick,
-    contacts,
   };
 }

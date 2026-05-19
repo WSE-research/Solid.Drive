@@ -5,7 +5,9 @@ import { EditableDescription } from '../EditableDescription-file/EditableDescrip
 
 const mockCommitData = vi.fn().mockResolvedValue({ isError: false });
 const mockGetResource = vi.fn(() => ({}));
-const mockCreateData = vi.fn(() => ({ description: '' }));
+const mockCreateData = vi.fn<() => { description: string | undefined }>(() => ({
+  description: '',
+}));
 
 vi.mock('@ldo/solid-react', () => ({
   useLdo: () => ({
@@ -129,6 +131,40 @@ describe('EditableDescription', () => {
     await user.clear(input);
     await user.type(input, 'changed{Enter}');
     await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+  });
+
+  it('sets description to undefined when the trimmed value is empty', async () => {
+    const user = userEvent.setup();
+    const draft = { description: 'old' as string | undefined };
+    mockCreateData.mockReturnValue(draft);
+    render(
+      <EditableDescription
+        metadataUri="https://pod/app/doc/index.ttl"
+        initial="old"
+      />,
+    );
+    const input = screen.getByRole('textbox');
+    await user.clear(input);
+    await user.type(input, '   {Enter}');
+    await waitFor(() => expect(mockCommitData).toHaveBeenCalledOnce());
+    // Trimmed value is '' so draft.description should be set to undefined
+    expect(draft.description).toBeUndefined();
+  });
+
+  it('calls onSaved callback after a successful commit', async () => {
+    const user = userEvent.setup();
+    mockCommitData.mockResolvedValue({ isError: false });
+    const onSaved = vi.fn();
+    render(
+      <EditableDescription
+        metadataUri="https://pod/app/doc/index.ttl"
+        initial=""
+        onSaved={onSaved}
+      />,
+    );
+    const input = screen.getByRole('textbox');
+    await user.type(input, 'new value{Enter}');
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
   });
 
   it('resets to the new initial when metadataUri changes', () => {

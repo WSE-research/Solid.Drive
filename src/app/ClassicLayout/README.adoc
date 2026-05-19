@@ -1,0 +1,23 @@
+= ClassicLayout
+
+The original two pane shell.
+Profile sidebar on the left, file explorer on the right.
+Pulled out of `App.tsx` so the root component can swap between this and the OneDrive layout based on the user's preference.
+
+Stateless and self contained.
+Mounts `ProfileSidebar` and `FileExplorer` and lets them own their own data.
+
+== See also
+
+* link:../../features/profile/components/ProfileSidebar/[ProfileSidebar] is the left pane.
+* link:../../features/file-explorer/components/FileExplorer/[FileExplorer] is the right pane.
+* link:../../features/onedrive-layout/[onedrive-layout] is the alternate shell this layout swaps with.
+
+== Navigation
+
+.Parent
+link:../[app]
+
+.Uses
+* link:../../features/file-explorer/components/FileExplorer/[FileExplorer]
+* link:../../features/profile/components/ProfileSidebar/[ProfileSidebar]

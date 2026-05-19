@@ -125,7 +125,7 @@ describe('sortEntries', () => {
     expect(result.map((e) => e.displayName)).toEqual(['c', 'a']);
   });
 
-  it('treats two entries with both undefined byteSize as equal (preserves input order)', () => {
+  it('treats two folders with both undefined byteSize as equal (preserves input order)', () => {
     const result = sortEntries(
       [
         folder('https://x/c/'),

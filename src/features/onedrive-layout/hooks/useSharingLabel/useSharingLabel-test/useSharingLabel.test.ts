@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useSharingLabel } from '../useSharingLabel-file/useSharingLabel';
+import {
+  __resetSharingLabelCacheForTests,
+  useSharingLabel,
+} from '../useSharingLabel-file/useSharingLabel';
 
 const mockDiscoverAclUri = vi.fn();
 const mockReadAclAgents = vi.fn();
@@ -18,6 +21,7 @@ describe('useSharingLabel', () => {
   beforeEach(() => {
     mockDiscoverAclUri.mockReset();
     mockReadAclAgents.mockReset();
+    __resetSharingLabelCacheForTests();
   });
 
   it('returns private when only the owner is in the ACL', async () => {
@@ -72,5 +76,42 @@ describe('useSharingLabel', () => {
     const { result } = renderHook(() => useSharingLabel('https://x/file/'));
     expect(result.current.loading).toBe(true);
     resolveAcl('https://x/.acl');
+  });
+
+  it('serves a second consumer from the module cache without re-fetching', async () => {
+    mockDiscoverAclUri.mockResolvedValue('https://x/.acl');
+    mockReadAclAgents.mockResolvedValue(['https://alice/me']);
+
+    const { result: first } = renderHook(() => useSharingLabel('https://x/file/'));
+    await waitFor(() => expect(first.current.loading).toBe(false));
+
+    const discoverCallsAfterFirst = mockDiscoverAclUri.mock.calls.length;
+
+    const { result: second } = renderHook(() => useSharingLabel('https://x/file/'));
+    expect(second.current.loading).toBe(false);
+    expect(second.current.kind).toBe(first.current.kind);
+    expect(mockDiscoverAclUri.mock.calls.length).toBe(discoverCallsAfterFirst);
+  });
+
+  it('dedupes concurrent consumers so one in-flight fetch serves both', async () => {
+    let resolveAcl!: (uri: string) => void;
+    mockDiscoverAclUri.mockReturnValue(
+      new Promise<string>((resolve) => {
+        resolveAcl = resolve;
+      }),
+    );
+    mockReadAclAgents.mockResolvedValue(['https://alice/me']);
+
+    const { result: a } = renderHook(() => useSharingLabel('https://x/file/'));
+    const { result: b } = renderHook(() => useSharingLabel('https://x/file/'));
+
+    expect(a.current.loading).toBe(true);
+    expect(b.current.loading).toBe(true);
+    expect(mockDiscoverAclUri.mock.calls.length).toBe(1);
+
+    resolveAcl('https://x/.acl');
+    await waitFor(() => expect(a.current.loading).toBe(false));
+    await waitFor(() => expect(b.current.loading).toBe(false));
+    expect(mockDiscoverAclUri.mock.calls.length).toBe(1);
   });
 });

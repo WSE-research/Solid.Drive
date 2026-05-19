@@ -6,6 +6,8 @@ import {
   formatCatalogSize,
   formatModifiedDate,
   isActivationKey,
+  parentFolderLabel,
+  safeDecodeUriTail,
 } from './fileRowFormatting';
 
 describe('decodeUriTail', () => {
@@ -67,6 +69,38 @@ describe('formatCatalogSize', () => {
 
   it('formats zero rather than collapsing to the placeholder', () => {
     expect(formatCatalogSize(0)).not.toBe(EMPTY_CELL);
+  });
+});
+
+describe('safeDecodeUriTail', () => {
+  it('decodes a valid percent-encoded tail', () => {
+    expect(safeDecodeUriTail('https://pod/app/My%20Files/')).toBe('My Files');
+  });
+
+  it('returns the raw tail unchanged when decoding fails', () => {
+    expect(safeDecodeUriTail('https://pod/app/%E0%A4%A')).toBe('%E0%A4%A');
+  });
+
+  it('falls back to the trimmed input when there is no slash', () => {
+    expect(safeDecodeUriTail('bare')).toBe('bare');
+  });
+});
+
+describe('parentFolderLabel', () => {
+  it('returns the parent leaf decoded', () => {
+    expect(parentFolderLabel('https://pod/app/docs/index.ttl')).toBe('docs');
+  });
+
+  it('returns the parent leaf for a trailing-slash container URI', () => {
+    expect(parentFolderLabel('https://pod/app/docs/file/')).toBe('docs');
+  });
+
+  it('returns an empty string when there is no parent segment', () => {
+    expect(parentFolderLabel('file.txt')).toBe('');
+  });
+
+  it('falls back to the raw parent when decoding fails', () => {
+    expect(parentFolderLabel('https://pod/%E0%A4%A/file.txt')).toBe('%E0%A4%A');
   });
 });
 

@@ -1,0 +1,24 @@
+= PeopleView
+
+People view for the OneDrive layout.
+
+Has two states:
+
+* The default list state renders the contacts list flush against the view background, with no card wrapper and no master/detail grid.
+* The detail state, entered by clicking a contact, replaces the view with `PersonDetailView`, which mirrors the SharedView toolbar and reuses `SharedFilesTable` scoped to that one contact.
+
+== Internal pieces
+
+* `OneDrivePeopleList` is the contact roster.
+* `PersonDetailView` is the single contact detail view, reusing the SharedView's chip and person filter scoped to one contact.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]
+
+.Uses
+* link:../SharedView/[SharedView]
+* link:../../../hooks/useSharedFilters/[useSharedFilters]
+* link:../../../../file-explorer/components/ContactSharedFiles/[ContactSharedFiles]
+* link:../../../../profile/components/ContactsList/[ContactsList]

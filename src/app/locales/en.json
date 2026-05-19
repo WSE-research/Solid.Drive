@@ -52,6 +52,7 @@
   "fileCard": {
     "loading": "Loading\u2026",
     "deleteConfirm": "Are you sure you want to delete this file?",
+    "deleteFail": "Delete failed",
     "download": "Download",
     "delete": "Delete",
     "noMetadata": "No metadata",
@@ -149,6 +150,8 @@
     "classic": "Classic",
     "onedrive": "OneDrive",
     "navRail": "Navigation",
+    "navRailCollapse": "Collapse",
+    "navRailExpand": "Expand",
     "create": "Create",
     "recent": "Home",
     "myFiles": "My Files",
@@ -220,10 +223,13 @@
       "download": "Download",
       "moveTo": "Move to",
       "rename": "Rename",
+      "more": "More actions",
       "clearSelection": "Clear selection",
       "selectionCount_one": "{{count}} selected",
       "selectionCount_other": "{{count}} selected"
     },
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
     "toast": {
       "linkCopied": "Link to \"{{name}}\" copied to clipboard",
       "linkCopyFail": "Could not copy link",
@@ -231,6 +237,60 @@
       "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
       "deleteSuccess": "\"{{name}}\" deleted",
       "deleteFail": "Delete failed"
+    },
+    "filters": {
+      "typeGroup": "File type filter",
+      "allTypes": "All",
+      "personPlaceholder": "Filter by name or person",
+      "chip": {
+        "folder": "Folder",
+        "word": "Word",
+        "excel": "Excel",
+        "powerpoint": "PowerPoint",
+        "pdf": "PDF"
+      }
+    },
+    "sharedView": {
+      "tab": {
+        "withYou": "With you",
+        "byYou": "By you"
+      },
+      "withYou": {
+        "empty": "No contacts yet."
+      },
+      "byYou": {
+        "empty": "Files you share with others will appear here.",
+        "emptyContacts": "Add contacts to share files with them."
+      },
+      "column": {
+        "name": "Name",
+        "dateShared": "Date Shared",
+        "sharedBy": "Shared by",
+        "sharedWith": "Shared with"
+      }
+    },
+    "requestsView": {
+      "connecting": "Connecting…",
+      "heading": "Pending requests",
+      "refresh": "Refresh",
+      "loading": "Loading requests…",
+      "emptyTitle": "No pending requests",
+      "emptySubtitle": "When someone asks for access to your files, you will see it here."
+    },
+    "recentView": {
+      "heading": "Recent",
+      "empty": "No recent files yet — anything you open will show up here.",
+      "column": {
+        "name": "Name",
+        "opened": "Opened",
+        "owner": "Owner"
+      }
+    },
+    "peopleView": {
+      "heading": "People",
+      "selectPrompt": "Select a contact to see what they have shared with you.",
+      "filesByHeading": "Files shared by {{name}}",
+      "back": "Back to People"
     }
   }
 }

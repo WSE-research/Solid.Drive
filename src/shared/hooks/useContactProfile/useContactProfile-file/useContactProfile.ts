@@ -1,9 +1,9 @@
 /**
  * @packageDocumentation
  * Resolves a Solid WebID into the display fields needed to render a
- * contact row (name, avatar URL, initial, loading state). Used by the
- * SharePanel, the OneDrive DetailPanel, and the contacts list so all
- * three render the same name and avatar for a given WebID.
+ * contact row: name, avatar URL, initial, and loading state. Used by
+ * the SharePanel, the OneDrive DetailPanel, and the contacts list so
+ * all three render the same name and avatar for a given WebID.
  */
 
 import { useResource, useSubject } from "@ldo/solid-react";
@@ -24,14 +24,18 @@ export interface ContactProfileView {
 
 /**
  * Duck-types an LDO connected resource to detect the in-flight state
- * without taking a dependency on `@/infrastructure/solid/resourceGuards`
- * (which `shared/` is not allowed to import).
+ * without taking a dependency on `@/infrastructure/solid/resourceGuards`,
+ * which `shared/` is not allowed to import.
  *
  * @internal
  */
 function isResourceLoading(resource: unknown): boolean {
-  const candidate = resource as { isLoading?: () => boolean } | null | undefined;
-  return typeof candidate?.isLoading === "function" && candidate.isLoading();
+  if (resource === null || typeof resource !== "object") return false;
+  const candidate = resource as { isLoading?: unknown };
+  return (
+    typeof candidate.isLoading === "function" &&
+    (candidate.isLoading as () => boolean)() === true
+  );
 }
 
 /**

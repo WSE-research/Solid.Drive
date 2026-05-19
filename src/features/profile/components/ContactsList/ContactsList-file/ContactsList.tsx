@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, KeyboardEvent, MouseEvent } from "react";
 import { useSolidAuth } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { useContacts } from "@/features/profile/hooks/useContacts";
@@ -21,6 +21,15 @@ const WEBID_URL_PATTERN = /^https?:\/\/[^\s<>"{}|\\^`[\]]*$/;
  */
 type ContactsListProps = {
   ownerWebId: string;
+  /**
+   * Optional. When provided, each contact row becomes selectable and
+   * fires this callback. Used by the OneDrive PeopleView to drive its
+   * "Files shared by this person" sub-panel. Defaults to no-op so the
+   * classic profile sidebar is unaffected.
+   */
+  onSelect?: (contactWebId: string) => void;
+  /** WebID of the currently active contact (for highlighting). */
+  selectedWebId?: string;
 };
 
 /**
@@ -29,7 +38,11 @@ type ContactsListProps = {
  *
  * @public
  */
-export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId }) => {
+export const ContactsList: FunctionComponent<ContactsListProps> = ({
+  ownerWebId,
+  onSelect,
+  selectedWebId,
+}) => {
   const [translate] = useTranslation();
   const { fetch: solidFetch } = useSolidAuth();
   const { contacts, addContact, removeContact, isAdding } = useContacts(ownerWebId);
@@ -69,17 +82,50 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({ ownerWebId 
   const isAddDisabled = isAdding || !newWebId.trim();
   const addButtonLabel = isAdding ? "..." : translate("profileSidebar.add");
   const hasNoContacts = contacts.length === 0;
-  const contactRows = contacts.map((contactWebId) => (
-    <ContactRow
-      key={contactWebId}
-      webId={contactWebId}
-      ownerWebId={ownerWebId}
-      solidFetch={solidFetch}
-      rejection={fileRejections.get(contactWebId)}
-      onClearRejection={() => handleClearRejection(contactWebId)}
-      onRemove={() => handleRemove(contactWebId)}
-    />
-  ));
+
+  // When onSelect is provided, wrap each row in an interactive shell so
+  // the surrounding area is clickable. Inner buttons (Request access,
+  // Remove) keep their own click semantics — we ignore wrapper clicks
+  // that originate inside an interactive descendant.
+  const handleRowActivate = (contactWebId: string) => (event: MouseEvent | KeyboardEvent) => {
+    if (!onSelect) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button") || target.closest("input") || target.closest("a")) return;
+    if ("key" in event && event.key !== "Enter" && event.key !== " ") return;
+    onSelect(contactWebId);
+  };
+
+  const renderRow = (contactWebId: string) => {
+    const row = (
+      <ContactRow
+        key={contactWebId}
+        webId={contactWebId}
+        ownerWebId={ownerWebId}
+        solidFetch={solidFetch}
+        rejection={fileRejections.get(contactWebId)}
+        onClearRejection={() => handleClearRejection(contactWebId)}
+        onRemove={() => handleRemove(contactWebId)}
+      />
+    );
+    if (!onSelect) return row;
+    const isSelected = selectedWebId === contactWebId;
+    return (
+      <div
+        key={contactWebId}
+        role="button"
+        tabIndex={0}
+        aria-pressed={isSelected}
+        data-selected={isSelected ? "true" : undefined}
+        className={`contacts__selectable-row${isSelected ? " contacts__selectable-row--active" : ""}`}
+        onClick={handleRowActivate(contactWebId)}
+        onKeyDown={handleRowActivate(contactWebId)}
+      >
+        {row}
+      </div>
+    );
+  };
+
+  const contactRows = contacts.map(renderRow);
 
   return (
     <div>

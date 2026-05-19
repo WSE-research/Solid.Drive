@@ -1,0 +1,31 @@
+= useAclVersion
+
+Module level pub/sub for ACL changes.
+After `SharePanel` writes a new ACL, every other hook that reads the same resource has to re fetch.
+That includes the DetailPanel's Has access row, the file table sharing column, and so on.
+
+Writers call `notifyAclChanged(uri)` after a successful WAC write.
+Readers subscribe through `useAclVersion(uri)` and use the returned counter as a `useEffect` dependency so the fetch re runs.
+
+Backed by React's `useSyncExternalStore`, so all live subscribers update on the same tick.
+
+== Exports
+
+[cols="1,3", options="header"]
+|===
+| Symbol | Description
+
+| `useAclVersion(uri)` | Subscribes to ACL changes for one URI and returns a counter that bumps on every notification
+| `notifyAclChanged(uri)` | Bumps the version for a URI and wakes every subscribed hook
+| `__resetAclVersionsForTests()` | Test only helper that wipes the in memory state
+|===
+
+== See also
+
+* link:../../../infrastructure/wac/aclManager/[aclManager] writes ACLs and calls `notifyAclChanged`.
+* link:../../../features/onedrive-layout/hooks/useSharingLabel/[useSharingLabel] subscribes here so its label re resolves after a share.
+
+== Navigation
+
+.Parent
+link:../[shared/hooks]

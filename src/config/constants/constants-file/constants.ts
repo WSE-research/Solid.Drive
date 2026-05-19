@@ -365,9 +365,15 @@ export const DOCUMENT_MIME_TYPES = [
 /**
  * Default path for the TBox (ontology/shapes) file.
  *
+ * @remarks
+ * Prefixed with Vite's BASE_URL so the path resolves under the
+ * configured `base` (e.g. `/solid-hello-world-frontend-react/`).
+ * Using a bare `/tbox.ttl` would 404 because Vite serves
+ * `public/tbox.ttl` at `${BASE_URL}tbox.ttl`, not at the origin root.
+ *
  * @public
  */
-export const DEFAULT_TBOX_PATH = "/tbox.ttl";
+export const DEFAULT_TBOX_PATH = `${import.meta.env.BASE_URL}tbox.ttl`;
 
 // ============================================================================
 // I18N CONFIGURATION

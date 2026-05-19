@@ -103,10 +103,12 @@ declare module "react" {
       "onedrive-layout": El;
       "onedrive-view": El;
       "nav-rail": El;
+      "rail-bottom-panel": El;
       "top-bar": El;
       "topbar-brand": El;
       "topbar-actions": El;
       "search-slot": El;
+      "topbar-search-overlay": El;
       // OneDriveLayout — TopBar dropdown internals
       "topbar-menu-row": El;
       "topbar-menu-profile": El;
@@ -117,6 +119,8 @@ declare module "react" {
       "page-header": El;
       "page-header-right": El;
       "selection-actions": El;
+      "selection-actions-inline": El;
+      "selection-actions-kebab": El;
       // OneDriveLayout — ContextualToolbar
       "contextual-toolbar": El;
       "toolbar-left": El;
@@ -132,6 +136,54 @@ declare module "react" {
       "detail-panel-row": El;
       "editable-description": El;
       "has-access-row": El;
+      // OneDriveLayout — Filters (TypeFilterChips, PersonNameFilter, SharedFilters)
+      "type-filter-chips": El;
+      "type-filter-chips-dropdown": El;
+      "person-name-filter": El;
+      "shared-filters": El;
+      // OneDriveLayout — SharedView (legacy with-you list — kept for
+      // backwards-compat with classic SharedWithMeSection only)
+      "shared-with-you-list": El;
+      // OneDriveLayout — SharedView toolbar + table
+      "shared-toolbar": El;
+      "shared-toolbar-tabs": El;
+      "shared-toolbar-chips": El;
+      "shared-toolbar-search": El;
+      "shared-body": El;
+      "shared-files-table": El;
+      "shared-files-head": El;
+      "shared-files-body": El;
+      "shared-files-row": El;
+      "shared-files-cell": El;
+      "shared-files-name": El;
+      // OneDriveLayout — PeopleView (list + detail)
+      "people-view-grid": El;
+      "people-view-list": El;
+      "people-view-detail": El;
+      "person-detail-identity": El;
+      "people-list": El;
+      "people-list-header": El;
+      "people-list-body": El;
+      "people-list-add": El;
+      "person-row": El;
+      // OneDriveLayout — RequestsView (cards + states)
+      "requests-list": El;
+      "requests-list-header": El;
+      "requests-list-state": El;
+      "requests-list-body": El;
+      "request-card": El;
+      "request-card-body": El;
+      "request-card-actions": El;
+      // OneDriveLayout — RecentView (Home — recent files table)
+      "recent-toolbar": El;
+      "recent-toolbar-chips": El;
+      "recent-toolbar-search": El;
+      "recent-files-table": El;
+      "recent-files-head": El;
+      "recent-files-body": El;
+      "recent-files-row": El;
+      "recent-files-cell": El;
+      "recent-files-name": El;
     }
   }
 }

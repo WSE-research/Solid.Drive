@@ -5,7 +5,9 @@ Nothing here should import from a specific feature module. Hooks that belong to 
 
 == Contents
 
-`useContactRejections`:: Fetches LDP inbox rejection notifications for all contacts and exposes a per-contact dismiss handler
+`useAclVersion`:: Module-level pub/sub for ACL changes. Writers call `notifyAclChanged(uri)` after a successful WAC write; readers subscribe via `useAclVersion(uri)` and use the returned counter as a `useEffect` dependency to re-fetch.
+`useContactProfile`:: Resolves a WebID to a display name + avatar URL via the contact's Solid profile.
+`useContactRejections`:: Fetches LDP inbox rejection notifications for all contacts and exposes a per-contact dismiss handler.
 
 == Navigation
 

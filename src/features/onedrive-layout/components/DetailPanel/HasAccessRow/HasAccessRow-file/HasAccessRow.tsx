@@ -1,8 +1,8 @@
 /**
- * Horizontal strip of avatar circles for the DetailPanel's "Has access"
- * row. Renders one circle per non owner agent in the WAC ACL, a single
- * Public marker for resources shared with foaf:Agent, or an empty row
- * for private resources.
+ * Horizontal strip of avatar circles for the DetailPanel's access row.
+ * Renders one circle per non-owner agent in the WAC ACL, a single
+ * marker for resources shared with foaf:Agent, or an empty row for
+ * private resources.
  *
  * @packageDocumentation
  */
@@ -39,16 +39,18 @@ const AccessAvatar: FunctionComponent<{ webId: string }> = ({ webId }) => {
 };
 
 /**
- * Renders the "Has access" strip for the DetailPanel. See file docs.
- *
  * @public
  */
 export const HasAccessRow: FunctionComponent<HasAccessRowProps> = ({ uri }) => {
   const [translate] = useTranslation();
   const { kind, agentWebIds, loading } = useSharingLabel(uri);
 
-  if (loading || kind === 'private') {
-    return <has-access-row />;
+  if (loading) {
+    return <has-access-row data-state="loading" aria-busy="true" />;
+  }
+
+  if (kind === 'private') {
+    return <has-access-row data-state="private" />;
   }
 
   if (kind === 'public') {

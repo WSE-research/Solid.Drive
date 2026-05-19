@@ -1,0 +1,18 @@
+= useSessionContinuity
+
+Reports whether the user is, or was just, logged in inside the current browser tab.
+
+The Solid auth provider needs roughly a second after page load to restore a saved session, and during that window `useSolidAuth().session.isLoggedIn` is `false`.
+Without this hook, refreshing inside the OneDrive layout would flash the classic header and file explorer until auth resolved.
+
+The hook writes a `solid-drive.session-active` flag to `sessionStorage` while a session is live, and clears it on logout.
+A refresh inside the same tab can read the flag and short circuit the gap.
+
+== Returns
+
+`isActive`:: `true` while a real session is active or while one is being restored after a refresh. `false` once the user has truly logged out.
+
+== Navigation
+
+.Parent
+link:../[app/hooks]
