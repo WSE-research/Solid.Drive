@@ -36,6 +36,8 @@ export {
   MoreHorizontalRegular   as MoreHorizontalIcon,
   PanelRightContractRegular as DetailsPanelIcon,
   PanelRightExpandRegular   as DetailsPanelIconActive,
+  PanelLeftContractRegular  as NavRailCollapseIcon,
+  PanelLeftExpandRegular    as NavRailExpandIcon,
   AlertRegular              as BellIcon,
 } from '@fluentui/react-icons';
 

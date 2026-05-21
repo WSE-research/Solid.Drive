@@ -533,15 +533,16 @@ confirm-dialog-actions .btn {
   min-width: 88px;
 }
 
-/* Dark mode override when the dialog opens over the OneDrive layout. */
+/* When the dialog opens over the OneDrive layout, route colors through
+   the OneDrive theme tokens so dark and light variants stay in sync. */
 onedrive-layout ~ confirm-overlay confirm-dialog,
 body:has(onedrive-layout) confirm-overlay confirm-dialog {
-  background: #1a1a1d;
-  color: #f3f3f3;
-  border-color: #2c2c31;
+  background: var(--odl-bg-panel);
+  color: var(--odl-text);
+  border-color: var(--odl-border);
 }
 body:has(onedrive-layout) .confirm-dialog__message {
-  color: #f3f3f3;
+  color: var(--odl-text);
 }
 
 /* Toast container */
@@ -617,13 +618,14 @@ toast-container > * {
   color: var(--text-primary);
 }
 
-/* Dark mode override when a toast shows over the OneDrive layout. */
+/* When a toast shows over the OneDrive layout, route colors through the
+   OneDrive theme tokens so dark and light variants stay in sync. */
 body:has(onedrive-layout) .toast {
-  background: #1a1a1d;
-  color: #c8c8c8;
-  border-color: #2c2c31;
+  background: var(--odl-bg-panel);
+  color: var(--odl-text-muted);
+  border-color: var(--odl-border);
 }
 body:has(onedrive-layout) .toast__dismiss:hover {
-  background: #2c2c31;
-  color: #f3f3f3;
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
 }

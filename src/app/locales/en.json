@@ -160,10 +160,17 @@
     "layout": "Layout",
     "classic": "Classic",
     "onedrive": "OneDrive",
+    "theme": "Theme",
+    "themeOption": {
+      "light": "Light",
+      "dark": "Dark"
+    },
     "navRail": "Navigation",
     "navRailCollapse": "Collapse",
     "navRailExpand": "Expand",
     "create": "Create",
+    "createOrUpload": "Create or upload",
+    "browseFilesBy": "Browse files by",
     "recent": "Home",
     "myFiles": "My Files",
     "shared": "Shared",

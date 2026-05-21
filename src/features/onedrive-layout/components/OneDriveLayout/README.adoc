@@ -20,6 +20,13 @@ Five views are routed via the `?view=` URL search param. See link:../../hooks/us
 Shared, People, and Recent each draw their own toolbar inline, so the standard page header is skipped for those.
 Shared also takes over the main grid slot.
 
+== Root data attributes
+
+`data-rail-expanded`:: `"true"` or `"false"`, mirrored from link:../../hooks/useNavRailExpanded/[useNavRailExpanded].
+`data-view`:: Current view id from link:../../hooks/useViewParam/[useViewParam].
+
+Both are read by CSS to scope per-state and per-view styles.
+
 == Navigation
 
 .Parent
@@ -38,6 +45,7 @@ link:../[onedrive-layout/components]
 * link:../views/RequestsView/[RequestsView]
 * link:../views/PeopleView/[PeopleView]
 * link:../../hooks/useViewParam/[useViewParam]
+* link:../../hooks/useNavRailExpanded/[useNavRailExpanded]
 * link:../../hooks/useMyFilesSort/[useMyFilesSort]
 * link:../../hooks/useSelectedResource/[useSelectedResource]
 * link:../../hooks/useResourceDetails/[useResourceDetails]

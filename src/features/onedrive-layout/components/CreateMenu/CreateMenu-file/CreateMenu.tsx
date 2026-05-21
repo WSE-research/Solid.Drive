@@ -1,9 +1,6 @@
 /**
- * Create menu rendered above the OneDrive-inspired NavRail. The trigger
- * is the `+` button. "New folder" fires `onNewFolder`. "Upload files"
- * opens the OS file picker via a hidden input and forwards the selected
- * files to `onFilesPicked` so the parent shell can prefill the upload
- * form.
+ * Create menu anchored on the NavRail's Create control. Two items:
+ * "New folder" and "Upload files".
  *
  * @packageDocumentation
  */
@@ -14,22 +11,38 @@ import { useTranslation } from 'react-i18next';
 import { PlusIcon } from '@/features/onedrive-layout/icons';
 
 interface CreateMenuProps {
+  /** "New folder" handler. */
   onNewFolder: () => void;
+  /** "Upload files" handler, called with the OS-picked files. */
   onFilesPicked: (files: File[]) => void;
+  /** Render the pill trigger when true, the icon-only `+` when false. Defaults to false. */
+  expanded?: boolean;
+  /** Override for the collapsed accessible name. Defaults to the `oneDriveLayout.create` i18n string. */
+  labelShort?: string;
+  /** Override for the expanded label and accessible name. Defaults to `oneDriveLayout.createOrUpload`. */
+  labelLong?: string;
 }
 
 /**
- * Two-item dropdown anchored on the rail's `+` button. "Upload files"
- * clicks a hidden file input so the OS picker opens on selection.
+ * Two-item dropdown anchored on the rail's Create control. "Upload
+ * files" opens the OS file picker via a hidden input.
  *
  * @public
  */
 export const CreateMenu: FunctionComponent<CreateMenuProps> = ({
   onNewFolder,
   onFilesPicked,
+  expanded = false,
+  labelShort,
+  labelLong,
 }) => {
   const [translate] = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const shortLabel = labelShort ?? translate('oneDriveLayout.create', 'Create');
+  const longLabel = labelLong ?? translate('oneDriveLayout.createOrUpload', 'Create or upload');
+  const accessibleLabel = expanded ? longLabel : shortLabel;
+  const triggerClass = expanded ? 'rail-create rail-create--expanded' : 'rail-create';
 
   const openFilePicker = () => fileInputRef.current?.click();
 
@@ -45,10 +58,11 @@ export const CreateMenu: FunctionComponent<CreateMenuProps> = ({
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            className="rail-create"
-            aria-label={translate('oneDriveLayout.create', 'Create')}
+            className={triggerClass}
+            aria-label={accessibleLabel}
           >
             <PlusIcon aria-hidden focusable={false} />
+            {expanded && <span className="rail-create__label">{longLabel}</span>}
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>

@@ -53,12 +53,14 @@
   --odl-space-6: 24px;
   --odl-space-8: 32px;
 
-  /* layout dimensions (matched to OneDrive proportions) */
-  --odl-rail-width:    92px;
-  --odl-detail-width:  240px;
-  --odl-topbar-height: 88px;
-  --odl-row-height:    52px;
-  --odl-icon-size:     20px;
+  /* layout dimensions */
+  --odl-rail-width:           92px;
+  --odl-rail-width-collapsed: 64px;
+  --odl-rail-width-expanded:  240px;
+  --odl-detail-width:         240px;
+  --odl-topbar-height:        88px;
+  --odl-row-height:           52px;
+  --odl-icon-size:             20px;
 
   /* type */
   --odl-font-size-sm:  12px;
@@ -68,6 +70,9 @@
   /* motion */
   --odl-transition-fast: 120ms ease;
   --odl-transition-med:  200ms ease;
+  --odl-transition-pane: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  --odl-transition-pane-close: 720ms cubic-bezier(0.16, 1, 0.3, 1);
+  --odl-rail-overlay-max: 960px;
 }
 
 onedrive-layout {
@@ -89,6 +94,20 @@ onedrive-layout {
   z-index: 100;
   overflow: hidden;
   animation: onedrive-layout-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: grid-template-columns var(--odl-transition-pane);
+}
+
+onedrive-layout[data-rail-expanded="true"]  { --odl-rail-width: var(--odl-rail-width-expanded); }
+onedrive-layout[data-rail-expanded="false"] { --odl-rail-width: var(--odl-rail-width-collapsed); }
+
+@media (max-width: 960px) {
+  onedrive-layout[data-rail-expanded="true"] {
+    --odl-rail-width: var(--odl-rail-width-collapsed);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  onedrive-layout { transition: none; }
 }
 
 onedrive-layout > top-bar  { grid-area: topbar; }
@@ -180,10 +199,41 @@ page-header-right {
 nav-rail {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--odl-space-2);
-  padding: var(--odl-space-3) 0 var(--odl-space-4);
+  padding: var(--odl-space-3) 0 var(--odl-space-4) 14px;
   background: var(--odl-bg-page);
+  overflow: hidden;
+  width: var(--odl-rail-width-collapsed);
+  transition: width var(--odl-transition-pane-close);
+}
+
+nav-rail[data-expanded="true"] {
+  align-items: stretch;
+  padding: var(--odl-space-3) var(--odl-space-3) var(--odl-space-4) 14px;
+  gap: var(--odl-space-2);
+  width: var(--odl-rail-width-expanded);
+  transition: width var(--odl-transition-pane);
+}
+
+@media (max-width: 960px) {
+  nav-rail {
+    z-index: 140;
+    transition: width var(--odl-transition-pane-close),
+                top var(--odl-transition-pane-close),
+                padding-top var(--odl-transition-pane-close),
+                box-shadow var(--odl-transition-pane-close);
+  }
+
+  nav-rail[data-expanded="true"] {
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.35);
+    transition: width var(--odl-transition-pane),
+                box-shadow var(--odl-transition-pane);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  nav-rail { transition: none; }
 }
 
 .rail-create {
@@ -202,13 +252,81 @@ nav-rail {
   transition: background var(--odl-transition-fast),
               transform var(--odl-transition-fast),
               box-shadow var(--odl-transition-fast);
+  white-space: nowrap;
 }
 .rail-create:hover {
   background: var(--odl-brand-gradient-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 18px var(--odl-brand-soft);
 }
-.rail-create svg { width: 20px; height: 20px; }
+.rail-create svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--odl-transition-pane-close);
+}
+
+nav-rail[data-expanded="true"] .rail-create svg {
+  transform: rotate(180deg);
+  transition: transform var(--odl-transition-pane);
+}
+
+.rail-create--expanded {
+  width: auto;
+  height: 35px;
+  padding: 0 var(--odl-space-4) 0 8px;
+  gap: var(--odl-space-2);
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.rail-create__label {
+  display: inline-block;
+}
+
+rail-account-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 var(--odl-space-2) 0 8px;
+  gap: var(--odl-space-2);
+}
+
+.rail-account-name {
+  font-weight: 600;
+  font-size: var(--odl-font-size-md);
+  color: var(--odl-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-pane-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--odl-radius-card);
+  background: transparent;
+  color: var(--odl-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--odl-transition-fast),
+              color var(--odl-transition-fast);
+}
+.rail-pane-toggle:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
+}
+.rail-pane-toggle:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.rail-pane-toggle svg { width: 18px; height: 18px; }
 
 .rail-item {
   position: relative;
@@ -233,7 +351,7 @@ nav-rail {
 .rail-item--active::before {
   content: "";
   position: absolute;
-  left: -28px;
+  left: -14px;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
@@ -241,10 +359,72 @@ nav-rail {
   background: var(--odl-accent);
   border-radius: 0 2px 2px 0;
 }
-.rail-item svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
+.rail-item svg {
+  width: var(--odl-icon-size);
+  height: var(--odl-icon-size);
+  flex-shrink: 0;
+}
 .rail-item:focus-visible {
   outline: 2px solid var(--odl-accent);
   outline-offset: 2px;
+}
+
+nav-rail[data-expanded="true"] .rail-item {
+  width: 100%;
+  height: 36px;
+  justify-content: flex-start;
+  gap: var(--odl-space-3);
+  padding: 0 var(--odl-space-3) 0 8px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+}
+
+.rail-item__label,
+.rail-create__label,
+.rail-account-name,
+.rail-browse-header__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity var(--odl-transition-pane);
+}
+
+nav-rail[data-expanded="false"] .rail-item__label,
+nav-rail[data-expanded="false"] .rail-create__label,
+nav-rail[data-expanded="false"] .rail-account-name,
+nav-rail[data-expanded="false"] .rail-browse-header__label {
+  opacity: 0;
+  transition: opacity var(--odl-transition-pane-close);
+}
+
+.rail-browse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 28px;
+  margin: var(--odl-space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--odl-text);
+  cursor: pointer;
+  padding: 0 var(--odl-space-3) 0 8px;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  font-weight: 600;
+}
+.rail-browse-header:hover { color: var(--odl-text); }
+.rail-browse-header:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+  border-radius: var(--odl-radius-card);
+}
+.rail-browse-header__label { white-space: nowrap; }
+.rail-browse-header svg {
+  width: 16px;
+  height: 16px;
+  color: var(--odl-text-muted);
 }
 
 .rail-divider {
@@ -309,14 +489,13 @@ rail-bottom-panel {
 
 top-bar {
   display: grid;
-  grid-template-columns: var(--odl-rail-width) 1fr auto;
+  grid-template-columns: var(--odl-rail-width-collapsed) 1fr auto;
   align-items: center;
   background: var(--odl-bg-page);
   height: var(--odl-topbar-height);
   padding-right: var(--odl-space-4);
-  /* Allows the search overlay to position absolutely over the
-     topbar's content row at narrow viewports. */
   position: relative;
+  z-index: 120;
 }
 
 topbar-brand {
@@ -324,8 +503,6 @@ topbar-brand {
   align-items: center;
   justify-content: center;
   height: 100%;
-  /* Pin to column 1 so the brand never drifts when sibling tracks
-     collapse (e.g. search-slot hidden at narrow viewports). */
   grid-column: 1;
 }
 
@@ -368,9 +545,6 @@ topbar-actions {
   display: flex;
   align-items: center;
   gap: var(--odl-space-2);
-  /* Pin to the last column so the search/gear/avatar trio stays
-     anchored on the right even when the centered search-slot is
-     hidden at narrow viewports. */
   grid-column: 3;
   justify-self: end;
 }
@@ -394,10 +568,6 @@ topbar-actions {
   outline-offset: 2px;
 }
 .topbar-icon svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
-
-/* Compact search trigger — anchored on the right within
-   topbar-actions. Hidden by default; the responsive @media block
-   below reveals it at narrow viewports. */
 .topbar-search-trigger { display: none; }
 
 /* Full-width search overlay — a single rounded pill that replaces
@@ -565,6 +735,94 @@ topbar-menu-row {
   padding: 4px 8px 8px;
 }
 
+/* ─── Theme toggle (Settings menu) ────────────────────────────────────── */
+
+theme-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: stretch;
+  padding: 4px 12px 8px;
+}
+.theme-toggle__trigger {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--odl-space-2);
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 12px;
+  background: var(--odl-bg-page);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-chip);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--odl-font-size-md);
+  outline: none;
+  transition: border-color var(--odl-transition-fast),
+              background var(--odl-transition-fast);
+}
+.theme-toggle__trigger:hover {
+  background: var(--odl-bg-hover);
+}
+.theme-toggle__trigger:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+.theme-toggle__chevron {
+  display: inline-flex;
+  color: var(--odl-text-muted);
+  transition: transform var(--odl-transition-fast);
+}
+.theme-toggle__chevron svg {
+  width: 12px;
+  height: 12px;
+}
+.theme-toggle__trigger[data-state="open"] .theme-toggle__chevron {
+  transform: rotate(180deg);
+}
+
+.theme-toggle__content {
+  min-width: var(--radix-select-trigger-width);
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text);
+  border: 1px solid var(--odl-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  z-index: 260;
+  animation: onedrive-menu-enter 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.theme-toggle__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+  padding: 8px 12px 8px 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  font-size: var(--odl-font-size-md);
+  color: var(--odl-text);
+}
+.theme-toggle__item[data-highlighted] {
+  background: var(--odl-bg-hover);
+}
+.theme-toggle__item-indicator {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--odl-accent);
+}
+.theme-toggle__item-indicator svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* Dark theme override for the LayoutToggle when it's mounted inside the
    topbar menu (its default colours target the Classic light theme). */
 .topbar-menu .layout-toggle {
@@ -656,6 +914,18 @@ topbar-menu-profile-webid {
 .odl-main:has(> onedrive-view[data-view-id="people-detail"]) {
   background: transparent;
   padding: var(--odl-space-3) var(--odl-space-2) var(--odl-space-4);
+}
+
+@media (max-width: 960px) {
+  .odl-main {
+    margin: 0 0 0 var(--odl-space-3);
+    padding: var(--odl-space-3) var(--odl-space-2) var(--odl-space-4);
+  }
+  .odl-main:has(> onedrive-view[data-view-id="recent"]),
+  .odl-main:has(> onedrive-view[data-view-id="people"]),
+  .odl-main:has(> onedrive-view[data-view-id="people-detail"]) {
+    padding-left: var(--odl-space-3);
+  }
 }
 
 onedrive-view {
@@ -2456,15 +2726,25 @@ recent-toolbar {
 
 .odl-recent__heading {
   margin: 0;
-  /* Inline heading next to the chips, like the OneDrive reference. */
-  font-size: var(--odl-font-size-lg);
+  font-size: 22px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
   color: var(--odl-text);
 }
 
 recent-toolbar-chips {
   display: block;
   min-width: 0;
+}
+
+@media (min-width: 961px) and (max-width: 1200px) {
+  recent-toolbar .odl-shared-toolbar__chips--inline {
+    display: none;
+  }
+  recent-toolbar .odl-shared-toolbar__chips--collapsed {
+    display: block;
+  }
 }
 
 recent-toolbar-search {

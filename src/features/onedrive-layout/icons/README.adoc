@@ -3,7 +3,7 @@
 SVG icon components and the branded chip icon catalog used across the OneDrive shell.
 
 `icons.ts` exports the chrome icons.
-Home, MyFiles, Shared, Requests, People, their `…Active` variants, ChevronDown, ChevronUp, Close, Search, Gear, Plus, Sort, DetailsPanel, Share, Link, Delete, Download, MoveTo, Rename, MoreHorizontal, and Checkmark.
+Home, MyFiles, Shared, Requests, People, their `…Active` variants, ChevronDown, ChevronUp, ChevronLeft, Close, Search, Gear, Plus, Sort, Info, DetailsPanel (with `…IconActive`), NavRailCollapseIcon, NavRailExpandIcon, Share, Link, Delete, Download, MoveTo, Rename, RequestAccess, MoreHorizontal, and Checkmark.
 
 `chipIcons.tsx` defines the colored file type tiles consumed by `pickFileIcon` and the `TypeFilterChips` chip catalog: image, video, audio, document, spreadsheet, PDF, folder, and so on.
 

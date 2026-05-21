@@ -1,5 +1,5 @@
 :app-name: solid.drive
-:app-url: http://demos.swe.htwk-leipzig.de:3000/
+:app-url: https://wse-research.org/solid-hello-world-frontend-react/
 :github-repository: https://github.com/WSE-research/Solid-Hello-World-Frontend-React
 :toc:
 :toclevels: 3
@@ -12,23 +12,37 @@ ifdef::env-github[]
 :caution-caption: :fire:
 :warning-caption: :warning:
 endif::[]
-= {app-name}
 
 ++++
+<p>
+  <img src="docs/images/readme-header.svg" alt="solid.drive — A file manager built on the Solid Protocol" width="640"/>
+</p>
+
 <p>
   <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml">
     <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml/badge.svg" alt="Test Coverage"/>
   </a>
+  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml">
+    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml/badge.svg" alt="Playwright Tests"/>
+  </a>
   <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml">
     <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml/badge.svg" alt="Docker Image"/>
   </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/>
+  </a>
+</p>
+
+<p>
+  <a href="https://wse-research.org/solid-hello-world-frontend-react/"><b>Live Demo</b></a>
+  ·
+  <a href="#screenshots">Screenshots</a>
+  ·
+  <a href="#features">Features</a>
+  ·
+  <a href="#getting-started">Getting Started</a>
 </p>
 ++++
-
-A file manager built on the https://solidproject.org/[Solid Protocol].
-Every file is stored directly in the user’s own Solid Pod; no server holds copies.
-
-Try the live demo at {app-url}[{app-url}].
 
 ---
 
@@ -36,37 +50,79 @@ toc::[]
 
 ---
 
+[#screenshots]
+== Screenshot
+
+++++
+<p align="center">
+  <img src="docs/images/laptop-myfiles.svg" alt="solid.drive — My Files view" width="85%"/>
+</p>
+++++
+
 == Features
 
-* *Authentication:* log in via any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self-hosted server)
+=== Authentication and layout
+
+* *Authentication:* log in via any OIDC compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self hosted server)
 * *Layout choice:* switch at runtime between the classic two pane shell and the OneDrive style shell; the preference is persisted in `localStorage`
+* *Language switching:* switch between English and German at runtime
+
+=== Navigation
+
 * *OneDrive views:* Home / Recent, My Files, Shared, Requests, and People; each view has its own toolbar, type filter chips, and a person and name filter; the Shared view has With you and By you tabs
 * *Pod navigation:* browse the full Pod directory tree with breadcrumb navigation; per folder scroll position is preserved across browser back and forward
 * *URLs and history:* the open folder is reflected in the query string (`folder=…`) and the active OneDrive view in `view=…`; copy the address bar to share a deep link, and use the browser back/forward buttons to move through your navigation history
-* *TBox-driven validation:* SHACL shapes are loaded from `public/tbox.ttl` at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before upload; missing fields are surfaced inline
-* *File adoption:* renders files that existed on the Pod before the app was used, showing folder name and download button for containers lacking `index.ttl`
+
+=== Files
+
 * *File upload:* accepts any file type. Users can upload through the dialog form, by dragging files onto the panel or a folder row, or from the OneDrive Create menu. The binary and a metadata document `index.ttl` are stored inside a dedicated container on the Pod, and an upload tray surfaces progress and per file retry.
 * *Folder creation:* the classic explorer uses an inline form, and the OneDrive shell opens a modal dialog. Both create LDP BasicContainers under the active folder.
-* *Selection actions:* the OneDrive shell shows Share, Copy link, Delete, and Download in the page header, plus Move to and Rename stubs. Actions that no longer fit inline spill into a kebab dropdown at narrow viewports.
-* *Semantic classification:* MIME type is mapped to a schema.org class and written to `index.ttl` as `rdf:type`
+* *File adoption:* renders files that existed on the Pod before the app was used, showing folder name and download button for containers lacking `index.ttl`
 * *Inline preview:* images, videos, audio, PDFs, and text files preview directly in the browser, no request leaves the browser after the file is fetched
 * *Download:* triggers a browser native download from the blob URL
 * *File info:* a toggle on each file card shows type, size, upload date, modified date, and publisher name resolved from their Solid profile
+* *Selection actions:* the OneDrive shell shows Share, Copy link, Delete, and Download in the page header, plus Move to and Rename stubs. Actions that no longer fit inline spill into a kebab dropdown at narrow viewports.
+* *Delete:* removes the binary, `index.ttl`, the container, and the catalog entry; no orphaned resources remain
+
+=== Linked data
+
+* *TBox-driven validation:* SHACL shapes are loaded from `public/tbox.ttl` at form open time; required fields (`name`, `uploadDate`, `publisher`) are enforced before upload; missing fields are surfaced inline
+* *Semantic classification:* MIME type is mapped to a schema.org class and written to `index.ttl` as `rdf:type`
 * *Catalog management:* `catalog.ttl` is updated on every upload and cleaned up on every delete using _SPARQL PATCH_
+
+=== Sharing
+
 * *Share / revoke access:* each owned file can be shared with contacts from the user's Solid profile; ACLs and per contact shared catalogs are kept in sync
 * *Shared with Me:* reads per contact shared catalogs first, then falls back to the contact's main catalog
 * *Filtered system files:* internal catalog and ACL helper files (`.shared-*.ttl`) are hidden from the normal file browser
-* *Delete:* removes the binary, `index.ttl`, the container, and the catalog entry; no orphaned resources remain
-* *Language switching:* switch between English and German at runtime
 
-== Prerequisites
+== Tech Stack
 
-* Node.js >= 18
+[cols="1,3", options="header"]
+|===
+| Layer | Libraries / tools
 
-== Installation
+| *Frontend* | React 19 · TypeScript · Vite
+| *Solid / Linked Data* | https://github.com/o-development/ldo[@ldo/solid] · @ldo/solid-react · ShEx · schema.org · DCAT · SHACL
+| *Internationalisation* | i18next · react-i18next · i18next-browser-languagedetector
+| *Testing* | Vitest · @testing-library/react · jsdom · Playwright (E2E)
+| *CI* | GitHub Actions (test coverage · Playwright · Docker)
+| *Deployment* | Docker · nginx
+|===
+
+[#getting-started]
+== Getting Started
+
+=== Prerequisites
+
+* Node.js 20.x or later
+
+=== Installation
 
 [source,bash]
 ----
+git clone {github-repository}.git
+cd Solid-Hello-World-Frontend-React
 npm install
 ----
 
@@ -76,40 +132,27 @@ npm install
 
 [source,bash]
 ----
-npm run dev           # extract TBox and start dev server
-npm test              # run tests once
-npm run test:coverage # run tests with coverage report
+npm run dev           # extract TBox and start dev server at http://localhost:5173
 ----
 
-=== Production
+=== Testing
+
+[source,bash]
+----
+npm test              # unit tests once
+npm run test:watch    # unit tests in watch mode
+npm run test:coverage # unit tests with v8 coverage
+npm run test:e2e      # Playwright end-to-end tests
+npm run test:e2e:ui   # Playwright interactive UI mode
+----
+
+=== Production build
 
 [source,bash]
 ----
 npm run build         # extract TBox, type check, and bundle
+npm run preview       # serve the built bundle locally
 ----
-
-=== Docker
-
-==== Published image
-
-Run the image from the registry (no local build):
-
-[source,bash]
-----
-docker run -p 3000:80 wseresearch/solid-hello-world-frontend-react
-----
-
-==== Build and run locally
-
-From the repository root (where the `Dockerfile` lives), build the image and start a container:
-
-[source,bash]
-----
-docker build -t wseresearch/solid-hello-world-frontend-react:local .
-docker run -p 3000:80 wseresearch/solid-hello-world-frontend-react:local
-----
-
-The app listens on port 80 inside the container; open http://localhost:3000/ in your browser.
 
 === Regenerating derived files
 
@@ -120,6 +163,25 @@ npm run build:ldo     # recompile ShEx shapes -> TypeScript bindings in src/.ldo
 ----
 
 NOTE: `npm run dev` and `npm run build` run `tbox:extract` automatically. Use the manual commands only after editing `.shapes/` files or when the upstream ontology changes.
+
+=== Docker
+
+Run the published image:
+
+[source,bash]
+----
+docker run -p 40211:80 wseresearch/solid-hello-world-frontend-react
+----
+
+Or build and run locally:
+
+[source,bash]
+----
+docker build -t wseresearch/solid-hello-world-frontend-react:local .
+docker run -p 40211:80 wseresearch/solid-hello-world-frontend-react:local
+----
+
+The app listens on port 80 inside the container; open http://localhost:5173/ in your browser.
 
 == How it works
 
@@ -170,20 +232,7 @@ MIME types are mapped to https://schema.org/[schema.org] classes:
 CSV, Excel:: `schema:SpreadsheetDigitalDocument`
 Anything else:: `schema:DigitalDocument`
 
-== Tech Stack
-
-[cols="1,3", options="header"]
-|===
-| Layer | Libraries / tools
-
-| *Frontend* | React 19 · TypeScript · Vite
-| *Solid / Linked Data* | https://github.com/o-development/ldo[@ldo/solid] · @ldo/solid-react · ShEx · schema.org · DCAT · SHACL
-| *Internationalisation* | i18next · react-i18next · i18next-browser-languagedetector
-| *Testing* | Vitest · @testing-library/react · jsdom
-| *Deployment* | Docker · nginx
-|===
-
-== Project Structure
+== Project structure
 
 ----
 solid.drive/
@@ -209,7 +258,8 @@ solid.drive/
 |-- public/
 |   `-- tbox.ttl              # SHACL TBox (auto generated)
 |-- scripts/
-|-- service_config/
+|-- e2e/                      # Playwright tests
+|-- .github/workflows/        # CI: test coverage, Playwright, Docker
 |-- Dockerfile
 |-- nginx.conf
 |-- vite.config.ts
@@ -220,12 +270,21 @@ See link:src/[src/README.adoc] for the full layer map and dependency rules. +
 See link:src/.shapes/[src/.shapes/README.adoc] for shape definitions. +
 See link:TESTER_GUIDE.adoc[TESTER_GUIDE.adoc] for manual QA steps.
 
-== Known Issues
+== Known issues
 
-* *`inrupt.net` blocks localhost redirects*, the inrupt.net identity provider rejects OIDC redirect URIs pointing to `localhost`. Use `solidcommunity.net` or `solidweb.org` when testing locally.
+* *`inrupt.net` blocks localhost redirects.* The inrupt.net identity provider rejects OIDC redirect URIs pointing to `localhost`. Use `solidcommunity.net` or `solidweb.org` when testing locally.
 
-== Contribute
+== Contributing
 
-We are happy to receive your contributions.
-Please create a pull request or an {github-repository}/issues/new[issue].
-As this tool is published under the {github-repository}/blob/main/LICENSE[MIT license], feel free to {github-repository}/fork[fork] it and use it in your own projects.
+Contributions are welcome.
+Open a {github-repository}/issues/new[new issue] to discuss a change, or send a pull request directly.
+
+Before submitting, please:
+
+. Run `npm run lint`, `npm test`, and `npm run test:e2e` locally.
+. Keep coverage above the configured 80% thresholds.
+. Follow the per directory module convention (`*-file/`, `*-test/`, `index-test/`, `README.adoc`).
+
+== License
+
+Released under the {github-repository}/blob/main/LICENSE[MIT License] © Web & Software Engineering research group, Leipzig University of Applied Sciences.

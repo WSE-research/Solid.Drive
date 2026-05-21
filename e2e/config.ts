@@ -36,6 +36,10 @@ export const UI_TIMEOUTS = {
 export const STORAGE_KEYS = {
   /** Active layout preference: `"classic"` or `"onedrive"`. */
   layout: "solid-drive.layout",
+  /** OneDrive nav rail state: `"true"` (expanded pane) or `"false"` (icon rail). */
+  navRailExpanded: "solid-drive.navRailExpanded",
+  /** OneDrive theme preference: `"dark"` (default) or `"light"`. */
+  theme: "solid-drive.theme",
 } as const;
 
 /** CustomEvent names the app dispatches, fired by helpers driving in-app navigation. */
@@ -44,4 +48,8 @@ export const APP_EVENTS = {
   layoutChanged: "solid-drive:layout-changed",
   /** Tells `useViewParam` to re-read the `?view=` query param. */
   viewChanged: "solid-drive:view-changed",
+  /** Tells `useNavRailExpanded` to re-read `STORAGE_KEYS.navRailExpanded`. */
+  navRailExpandedChanged: "solid-drive:nav-rail-expanded-changed",
+  /** Tells `useThemePreference` to re-read `STORAGE_KEYS.theme`. */
+  themeChanged: "solid-drive:theme-changed",
 } as const;

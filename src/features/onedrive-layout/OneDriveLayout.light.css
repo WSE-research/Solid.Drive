@@ -1,0 +1,87 @@
+/*
+ * OneDrive light theme — token overrides keyed off data-theme="light".
+ * Must load after OneDriveLayout.css so the cascade picks up these values.
+ * Direct-rule overrides below handle destructive accents and shadows that
+ * the token map alone cannot retheme.
+ */
+
+:root[data-theme="light"] {
+  /* surfaces */
+  --odl-bg-page:       #faf9f8;
+  --odl-bg-panel:      #ffffff;
+  --odl-bg-elevated:   #ffffff;
+  --odl-bg-hover:      #f3f2f1;
+  --odl-border:        #e1dfdd;
+  --odl-divider:       #edebe9;
+
+  /* text */
+  --odl-text:          #242424;
+  --odl-text-muted:    #605e5c;
+  --odl-text-faint:    #797775;
+
+  /* accent */
+  --odl-accent-soft:   rgba(15, 108, 189, 0.10);
+
+  /* brand soft used by the Create button drop shadow */
+  --odl-brand-soft:    rgba(88, 84, 214, 0.18);
+}
+
+:root[data-theme="light"] .topbar-menu,
+:root[data-theme="light"] .theme-toggle__content,
+:root[data-theme="light"] .odl-dialog,
+:root[data-theme="light"] .odl-dialog-content {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
+}
+:root[data-theme="light"] .rail-tooltip {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
+}
+:root[data-theme="light"] nav-rail[data-expanded="true"] {
+  box-shadow: 8px 0 28px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .odl-dialog__overlay,
+:root[data-theme="light"] .odl-dialog-overlay {
+  background: rgba(15, 23, 42, 0.40);
+}
+
+:root[data-theme="light"] .topbar-menu__item--destructive {
+  color: #a4262c;
+}
+:root[data-theme="light"] .topbar-menu__item--destructive[data-highlighted] {
+  background: rgba(164, 38, 44, 0.10);
+}
+:root[data-theme="light"] .new-folder-input__error,
+:root[data-theme="light"] .odl-dialog__error,
+:root[data-theme="light"] .odl-requests-list__error {
+  color: #a4262c;
+}
+:root[data-theme="light"] .odl-people-row__action--error {
+  color: #a4262c;
+}
+:root[data-theme="light"] .odl-people-row__action--remove:hover:not(:disabled) {
+  background: rgba(164, 38, 44, 0.10);
+  color: #a4262c;
+}
+:root[data-theme="light"] .odl-dialog-content share-panel-row .btn--delete {
+  color: #a4262c;
+  border-color: rgba(164, 38, 44, 0.45);
+}
+:root[data-theme="light"] .odl-dialog-content share-panel-row .btn--delete:hover:not(:disabled) {
+  background: rgba(164, 38, 44, 0.10);
+  border-color: #a4262c;
+}
+:root[data-theme="light"] .odl-request-card__action--deny:hover:not(:disabled) {
+  background: rgba(164, 38, 44, 0.10);
+  border-color: rgba(164, 38, 44, 0.45);
+  color: #a4262c;
+}
+
+:root[data-theme="light"] .odl-people-row__action--sent {
+  color: #107c10;
+}
+
+/* Confirm-dialog scrim only — surface/text colors already flow through
+   the --odl-* tokens via App.css's body:has(onedrive-layout) rules. */
+:root[data-theme="light"] body:has(onedrive-layout) confirm-overlay {
+  background: rgba(15, 23, 42, 0.40);
+}

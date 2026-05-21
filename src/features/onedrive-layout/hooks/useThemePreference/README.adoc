@@ -1,0 +1,29 @@
+= useThemePreference
+
+Reads and persists the user's choice between the dark and light OneDrive themes.
+
+Defaults to `'dark'` so existing users see no change on first load.
+A corrupted or missing stored value falls back to the same default.
+
+The selected theme is mirrored onto `document.documentElement` as `data-theme="dark"` or `data-theme="light"`, which is the hook that link:../../OneDriveLayout.light.css[OneDriveLayout.light.css] uses to override the dark tokens.
+
+Every setter dispatches a `solid-drive:theme-changed` event that all live hook instances listen for.
+The hook also listens for the cross tab `storage` event.
+
+When `localStorage` is unavailable, for example in private browsing or when quota is exceeded, the in memory state still updates for the current session.
+
+== Exports
+
+`isTheme(value)`:: Type guard for the `Theme` union.
+`useThemePreference()`:: Returns `[theme, setTheme]`.
+`applyStoredTheme()`:: Synchronous helper called from the app entry point before React mounts, so the correct theme is applied before paint.
+
+== See also
+
+* link:../../components/ThemeToggle/[ThemeToggle] is the segmented control that drives this hook.
+* link:../../OneDriveLayout.light.css[OneDriveLayout.light.css] holds the light token overrides.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

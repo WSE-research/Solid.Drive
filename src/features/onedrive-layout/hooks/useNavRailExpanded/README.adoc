@@ -1,0 +1,26 @@
+= useNavRailExpanded
+
+Reads and persists whether the OneDrive nav rail is shown in its expanded pane or the icon only rail.
+
+Defaults to expanded so the user sees full labels on first visit.
+A corrupted or missing stored value falls back to the same default.
+
+Every setter dispatches a `solid-drive:nav-rail-expanded-changed` event that all live hook instances listen for, so flipping the state in one component immediately updates the rest.
+The hook also listens for the cross tab `storage` event.
+
+When `localStorage` is unavailable, for example in private browsing or when quota is exceeded, the in memory state still updates for the current session.
+The cross instance event is skipped in that case so other live hooks do not overwrite their state from the stale stored value.
+
+== Exports
+
+`useNavRailExpanded()`:: Returns `[expanded, setExpanded]`.
+
+== See also
+
+* link:../../components/NavRail/[NavRail] is the rail that drives this hook.
+* link:../../components/OneDriveLayout/[OneDriveLayout] reads the value to drive the layout grid.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

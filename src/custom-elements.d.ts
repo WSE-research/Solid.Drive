@@ -103,6 +103,7 @@ declare module "react" {
       "onedrive-layout": El;
       "onedrive-view": El;
       "nav-rail": El;
+      "rail-account-header": El;
       "rail-bottom-panel": El;
       "top-bar": El;
       "topbar-brand": El;
@@ -111,6 +112,7 @@ declare module "react" {
       "topbar-search-overlay": El;
       // OneDriveLayout — TopBar dropdown internals
       "topbar-menu-row": El;
+      "theme-toggle-row": El;
       "topbar-menu-profile": El;
       "topbar-menu-profile-info": El;
       "topbar-menu-profile-name": El;
