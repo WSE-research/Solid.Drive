@@ -46,7 +46,16 @@ endif::[]
 
 ---
 
+++++
+<details>
+<summary><b>Table of Contents</b></summary>
+++++
+
 toc::[]
+
+++++
+</details>
+++++
 
 ---
 
