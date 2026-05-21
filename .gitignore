@@ -38,3 +38,6 @@ docs/plans/
 
 # Paste-accident / stray local files
 nto-the-explorer-and-folder-cards*
+
+# Local-only helper scripts
+scripts/build-laptop-svgs.mjs
