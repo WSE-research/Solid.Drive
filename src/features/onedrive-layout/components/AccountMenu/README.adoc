@@ -1,0 +1,15 @@
+= AccountMenu
+
+Avatar dropdown in the OneDrive topbar.
+Surfaces the signed-in profile name, the WebID, a View profile link, and a Log out action.
+
+Reads `logout` from `useSolidAuth`; receives display data (`webId`, `profileName`, `avatarSrc`) as props so the parent owns profile resolution.
+Falls back to a `Signed in` placeholder when neither a profile name nor a WebID is available.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../../../shared/components/Avatar/[Avatar]

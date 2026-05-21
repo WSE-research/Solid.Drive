@@ -1,0 +1,16 @@
+= ThemeToggle
+
+Dropdown that switches between the dark and light OneDrive themes.
+The trigger shows the current value (`Light` or `Dark`) with a chevron; the `Theme` heading above it is rendered by the TopBar's Settings menu.
+Mounted inside that Settings dropdown above the LayoutToggle.
+
+Stateless wrapper around link:../../hooks/useThemePreference/[useThemePreference].
+The hook owns the value, mirrors it onto `document.documentElement` as `data-theme`, and writes to `localStorage`.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useThemePreference/[useThemePreference]

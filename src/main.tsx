@@ -10,6 +10,9 @@ import { createRoot } from 'react-dom/client'
 import './app/i18n'
 import './app/index.css'
 import App from './app/App'
+import { applyStoredTheme } from '@/features/onedrive-layout/hooks/useThemePreference'
+
+applyStoredTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

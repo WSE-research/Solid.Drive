@@ -149,6 +149,11 @@
     "layout": "Layout",
     "classic": "Classic",
     "onedrive": "OneDrive",
+    "theme": "Theme",
+    "themeOption": {
+      "light": "Light",
+      "dark": "Dark"
+    },
     "navRail": "Navigation",
     "navRailCollapse": "Collapse",
     "navRailExpand": "Expand",

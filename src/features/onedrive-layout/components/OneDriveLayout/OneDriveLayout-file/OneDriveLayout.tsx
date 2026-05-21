@@ -48,6 +48,7 @@ import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelec
 import { INDEX_FILE } from '@/config';
 import type { CatalogEntry, SharedEntry } from '@/types';
 import '@/features/onedrive-layout/OneDriveLayout.css';
+import '@/features/onedrive-layout/OneDriveLayout.light.css';
 
 const NOOP = (): void => {};
 
