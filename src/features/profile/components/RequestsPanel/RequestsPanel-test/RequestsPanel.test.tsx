@@ -6,8 +6,17 @@ import { RequestsPanel } from '../RequestsPanel-file/RequestsPanel';
 const mockLoadRequests = vi.fn();
 const mockApprove = vi.fn();
 const mockDeny = vi.fn();
+const mockMarkSeen = vi.fn();
+const mockMarkAllSeen = vi.fn();
+const mockSelectRequest = vi.fn();
+const mockIsSeen = vi.fn(() => false);
 
-let hookReturnValue = {
+const buildNotifications = (overrides: Partial<typeof DEFAULT_NOTIFICATIONS> = {}) => ({
+  ...DEFAULT_NOTIFICATIONS,
+  ...overrides,
+});
+
+const DEFAULT_NOTIFICATIONS = {
   requests: [] as AccessRequest[],
   loading: false,
   error: null as string | null,
@@ -15,7 +24,16 @@ let hookReturnValue = {
   loadRequests: mockLoadRequests,
   approve: mockApprove,
   deny: mockDeny,
+  unseenCount: 0,
+  isSeen: mockIsSeen,
+  markSeen: mockMarkSeen,
+  markAllSeen: mockMarkAllSeen,
+  selectedRequestId: null as string | null,
+  selectRequest: mockSelectRequest,
+  navigationCount: 0,
 };
+
+let hookReturnValue: typeof DEFAULT_NOTIFICATIONS = { ...DEFAULT_NOTIFICATIONS };
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string, params?: Record<string, string>) => {
@@ -45,8 +63,8 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isLoadable: () => true,
 }));
 
-vi.mock('@/features/profile/hooks/useAccessRequests', () => ({
-  useAccessRequests: () => hookReturnValue,
+vi.mock('@/features/profile/contexts/RequestNotificationsContext', () => ({
+  useRequestNotifications: () => hookReturnValue,
 }));
 
 vi.mock('@/config', () => ({
@@ -62,6 +80,8 @@ vi.mock('@/shared/components/Avatar', () => ({
 vi.mock('@/shared/utils', () => ({
   getInitial: (name: string) => name.charAt(0).toUpperCase(),
   getProfileDisplayName: (contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId,
+  getWebIdFallbackName: (webId: string) => webId,
+  truncateDisplayName: (name: string) => (name.length > 30 ? `${name.slice(0, 30)}…` : name),
 }));
 
 vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
@@ -71,65 +91,52 @@ vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
   }),
 }));
 
-const baseProps = {
-  ownerWebId: 'https://owner.example/profile/card#me',
-  storageRoot: 'https://owner.example/',
-  catalogUri: 'https://owner.example/solidweb/catalog.ttl',
-};
-
 describe('RequestsPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLoadRequests.mockResolvedValue(undefined);
     mockApprove.mockResolvedValue(undefined);
     mockDeny.mockResolvedValue(undefined);
+    mockIsSeen.mockReturnValue(false);
     mockResourceLoading = false;
     mockSubjectValue = {
       name: 'Requester',
       fn: null,
       img: { '@id': 'https://req.example/avatar.png' },
     };
-    hookReturnValue = {
-      requests: [],
-      loading: false,
-      error: null,
-      busyMessageUri: null,
-      loadRequests: mockLoadRequests,
-      approve: mockApprove,
-      deny: mockDeny,
-    };
+    hookReturnValue = buildNotifications();
   });
 
   it('renders toggle button with heading', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     expect(screen.getByText('requestsPanel.heading')).toBeInTheDocument();
   });
 
   it('renders a chevron icon inside the toggle button for expand/collapse indication', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     expect(document.querySelector('.requests-panel__chevron')).toBeInTheDocument();
   });
 
   it('does not show body when collapsed', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     expect(document.querySelector('requests-panel-body')).not.toBeInTheDocument();
   });
 
   it('shows body when toggle is clicked', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(document.querySelector('requests-panel-body')).toBeInTheDocument();
   });
 
   it('calls loadRequests when opened', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(mockLoadRequests).toHaveBeenCalled();
   });
 
   it('shows loading spinner and text while access requests are being fetched', () => {
     hookReturnValue = { ...hookReturnValue, loading: true };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(document.querySelector('requests-panel-loading')).toBeInTheDocument();
     expect(screen.getByText('requestsPanel.loading')).toBeInTheDocument();
@@ -137,13 +144,13 @@ describe('RequestsPanel', () => {
 
   it('shows error message when loading requests fails', () => {
     hookReturnValue = { ...hookReturnValue, error: 'Failed to load' };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('Failed to load')).toBeInTheDocument();
   });
 
   it('shows empty message when no requests and not loading', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.noRequests')).toBeInTheDocument();
   });
@@ -155,12 +162,12 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/', requestType: 'catalog', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     expect(document.querySelector('.requests-panel__badge')).toHaveTextContent('1');
   });
 
   it('does not show badge when no requests', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     expect(document.querySelector('.requests-panel__badge')).not.toBeInTheDocument();
   });
 
@@ -171,7 +178,7 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/', requestType: 'catalog', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.approve')).toBeInTheDocument();
     expect(screen.getByText('requestsPanel.deny')).toBeInTheDocument();
@@ -180,7 +187,7 @@ describe('RequestsPanel', () => {
   it('calls approve when approve button is clicked', async () => {
     const request = { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/', requestType: 'catalog' as const, timestamp: '' };
     hookReturnValue = { ...hookReturnValue, requests: [request] };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     await act(async () => {
       fireEvent.click(screen.getByText('requestsPanel.approve'));
@@ -191,7 +198,7 @@ describe('RequestsPanel', () => {
   it('calls deny when deny button is clicked', async () => {
     const request = { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/', requestType: 'catalog' as const, timestamp: '' };
     hookReturnValue = { ...hookReturnValue, requests: [request] };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     await act(async () => {
       fireEvent.click(screen.getByText('requestsPanel.deny'));
@@ -202,14 +209,14 @@ describe('RequestsPanel', () => {
   it('disables buttons when isBusy for that request', () => {
     const request = { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/', requestType: 'catalog' as const, timestamp: '' };
     hookReturnValue = { ...hookReturnValue, requests: [request], busyMessageUri: 'msg1' };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.approve')).toBeDisabled();
     expect(screen.getByText('requestsPanel.deny')).toBeDisabled();
   });
 
   it('renders refresh button when open and not loading', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.refresh')).toBeInTheDocument();
   });
@@ -221,7 +228,7 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/', requestType: 'catalog', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.requestsAccess')).toBeInTheDocument();
   });
@@ -233,7 +240,7 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg2', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/files/my%20doc.ttl', requestType: 'file', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.requestsFileAccess:my doc.ttl')).toBeInTheDocument();
   });
@@ -252,7 +259,7 @@ describe('RequestsPanel', () => {
         },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByText('requestsPanel.requestsTypeAccess:Image')).toBeInTheDocument();
   });
@@ -264,7 +271,7 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '2025-03-15T10:00:00Z' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     const timestampEl = document.querySelector('.requests-panel__timestamp');
     expect(timestampEl).toBeInTheDocument();
@@ -278,14 +285,14 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(screen.getByTestId('avatar')).toBeInTheDocument();
     expect(document.querySelector('.requests-panel__requester-name')).toHaveTextContent('Requester');
   });
 
   it('collapses panel when toggle is clicked again', () => {
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(document.querySelector('requests-panel-body')).toBeInTheDocument();
     fireEvent.click(screen.getByText('requestsPanel.heading'));
@@ -300,7 +307,7 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     expect(document.querySelector('.requests-panel__requester-name')).toHaveTextContent('requestsPanel.loading');
   });
@@ -314,10 +321,57 @@ describe('RequestsPanel', () => {
         { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '' },
       ],
     };
-    render(<RequestsPanel {...baseProps} />);
+    render(<RequestsPanel />);
     fireEvent.click(screen.getByText('requestsPanel.heading'));
     const nameEl = document.querySelector('.requests-panel__requester-name');
     expect(nameEl?.textContent).toContain('…');
     expect(nameEl?.textContent?.length).toBeLessThanOrEqual(31); // 30 chars + ellipsis
+  });
+
+  it('auto-opens when the notification bell triggers a navigation', () => {
+    hookReturnValue = buildNotifications({
+      navigationCount: 0,
+      requests: [
+        { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '2026-05-20T10:00:00Z' },
+      ],
+    });
+    const { rerender } = render(<RequestsPanel />);
+    expect(document.querySelector('requests-panel-body')).toBeNull();
+
+    hookReturnValue = buildNotifications({
+      navigationCount: 1,
+      selectedRequestId: 'msg1',
+      requests: hookReturnValue.requests,
+    });
+    rerender(<RequestsPanel />);
+    expect(document.querySelector('requests-panel-body')).not.toBeNull();
+  });
+
+  it('marks every visible request as seen once the panel is open', () => {
+    hookReturnValue = buildNotifications({
+      requests: [
+        { messageUri: 'msg1', requesterWebId: 'https://req.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '2026-05-20T10:00:00Z' },
+        { messageUri: 'msg2', requesterWebId: 'https://req2.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '2026-05-20T11:00:00Z' },
+      ],
+    });
+    render(<RequestsPanel />);
+    fireEvent.click(screen.getByText('requestsPanel.heading'));
+    expect(mockMarkSeen).toHaveBeenCalledWith(['msg1', 'msg2']);
+  });
+
+  it('flags the matching item as highlighted when selectedRequestId is set', () => {
+    hookReturnValue = buildNotifications({
+      selectedRequestId: 'msg2',
+      requests: [
+        { messageUri: 'msg1', requesterWebId: 'https://a.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '' },
+        { messageUri: 'msg2', requesterWebId: 'https://b.example/card#me', accessTo: 'https://owner.example/', requestType: 'catalog', timestamp: '' },
+      ],
+    });
+    render(<RequestsPanel />);
+    fireEvent.click(screen.getByText('requestsPanel.heading'));
+    const items = document.querySelectorAll('requests-panel-item');
+    expect(items).toHaveLength(2);
+    expect(items[0].getAttribute('data-highlighted')).toBeNull();
+    expect(items[1].getAttribute('data-highlighted')).toBe('true');
   });
 });

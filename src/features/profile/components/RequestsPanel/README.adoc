@@ -1,37 +1,29 @@
 = RequestsPanel
 
-Collapsible panel for managing incoming access requests.
-Loads pending requests from the user's LDP inbox on open.
+Collapsible panel for managing incoming access requests in the
+classic layout. Reads its data from
+link:../../contexts/RequestNotificationsContext/[RequestNotificationsContext] —
+the single source of truth fed by the Solid Notifications WebSocket
+subscription — so the panel stays live without owning its own fetch
+hook.
 
 == Features
 
-Approve (catalog):: Creates a per-viewer shared catalog, grants read access to it. Deletes the inbox message on success
-Approve (file):: Grants the requester read access to the specific file container. Deletes the inbox message on success
-Approve (type):: Reads the catalog, walks every entry whose `conformsTo` matches the requested class, and grants read on each container. Tolerates per-entry failures; only fails when every matching container is unreachable
-Discovery access:: Every approve path also calls `ensureDiscoveryAccess` so the requester gains read on the main catalog and list-only on the app container — letting them browse other available items
-Deny:: Sends a rejection notification to the requester's inbox, then deletes the message
-Badge:: Shows the count of pending requests on the toggle button
-Requester profile:: Each row shows the requester's avatar and display name via `RequesterRow`
-
-== Hooks
-
-link:../../hooks/useAccessRequests/[useAccessRequests]:: Loads inbox requests, tracks busy state, and handles approve/deny actions
-
-== Load sequence
-
-----
-User: open panel
-  -> RequestsPanel: loadRequests()
-    -> useAccessRequests: discoverInboxUri(ownerWebId)
-      -> GET profile document -> inboxUri (from ldp:inbox)
-    -> listAccessRequests(inboxUri)
-      -> GET inboxUri -> [messageUri, ...]
-      -> GET each messageUri -> AccessRequest[]
-----
+Auto-open on notification:: When the bell calls `selectRequest(uri)` the context bumps `navigationCount`, which the panel watches: the panel opens itself, scrolls into view, and the selected row is highlighted.
+Mark seen:: Every request rendered while the panel is open is marked seen via the context, so the bell badge clears.
+Approve (catalog):: Creates a per-viewer shared catalog, grants read access to it. Deletes the inbox message on success.
+Approve (file):: Grants the requester read access to the specific file container. Deletes the inbox message on success.
+Approve (type):: Reads the catalog, walks every entry whose `conformsTo` matches the requested class, and grants read on each container. Tolerates per-entry failures; only fails when every matching container is unreachable.
+Discovery access:: Every approve path also calls `ensureDiscoveryAccess` so the requester gains read on the main catalog and list-only on the app container.
+Deny:: Sends a rejection notification to the requester's inbox, then deletes the message.
+Duplicate sweep:: Approve/deny remove every duplicate inbox message for the same `(requesterWebId, requestType, accessTo, forClass)` tuple — the user only sees and acts on one row even when the sender retried.
+Badge:: Shows the count of pending requests on the toggle button.
+Requester profile:: Each row shows the requester's avatar and display name via `RequesterRow`.
 
 == See also
 
-* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess] provides the inbox discovery and message listing functions that `useAccessRequests` calls internally.
+* link:../../contexts/RequestNotificationsContext/[RequestNotificationsContext] owns the live state and exposes `requests`, `loading`, `approve`, `deny`, `markSeen`, `selectRequest`, and `navigationCount`.
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess] provides the inbox discovery and message listing functions called inside `useAccessRequests` (used by the provider).
 * link:../../../../infrastructure/wac/aclManager/[aclManager] handles the ACL writes that occur when a request is approved.
 * link:../../../../infrastructure/solid/sharedCatalog/[sharedCatalog] is used to create the per-viewer shared catalog when a catalog request is approved.
 
@@ -42,8 +34,8 @@ link:../[profile/components]
 
 .Uses
 * link:../../../../config/[config]
-* link:../../hooks/useAccessRequests/[useAccessRequests]
-* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
-* link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
+* link:../../contexts/RequestNotificationsContext/[RequestNotificationsContext]
+* link:../../hooks/useRequesterProfile/[useRequesterProfile]
+* link:../../utils/buildRequestDescription/[buildRequestDescription]
 * link:../../../../shared/components/Avatar/[Avatar]
 * link:../../../../shared/utils/[utils]

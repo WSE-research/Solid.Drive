@@ -1,0 +1,37 @@
+= inboxSubscription
+
+Real-time inbox change notifications via the
+https://solid.github.io/notifications/protocol[Solid Notifications
+Protocol]. Discovers the pod's `WebSocketChannel2023` subscription
+endpoint, opens a server-side channel, and forwards each notification
+to the caller's callback so the UI can refresh without polling.
+
+== Flow
+
+. HEAD the inbox to find the storage-description URI via the
+  `solid:storageDescription` link relation.
+. GET the storage description and look for a subject whose
+  `notify:channelType` is `notify:WebSocketChannel2023`; that subject's
+  `notify:subscription` triple is the endpoint we POST to.
+. POST a JSON-LD subscription `{ type: "WebSocketChannel2023", topic: <inboxUri> }`.
+  The server replies with a `receiveFrom` URL.
+. Open the WebSocket; each message means "inbox changed".
+
+The subscription is authenticated via the supplied `solidFetch`. The
+WebSocket itself is bound to that subscription, so no further token
+exchange is required on the socket.
+
+== Exports
+
+`subscribeToInbox(inboxUri, fetch, onNotify, onError?)`:: Returns a
+handle whose `close()` shuts the WebSocket down.
+`parseLinkHeaderForRel(header, rel)`:: Helper used during discovery
+and re-exported for testing.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/inbox]
+
+.Used by
+* link:../../../features/profile/contexts/RequestNotificationsContext/[RequestNotificationsContext]

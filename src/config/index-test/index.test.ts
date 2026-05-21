@@ -38,6 +38,15 @@ describe("config/index exports", () => {
     "SPREADSHEET_MIME_TYPES",
     "DOCUMENT_MIME_TYPES",
     "DEFAULT_TBOX_PATH",
+    "SEEN_REQUESTS_STORAGE_KEY",
+    "SEEN_REQUESTS_CHANGE_EVENT",
+    "SEEN_REQUESTS_MAX_STORED",
+    "REQUEST_TOAST_PROFILE_RESOLVE_TIMEOUT_MS",
+    "NOTIFICATION_BELL_MAX_DROPDOWN_ITEMS",
+    "NOTIFICATION_BELL_MAX_BADGE_DISPLAY",
+    "SOLID_NOTIFICATION_WEBSOCKET_CHANNEL_TYPE",
+    "SOLID_STORAGE_DESCRIPTION_REL",
+    "SOLID_NOTIFICATION_CONTEXT_URL",
   ] as const;
 
   it.each(expectedConstants)("exports %s", (name) => {
@@ -45,7 +54,7 @@ describe("config/index exports", () => {
   });
 
   it("exports exactly the expected number of runtime values", () => {
-    // 31 constants + ENV
-    expect(Object.keys(Config)).toHaveLength(31);
+    // 40 constants + ENV
+    expect(Object.keys(Config)).toHaveLength(40);
   });
 });

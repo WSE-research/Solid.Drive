@@ -1,15 +1,22 @@
 = shared/utils
 
 Pure utility functions. No React, no side effects.
-All exported from `@/shared/utils` index for convenience.
 
-== Exports
+== Barrel exports (`@/shared/utils`)
 
-`copyToClipboard(text, write?)`:: Writes text to the system clipboard; returns `true` on success, `false` when the API is unavailable or the write rejects. Optional `write` injection point for tests.
-`formatBytes(bytes)`:: Formats a byte count string to `"1.2 KB"` / `"3.4 MB"`
-`getInitial(name)`:: Returns the first character of a name, uppercased
-`getProfileDisplayName(profile, webId)`:: Picks the best display name from a Solid profile
-`isAbsoluteUri(value)`:: Returns `true` if the value starts with `http://` or `https://`
+`formatBytes(bytes)`:: Formats a byte count to `"1.2 KB"` / `"3.4 MB"`.
+`getInitial(name)`:: First character of a name, uppercased.
+`getProfileDisplayName(profile, webId)`:: Best display name from a Solid profile.
+`getWebIdFallbackName(webId)`:: WebID-derived fallback name (subdomain or path segment).
+`isAbsoluteUri(value)`:: `true` if the value starts with `http://` or `https://`.
+`truncateDisplayName(name)`:: Shortens a name to `MAX_DISPLAY_NAME_LENGTH`, appending an ellipsis.
+
+== Direct-import modules
+
+Imported from their own paths, not the barrel:
+
+link:copyToClipboard/[copyToClipboard]:: Writes text to the system clipboard.
+link:createVersionStore/[createVersionStore]:: Reactive version-counter store for cache busting.
 
 == Navigation
 

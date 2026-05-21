@@ -4,12 +4,11 @@ Access requests view for the OneDrive layout.
 
 OneDrive itself has no direct access requests surface, so this view borrows the rest of the layout's vocabulary: an elevated panel, the shared design tokens, and the same card, action, and empty state patterns used by SharedView and the file table.
 
-Requests are read from the user's LDP inbox by `useAccessRequests`, which needs the storage root and the catalog URI.
-Until both are ready a quiet "Connecting…" placeholder is rendered instead of the empty state.
+The list reads its data from link:../../../../profile/contexts/RequestNotificationsContext/[RequestNotificationsContext], which is mounted once at the app root by link:../../../../../app/RequestNotificationsGate/[RequestNotificationsGate] and is fed live by the Solid Notifications WebSocket subscription. Until drive initialisation reports a storage root and catalog URI, the view renders a quiet "Connecting…" placeholder.
 
 == Internal pieces
 
-* `RequestsList` is the list and empty state container around `useAccessRequests`.
+* `RequestsList` reads `requests, loading, error, busyMessageUri, approve, deny, selectedRequestId` from the notifications context, marks visible requests as seen on mount, and scrolls the selected request into view when the user deep-links from the bell dropdown.
 * `RequestCard` renders one card per pending request with Approve and Deny actions.
 
 == Navigation
@@ -18,6 +17,8 @@ Until both are ready a quiet "Connecting…" placeholder is rendered instead of 
 link:../[onedrive-layout/components/views]
 
 .Uses
+* link:../../../../profile/contexts/RequestNotificationsContext/[RequestNotificationsContext]
+* link:../../../../profile/hooks/useRequesterProfile/[useRequesterProfile]
+* link:../../../../profile/utils/buildRequestDescription/[buildRequestDescription]
 * link:../../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
-* link:../../../../file-explorer/hooks/useAccessRequests/[useAccessRequests]
 * link:../../../../../infrastructure/solid/catalog/[catalog]

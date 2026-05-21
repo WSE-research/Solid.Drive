@@ -6,33 +6,35 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(_key: string, fallback?: string) => fallback ?? _key],
 }));
 
-interface AccessRequestsState {
-  requests: AccessRequest[];
-  loading: boolean;
-  error: string | null;
-  busyMessageUri: string | null;
-}
-
-const mockState: { current: AccessRequestsState } = {
-  current: {
-    requests: [],
-    loading: false,
-    error: null,
-    busyMessageUri: null,
-  },
-};
-
 const mockLoadRequests = vi.fn();
 const mockApprove = vi.fn();
 const mockDeny = vi.fn();
+const mockMarkSeen = vi.fn();
+const mockSelectRequest = vi.fn();
+const mockIsSeen = vi.fn(() => false);
+const mockMarkAllSeen = vi.fn();
 
-vi.mock('@/features/profile/hooks/useAccessRequests', () => ({
-  useAccessRequests: () => ({
-    ...mockState.current,
-    loadRequests: mockLoadRequests,
-    approve: mockApprove,
-    deny: mockDeny,
-  }),
+const DEFAULTS = {
+  requests: [] as AccessRequest[],
+  loading: false,
+  error: null as string | null,
+  busyMessageUri: null as string | null,
+  loadRequests: mockLoadRequests,
+  approve: mockApprove,
+  deny: mockDeny,
+  unseenCount: 0,
+  isSeen: mockIsSeen,
+  markSeen: mockMarkSeen,
+  markAllSeen: mockMarkAllSeen,
+  selectedRequestId: null as string | null,
+  selectRequest: mockSelectRequest,
+  navigationCount: 0,
+};
+
+let contextValue: typeof DEFAULTS | null = { ...DEFAULTS };
+
+vi.mock('@/features/profile/contexts/RequestNotificationsContext', () => ({
+  useRequestNotifications: () => contextValue,
 }));
 
 let lastCardProps: Record<string, unknown> | undefined;
@@ -45,6 +47,7 @@ vi.mock('../RequestsView-file/RequestCard', () => ({
         data-testid="request-card"
         data-id={request.messageUri}
         data-busy={props.busy ? 'true' : 'false'}
+        data-highlighted={props.highlighted ? 'true' : 'false'}
       />
     );
   },
@@ -52,14 +55,7 @@ vi.mock('../RequestsView-file/RequestCard', () => ({
 
 import { RequestsList } from '../RequestsView-file/RequestsList';
 
-const renderList = () =>
-  render(
-    <RequestsList
-      ownerWebId="https://owner.example/profile/card#me"
-      storageRoot="https://owner.example/"
-      catalogUri="https://owner.example/my-solid-app/catalog.ttl"
-    />,
-  );
+const renderList = () => render(<RequestsList />);
 
 const makeRequest = (id: string): AccessRequest => ({
   messageUri: `urn:msg:${id}`,
@@ -69,17 +65,20 @@ const makeRequest = (id: string): AccessRequest => ({
   timestamp: '2026-04-22T10:00:00Z',
 });
 
+const setContext = (overrides: Partial<typeof DEFAULTS> = {}): void => {
+  contextValue = { ...DEFAULTS, ...overrides };
+};
+
 describe('RequestsList', () => {
   beforeEach(() => {
-    mockState.current = {
-      requests: [],
-      loading: false,
-      error: null,
-      busyMessageUri: null,
-    };
     mockLoadRequests.mockReset();
     mockApprove.mockReset();
     mockDeny.mockReset();
+    mockMarkSeen.mockReset();
+    mockSelectRequest.mockReset();
+    mockIsSeen.mockReset();
+    mockIsSeen.mockReturnValue(false);
+    setContext();
     lastCardProps = undefined;
   });
 
@@ -90,14 +89,14 @@ describe('RequestsList', () => {
   });
 
   it('shows a loading state when loading=true', () => {
-    mockState.current = { ...mockState.current, loading: true };
+    setContext({ loading: true });
     renderList();
     expect(screen.getByText('Loading requests…')).toBeInTheDocument();
     expect(screen.queryAllByTestId('request-card')).toHaveLength(0);
   });
 
   it('shows an error message when error is set', () => {
-    mockState.current = { ...mockState.current, error: 'inbox unreachable' };
+    setContext({ error: 'inbox unreachable' });
     renderList();
     expect(screen.getByText('inbox unreachable')).toBeInTheDocument();
   });
@@ -111,10 +110,7 @@ describe('RequestsList', () => {
   });
 
   it('renders one RequestCard per pending request', () => {
-    mockState.current = {
-      ...mockState.current,
-      requests: [makeRequest('alice'), makeRequest('bob')],
-    };
+    setContext({ requests: [makeRequest('alice'), makeRequest('bob')] });
     renderList();
     const cards = screen.getAllByTestId('request-card');
     expect(cards).toHaveLength(2);
@@ -123,11 +119,10 @@ describe('RequestsList', () => {
   });
 
   it('flags the busy card when busyMessageUri matches its message', () => {
-    mockState.current = {
-      ...mockState.current,
+    setContext({
       requests: [makeRequest('alice'), makeRequest('bob')],
       busyMessageUri: 'urn:msg:alice',
-    };
+    });
     renderList();
     const cards = screen.getAllByTestId('request-card');
     expect(cards[0].getAttribute('data-busy')).toBe('true');
@@ -135,10 +130,7 @@ describe('RequestsList', () => {
   });
 
   it('forwards approve/deny callbacks down to each card', () => {
-    mockState.current = {
-      ...mockState.current,
-      requests: [makeRequest('alice')],
-    };
+    setContext({ requests: [makeRequest('alice')] });
     renderList();
     expect(lastCardProps?.onApprove).toBe(mockApprove);
     expect(lastCardProps?.onDeny).toBe(mockDeny);
@@ -151,8 +143,46 @@ describe('RequestsList', () => {
   });
 
   it('disables the Refresh button while loading', () => {
-    mockState.current = { ...mockState.current, loading: true };
+    setContext({ loading: true });
     renderList();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled();
+  });
+
+  it('marks every visible request as seen on mount', () => {
+    setContext({ requests: [makeRequest('alice'), makeRequest('bob')] });
+    renderList();
+    expect(mockMarkSeen).toHaveBeenCalledWith(['urn:msg:alice', 'urn:msg:bob']);
+  });
+
+  it('does not call markSeen when there are no requests', () => {
+    setContext({ requests: [] });
+    renderList();
+    expect(mockMarkSeen).not.toHaveBeenCalled();
+  });
+
+  it('flags the matching card as highlighted when selectedRequestId is set', () => {
+    setContext({
+      selectedRequestId: 'urn:msg:bob',
+      requests: [makeRequest('alice'), makeRequest('bob')],
+    });
+    renderList();
+    const cards = screen.getAllByTestId('request-card');
+    expect(cards[0].getAttribute('data-highlighted')).toBe('false');
+    expect(cards[1].getAttribute('data-highlighted')).toBe('true');
+  });
+
+  it('clears the selection when the Refresh button is clicked', () => {
+    setContext({ selectedRequestId: 'urn:msg:alice' });
+    renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    expect(mockSelectRequest).toHaveBeenCalledWith(null);
+    expect(mockLoadRequests).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders no cards when context is absent', () => {
+    contextValue = null;
+    renderList();
+    expect(screen.queryAllByTestId('request-card')).toHaveLength(0);
+    expect(screen.getByText('No pending requests')).toBeInTheDocument();
   });
 });

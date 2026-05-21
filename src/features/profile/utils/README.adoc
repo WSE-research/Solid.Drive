@@ -1,0 +1,12 @@
+= profile/utils
+
+Pure helpers for profile and access-request data. No React, no side effects.
+
+== Contents
+
+link:buildRequestDescription/[buildRequestDescription]:: Shared i18n description builder for inbox access requests
+
+== Navigation
+
+.Parent
+link:../[profile]

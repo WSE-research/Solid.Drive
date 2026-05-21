@@ -1,0 +1,10 @@
+= truncateDisplayName
+
+Shortens a display name to `MAX_DISPLAY_NAME_LENGTH` characters and
+appends an ellipsis when truncated so list rows render at a consistent
+width.
+
+== Navigation
+
+.Parent
+link:../[shared/utils]

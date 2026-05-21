@@ -35,7 +35,9 @@ test("Parni requests all images, Peach approves, the images appears in the Share
   await peachSession.page.getByRole("button", { name: /^(Requests|Anfragen)/ }).click();
   await expect(peachSession.page.getByText(/all Image|alle Image/i)).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await peachSession.page.getByRole("button", { name: /^(Approve|Genehmigen)$/ }).click();
-  await expect(peachSession.page.getByText(/all Image|alle Image/i)).toHaveCount(0, { timeout: UI_TIMEOUTS.short });
+  await expect(
+    peachSession.page.locator("requests-panel").getByText(/all Image|alle Image/i),
+  ).toHaveCount(0, { timeout: UI_TIMEOUTS.short });
 
   // Parni reloads in a fresh context so the new ACL is picked up and sees the image in the ShareWithMe section, without any pending requests
   await parniSession.close();

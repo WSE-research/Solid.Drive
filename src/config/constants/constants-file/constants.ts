@@ -277,6 +277,8 @@ export const RDF_NAMESPACES = {
   SOLID_ACCESS: "http://www.w3.org/ns/solid/access#",
   /** Solid Terms namespace */
   SOLID_TERMS: "http://www.w3.org/ns/solid/terms#",
+  /** Solid Notifications namespace */
+  NOTIFY: "http://www.w3.org/ns/solid/notifications#",
   /** vCard namespace for contact/profile data */
   VCARD: "http://www.w3.org/2006/vcard/ns#",
   /** XML Schema namespace */
@@ -289,6 +291,85 @@ export const RDF_NAMESPACES = {
  * @public
  */
 export const RDF_TYPE_URI = `${RDF_NAMESPACES.RDF}type`;
+
+// ============================================================================
+// REQUEST NOTIFICATIONS
+// ============================================================================
+
+/**
+ * `localStorage` key under which the set of "already seen" inbox
+ * request message URIs is persisted.
+ *
+ * @public
+ */
+export const SEEN_REQUESTS_STORAGE_KEY = "solid-drive.seenRequestIds";
+
+/**
+ * Custom DOM event name dispatched when the seen-requests set changes,
+ * used to keep multiple in-tab hook instances in sync.
+ *
+ * @public
+ */
+export const SEEN_REQUESTS_CHANGE_EVENT = "solid-drive:seen-requests-changed";
+
+/**
+ * Maximum number of seen-request message URIs retained in storage.
+ * Older entries are dropped FIFO once the cap is reached.
+ *
+ * @public
+ */
+export const SEEN_REQUESTS_MAX_STORED = 500;
+
+/**
+ * Time in milliseconds the toast firer waits for a requester's Solid
+ * profile to resolve before falling back to a WebID-derived name.
+ *
+ * @public
+ */
+export const REQUEST_TOAST_PROFILE_RESOLVE_TIMEOUT_MS = 1500;
+
+/**
+ * Maximum number of recent requests rendered inside the notification
+ * bell dropdown. Older entries stay reachable via the Requests view.
+ *
+ * @public
+ */
+export const NOTIFICATION_BELL_MAX_DROPDOWN_ITEMS = 6;
+
+/**
+ * Highest unread count rendered as a literal numeric badge. Counts
+ * above this render as `{value}+`.
+ *
+ * @public
+ */
+export const NOTIFICATION_BELL_MAX_BADGE_DISPLAY = 9;
+
+/**
+ * Solid Notifications Protocol channel-type URI for the
+ * `WebSocketChannel2023` transport, used both to advertise channel
+ * support in the storage description and as the subscription `type`
+ * field in the POST body.
+ *
+ * @public
+ */
+export const SOLID_NOTIFICATION_WEBSOCKET_CHANNEL_TYPE = `${RDF_NAMESPACES.NOTIFY}WebSocketChannel2023`;
+
+/**
+ * Link-header relation that points from any resource to its storage
+ * description document, used to discover the pod's notification
+ * subscription endpoint.
+ *
+ * @public
+ */
+export const SOLID_STORAGE_DESCRIPTION_REL = `${RDF_NAMESPACES.SOLID_TERMS}storageDescription`;
+
+/**
+ * JSON-LD context URL embedded in subscription request bodies for the
+ * Solid Notifications Protocol.
+ *
+ * @public
+ */
+export const SOLID_NOTIFICATION_CONTEXT_URL = "https://www.w3.org/ns/solid/notification/v1";
 
 // ============================================================================
 // CONTENT TYPES

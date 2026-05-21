@@ -1,0 +1,49 @@
+= RequestNotificationsContext
+
+Single source of truth for inbox-driven access requests across both
+the OneDrive layout and the classic layout. Wraps `useAccessRequests`,
+opens a Solid Notifications Protocol WebSocket subscription on the
+user's inbox so new requests surface in real time, dedupes toast
+notifications against the persisted "seen" set, and exposes a
+selected-request id + navigation counter so the bell dropdown can
+deep-link into the Requests view (OneDrive) or auto-open the
+RequestsPanel (classic).
+
+== Exposes
+
+`requests`:: Current list of pending requests (deduped, mirrors `useAccessRequests`).
+`loading` / `error` / `busyMessageUri`:: Pass-through state from the underlying hook.
+`loadRequests`:: Manual refetch, also fired automatically on every `selectRequest`.
+`approve` / `deny`:: Action handlers that sweep every duplicate inbox message for the same request tuple.
+`unseenCount`:: Count of requests not yet marked seen.
+`isSeen` / `markSeen` / `markAllSeen`:: Read and update the persisted seen-set (see link:../../hooks/useSeenRequests/[useSeenRequests]).
+`selectedRequestId` / `selectRequest`:: Drives the highlight + scroll-into-view behaviour in `RequestsList` and `RequestsPanel`. Calling `selectRequest` also fires `loadRequests()` as a defensive refresh.
+`navigationCount`:: Monotonic counter bumped on every `selectRequest` call so subscribers can react even when `selectedRequestId` resolves to the same value as before.
+
+== Real-time updates
+
+The provider discovers the pod's `WebSocketChannel2023` subscription endpoint via the resource's storage description, opens a subscription targeting the inbox, and calls `loadRequests` on every notification frame. Focus and `visibilitychange` listeners trigger a one-shot reconciliation refresh as well. No interval polling.
+
+== Toast deduplication
+
+The provider keeps an in-memory set of message URIs it has previously
+seen during the session. The first state snapshot seeds the set so
+the initial inbox load does not flood the user with toasts. After
+that, each new URI that is also missing from the persisted "seen" set
+spawns a hidden `RequestToastFirer` which resolves the sender's
+profile before showing the toast (falls back to a WebID-derived name
+after `REQUEST_TOAST_PROFILE_RESOLVE_TIMEOUT_MS`).
+
+== Navigation
+
+.Parent
+link:../[profile/contexts]
+
+.Uses
+* link:../../hooks/useAccessRequests/[useAccessRequests]
+* link:../../hooks/useSeenRequests/[useSeenRequests]
+* link:../../hooks/useRequesterProfile/[useRequesterProfile]
+* link:../../utils/buildRequestDescription/[buildRequestDescription]
+* link:../../../../infrastructure/inbox/inboxAccess/[inboxAccess]
+* link:../../../../infrastructure/inbox/inboxSubscription/[inboxSubscription]
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]

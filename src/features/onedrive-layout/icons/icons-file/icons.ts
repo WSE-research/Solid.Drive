@@ -38,6 +38,7 @@ export {
   PanelRightExpandRegular   as DetailsPanelIconActive,
   PanelLeftContractRegular  as NavRailCollapseIcon,
   PanelLeftExpandRegular    as NavRailExpandIcon,
+  AlertRegular              as BellIcon,
 } from '@fluentui/react-icons';
 
 export {
@@ -46,4 +47,5 @@ export {
   PeopleFilled     as SharedIconActive,
   MailInboxFilled  as RequestsIconActive,
   PersonFilled     as PeopleIconActive,
+  AlertFilled      as BellIconActive,
 } from '@fluentui/react-icons';

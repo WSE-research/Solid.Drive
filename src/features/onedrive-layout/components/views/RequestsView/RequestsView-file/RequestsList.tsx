@@ -1,52 +1,68 @@
 /**
  * Orchestrator for the Requests view body.
  *
- * Owns the {@link useAccessRequests} subscription and routes its state
- * to four UI branches:
+ * Consumes inbox state from {@link RequestNotificationsContext} — the
+ * single source of truth fed by the Solid Notifications WebSocket
+ * subscription — and routes it to four UI branches:
  *   - loading  → centered spinner
- *   - error    → inline error block + Refresh
+ *   - error    → inline error block
  *   - empty    → muted "no requests" hint
  *   - data     → one {@link RequestCard} per pending request
+ *
+ * Marks the visible request set as "seen" on mount so the bell badge
+ * clears, and scrolls the selected request into view when the user
+ * deep-links from the bell dropdown.
  *
  * @packageDocumentation
  */
 
+import { useEffect, useMemo, useRef } from 'react';
 import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAccessRequests } from '@/features/profile/hooks/useAccessRequests';
+import { useRequestNotifications } from '@/features/profile/contexts/RequestNotificationsContext';
 import { RequestCard } from './RequestCard';
-
-/**
- * Props for {@link RequestsList}.
- *
- * @public
- */
-export interface RequestsListProps {
-  ownerWebId: string;
-  storageRoot: string;
-  catalogUri: string;
-}
 
 /**
  * Renders the Requests view body.
  *
  * @public
  */
-export const RequestsList: FunctionComponent<RequestsListProps> = ({
-  ownerWebId,
-  storageRoot,
-  catalogUri,
-}) => {
+export const RequestsList: FunctionComponent = () => {
   const [translate] = useTranslation();
-  const {
-    requests,
-    loading,
-    error,
-    busyMessageUri,
-    loadRequests,
-    approve,
-    deny,
-  } = useAccessRequests(ownerWebId, storageRoot, catalogUri);
+  const notifications = useRequestNotifications();
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  const requests = useMemo(() => notifications?.requests ?? [], [notifications?.requests]);
+  const loading = notifications?.loading ?? false;
+  const error = notifications?.error ?? null;
+  const busyMessageUri = notifications?.busyMessageUri ?? null;
+  const selectedRequestId = notifications?.selectedRequestId ?? null;
+
+  useEffect(() => {
+    if (!notifications) return;
+    if (requests.length === 0) return;
+    notifications.markSeen(requests.map((request) => request.messageUri));
+  }, [requests, notifications]);
+
+  useEffect(() => {
+    if (!selectedRequestId) return;
+    const node = cardRefs.current.get(selectedRequestId);
+    if (!node) return;
+    node.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  }, [selectedRequestId, requests]);
+
+  const registerCard = (messageUri: string) => (node: HTMLElement | null) => {
+    if (node) {
+      cardRefs.current.set(messageUri, node);
+    } else {
+      cardRefs.current.delete(messageUri);
+    }
+  };
+
+  const handleRefresh = (): void => {
+    notifications?.selectRequest(null);
+    void notifications?.loadRequests();
+  };
 
   return (
     <requests-list>
@@ -57,7 +73,7 @@ export const RequestsList: FunctionComponent<RequestsListProps> = ({
         <button
           type="button"
           className="odl-requests-list__refresh"
-          onClick={loadRequests}
+          onClick={handleRefresh}
           disabled={loading}
         >
           {translate('oneDriveLayout.requestsView.refresh', 'Refresh')}
@@ -94,17 +110,22 @@ export const RequestsList: FunctionComponent<RequestsListProps> = ({
         </requests-list-state>
       )}
 
-      {!loading && !error && requests.length > 0 && (
+      {!loading && !error && requests.length > 0 && notifications && (
         <requests-list-body>
-          {requests.map((request) => (
-            <RequestCard
-              key={request.messageUri}
-              request={request}
-              busy={busyMessageUri === request.messageUri}
-              onApprove={approve}
-              onDeny={deny}
-            />
-          ))}
+          {requests.map((request) => {
+            const isSelected = request.messageUri === selectedRequestId;
+            return (
+              <RequestCard
+                key={request.messageUri}
+                request={request}
+                busy={busyMessageUri === request.messageUri}
+                highlighted={isSelected}
+                onApprove={notifications.approve}
+                onDeny={notifications.deny}
+                cardRef={registerCard(request.messageUri)}
+              />
+            );
+          })}
         </requests-list-body>
       )}
     </requests-list>

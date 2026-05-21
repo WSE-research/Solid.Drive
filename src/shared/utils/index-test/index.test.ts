@@ -8,13 +8,14 @@ describe("shared/utils/index exports", () => {
     "getInitial",
     "getProfileDisplayName",
     "getWebIdFallbackName",
+    "truncateDisplayName",
   ] as const;
 
   it.each(expectedFunctions)("exports %s as a function", (name) => {
     expect(typeof (Utils as Record<string, unknown>)[name]).toBe("function");
   });
 
-  it("exports exactly 5 items", () => {
-    expect(Object.keys(Utils)).toHaveLength(5);
+  it("exports exactly 6 items", () => {
+    expect(Object.keys(Utils)).toHaveLength(6);
   });
 });

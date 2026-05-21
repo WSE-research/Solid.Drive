@@ -1,7 +1,8 @@
 /**
  * Sticky top bar for the OneDrive inspired layout.
- * Hosts the search input plus two dropdowns: SettingsMenu (language,
- * theme, layout) and AccountMenu (profile, view profile, log out).
+ * Hosts the search input, the notification bell, and two dropdowns:
+ * SettingsMenu (language, theme, layout) and AccountMenu (profile,
+ * view profile, log out).
  *
  * The centered search input collapses to an icon button at narrow
  * viewports via CSS. Clicking the icon expands a full-width overlay
@@ -11,12 +12,14 @@
  * @packageDocumentation
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FunctionComponent, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchIcon, CloseIcon } from '@/features/onedrive-layout/icons';
 import { SettingsMenu } from '@/features/onedrive-layout/components/SettingsMenu';
 import { AccountMenu } from '@/features/onedrive-layout/components/AccountMenu';
+import { NotificationBell } from '@/features/onedrive-layout/components/NotificationBell';
+import { useViewParam } from '@/features/onedrive-layout/hooks/useViewParam';
 import logoUrl from '@/assets/solid-drive-logo.png';
 
 interface TopBarProps {
@@ -40,13 +43,16 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
   avatarSrc,
 }) => {
   const [translate] = useTranslation();
+  const [, setView] = useViewParam();
   const [searchExpanded, setSearchExpanded] = useState(false);
   const overlayInputRef = useRef<HTMLInputElement | null>(null);
 
+  const navigateToRequests = useCallback(() => setView('requests'), [setView]);
+  const openSearch = useCallback(() => setSearchExpanded(true), []);
+  const closeSearch = useCallback(() => setSearchExpanded(false), []);
+
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) =>
     onSearchChange(event.target.value);
-  const openSearch = () => setSearchExpanded(true);
-  const closeSearch = () => setSearchExpanded(false);
   const handleOverlayKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -88,6 +94,7 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
         >
           <SearchIcon aria-hidden focusable={false} />
         </button>
+        <NotificationBell onNavigateToRequests={navigateToRequests} />
         <SettingsMenu />
         <AccountMenu webId={webId} profileName={profileName} avatarSrc={avatarSrc} />
       </topbar-actions>

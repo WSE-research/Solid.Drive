@@ -32,6 +32,10 @@ vi.mock('@/config', () => ({
   ],
 }));
 
+vi.mock('@/features/onedrive-layout/components/NotificationBell', () => ({
+  NotificationBell: () => null,
+}));
+
 const DEFAULT_PROPS = {
   searchValue: '',
   onSearchChange: () => {},

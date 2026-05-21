@@ -1,0 +1,50 @@
+= NotificationBell
+
+Bell button + dropdown that surfaces unseen inbox access requests.
+Mounted in both shells: the OneDrive TopBar and the classic Header.
+
+== Behaviour
+
+* Renders an outline bell when the unseen count is `0` and a filled
+  bell with a numeric badge when at least one request is unseen.
+  Badge caps at `NOTIFICATION_BELL_MAX_BADGE_DISPLAY` ("9+" by
+  default).
+* Clicking the bell opens a Radix dropdown listing the most recent
+  requests (capped at `NOTIFICATION_BELL_MAX_DROPDOWN_ITEMS`) with
+  the requester's resolved profile name, request description, and
+  timestamp.
+* Selecting a request calls `selectRequest(messageUri)` on
+  `RequestNotificationsContext` (which bumps `navigationCount` and
+  defensively re-fetches the inbox) and invokes the optional
+  `onNavigateToRequests` callback supplied by the host shell:
+  ** OneDrive TopBar passes `setView('requests')` so the Requests
+     view opens and `RequestsList` highlights + scrolls to the row.
+  ** Classic Header passes a no-op; `RequestsPanel` watches the
+     navigation counter and auto-opens itself, scrolls into view,
+     and highlights the row.
+* "View all requests" is rendered only when `onNavigateToRequests`
+  is provided; it clears the selection and triggers the same
+  navigation.
+
+== Theming
+
+The bell button and the portaled dropdown both carry a
+`data-layout` attribute driven by `useLayoutPreference`:
+
+* `data-layout="classic"` → light-mode palette, dark icon on
+  transparent background, hover lift to a subtle grey.
+* `data-layout="onedrive"` → dark palette by default, follows the
+  global `data-theme="light"` override when the user picks
+  OneDrive's light theme.
+
+== Dependencies
+
+* link:../../../profile/contexts/RequestNotificationsContext/[RequestNotificationsContext] supplies the requests list, unseen count, seen-set, and selection setter.
+* link:../../../profile/hooks/useRequesterProfile/[useRequesterProfile] resolves each row's requester display name from their WebID.
+* link:../../../profile/utils/buildRequestDescription/[buildRequestDescription] formats the per-request description ("wants access to …").
+* link:../../hooks/useLayoutPreference/[useLayoutPreference] drives `data-layout` so the portaled dropdown can theme itself correctly.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
