@@ -1,15 +1,8 @@
 /*
- * OneDrive light theme — overrides the --odl-* tokens declared in
- * OneDriveLayout.css when document.documentElement has data-theme="light".
- *
- * Loaded after OneDriveLayout.css so the cascade picks up the light
- * values automatically. The data-theme attribute is owned by
- * features/onedrive-layout/hooks/useThemePreference.
- *
- * All theme-dependent colors flow through CSS variables. The only
- * direct rule overrides below are the destructive accent (the dark
- * theme uses pinks that are illegible on white) and a few large
- * shadows that read as smudges on light surfaces.
+ * OneDrive light theme — token overrides keyed off data-theme="light".
+ * Must load after OneDriveLayout.css so the cascade picks up these values.
+ * Direct-rule overrides below handle destructive accents and shadows that
+ * the token map alone cannot retheme.
  */
 
 :root[data-theme="light"] {
@@ -24,7 +17,7 @@
   /* text */
   --odl-text:          #242424;
   --odl-text-muted:    #605e5c;
-  --odl-text-faint:    #8a8886;
+  --odl-text-faint:    #797775;
 
   /* accent */
   --odl-accent-soft:   rgba(15, 108, 189, 0.10);
@@ -87,23 +80,8 @@
   color: #107c10;
 }
 
-:root[data-theme="light"] body:has(onedrive-layout) confirm-overlay confirm-dialog {
-  background: var(--surface);
-  color: var(--text-primary);
-  border-color: var(--border);
-}
-:root[data-theme="light"] body:has(onedrive-layout) .confirm-dialog__message {
-  color: var(--text-primary);
-}
-:root[data-theme="light"] confirm-overlay {
+/* Confirm-dialog scrim only — surface/text colors already flow through
+   the --odl-* tokens via App.css's body:has(onedrive-layout) rules. */
+:root[data-theme="light"] body:has(onedrive-layout) confirm-overlay {
   background: rgba(15, 23, 42, 0.40);
-}
-:root[data-theme="light"] body:has(onedrive-layout) .toast {
-  background: var(--surface);
-  color: var(--text-secondary);
-  border-color: var(--border);
-}
-:root[data-theme="light"] body:has(onedrive-layout) .toast__dismiss:hover {
-  background: var(--surface-2);
-  color: var(--text-primary);
 }

@@ -7,9 +7,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-/**
- * Available theme choices for the OneDrive layout.
- */
 export type Theme = 'dark' | 'light';
 
 const STORAGE_KEY = 'solid-drive.theme';
@@ -31,6 +28,15 @@ const readFromStorage = (): Theme => {
     return isTheme(stored) ? stored : DEFAULT_THEME;
   } catch {
     return DEFAULT_THEME;
+  }
+};
+
+const tryPersist = (theme: Theme): boolean => {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, theme);
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -77,12 +83,7 @@ export const useThemePreference = (): readonly [Theme, (next: Theme) => void] =>
   }, []);
 
   const setTheme = useCallback((next: Theme) => {
-    let persisted = true;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      persisted = false;
-    }
+    const persisted = tryPersist(next);
     setThemeState(next);
     applyTheme(next);
     if (persisted) {

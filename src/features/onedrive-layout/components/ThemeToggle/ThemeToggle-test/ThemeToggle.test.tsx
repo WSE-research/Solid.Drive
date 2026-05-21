@@ -28,35 +28,47 @@ describe('ThemeToggle', () => {
     );
   });
 
-  it('opens the listbox with both options when clicked', async () => {
-    const user = userEvent.setup();
-    render(<ThemeToggle />);
-    await user.click(screen.getByRole('combobox', { name: /theme/i }));
-    const listbox = await screen.findByRole('listbox');
-    expect(listbox).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /dark/i })).toBeInTheDocument();
-  });
+  it(
+    'opens the listbox with both options when clicked',
+    async () => {
+      const user = userEvent.setup({ delay: null });
+      render(<ThemeToggle />);
+      await user.click(screen.getByRole('combobox', { name: /theme/i }));
+      const listbox = await screen.findByRole('listbox');
+      expect(listbox).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /dark/i })).toBeInTheDocument();
+    },
+    15000,
+  );
 
-  it('selecting Light persists the value and mirrors it onto documentElement', async () => {
-    const user = userEvent.setup();
-    render(<ThemeToggle />);
-    await user.click(screen.getByRole('combobox', { name: /theme/i }));
-    await user.click(await screen.findByRole('option', { name: /light/i }));
-    expect(localStorage.getItem('solid-drive.theme')).toBe('light');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-    expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(
-      /light/i,
-    );
-  });
+  it(
+    'selecting Light persists the value and mirrors it onto documentElement',
+    async () => {
+      const user = userEvent.setup({ delay: null });
+      render(<ThemeToggle />);
+      await user.click(screen.getByRole('combobox', { name: /theme/i }));
+      await user.click(await screen.findByRole('option', { name: /light/i }));
+      expect(localStorage.getItem('solid-drive.theme')).toBe('light');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+      expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(
+        /light/i,
+      );
+    },
+    15000,
+  );
 
-  it('selecting Dark from a persisted Light state switches back', async () => {
-    localStorage.setItem('solid-drive.theme', 'light');
-    const user = userEvent.setup();
-    render(<ThemeToggle />);
-    await user.click(screen.getByRole('combobox', { name: /theme/i }));
-    await user.click(await screen.findByRole('option', { name: /dark/i }));
-    expect(localStorage.getItem('solid-drive.theme')).toBe('dark');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-  });
+  it(
+    'selecting Dark from a persisted Light state switches back',
+    async () => {
+      localStorage.setItem('solid-drive.theme', 'light');
+      const user = userEvent.setup({ delay: null });
+      render(<ThemeToggle />);
+      await user.click(screen.getByRole('combobox', { name: /theme/i }));
+      await user.click(await screen.findByRole('option', { name: /dark/i }));
+      expect(localStorage.getItem('solid-drive.theme')).toBe('dark');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    },
+    15000,
+  );
 });

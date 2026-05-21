@@ -735,17 +735,13 @@ topbar-menu-row {
   padding: 4px 8px 8px;
 }
 
-/* Labeled "Theme [Light v]" row inside the gear menu. */
+/* ─── Theme toggle (Settings menu) ────────────────────────────────────── */
+
 theme-toggle-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--odl-space-3);
+  justify-content: stretch;
   padding: 4px 12px 8px;
-}
-.theme-toggle__label {
-  font-size: var(--odl-font-size-md);
-  color: var(--odl-text);
 }
 .theme-toggle__trigger {
   appearance: none;
@@ -753,7 +749,7 @@ theme-toggle-row {
   align-items: center;
   justify-content: space-between;
   gap: var(--odl-space-2);
-  min-width: 132px;
+  width: 100%;
   height: 32px;
   padding: 0 10px 0 12px;
   background: var(--odl-bg-page);
