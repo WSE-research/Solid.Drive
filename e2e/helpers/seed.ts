@@ -518,3 +518,40 @@ export async function addContact(
   const profileDocUri = viewerWebId.split("#")[0];
   await patchProfile(authedFetch, profileDocUri, `<#me> foaf:knows <${contactWebId}> .`);
 }
+
+/**
+ * Posts a catalog-level access request to a contact's inbox. The contact's
+ * inbox must accept `acl:Append` (ensureInbox sets that up by default).
+ *
+ * @param requesterFetch - DPoP-bound fetch authenticated as the requester
+ * @param targetInboxUri - the inbox container URI to POST into
+ * @param requesterWebId - the requester's WebID, written as `acl:agent`
+ * @param contactWebId - the contact's WebID, written as `acl:accessTo`
+ */
+export async function postCatalogAccessRequest(
+  requesterFetch: typeof fetch,
+  targetInboxUri: string,
+  requesterWebId: string,
+  contactWebId: string,
+): Promise<void> {
+  const body = `@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix solid: <http://www.w3.org/ns/solid/access#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a solid:CatalogAccessRequest ;
+   acl:agent <${requesterWebId}> ;
+   acl:accessTo <${contactWebId}> ;
+   dcterms:created "${new Date().toISOString()}"^^xsd:dateTime .
+`;
+  const response = await requesterFetch(targetInboxUri, {
+    method: "POST",
+    headers: { "Content-Type": TURTLE },
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(
+      `POST ${targetInboxUri} returned ${response.status} ${response.statusText}`,
+    );
+  }
+}

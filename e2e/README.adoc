@@ -125,6 +125,13 @@ filters the list.
 | `e2e/tests/onedrive-selection.spec.ts`
 | Selection action strip, copy link with toast and clipboard, delete
 with confirm and background re-read, share dialog.
+
+| `e2e/tests/notification-bell.spec.ts`
+| Inbox-driven NotificationBell: badge appears on unseen requests,
+OneDrive click-through navigates to the Requests view and clears the
+badge, real-time arrival ticks the badge up and fires a toast,
+duplicate inbox messages collapse into one row, Classic click-through
+auto-opens the RequestsPanel with the row highlighted.
 |===
 
 == Adding a test
