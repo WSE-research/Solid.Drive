@@ -63,3 +63,22 @@ export async function openMyFiles(page: Page): Promise<void> {
   await enterOneDriveLayout(page, "my-files");
   await expect(page.locator(".odl-files-table")).toBeVisible({ timeout: UI_TIMEOUTS.long });
 }
+
+/**
+ * Reads the `data-expanded` attribute on the nav rail. Returns "true" when
+ * the rail is showing the wide pane and "false" for the icon-only rail.
+ */
+export async function getNavRailExpanded(page: Page): Promise<string | null> {
+  return page.locator("nav-rail").getAttribute("data-expanded");
+}
+
+/**
+ * Clicks the nav rail's expand or collapse toggle. The same button serves
+ * both roles; its accessible name is "Collapse" when the pane is open and
+ * "Expand" when it is closed.
+ */
+export async function toggleNavRail(page: Page): Promise<void> {
+  const expanded = await getNavRailExpanded(page);
+  const label = expanded === "true" ? "Collapse" : "Expand";
+  await page.locator("nav-rail").getByRole("button", { name: label, exact: true }).click();
+}

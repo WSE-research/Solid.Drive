@@ -153,6 +153,8 @@
     "navRailCollapse": "Collapse",
     "navRailExpand": "Expand",
     "create": "Create",
+    "createOrUpload": "Create or upload",
+    "browseFilesBy": "Browse files by",
     "recent": "Home",
     "myFiles": "My Files",
     "shared": "Shared",

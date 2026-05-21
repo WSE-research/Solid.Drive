@@ -1,13 +1,14 @@
 = NavRail
 
-Left edge navigation rail for the OneDrive layout.
-Renders the Create button at the top, three view items in the middle for Home, My Files, and Shared, a chevron divider, and the Requests and People items below it.
-Each item is wrapped in a Radix Tooltip with its translated label.
+Left navigation pane for the OneDrive layout. Two states driven by `useNavRailExpanded`:
 
-The bottom panel is collapsible.
-The user owns that state independently of the active view, so they can hide Requests and People even while one of them is open.
+Expanded:: Wide pane. Gradient `+ Create or upload` pill, account header with the user's name and a collapse toggle, then five view rows (Home, My Files, Shared, Requests, People) as icon + label. Requests and People sit under a foldable "Browse files by" header.
 
-If the parent does not pass both create callbacks the rail renders a disabled `+` button instead of the CreateMenu, which keeps the layout slot balanced when the rail is used in chrome only contexts like Storybook or tests.
+Collapsed:: Icon-only rail. `+` button, expand toggle, one icon per view. Each icon has a tooltip.
+
+State persists in `localStorage`.
+Icons keep the same x-position in both states; only the labels appear or fade.
+At `max-width: 960px` the rail is a fixed overlay anchored under the topbar.
 
 == Props
 
@@ -15,22 +16,19 @@ If the parent does not pass both create callbacks the rail renders a disabled `+
 |===
 | Prop | Description
 
-| `onNewFolder` | Fired by the CreateMenu's "New folder" item
-| `onFilesPicked` | Fired with the files the user picks via the CreateMenu's "Upload files" item
+| `onNewFolder` | "New folder" handler. When omitted (together with `onFilesPicked`) the rail renders a disabled `+` button.
+| `onFilesPicked` | "Upload files" handler.
+| `accountName` | Display name shown in the account header. Hidden when collapsed.
 |===
 
 == See also
 
-* link:../CreateMenu/[CreateMenu] renders the `+` dropdown.
-* link:../../hooks/useViewParam/[useViewParam] reads and writes the active view.
-* link:../../icons/[icons] provides the rail and chevron glyphs.
+* link:../CreateMenu/[CreateMenu]
+* link:../../hooks/useViewParam/[useViewParam]
+* link:../../hooks/useNavRailExpanded/[useNavRailExpanded]
+* link:../../icons/[icons]
 
 == Navigation
 
 .Parent
 link:../[onedrive-layout/components]
-
-.Uses
-* link:../CreateMenu/[CreateMenu]
-* link:../../hooks/useViewParam/[useViewParam]
-* link:../../icons/[icons]

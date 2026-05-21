@@ -4,8 +4,10 @@ Home / Recent view for the OneDrive layout.
 
 Reads the user's DCAT catalog, sorts entries by `modified` desc, and renders them in a flat Name / Opened / Owner table that mirrors the OneDrive Home recent section.
 
-The inline toolbar above the table carries the type chips derived from the catalog's observed schema.org classes plus a person and name filter input.
-At narrow viewports the chip row collapses into a dropdown.
+The inline toolbar above the table carries the heading, the type chips derived from the catalog's observed schema.org classes, and a person and name filter input.
+The heading uses the shared `.odl-page-title` sizing.
+
+The chip row uses the inline chips above 1200px, the `TypeFilterChipsDropdown` ("All ▼") between 381 and 1200px, and icon-only inline chips below 381px.
 
 All filter, search, and sort state lives in link:../../../hooks/useRecentFilters/[useRecentFilters].
 

@@ -7,6 +7,9 @@
  * selection actions (share, copy link, download, delete, plus the
  * move and rename placeholders) and the share dialog.
  *
+ * The root element sets two CSS hooks: `data-rail-expanded`
+ * (mirrors `useNavRailExpanded`) and `data-view` (the active view id).
+ *
  * @packageDocumentation
  */
 
@@ -40,6 +43,7 @@ import { containerUriFromCatalogUri } from '@/features/onedrive-layout/formattin
 import { useViewParam, type ViewId } from '@/features/onedrive-layout/hooks/useViewParam';
 import { useMyFilesSort } from '@/features/onedrive-layout/hooks/useMyFilesSort';
 import { useSelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
+import { useNavRailExpanded } from '@/features/onedrive-layout/hooks/useNavRailExpanded';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
 import { INDEX_FILE } from '@/config';
 import type { CatalogEntry, SharedEntry } from '@/types';
@@ -85,6 +89,7 @@ const buildSharedEntry = (
 export const OneDriveLayout: FunctionComponent = () => {
   const [translate] = useTranslation();
   const [view, setView] = useViewParam();
+  const [navRailExpanded] = useNavRailExpanded();
   const [searchValue, setSearchValue] = useState('');
   const { sort, setSort } = useMyFilesSort();
   const { selected, select, clear } = useSelectedResource();
@@ -190,7 +195,11 @@ export const OneDriveLayout: FunctionComponent = () => {
   const isRecentView = view === 'recent';
 
   return (
-    <onedrive-layout data-testid="onedrive-layout-root">
+    <onedrive-layout
+      data-testid="onedrive-layout-root"
+      data-rail-expanded={navRailExpanded ? 'true' : 'false'}
+      data-view={view}
+    >
       <CatalogsPrefetcher contacts={contacts} viewerWebId={webId} />
       <TopBar
         searchValue={searchValue}
@@ -199,7 +208,11 @@ export const OneDriveLayout: FunctionComponent = () => {
         profileName={profileName}
         avatarSrc={avatarSrc}
       />
-      <NavRail onNewFolder={requestNewFolder} onFilesPicked={handleFilesPicked} />
+      <NavRail
+        onNewFolder={requestNewFolder}
+        onFilesPicked={handleFilesPicked}
+        accountName={profileName}
+      />
       {isSharedView ? (
         <SharedView />
       ) : (

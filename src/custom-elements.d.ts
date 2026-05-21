@@ -103,6 +103,7 @@ declare module "react" {
       "onedrive-layout": El;
       "onedrive-view": El;
       "nav-rail": El;
+      "rail-account-header": El;
       "rail-bottom-panel": El;
       "top-bar": El;
       "topbar-brand": El;

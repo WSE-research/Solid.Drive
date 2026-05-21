@@ -73,8 +73,13 @@ test("the Create menu opens the New folder dialog and creates a folder", async (
   const { page, close } = await freshLogin(browser, peach);
   await openMyFiles(page);
 
-  // The rail's Create button opens a menu; "New folder" opens the dialog.
-  await page.locator("nav-rail").getByRole("button", { name: "Create", exact: true }).click();
+  // The rail's Create control opens a menu; "New folder" opens the dialog.
+  // The rail starts expanded, so the trigger's accessible name is the long
+  // "Create or upload" label.
+  await page
+    .locator("nav-rail")
+    .getByRole("button", { name: "Create or upload", exact: true })
+    .click();
   await page.getByRole("menuitem", { name: "New folder" }).click();
 
   const dialog = page.locator(".odl-dialog--new-folder");
