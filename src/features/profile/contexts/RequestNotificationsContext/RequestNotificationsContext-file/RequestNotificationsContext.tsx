@@ -62,7 +62,8 @@ export const RequestNotificationsProvider: FunctionComponent<
   const [navigationCount, setNavigationCount] = useState(0);
   const [pendingToasts, setPendingToasts] = useState<AccessRequest[]>([]);
 
-  const mountedAtRef = useRef<number>(Date.now());
+  const mountedAtRef = useRef<number | null>(null);
+  mountedAtRef.current ??= Date.now();
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const seenIdsRef = useRef(seenIds);
   useEffect(() => {
@@ -112,7 +113,7 @@ export const RequestNotificationsProvider: FunctionComponent<
   }, [loadRequests]);
 
   useEffect(() => {
-    const mountedAt = mountedAtRef.current;
+    const mountedAt = mountedAtRef.current ?? Date.now();
     const newlyArrived = requests.filter((request) => {
       if (toastedIdsRef.current.has(request.messageUri)) return false;
       if (seenIdsRef.current.has(request.messageUri)) return false;
