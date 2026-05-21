@@ -26,6 +26,8 @@ import {
   CloseIcon,
 } from '@/features/onedrive-layout/icons';
 import { LayoutToggle } from '@/features/onedrive-layout/components/LayoutToggle';
+import { NotificationBell } from '@/features/onedrive-layout/components/NotificationBell';
+import { useViewParam } from '@/features/onedrive-layout/hooks/useViewParam';
 import { SUPPORTED_LANGUAGES } from '@/config';
 import logoUrl from '@/assets/solid-drive-logo.png';
 
@@ -51,6 +53,8 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
 }) => {
   const [translate, i18n] = useTranslation();
   const { logout } = useSolidAuth();
+  const [, setView] = useViewParam();
+  const navigateToRequests = useCallback(() => setView('requests'), [setView]);
 
   const displayName = profileName || translate('oneDriveLayout.signedIn', 'Signed in');
   const avatarAlt = profileName || translate('oneDriveLayout.account', 'Account');
@@ -66,7 +70,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
   const openSearch = useCallback(() => setSearchExpanded(true), []);
   const closeSearch = useCallback(() => setSearchExpanded(false), []);
 
-  // Auto-focus the overlay input when it opens, and let Escape close it.
   useEffect(() => {
     if (!searchExpanded) return;
     overlayInputRef.current?.focus();
@@ -100,9 +103,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
 
       <topbar-actions>
 
-      {/* Compact search trigger — anchored on the right alongside the
-          gear/avatar. Hidden on wide viewports via CSS; clicking it
-          opens the full-width search overlay rendered below. */}
       <button
         type="button"
         className="topbar-icon topbar-search-trigger"
@@ -112,7 +112,8 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
         <SearchIcon aria-hidden focusable={false} />
       </button>
 
-      {/* Settings dropdown: language switcher + layout toggle */}
+      <NotificationBell onNavigateToRequests={navigateToRequests} />
+
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
@@ -162,7 +163,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
-      {/* Avatar dropdown: profile header + View profile + Log out */}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
@@ -219,11 +219,6 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
 
       </topbar-actions>
 
-      {/* Full-width search overlay — replaces the topbar content row
-          when the user activates the compact search button. Magnifier
-          icon on the left, input fills the rest, close button on the
-          right. The overlay shares state with the centered search
-          input, so the typed query persists when it closes. */}
       {searchExpanded && (
         <topbar-search-overlay role="search" data-testid="topbar-search-overlay">
           <span className="topbar-search-overlay__icon" aria-hidden>

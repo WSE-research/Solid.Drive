@@ -12,6 +12,10 @@ link:components/RequestsPanel/[components/RequestsPanel]:: Approve or deny incom
 link:hooks/useProfile/[hooks/useProfile]:: Read/write the logged-in user's profile fields
 link:hooks/useContacts/[hooks/useContacts]:: Manage the `foaf:knows` contact list
 link:hooks/useAccessRequests/[hooks/useAccessRequests]:: Load, approve, and deny inbox access requests
+link:hooks/useRequesterProfile/[hooks/useRequesterProfile]:: Resolve a requester's profile (name, avatar, loading) from a WebID
+link:hooks/useSeenRequests/[hooks/useSeenRequests]:: Persist which inbox request message URIs have been viewed
+link:utils/buildRequestDescription/[utils/buildRequestDescription]:: i18n description builder shared by every access-request surface
+link:contexts/RequestNotificationsContext/[contexts/RequestNotificationsContext]:: Single source of truth for the bell badge, dropdown, and request views — fed by a Solid Notifications WebSocket subscription
 
 == Navigation
 

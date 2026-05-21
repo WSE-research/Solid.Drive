@@ -13,6 +13,7 @@ import { ClassicLayout } from '@/app/ClassicLayout';
 import { useSessionContinuity } from '@/app/hooks/useSessionContinuity';
 import { OneDriveLayout, useLayoutPreference, type Layout } from '@/features/onedrive-layout';
 import { NotificationProvider } from '@/shared/contexts/NotificationContext';
+import { RequestNotificationsGate } from '@/app/RequestNotificationsGate';
 import './github-fork-ribbon.css';
 import './App.css';
 
@@ -37,14 +38,18 @@ const AppShell: FunctionComponent = () => {
 
   const ImmersiveLayout = IMMERSIVE_LAYOUTS[layout];
   if (ImmersiveLayout && assumeLoggedIn) {
-    return <ImmersiveLayout />;
+    return (
+      <RequestNotificationsGate>
+        <ImmersiveLayout />
+      </RequestNotificationsGate>
+    );
   }
 
   return (
-    <>
+    <RequestNotificationsGate>
       <Header />
       {session.isLoggedIn ? <ClassicLayout /> : <FileExplorer />}
-    </>
+    </RequestNotificationsGate>
   );
 };
 

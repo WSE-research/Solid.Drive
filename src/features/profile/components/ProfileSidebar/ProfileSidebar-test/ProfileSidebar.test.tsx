@@ -2,24 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ProfileSidebar } from '../ProfileSidebar-file/ProfileSidebar';
 
+let mockWebId: string | undefined = 'https://pod.example/profile/card#me';
+
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({
     session: { webId: mockWebId },
   }),
-  useSubject: () => mockProfile,
-}));
-
-let mockWebId: string | undefined = 'https://pod.example/profile/card#me';
-let mockProfile: Record<string, unknown> | null = {
-  storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
-};
-
-vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
-  SolidProfileShapeType: {},
-}));
-
-vi.mock('@/infrastructure/solid/catalog', () => ({
-  resolveCatalogUri: () => 'https://pod.example/solidweb/catalog.ttl',
 }));
 
 vi.mock('@/features/profile/components/ProfileCard', () => ({
@@ -33,19 +21,12 @@ vi.mock('@/features/profile/components/ContactsList', () => ({
 }));
 
 vi.mock('@/features/profile/components/RequestsPanel', () => ({
-  RequestsPanel: ({ ownerWebId, storageRoot, catalogUri }: { ownerWebId: string; storageRoot: string; catalogUri: string }) => (
-    <div data-testid="requests-panel">
-      {ownerWebId}|{storageRoot}|{catalogUri}
-    </div>
-  ),
+  RequestsPanel: () => <div data-testid="requests-panel">RequestsPanel</div>,
 }));
 
 describe('ProfileSidebar', () => {
   beforeEach(() => {
     mockWebId = 'https://pod.example/profile/card#me';
-    mockProfile = {
-      storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
-    };
   });
 
   it('renders aside with correct class', () => {
@@ -65,12 +46,9 @@ describe('ProfileSidebar', () => {
     expect(contactsList).toHaveTextContent('https://pod.example/profile/card#me');
   });
 
-  it('renders RequestsPanel with correct props when all values are present', () => {
+  it('renders RequestsPanel when ownerWebId is present', () => {
     render(<ProfileSidebar />);
-    const panel = screen.getByTestId('requests-panel');
-    expect(panel).toHaveTextContent(
-      'https://pod.example/profile/card#me|https://pod.example/|https://pod.example/solidweb/catalog.ttl'
-    );
+    expect(screen.getByTestId('requests-panel')).toBeInTheDocument();
   });
 
   it('renders dividers between sections', () => {
@@ -84,23 +62,6 @@ describe('ProfileSidebar', () => {
     expect(document.querySelector('profile-sidebar-card')).toBeInTheDocument();
   });
 
-  it('falls back to webId-derived storageRoot when profile has no storage', () => {
-    mockProfile = {
-      storage: { toArray: () => [] },
-    };
-    render(<ProfileSidebar />);
-    // storageRoot falls back to webId.replace(/\/profile\/card.*/, "/") = "https://pod.example/"
-    const panel = screen.getByTestId('requests-panel');
-    expect(panel).toHaveTextContent('https://pod.example/');
-  });
-
-  it('falls back to webId-derived storageRoot when storage is null', () => {
-    mockProfile = { storage: null };
-    render(<ProfileSidebar />);
-    const panel = screen.getByTestId('requests-panel');
-    expect(panel).toHaveTextContent('https://pod.example/');
-  });
-
   it('hides RequestsPanel when ownerWebId is empty', () => {
     mockWebId = '';
     render(<ProfileSidebar />);
@@ -110,7 +71,6 @@ describe('ProfileSidebar', () => {
   it('uses empty string when session.webId is undefined', () => {
     mockWebId = undefined;
     render(<ProfileSidebar />);
-    // ownerWebId is "" → RequestsPanel hidden, ContactsList gets ""
     expect(screen.queryByTestId('requests-panel')).not.toBeInTheDocument();
   });
 });

@@ -20,6 +20,10 @@ vi.mock('@/features/auth/components/LanguageSwitcher/LanguageSwitcher-file/Langu
   LanguageSwitcher: () => null,
 }));
 
+vi.mock('@/features/onedrive-layout/components/NotificationBell', () => ({
+  NotificationBell: () => null,
+}));
+
 import { useSolidAuth, useResource, useSubject } from '@ldo/solid-react';
 import { isLoadable } from '@/infrastructure/solid/resourceGuards';
 import { EXTERNAL_LINKS, SOLID_PROVIDERS } from '@/config';

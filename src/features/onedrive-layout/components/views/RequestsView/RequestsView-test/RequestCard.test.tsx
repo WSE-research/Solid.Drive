@@ -37,6 +37,8 @@ vi.mock('@/shared/utils', () => ({
   getInitial: (name: string) => name.slice(0, 1).toUpperCase(),
   getProfileDisplayName: (_profile: unknown, webId: string) =>
     webId === 'https://alice.example/profile/card#me' ? 'Alice' : 'Unknown',
+  getWebIdFallbackName: (webId: string) => webId,
+  truncateDisplayName: (name: string) => name,
 }));
 
 vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({

@@ -1,0 +1,25 @@
+= useSeenRequests
+
+Persists which inbox request message URIs the user has already seen so the
+notification bell badge and toast notifications never replay the same
+request twice across reloads.
+
+== Returns
+
+`seenIds`:: Readonly set of message URIs that have been marked seen.
+`isSeen`:: Predicate for a single message URI.
+`markSeen`:: Marks one or more message URIs as seen and persists the change.
+
+== Storage
+
+Key:: `solid-drive.seenRequestIds`
+Shape:: JSON array of message URIs, capped at the last 500 entries.
+Sync:: Multiple hook instances stay in sync via a `solid-drive:seen-requests-changed` custom event plus the native `storage` event for cross-tab sync.
+
+== Navigation
+
+.Parent
+link:../[profile/hooks]
+
+.Used by
+* link:../../contexts/RequestNotificationsContext/[RequestNotificationsContext]

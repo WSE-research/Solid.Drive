@@ -29,12 +29,6 @@ export const RequestsView: FunctionComponent = () => {
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
-  const ownerWebId = session.webId ?? '';
-
-  // The list reads requests from the user's inbox via
-  // `useAccessRequests`, which needs the storage root + catalog URI.
-  // Until both are ready, render a quiet placeholder so the view does
-  // not flash an empty state during initial bootstrap.
   if (!storageRootUri || !catalogUri) {
     return (
       <onedrive-view data-view-id="requests">
@@ -47,11 +41,7 @@ export const RequestsView: FunctionComponent = () => {
 
   return (
     <onedrive-view data-view-id="requests">
-      <RequestsList
-        ownerWebId={ownerWebId}
-        storageRoot={storageRootUri}
-        catalogUri={catalogUri}
-      />
+      <RequestsList />
     </onedrive-view>
   );
 };

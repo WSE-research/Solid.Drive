@@ -145,6 +145,17 @@
   "languageSwitcher": {
     "label": "Language"
   },
+  "notificationBell": {
+    "label_zero": "No pending requests",
+    "label_one": "1 pending request",
+    "label_other": "{{count}} pending requests",
+    "heading": "Recent requests",
+    "empty": "No new requests",
+    "viewAll": "View all requests"
+  },
+  "requestNotifications": {
+    "toast": "{{name}} {{description}}"
+  },
   "oneDriveLayout": {
     "layout": "Layout",
     "classic": "Classic",

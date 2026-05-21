@@ -1,0 +1,24 @@
+= buildRequestDescription
+
+Shared i18n description builder for inbox access requests. Picks the right
+translation key (`requestsFileAccess`, `requestsTypeAccess`, or the default
+`requestsAccess`) and the interpolation values so every surface — bell
+dropdown, toast, OneDrive card, classic panel — reads the same sentence.
+
+== Public surface
+
+`buildRequestDescription(request, translate)`:: Returns the translated
+description.
+`getResourceLabel(accessTo)`:: Final path segment of a container URI.
+`getTypeLabel(forClass)`:: Human-readable label for a schema.org class.
+
+== Navigation
+
+.Parent
+link:../[profile/utils]
+
+.Used by
+* link:../../components/RequestsPanel/[RequestsPanel]
+* link:../../contexts/RequestNotificationsContext/[RequestNotificationsContext]
+* link:../../../onedrive-layout/components/NotificationBell/[NotificationBell]
+* link:../../../onedrive-layout/components/views/RequestsView/[RequestsView]

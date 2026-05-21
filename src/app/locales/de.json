@@ -145,6 +145,17 @@
   "languageSwitcher": {
     "label": "Sprache"
   },
+  "notificationBell": {
+    "label_zero": "Keine offenen Anfragen",
+    "label_one": "1 offene Anfrage",
+    "label_other": "{{count}} offene Anfragen",
+    "heading": "Letzte Anfragen",
+    "empty": "Keine neuen Anfragen",
+    "viewAll": "Alle Anfragen anzeigen"
+  },
+  "requestNotifications": {
+    "toast": "{{name}} {{description}}"
+  },
   "oneDriveLayout": {
     "layout": "Layout",
     "classic": "Klassisch",

@@ -1,0 +1,23 @@
+= RequestNotificationsGate
+
+Composition-root wrapper that mounts the request-notifications provider
+for both the OneDrive and classic shells. Lives in `app/` because it
+spans `file-explorer` (drive initialisation) and `profile` (the
+provider).
+
+== Behaviour
+
+When the user is signed in and `session.webId` is known, the gate
+renders link:../../features/profile/contexts/RequestNotificationsContext/[RequestNotificationsProvider]
+with the resolved storage root and catalog URI. Otherwise the children
+pass through unwrapped, and `useRequestNotifications()` returns `null`.
+
+== Navigation
+
+.Parent
+link:../[app]
+
+.Uses
+* link:../../features/file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+* link:../../infrastructure/solid/catalog/[catalog]
+* link:../../features/profile/contexts/RequestNotificationsContext/[RequestNotificationsContext]

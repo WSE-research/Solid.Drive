@@ -28,22 +28,7 @@ vi.mock('@/infrastructure/solid/catalog', () => ({
 }));
 
 vi.mock('../RequestsView-file/RequestsList', () => ({
-  RequestsList: ({
-    ownerWebId,
-    storageRoot,
-    catalogUri,
-  }: {
-    ownerWebId: string;
-    storageRoot: string;
-    catalogUri: string;
-  }) => (
-    <div
-      data-testid="requests-list"
-      data-owner={ownerWebId}
-      data-storage={storageRoot}
-      data-catalog={catalogUri}
-    />
-  ),
+  RequestsList: () => <div data-testid="requests-list" />,
 }));
 
 import { RequestsView } from '../RequestsView-file/RequestsView';
@@ -58,16 +43,9 @@ describe('RequestsView', () => {
     );
   });
 
-  it('renders RequestsList with the resolved owner WebID, storage root, and catalog URI', () => {
+  it('renders the RequestsList once storage and catalog are resolved', () => {
     render(<RequestsView />);
-    const list = screen.getByTestId('requests-list');
-    expect(list.getAttribute('data-owner')).toBe(
-      'https://owner.example/profile/card#me',
-    );
-    expect(list.getAttribute('data-storage')).toBe('https://owner.example/');
-    expect(list.getAttribute('data-catalog')).toBe(
-      'https://owner.example/my-solid-app/catalog.ttl',
-    );
+    expect(screen.getByTestId('requests-list')).toBeInTheDocument();
   });
 
   it('shows the connecting placeholder while storage root is unknown', () => {
@@ -82,11 +60,5 @@ describe('RequestsView', () => {
     render(<RequestsView />);
     expect(screen.queryByTestId('requests-list')).not.toBeInTheDocument();
     expect(screen.getByText('Connecting…')).toBeInTheDocument();
-  });
-
-  it('falls back to an empty WebID when the session has none', () => {
-    mockSession.current = { webId: undefined };
-    render(<RequestsView />);
-    expect(screen.getByTestId('requests-list').getAttribute('data-owner')).toBe('');
   });
 });

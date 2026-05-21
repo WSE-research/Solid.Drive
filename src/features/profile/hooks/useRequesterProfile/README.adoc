@@ -1,0 +1,23 @@
+= useRequesterProfile
+
+Subscribes to a WebID's Solid profile document via LDO and returns the
+bits every access-request surface needs: the LDO subject, its loading
+state, the resolved display name, and the avatar URL.
+
+== Returns
+
+`profile`:: The LDO `SolidProfile` subject.
+`profileLoading`:: `true` while the profile document is being fetched.
+`displayName`:: Best display name (foaf:name → vcard:fn → WebID fallback).
+`avatarUrl`:: `vcard:hasPhoto` URL when present, otherwise `undefined`.
+
+== Navigation
+
+.Parent
+link:../[profile/hooks]
+
+.Used by
+* link:../../components/RequestsPanel/[RequestsPanel]
+* link:../../contexts/RequestNotificationsContext/[RequestNotificationsContext]
+* link:../../../onedrive-layout/components/NotificationBell/[NotificationBell]
+* link:../../../onedrive-layout/components/views/RequestsView/[RequestsView]

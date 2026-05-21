@@ -174,6 +174,10 @@ declare module "react" {
       "request-card": El;
       "request-card-body": El;
       "request-card-actions": El;
+      // OneDriveLayout — NotificationBell
+      "notification-bell-empty": El;
+      "notification-bell-list": El;
+      "notification-bell-item-body": El;
       // OneDriveLayout — RecentView (Home — recent files table)
       "recent-toolbar": El;
       "recent-toolbar-chips": El;

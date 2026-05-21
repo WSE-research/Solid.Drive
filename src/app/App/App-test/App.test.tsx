@@ -34,6 +34,10 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
   NotificationProvider: ({ children }: { children: ReactNode }) => <div data-testid="notification-provider">{children}</div>,
 }));
 
+vi.mock('@/app/RequestNotificationsGate', () => ({
+  RequestNotificationsGate: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
 vi.mock('../App-file/App.css', () => ({}));
 
 vi.mock('../App-file/github-fork-ribbon.css', () => ({}));

@@ -512,4 +512,121 @@ describe('useAccessRequests', () => {
     expect(result.current.error).toBe('Delete failed');
     expect(result.current.busyMessageUri).toBeNull();
   });
+
+  it('dedupes active requests with the same requester + target', async () => {
+    const earlier = {
+      messageUri: 'https://pod.example/inbox/msg-old',
+      requesterWebId: 'https://peach.example/profile/card#me',
+      requestType: 'catalog' as const,
+      accessTo: '',
+      timestamp: '2026-05-20T08:00:00Z',
+    };
+    const later = {
+      messageUri: 'https://pod.example/inbox/msg-new',
+      requesterWebId: 'https://peach.example/profile/card#me',
+      requestType: 'catalog' as const,
+      accessTo: '',
+      timestamp: '2026-05-20T10:00:00Z',
+    };
+    mockListAccessRequests.mockResolvedValue([later, earlier]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.requests).toHaveLength(1);
+    expect(result.current.requests[0].messageUri).toBe('https://pod.example/inbox/msg-old');
+  });
+
+  it('keeps requests separate when target or type differs', async () => {
+    const catalogRequest = {
+      messageUri: 'urn:msg:catalog',
+      requesterWebId: 'https://peach.example/profile/card#me',
+      requestType: 'catalog' as const,
+      accessTo: '',
+      timestamp: '2026-05-20T08:00:00Z',
+    };
+    const fileRequest = {
+      messageUri: 'urn:msg:file',
+      requesterWebId: 'https://peach.example/profile/card#me',
+      requestType: 'file' as const,
+      accessTo: 'https://pod.example/files/x/',
+      timestamp: '2026-05-20T08:00:00Z',
+    };
+    mockListAccessRequests.mockResolvedValue([catalogRequest, fileRequest]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.requests).toHaveLength(2);
+  });
+
+  it('approve deletes every duplicate message for the same request', async () => {
+    const requests = [
+      {
+        messageUri: 'urn:msg:1',
+        requesterWebId: 'https://peach.example/profile/card#me',
+        requestType: 'catalog' as const,
+        accessTo: '',
+        timestamp: '2026-05-20T08:00:00Z',
+      },
+      {
+        messageUri: 'urn:msg:2',
+        requesterWebId: 'https://peach.example/profile/card#me',
+        requestType: 'catalog' as const,
+        accessTo: '',
+        timestamp: '2026-05-20T09:00:00Z',
+      },
+      {
+        messageUri: 'urn:msg:3',
+        requesterWebId: 'https://peach.example/profile/card#me',
+        requestType: 'catalog' as const,
+        accessTo: '',
+        timestamp: '2026-05-20T10:00:00Z',
+      },
+    ];
+    mockListAccessRequests.mockResolvedValue(requests);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.approve(result.current.requests[0]);
+    });
+
+    expect(mockDeleteAccessRequest).toHaveBeenCalledTimes(3);
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith('urn:msg:1', expect.anything());
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith('urn:msg:2', expect.anything());
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith('urn:msg:3', expect.anything());
+    expect(result.current.requests).toHaveLength(0);
+  });
+
+  it('deny deletes every duplicate message for the same request', async () => {
+    const requests = [
+      {
+        messageUri: 'urn:msg:a',
+        requesterWebId: 'https://peach.example/profile/card#me',
+        requestType: 'catalog' as const,
+        accessTo: '',
+        timestamp: '2026-05-20T08:00:00Z',
+      },
+      {
+        messageUri: 'urn:msg:b',
+        requesterWebId: 'https://peach.example/profile/card#me',
+        requestType: 'catalog' as const,
+        accessTo: '',
+        timestamp: '2026-05-20T09:00:00Z',
+      },
+    ];
+    mockListAccessRequests.mockResolvedValue(requests);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.deny(result.current.requests[0]);
+    });
+
+    expect(mockDeleteAccessRequest).toHaveBeenCalledTimes(2);
+    expect(result.current.requests).toHaveLength(0);
+  });
 });
