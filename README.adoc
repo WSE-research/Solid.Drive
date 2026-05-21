@@ -14,34 +14,24 @@ ifdef::env-github[]
 endif::[]
 
 ++++
-<table border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:none;">
-  <tr style="border:none;">
-    <td valign="middle" width="140" style="border:none;padding:0 24px 0 0;">
-      <img src="src/assets/solid-drive-logo.png" alt="solid.drive logo" width="120"/>
-    </td>
-    <td valign="middle" style="border:none;padding:0;">
-      <h1 style="margin:0;">solid.drive</h1>
-      <p style="margin:6px 0 0;">
-        A file manager built on the <a href="https://solidproject.org/">Solid Protocol</a>.<br/>
-        Every file lives in the user's own Pod. The app stores nothing.
-      </p>
-      <p style="margin:10px 0 0;">
-        <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml">
-          <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml/badge.svg" alt="Test Coverage"/>
-        </a>
-        <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml">
-          <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml/badge.svg" alt="Playwright Tests"/>
-        </a>
-        <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml">
-          <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml/badge.svg" alt="Docker Image"/>
-        </a>
-        <a href="LICENSE">
-          <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/>
-        </a>
-      </p>
-    </td>
-  </tr>
-</table>
+<p>
+  <img src="docs/images/readme-header.svg" alt="solid.drive — A file manager built on the Solid Protocol" width="640"/>
+</p>
+
+<p>
+  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml">
+    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml/badge.svg" alt="Test Coverage"/>
+  </a>
+  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml">
+    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml/badge.svg" alt="Playwright Tests"/>
+  </a>
+  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml">
+    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml/badge.svg" alt="Docker Image"/>
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/>
+  </a>
+</p>
 
 <p>
   <a href="https://wse-research.org/solid-hello-world-frontend-react/"><b>Live Demo</b></a>
