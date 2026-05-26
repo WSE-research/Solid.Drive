@@ -10,6 +10,7 @@ Contains the root React component, the layout shells, i18n configuration, locale
 | Name | Description
 
 | *App/* | The root React component. Wires together providers and picks a layout based on the persisted preference.
+| *AuthCallbackSkeleton/* | Skeleton placeholder shown while the Solid auth provider is processing an OIDC redirect.
 | *ClassicLayout/* | The original two pane shell with the profile sidebar and the file explorer.
 | *hooks/* | Bootstrap level React hooks. Currently just `useSessionContinuity`.
 | *i18n/* | i18next configuration: language detection, supported languages, and fallback.

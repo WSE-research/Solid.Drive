@@ -225,6 +225,10 @@
   "requestNotifications": {
     "toast": "{{name}} {{description}}"
   },
+  "authCallback": {
+    "title": "Signing you in…",
+    "subtitle": "Finishing the handshake with your Pod provider."
+  },
   "oneDriveLayout": {
     "layout": "Layout",
     "classic": "Classic",

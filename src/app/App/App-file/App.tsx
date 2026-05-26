@@ -11,6 +11,7 @@ import { ROUTER_BASENAME } from '@/config';
 import { Header } from '@/features/auth/components/Header';
 import { LandingPage } from '@/features/auth/components/LandingPage';
 import { ClassicLayout } from '@/app/ClassicLayout';
+import { AuthCallbackSkeleton } from '@/app/AuthCallbackSkeleton';
 import { useSessionContinuity } from '@/app/hooks/useSessionContinuity';
 import { OneDriveLayout, useLayoutPreference, type Layout } from '@/features/onedrive-layout';
 import { NotificationProvider } from '@/shared/contexts/NotificationContext';
@@ -25,15 +26,23 @@ const IMMERSIVE_LAYOUTS: Partial<Record<Layout, FunctionComponent>> = {
 };
 
 /**
- * Picks the active shell: LandingPage when logged out, an immersive
- * layout when one is registered for the active preference, otherwise
- * the classic Header + content stack.
+ * Picks the active shell: the auth-callback skeleton while the OIDC
+ * handshake is in flight (and through a short boot window after it
+ * resolves so the next layout has time to start loading), the
+ * LandingPage when fully logged out, an immersive layout when one is
+ * registered for the active preference, otherwise the classic Header
+ * + content stack.
  */
 const renderShell = (
   isLoggedIn: boolean,
   assumeLoggedIn: boolean,
+  isAuthenticating: boolean,
   layout: Layout,
 ): ReactNode => {
+  if (isAuthenticating) {
+    return <AuthCallbackSkeleton />;
+  }
+
   if (!isLoggedIn && !assumeLoggedIn) {
     return <LandingPage />;
   }
@@ -62,11 +71,11 @@ const renderShell = (
 const AppShell: FunctionComponent = () => {
   const { session } = useSolidAuth();
   const [layout] = useLayoutPreference();
-  const assumeLoggedIn = useSessionContinuity();
+  const { assumeLoggedIn, isAuthenticating } = useSessionContinuity();
 
   return (
     <RequestNotificationsGate>
-      {renderShell(session.isLoggedIn, assumeLoggedIn, layout)}
+      {renderShell(session.isLoggedIn, assumeLoggedIn, isAuthenticating, layout)}
     </RequestNotificationsGate>
   );
 };

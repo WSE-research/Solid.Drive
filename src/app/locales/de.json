@@ -225,6 +225,10 @@
   "requestNotifications": {
     "toast": "{{name}} {{description}}"
   },
+  "authCallback": {
+    "title": "Anmeldung läuft…",
+    "subtitle": "Wir schließen die Verbindung zu deinem Pod-Anbieter ab."
+  },
   "oneDriveLayout": {
     "layout": "Layout",
     "classic": "Klassisch",

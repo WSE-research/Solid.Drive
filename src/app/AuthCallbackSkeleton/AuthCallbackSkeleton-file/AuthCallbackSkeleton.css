@@ -1,0 +1,104 @@
+auth-callback-skeleton {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #073883, #3b2079);
+  overflow: hidden;
+  z-index: 1;
+  font-family: var(--font-body);
+  animation: auth-callback-fade-in 220ms ease;
+}
+
+@keyframes auth-callback-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+auth-callback-backdrop {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+auth-callback-backdrop landing-hero-blob {
+  -webkit-mask: none;
+  mask: none;
+  filter: none;
+}
+
+auth-callback-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(440px, 100%);
+  padding: 36px 32px 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(76, 29, 149, 0.35);
+}
+
+.auth-callback__brand {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  line-height: 1.05;
+  color: var(--text-primary);
+}
+
+auth-callback-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+auth-callback-subtitle {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+auth-callback-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+auth-callback-bar {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    rgba(99, 102, 241, 0.18) 50%,
+    var(--surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: auth-callback-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes auth-callback-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  auth-callback-skeleton { animation: none; }
+  auth-callback-bar { animation: none; }
+}

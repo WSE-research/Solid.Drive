@@ -103,6 +103,15 @@ declare module "react" {
       "landing-footer-meta": El;
       "landing-footer-dot": El;
       "landing-video-play": El;
+      // AuthCallbackSkeleton
+      "auth-callback-skeleton": El;
+      "auth-callback-backdrop": El;
+      "auth-callback-card": El;
+      "auth-callback-brand": El;
+      "auth-callback-title": El;
+      "auth-callback-subtitle": El;
+      "auth-callback-bars": El;
+      "auth-callback-bar": El;
       // ErrorBoundary
       "error-boundary": El;
       // NotificationContext

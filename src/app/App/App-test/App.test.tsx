@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import App from '../App-file/App';
 import { ROUTER_BASENAME } from '@/config';
@@ -20,6 +20,10 @@ vi.mock('@/features/auth/components/Header', () => ({
 
 vi.mock('@/features/auth/components/LandingPage', () => ({
   LandingPage: () => <div data-testid="landing-page">LandingPage</div>,
+}));
+
+vi.mock('@/app/AuthCallbackSkeleton', () => ({
+  AuthCallbackSkeleton: () => <div data-testid="auth-callback-skeleton">AuthCallbackSkeleton</div>,
 }));
 
 vi.mock('@/features/file-explorer/components/FileExplorer', () => ({
@@ -115,6 +119,31 @@ describe('App', () => {
     render(<App />);
     expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
+  });
+
+  it('renders the AuthCallbackSkeleton (not the LandingPage) while OIDC callback params are present and auth has not resolved', () => {
+    window.history.replaceState({}, '', `${ROUTER_BASENAME_PATH}?code=abc&state=xyz`);
+    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
+    render(<App />);
+    expect(screen.getByTestId('auth-callback-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('landing-page')).not.toBeInTheDocument();
+  });
+
+  it('keeps the AuthCallbackSkeleton during the boot window even after auth resolves', () => {
+    localStorage.setItem('solid-drive.layout', 'onedrive');
+    window.history.replaceState({}, '', `${ROUTER_BASENAME_PATH}?code=abc&state=xyz`);
+    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as ReturnType<typeof useSolidAuth>);
+    render(<App />);
+    expect(screen.getByTestId('auth-callback-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the LandingPage when the URL has no OIDC callback params', () => {
+    window.history.replaceState({}, '', `${ROUTER_BASENAME_PATH}?other=value`);
+    vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
+    render(<App />);
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('auth-callback-skeleton')).not.toBeInTheDocument();
   });
 
   it('does not render the file explorer when logged out', () => {
@@ -239,6 +268,57 @@ describe('App — useSessionContinuity edge cases', () => {
       // Logout transition → removeItem path throws inside the catch block.
       vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
       rerender(<App />);
+      expect(screen.getByTestId('landing-page')).toBeInTheDocument();
+    });
+  });
+
+  describe('when reading window.location.search throws', () => {
+    let urlSearchParamsSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      urlSearchParamsSpy = vi
+        .spyOn(globalThis, 'URLSearchParams' as keyof typeof globalThis)
+        .mockImplementation(() => {
+          throw new Error('SecurityError: location disabled');
+        });
+    });
+
+    afterEach(() => {
+      urlSearchParamsSpy.mockRestore();
+    });
+
+    it('treats the URL as having no callback params and renders the LandingPage', () => {
+      // Even if the URL did carry code+state, an unreadable search string is
+      // indistinguishable from a plain visit. The hook must fall back safely.
+      window.history.replaceState({}, '', `${ROUTER_BASENAME_PATH}?code=abc&state=xyz`);
+      vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
+      render(<App />);
+      expect(screen.getByTestId('landing-page')).toBeInTheDocument();
+      expect(screen.queryByTestId('auth-callback-skeleton')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('when the OIDC callback never resolves', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('lifts the skeleton after the max-hold window and falls back to the LandingPage', () => {
+      window.history.replaceState({}, '', `${ROUTER_BASENAME_PATH}?code=abc&state=xyz`);
+      vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
+      render(<App />);
+      expect(screen.getByTestId('auth-callback-skeleton')).toBeInTheDocument();
+
+      // After the max-hold window (10s) the hook gives up waiting for auth.
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+
+      expect(screen.queryByTestId('auth-callback-skeleton')).not.toBeInTheDocument();
       expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     });
   });
