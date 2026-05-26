@@ -64,11 +64,10 @@ test("the user logs out from the avatar menu", async ({ browser, parni }) => {
   await page.getByRole("button", { name: "Account", exact: true }).click();
   await page.getByRole("menuitem", { name: /Log out/i }).click();
 
-  // Logging out clears the session, and with it the session-continuity flag
-  // that keeps the OneDrive shell mounted. The app should fall back to the
-  // Classic logged-out view, which shows the auth provider row.
+  // Logout clears the session-continuity flag, so the OneDrive shell
+  // unmounts and the LandingPage takes over.
   await expect(page.getByTestId("onedrive-layout-root")).toHaveCount(0, { timeout: UI_TIMEOUTS.short });
-  await expect(page.locator("auth-provider-row")).toBeVisible();
+  await expect(page.locator("main.landing")).toBeVisible();
 
   await close();
 });
