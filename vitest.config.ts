@@ -36,6 +36,10 @@ export default mergeConfig(viteConfig, defineConfig({
         "src/**/index.ts",
         // e2e/ has its own test runner (Playwright) and isn't measured by vitest.
         "e2e/**",
+        // Playwright report and trace artifacts.
+        "playwright-report/**",
+        "test-results/**",
+        "coverage/**",
       ],
     },
   },
