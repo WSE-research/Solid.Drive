@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import App from '../App-file/App';
+import { ROUTER_BASENAME } from '@/config';
 
-// App mounts BrowserRouter with basename="/solid-hello-world-frontend-react";
-// jsdom's default URL is "/", so without aligning the path the router would
-// refuse to render any of its children and every assertion below would fail.
-const ROUTER_BASENAME_PATH = '/solid-hello-world-frontend-react/';
+// jsdom starts at "/", so push the URL under BrowserRouter's basename
+// before each render. Otherwise the router renders nothing.
+const ROUTER_BASENAME_PATH = `${ROUTER_BASENAME}/`;
 
 // Mock all child components and providers
 vi.mock('@ldo/solid-react', () => ({
@@ -16,6 +16,10 @@ vi.mock('@ldo/solid-react', () => ({
 
 vi.mock('@/features/auth/components/Header', () => ({
   Header: () => <div data-testid="header">Header</div>,
+}));
+
+vi.mock('@/features/auth/components/LandingPage', () => ({
+  LandingPage: () => <div data-testid="landing-page">LandingPage</div>,
 }));
 
 vi.mock('@/features/file-explorer/components/FileExplorer', () => ({
@@ -46,7 +50,6 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
 });
-vi.mock('../App-file/github-fork-ribbon.css', () => ({}));
 
 import { useSolidAuth } from '@ldo/solid-react';
 
@@ -70,9 +73,14 @@ describe('App', () => {
     expect(screen.getByTestId('notification-provider')).toBeInTheDocument();
   });
 
-  it('renders Header component inside the app layout', () => {
+  it('renders the LandingPage when logged out', () => {
     render(<App />);
-    expect(screen.getByTestId('header')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
+  });
+
+  it('does not render the Header when logged out (Header is logged-in only)', () => {
+    render(<App />);
+    expect(screen.queryByTestId('header')).not.toBeInTheDocument();
   });
 
   it('hides the Header when OneDrive layout is active and logged in', () => {
@@ -83,12 +91,13 @@ describe('App', () => {
     expect(screen.getByTestId('onedrive-layout')).toBeInTheDocument();
   });
 
-  it('keeps the Header when OneDrive layout is selected but the user is logged out', () => {
+  it('shows the LandingPage when OneDrive layout is selected but the user is logged out and no prior session', () => {
     localStorage.setItem('solid-drive.layout', 'onedrive');
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     render(<App />);
-    expect(screen.getByTestId('header')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('header')).not.toBeInTheDocument();
   });
 
   it('renders OneDriveLayout during the auth-restore window when the session was active before refresh', () => {
@@ -97,21 +106,20 @@ describe('App', () => {
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     render(<App />);
     expect(screen.getByTestId('onedrive-layout')).toBeInTheDocument();
-    expect(screen.queryByTestId('header')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-page')).not.toBeInTheDocument();
   });
 
-  it('falls back to the Header when OneDrive is selected, no session flag is present, and the user is logged out (first-visit case)', () => {
+  it('renders the LandingPage on a first visit even when OneDrive is the saved preference', () => {
     localStorage.setItem('solid-drive.layout', 'onedrive');
-    // sessionStorage intentionally empty — never had an active session this tab.
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     render(<App />);
-    expect(screen.getByTestId('header')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
   });
 
-  it('renders FileExplorer when logged out', () => {
+  it('does not render the file explorer when logged out', () => {
     render(<App />);
-    expect(screen.getByTestId('file-explorer')).toBeInTheDocument();
+    expect(screen.queryByTestId('file-explorer')).not.toBeInTheDocument();
   });
 
   it('does not render ProfileSidebar when logged out', () => {
@@ -135,11 +143,11 @@ describe('App', () => {
     expect(screen.queryByTestId('profile-sidebar')).not.toBeInTheDocument();
   });
 
-  it('renders FileExplorer (not the OneDrive shell) when logged out, regardless of preference', () => {
+  it('renders the LandingPage (not OneDrive) when logged out, regardless of saved layout preference', () => {
     localStorage.setItem('solid-drive.layout', 'onedrive');
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     render(<App />);
-    expect(screen.getByTestId('file-explorer')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
   });
 
@@ -177,12 +185,12 @@ describe('App — useSessionContinuity edge cases', () => {
 
     it('falls back to false (no session continuity) without crashing', () => {
       // Layout pref is onedrive, would-be session flag is unreadable, user
-      // is logged out → AppShell must render the Header path (not OneDrive)
+      // is logged out → AppShell must render the LandingPage (not OneDrive)
       // because we can't tell that a session was active.
       localStorage.setItem('solid-drive.layout', 'onedrive');
       vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
       render(<App />);
-      expect(screen.getByTestId('header')).toBeInTheDocument();
+      expect(screen.getByTestId('landing-page')).toBeInTheDocument();
       expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
     });
   });
@@ -195,11 +203,11 @@ describe('App — useSessionContinuity edge cases', () => {
     expect(sessionStorage.getItem('solid-drive.session-active')).toBe('1');
 
     // Now flip to logged out — the effect should clear the flag (covering the
-    // post-login logout branch) and AppShell should fall back to the Header.
+    // post-login logout branch) and AppShell should fall back to the LandingPage.
     vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
     rerender(<App />);
     expect(sessionStorage.getItem('solid-drive.session-active')).toBeNull();
-    expect(screen.getByTestId('header')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     expect(screen.queryByTestId('onedrive-layout')).not.toBeInTheDocument();
   });
 
@@ -222,7 +230,8 @@ describe('App — useSessionContinuity edge cases', () => {
     });
 
     it('does not crash when sessionStorage.setItem and removeItem throw', () => {
-      // Logged in → setItem path throws inside the catch block.
+      // Logged in → setItem path throws inside the catch block; the classic
+      // shell still mounts (Header + ClassicLayout, default classic pref).
       vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: true } } as ReturnType<typeof useSolidAuth>);
       const { rerender } = render(<App />);
       expect(screen.getByTestId('header')).toBeInTheDocument();
@@ -230,7 +239,7 @@ describe('App — useSessionContinuity edge cases', () => {
       // Logout transition → removeItem path throws inside the catch block.
       vi.mocked(useSolidAuth).mockReturnValue({ session: { isLoggedIn: false } } as ReturnType<typeof useSolidAuth>);
       rerender(<App />);
-      expect(screen.getByTestId('header')).toBeInTheDocument();
+      expect(screen.getByTestId('landing-page')).toBeInTheDocument();
     });
   });
 });

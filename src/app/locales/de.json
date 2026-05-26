@@ -1,4 +1,73 @@
 {
+  "landing": {
+    "subtitle": "Dateiverwaltung neu gedacht \nDezentral, vertraut, digital souverän",
+    "hero": {
+      "nav": {
+        "label": "Landing-Navigation",
+        "onboarding": "Noch kein Pod?",
+        "video": "Video"
+      }
+    },
+    "forkRibbon": {
+      "label": "Auf GitHub forken"
+    },
+    "pages": {
+      "back": "Zurück zur Anmeldung",
+      "video": {
+        "title": "Einführungsvideo",
+        "lead": "Entdecke, wie Solid.drive funktioniert \n vom Anmelden und Hochladen bis hin zum Organisieren und Teilen deiner Dateien im eigenen Pod."
+      }
+    },
+    "onboarding": {
+      "heading": "Neu bei Solid?",
+      "lead": "Erstelle in wenigen Schritten deinen eigenen Solid Pod und verbinde ihn mit Solid.drive.",
+      "step1": "Besuche einen Solid-Anbieter wie solidcommunity.net.",
+      "step2": "Registriere ein neues Konto.",
+      "step3": "Richte deinen persönlichen Pod ein.",
+      "step4": "Kehre anschließend hierher zurück und melde dich mit deinem Pod Anbieter an.",
+      "videoLink": "Einführungsvideo",
+      "videoCaption": "Einführungsvideo folgt in Kürze",
+      "videoAria": "Platzhalter für Einführungsvideo"
+    },
+    "providers": {
+      "heading": "Solid Anbieter",
+      "hint": "Wähle einen der vorgeschlagenen Anbieter oder nutze deine eigene URL.",
+      "recommended": "Empfohlen",
+      "selected": "Ausgewählter Anbieter",
+      "expand": "Anbieter anzeigen",
+      "collapse": "Anbieter ausblenden",
+      "noneSelected": "Noch kein Anbieter ausgewählt."
+    },
+    "customIssuer": {
+      "heading": "Eigenen Anbieter verwenden",
+      "hint": "OIDC Issuer URL deines Solid-Identitätsanbieters.",
+      "about": "Solid unterstützt dezentrale Identitätsanbieter. Du kannst einen selbst gehosteten Pod Server oder jeden kompatiblen OIDC (OpenID Connect) Anbieter verwenden.",
+      "placeholder": "https://ihr-pod-anbieter.beispiel",
+      "invalid": "Bitte eine gültige https://-URL angeben (http:// nur für localhost erlaubt).",
+      "selectedNotice": "Benutzerdefinierter Anbieter aktiv."
+    },
+    "layoutPicker": {
+      "heading": "Wähle dein Solid.drive Erlebnis",
+      "hint": "Nutze die Oberfläche, die dir am vertrautesten ist. Zwischen den Ansichten kannst du jederzeit wechseln.",
+      "classic": {
+        "label": "Solid.drive Klassisch"
+      },
+      "onedrive": {
+        "label": "OneDrive inspiriert"
+      }
+    },
+    "actions": {
+      "login": "Anmelden",
+      "loginAria": "Mit dem ausgewählten Solid Anbieter anmelden",
+      "createPod": "Pod erstellen",
+      "learnMore": "Mehr über Solid erfahren"
+    },
+    "footer": {
+      "protocol": "Solid OIDC Anmeldung",
+      "learnMoreDescription": "Neugierig auf Solid?"
+    },
+    "logoAlt": "solid.drive Logo"
+  },
   "header": {
     "brand": "solid.drive",
     "loggedInAs": "Angemeldet als",

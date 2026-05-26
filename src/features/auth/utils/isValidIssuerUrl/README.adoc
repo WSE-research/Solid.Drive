@@ -1,0 +1,12 @@
+= isValidIssuerUrl
+
+`isValidIssuerUrl(value: string): boolean` — true when `value` parses as an HTTPS URL,
+or as an HTTP URL pointing at a local development host (`localhost`, `127.0.0.1`, `[::1]`).
+
+Used by `useIssuerSelection` to validate the custom-issuer input on the landing page
+before enabling the Login button.
+
+== Navigation
+
+.Parent
+link:../[features/auth/utils]

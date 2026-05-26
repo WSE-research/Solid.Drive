@@ -4,8 +4,9 @@ UI components for authentication and site level controls.
 
 == Contents
 
-*Header*:: The main site header. Handles the full login flow (provider selection, custom provider input, login button) and the logged-in state (display name, logout button, language switcher)
-*LanguageSwitcher*:: A `<select>` that calls `i18n.changeLanguage`. Rendered in both logged-in and logged-out header states
+*Header*:: The main site header. Handles the full login flow (provider selection, custom provider input, login button) and the logged-in state (display name, logout button, language switcher).
+*LandingPage*:: Public landing page shown to unauthenticated users. Provider picker, custom issuer field, layout choice, and onboarding/video sub-routes.
+*LanguageSwitcher*:: A `<select>` that calls `i18n.changeLanguage`. Rendered in both logged-in and logged-out header states.
 
 == Navigation
 

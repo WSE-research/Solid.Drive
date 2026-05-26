@@ -1,7 +1,7 @@
 = App
 
 Root component that bootstraps the application.
-Wraps everything in the Solid authentication provider and notification provider, then renders the header and main layout.
+Wraps everything in the Solid LDO provider, the notification provider, and a single `RequestNotificationsGate`, then picks the active shell based on auth state and the saved layout preference.
 
 == Layout
 
@@ -9,10 +9,13 @@ Wraps everything in the Solid authentication provider and notification provider,
 |===
 | Condition | Renders
 
-| Always | `<BrowserSolidLdoProvider>` wrapping `<NotificationProvider>` wrapping `<Header />`
-| Logged in | `<ProfileSidebar />` and `<FileExplorer />`
-| Logged out | `<FileExplorer />` only
+| Always | `<BrowserRouter>` > `<BrowserSolidLdoProvider>` > `<NotificationProvider>` > `<RequestNotificationsGate>`
+| Logged out | `<LandingPage />`
+| Logged in, OneDrive layout | `<OneDriveLayout />`
+| Logged in, Classic layout | `<Header />` and `<ClassicLayout />`
 |===
+
+The shell choice also honours session continuity: during the auth-restore window after a refresh, the previously logged-in shell stays mounted instead of flashing back to the LandingPage.
 
 == Navigation
 
@@ -21,6 +24,8 @@ link:../[app]
 
 .Uses
 * link:../../features/auth/components/Header/[Header]
-* link:../../features/file-explorer/components/FileExplorer/[FileExplorer]
-* link:../../features/profile/components/ProfileSidebar/[ProfileSidebar]
+* link:../../features/auth/components/LandingPage/[LandingPage]
+* link:../ClassicLayout/[ClassicLayout]
+* link:../../features/onedrive-layout/[onedrive-layout]
 * link:../../shared/contexts/NotificationContext/[NotificationContext]
+* link:../RequestNotificationsGate/[RequestNotificationsGate]

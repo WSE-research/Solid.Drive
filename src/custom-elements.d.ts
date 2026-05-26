@@ -79,6 +79,30 @@ declare module "react" {
       "requests-panel-item": El;
       "requests-panel-requester": El;
       "requests-panel-actions": El;
+      // LandingPage
+      "landing-shell": El;
+      "landing-hero-brand": El;
+      "landing-hero-brand-row": El;
+      "landing-hero-topbar": El;
+      "landing-hero-left": El;
+      "landing-hero-right": El;
+      "landing-hero-blob": El;
+      "landing-hero-blob-bubbles": El;
+      "landing-hero-blob-bubble": El;
+      "landing-hero-form": El;
+      "landing-hero-actions": El;
+      "landing-logo-wrap": El;
+      "landing-card-header": El;
+      "landing-provider-info": El;
+      "landing-providers-combobox": El;
+      "landing-providers-listbox-wrapper": El;
+      "landing-providers-chevron": El;
+      "landing-layout-grid": El;
+      "landing-layout-info": El;
+      "landing-layout-radio": El;
+      "landing-footer-meta": El;
+      "landing-footer-dot": El;
+      "landing-video-play": El;
       // ErrorBoundary
       "error-boundary": El;
       // NotificationContext

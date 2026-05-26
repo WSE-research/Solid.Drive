@@ -1,0 +1,23 @@
+= useIssuerSelection
+
+`useIssuerSelection(): IssuerSelection` — state and validation for the landing-page
+provider picker. Tracks which suggested provider is selected, what the user typed into
+the custom-issuer field, and which of the two should be used to start the OIDC flow.
+
+Picking a provider card clears the custom field; typing in the custom field deselects
+the card. The active issuer URL is empty while the custom field is non-empty but invalid,
+which the page uses to keep the Login button disabled.
+
+== Returns
+
+`providerCards`:: Suggested providers (the `custom` sentinel from `SOLID_PROVIDERS` is filtered out).
+`selectedProviderValue`, `customIssuerValue`:: Raw form state.
+`hasCustomIssuer`, `customIssuerError`:: Derived flags for the custom field.
+`activeIssuerUrl`:: The URL Login should use, or `''` when nothing valid is picked.
+`activeProvider`:: The provider entry matching the selected card, if any.
+`selectProvider`, `setCustomIssuer`:: Setters.
+
+== Navigation
+
+.Parent
+link:../[features/auth/hooks]
