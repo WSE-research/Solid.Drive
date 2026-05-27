@@ -273,11 +273,11 @@ describe('App — useSessionContinuity edge cases', () => {
   });
 
   describe('when reading window.location.search throws', () => {
-    let urlSearchParamsSpy: ReturnType<typeof vi.spyOn>;
+    let urlSearchParamsSpy: ReturnType<typeof vi.spyOn<typeof globalThis, 'URLSearchParams'>>;
 
     beforeEach(() => {
       urlSearchParamsSpy = vi
-        .spyOn(globalThis, 'URLSearchParams' as keyof typeof globalThis)
+        .spyOn(globalThis, 'URLSearchParams')
         .mockImplementation(() => {
           throw new Error('SecurityError: location disabled');
         });
