@@ -20,6 +20,10 @@ Render them with PlantUML (the `plantuml.jar` at the project root) or any compat
 | `sequence-load-requests.puml` | Flow for loading pending access requests from the inbox
 |===
 
+=== poster/
+
+LSWT 2026 conference poster (PDF) and a README pointing to the diagrams and screenshots it references. See link:poster/README.adoc[poster/README.adoc].
+
 == Navigation
 
 .Parent
