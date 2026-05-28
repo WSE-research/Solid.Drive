@@ -16,6 +16,7 @@ import type { SolidLeaf } from "@ldo/connected-solid";
 import { deleteResource } from "@/features/file-explorer/services/deleteResource";
 import { getFileTypeInfo, resolveClass } from "@/infrastructure/validation/fileTypeRegistry";
 import { SharePanel } from "@/features/file-explorer/components/SharePanel";
+import { getAppContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { useFileSharing } from "@/features/file-explorer/hooks/useFileSharing";
 import { useFilePreview } from "@/features/file-explorer/hooks/useFilePreview";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
@@ -69,6 +70,8 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     () => ownerProfile?.knows?.toArray().map((c: { "@id": string }) => c["@id"]) ?? [],
     [ownerProfile]
   );
+  const ownerStorageRoot = ownerProfile?.storage?.toArray()?.[0]?.["@id"];
+  const appContainerUri = ownerStorageRoot ? getAppContainerUri(ownerStorageRoot) : null;
 
   const isShared = useFileSharing(containerUri, solidFetch);
 
@@ -222,10 +225,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         </file-card-actions>
       </file-card-meta>
 
-      {!readOnly && showShare && (
+      {!readOnly && showShare && appContainerUri && (
         <SharePanel
           containerUri={containerUri}
           catalogUri={catalogUri}
+          appContainerUri={appContainerUri}
           contacts={contacts}
           sharedEntry={sharedEntry}
         />

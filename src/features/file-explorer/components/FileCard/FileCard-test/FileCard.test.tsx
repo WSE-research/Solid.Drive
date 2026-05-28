@@ -144,9 +144,16 @@ function renderCard(props: { readOnly?: boolean } = {}) {
   );
 }
 
+const OWNER_WEB_ID = 'https://me.example/card#me';
+const OWNER_STORAGE_ROOT = 'https://me.example/';
+const ownerProfileMock = {
+  storage: { toArray: () => [{ '@id': OWNER_STORAGE_ROOT }] },
+};
+
 function withFileMeta(overrides: Partial<typeof baseFileMeta> = {}) {
   vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
     if (uri === METADATA_URI) return { ...baseFileMeta, ...overrides };
+    if (uri === OWNER_WEB_ID) return ownerProfileMock;
     return null;
   });
 }
