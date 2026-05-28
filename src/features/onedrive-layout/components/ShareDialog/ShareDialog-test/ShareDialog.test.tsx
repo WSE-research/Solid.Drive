@@ -16,6 +16,7 @@ vi.mock('@/features/file-explorer/components/SharePanel', () => ({
 const baseProps = {
   containerUri: 'https://pod/app/doc/',
   catalogUri: 'https://pod/catalog',
+  appContainerUri: 'https://pod/app/',
   contacts: [],
   sharedEntry: { uri: 'https://pod/app/doc/index.ttl' } as never,
 };

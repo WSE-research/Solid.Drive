@@ -85,8 +85,9 @@ const mockHandleClearRejection = vi.fn();
 
 const makeSharedCatalogResult = (
   overrides: Partial<ReturnType<typeof useSharedCatalog>> = {},
-) => ({
+): ReturnType<typeof useSharedCatalog> => ({
   sharedEntries: [],
+  grantedEntries: [],
   typeGroups: new Map(),
   resolvedCatalogUri: null,
   catalogAccessible: false,
