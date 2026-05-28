@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { CatalogEntry } from '@/types';
 import type { SharedFilters as SharedFiltersState } from '@/features/onedrive-layout/hooks/useSharedFilters';
 import type { FilterChipDef } from '@/features/onedrive-layout/components/filters/TypeFilterChips/TypeFilterChips-file/chipCatalog';
@@ -92,7 +92,7 @@ beforeEach(() => {
   mockSharedCatalog.mockReset();
 });
 
-describe('SharedFilesTable — empty states', () => {
+describe('SharedFilesTable:empty states', () => {
   it('shows the empty hint when there are no contacts', () => {
     render(
       <SharedFilesTable
@@ -101,13 +101,14 @@ describe('SharedFilesTable — empty states', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByText('No contacts yet.')).toBeInTheDocument();
   });
 });
 
-describe('SharedFilesTable — column headers', () => {
+describe('SharedFilesTable:column headers', () => {
   it('renders Name / Date Shared / Shared by columns', () => {
     mockSharedCatalog.mockReturnValue({
       sharedEntries: [],
@@ -124,6 +125,7 @@ describe('SharedFilesTable — column headers', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByText('Name')).toBeInTheDocument();
@@ -132,7 +134,7 @@ describe('SharedFilesTable — column headers', () => {
   });
 });
 
-describe('SharedFilesTable — row rendering', () => {
+describe('SharedFilesTable:row rendering', () => {
   beforeEach(() => {
     const entries = [makeEntry()];
     mockSharedCatalog.mockReturnValue({
@@ -153,6 +155,7 @@ describe('SharedFilesTable — row rendering', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByText('Game design')).toBeInTheDocument();
@@ -175,6 +178,7 @@ describe('SharedFilesTable — row rendering', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.queryByText('Game design')).not.toBeInTheDocument();
@@ -188,6 +192,7 @@ describe('SharedFilesTable — row rendering', () => {
         filters={passingFilters({ matchesEntry: () => false })}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.queryByText('Game design')).not.toBeInTheDocument();
@@ -201,6 +206,7 @@ describe('SharedFilesTable — row rendering', () => {
         filters={passingFilters({ matchesContact: () => false })}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.queryByText('Game design')).not.toBeInTheDocument();
@@ -215,6 +221,7 @@ describe('SharedFilesTable — row rendering', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={onObserve}
+        onSelect={vi.fn()}
       />,
     );
     await waitFor(() => {
@@ -244,6 +251,7 @@ describe('SharedFilesTable — row rendering', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={onObserve}
+        onSelect={vi.fn()}
       />,
     );
     await waitFor(() => {
@@ -254,7 +262,7 @@ describe('SharedFilesTable — row rendering', () => {
   });
 });
 
-describe('SharedFilesTable — empty date cell', () => {
+describe('SharedFilesTable:empty date cell', () => {
   it('shows an empty date cell when entry.modified is undefined', async () => {
     const noDateEntries = [makeEntry({ modified: undefined })];
     mockSharedCatalog.mockReturnValue({
@@ -272,6 +280,7 @@ describe('SharedFilesTable — empty date cell', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     const dateCell = container.querySelector('.odl-shared-row__date');
@@ -295,6 +304,7 @@ describe('SharedFilesTable — empty date cell', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     const dateCell = container.querySelector('.odl-shared-row__date');
@@ -302,7 +312,7 @@ describe('SharedFilesTable — empty date cell', () => {
   });
 });
 
-describe('SharedFilesTable — pickEntryVisual branches', () => {
+describe('SharedFilesTable:pickEntryVisual branches', () => {
   it('uses the PDF icon for entries with application/pdf mediaType', () => {
     const pdfVisualEntries = [
       makeEntry({
@@ -327,6 +337,7 @@ describe('SharedFilesTable — pickEntryVisual branches', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     // title is '' so the row shows the URI tail 'paper.pdf'
@@ -357,13 +368,150 @@ describe('SharedFilesTable — pickEntryVisual branches', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByText('unknown.bin')).toBeInTheDocument();
   });
 });
 
-describe('SharedFilesTable — by-you direction', () => {
+describe('SharedFilesTable:selection wiring', () => {
+  beforeEach(() => {
+    const entries = [
+      makeEntry({ accessURL: 'https://alice.example/files/notes/binary' }),
+    ];
+    mockSharedCatalog.mockReturnValue({
+      sharedEntries: entries,
+      grantedEntries: entries,
+      typeGroups: new Map(),
+      resolvedCatalogUri: null,
+      catalogAccessible: true,
+      isProfileLoading: false,
+    });
+  });
+
+  it('fires onSelect with the entry uri, accessURL, and display title when a row is clicked', () => {
+    const onSelect = vi.fn();
+    render(
+      <SharedFilesTable
+        contacts={['https://alice.example/profile/card#me']}
+        viewerWebId="https://owner.example/profile/card#me"
+        filters={passingFilters()}
+        chips={NO_CHIPS}
+        onObserve={vi.fn()}
+        onSelect={onSelect}
+      />,
+    );
+    fireEvent.click(screen.getByText('Game design'));
+    expect(onSelect).toHaveBeenCalledWith({
+      entryUri: 'https://alice.example/files/notes/index.ttl',
+      binaryUri: 'https://alice.example/files/notes/binary',
+      title: 'Game design',
+      mediaType:
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    });
+  });
+
+  it('falls back to the entry uri as the binary uri when accessURL is empty', () => {
+    const entries = [makeEntry({ accessURL: '' })];
+    mockSharedCatalog.mockReturnValue({
+      sharedEntries: entries,
+      grantedEntries: entries,
+      typeGroups: new Map(),
+      resolvedCatalogUri: null,
+      catalogAccessible: true,
+      isProfileLoading: false,
+    });
+    const onSelect = vi.fn();
+    render(
+      <SharedFilesTable
+        contacts={['https://alice.example/profile/card#me']}
+        viewerWebId="https://owner.example/profile/card#me"
+        filters={passingFilters()}
+        chips={NO_CHIPS}
+        onObserve={vi.fn()}
+        onSelect={onSelect}
+      />,
+    );
+    fireEvent.click(screen.getByText('Game design'));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        binaryUri: 'https://alice.example/files/notes/index.ttl',
+      }),
+    );
+  });
+
+  it('marks the matching row aria-selected when selectedEntryUri matches', () => {
+    render(
+      <SharedFilesTable
+        contacts={['https://alice.example/profile/card#me']}
+        viewerWebId="https://owner.example/profile/card#me"
+        filters={passingFilters()}
+        chips={NO_CHIPS}
+        onObserve={vi.fn()}
+        selectedEntryUri="https://alice.example/files/notes/index.ttl"
+        onSelect={vi.fn()}
+      />,
+    );
+    const selectedRow = screen
+      .getByText('Game design')
+      .closest('[role="row"]');
+    expect(selectedRow).not.toBeNull();
+    expect(selectedRow?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('leaves rows aria-selected=false when nothing is selected', () => {
+    render(
+      <SharedFilesTable
+        contacts={['https://alice.example/profile/card#me']}
+        viewerWebId="https://owner.example/profile/card#me"
+        filters={passingFilters()}
+        chips={NO_CHIPS}
+        onObserve={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+    const row = screen.getByText('Game design').closest('[role="row"]');
+    expect(row?.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('fires onSelect when the user presses Enter on a focused row', () => {
+    const onSelect = vi.fn();
+    render(
+      <SharedFilesTable
+        contacts={['https://alice.example/profile/card#me']}
+        viewerWebId="https://owner.example/profile/card#me"
+        filters={passingFilters()}
+        chips={NO_CHIPS}
+        onObserve={vi.fn()}
+        onSelect={onSelect}
+      />,
+    );
+    const row = screen.getByText('Game design').closest('[role="row"]')!;
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalled();
+  });
+
+  it('renders rows as static (no role, tabIndex, or aria-selected) when onSelect is omitted, so PeopleView can reuse the table read-only', () => {
+    const { container } = render(
+      <SharedFilesTable
+        contacts={['https://alice.example/profile/card#me']}
+        viewerWebId="https://owner.example/profile/card#me"
+        filters={passingFilters()}
+        chips={NO_CHIPS}
+        onObserve={vi.fn()}
+      />,
+    );
+    const row = container.querySelector('shared-files-row');
+    expect(row).not.toBeNull();
+    expect(row?.hasAttribute('role')).toBe(false);
+    expect(row?.hasAttribute('tabindex')).toBe(false);
+    expect(row?.hasAttribute('aria-selected')).toBe(false);
+    expect(row?.getAttribute('onclick')).toBeNull();
+  });
+});
+
+describe('SharedFilesTable:by-you direction', () => {
   it('reads the catalog from the OWNER\'s pod (swapped useSharedCatalog args)', () => {
     mockSharedCatalog.mockReturnValue({
       sharedEntries: [],
@@ -381,6 +529,7 @@ describe('SharedFilesTable — by-you direction', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(mockSharedCatalog).toHaveBeenCalledWith(
@@ -398,6 +547,7 @@ describe('SharedFilesTable — by-you direction', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(
@@ -422,6 +572,7 @@ describe('SharedFilesTable — by-you direction', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByText('Shared with')).toBeInTheDocument();
@@ -446,6 +597,7 @@ describe('SharedFilesTable — by-you direction', () => {
         filters={passingFilters()}
         chips={NO_CHIPS}
         onObserve={onObserve}
+        onSelect={vi.fn()}
       />,
     );
     await waitFor(() => {

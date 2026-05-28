@@ -1,9 +1,7 @@
 /**
- * Body for the SharedView — occupies the main grid slot. Switches
- * between the With-you table and the By-you table based on the active
- * tab passed by the parent. The same {@link SharedFilesTable}
- * implementation backs both tabs; only the catalog read direction
- * changes.
+ * Body for the SharedView. Switches between the With-you and By-you
+ * tables based on the active tab; both tabs are backed by the same
+ * {@link SharedFilesTable}, only the catalog read direction differs.
  *
  * @packageDocumentation
  */
@@ -11,11 +9,14 @@
 import type { FunctionComponent } from 'react';
 import { SharedFilesTable } from './SharedFilesTable';
 import type { SharedTabId } from './SharedToolbar';
+import type { SharedSelection } from './useSharedSelection';
 import type { FilterChipDef } from '@/features/onedrive-layout/components/filters/TypeFilterChips/TypeFilterChips-file/chipCatalog';
 import type { SharedFilters } from '@/features/onedrive-layout/hooks/useSharedFilters';
 
 /**
- * Props for {@link SharedBody}.
+ * Props for {@link SharedBody}. The shape mirrors what
+ * {@link SharedFilesTable} needs, plus the active tab so the body can
+ * pick which catalog direction to read.
  *
  * @public
  */
@@ -29,10 +30,12 @@ export interface SharedBodyProps {
     key: string,
     report: { classes: ReadonlySet<string>; hasFolder: boolean; hasPdf: boolean },
   ) => void;
+  selectedEntryUri?: string;
+  onSelect: (next: SharedSelection) => void;
 }
 
 /**
- * Renders the active tab's body.
+ * Renders the table for whichever tab is currently active.
  *
  * @public
  */
@@ -43,6 +46,8 @@ export const SharedBody: FunctionComponent<SharedBodyProps> = ({
   filters,
   chips,
   onObserve,
+  selectedEntryUri,
+  onSelect,
 }) => {
   return (
     <shared-body>
@@ -53,6 +58,8 @@ export const SharedBody: FunctionComponent<SharedBodyProps> = ({
         filters={filters}
         chips={chips}
         onObserve={onObserve}
+        selectedEntryUri={selectedEntryUri}
+        onSelect={onSelect}
       />
     </shared-body>
   );

@@ -29,6 +29,7 @@ export {
   ShareRegular            as ShareIcon,
   LinkRegular             as LinkIcon,
   DeleteRegular           as DeleteIcon,
+  OpenRegular             as OpenIcon,
   ArrowDownloadRegular    as DownloadIcon,
   FolderArrowRightRegular as MoveToIcon,
   RenameRegular           as RenameIcon,
