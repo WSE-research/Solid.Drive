@@ -470,9 +470,9 @@ export async function shareFileWith(
 
 /**
  * Drops every non-owner grant from the file's ACL by writing an owner-only
- * ACL back, the same WAC change the share panel's Revoke action makes. The
- * per-viewer shared catalog is left intact so the file stays discoverable
- * as browsable instead of disappearing, mirroring `useAclManager.revoke`.
+ * ACL back. ACL-only, unlike the SharePanel revoke, which also removes the
+ * per-viewer shared catalog entry; tests that need that side effect should
+ * drive the UI instead.
  *
  * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
  * @param pod - the owner's pod, whose WebID is written as `acl:agent` for the owner rule
