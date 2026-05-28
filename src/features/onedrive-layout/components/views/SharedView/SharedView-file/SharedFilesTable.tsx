@@ -96,14 +96,16 @@ const ContactSharedRows: FunctionComponent<{
 
   const profile = useSubject(SolidProfileShapeType, contactWebId);
   const { displayName } = useContactProfile(contactWebId);
-  const { sharedEntries, catalogAccessible } = useSharedCatalog(
+  const { sharedEntries, grantedEntries, catalogAccessible } = useSharedCatalog(
     catalogHost,
     catalogTarget,
   );
 
+  const entries = direction === 'with-you' ? sharedEntries : grantedEntries;
+
   // Report the observed schema.org classes (plus PDF presence) upward
   // so the toolbar's chip set is derived from real catalog data.
-  const classesKey = sharedEntries
+  const classesKey = entries
     .map((entry) => entry.conformsTo ?? '')
     .filter((value) => value.length > 0)
     .sort()
@@ -111,7 +113,7 @@ const ContactSharedRows: FunctionComponent<{
 
   // Whether at least one entry is recognised as a PDF — drives the
   // synthetic PDF chip in the toolbar.
-  const hasPdf = sharedEntries.some((entry) => {
+  const hasPdf = entries.some((entry) => {
     const mediaType = entry.mediaType?.toLowerCase() ?? '';
     if (mediaType === 'application/pdf') return true;
     return entry.uri.toLowerCase().endsWith('.pdf');
@@ -123,12 +125,12 @@ const ContactSharedRows: FunctionComponent<{
 
   useEffect(() => {
     const classes = new Set<string>();
-    for (const entry of sharedEntries) {
+    for (const entry of entries) {
       if (entry.conformsTo) classes.add(entry.conformsTo);
     }
     onObserve(reportKey, { classes, hasFolder: false, hasPdf });
     // classesKey/hasPdf encode the observation membership; depending on
-    // `sharedEntries` directly would re-run on every reference change.
+    // `entries` directly would re-run on every reference change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportKey, classesKey, hasPdf, onObserve]);
 
@@ -139,7 +141,7 @@ const ContactSharedRows: FunctionComponent<{
 
   return (
     <>
-      {sharedEntries.map((entry) => {
+      {entries.map((entry) => {
         const fileName = safeDecodeUriTail(entry.uri);
         const chipEntry: ChipEntry = {
           mediaType: entry.mediaType,
@@ -250,7 +252,7 @@ export const SharedFilesTable: FunctionComponent<SharedFilesTableProps> = ({
       <shared-files-body>
         {contacts.map((contactWebId) => (
           <ContactSharedRows
-            key={contactWebId}
+            key={`${direction}::${contactWebId}`}
             contactWebId={contactWebId}
             viewerWebId={viewerWebId}
             direction={direction}

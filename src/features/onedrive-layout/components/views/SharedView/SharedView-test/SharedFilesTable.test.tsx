@@ -17,6 +17,7 @@ vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({ SolidProfileShapeType: {} }))
 const mockSharedCatalog = vi.fn<
   (contactWebId: string, viewerWebId: string) => {
     sharedEntries: CatalogEntry[];
+    grantedEntries: CatalogEntry[];
     typeGroups: Map<string, CatalogEntry[]>;
     resolvedCatalogUri: string | null;
     catalogAccessible: boolean;
@@ -110,6 +111,7 @@ describe('SharedFilesTable — column headers', () => {
   it('renders Name / Date Shared / Shared by columns', () => {
     mockSharedCatalog.mockReturnValue({
       sharedEntries: [],
+      grantedEntries: [],
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: false,
@@ -132,8 +134,10 @@ describe('SharedFilesTable — column headers', () => {
 
 describe('SharedFilesTable — row rendering', () => {
   beforeEach(() => {
+    const entries = [makeEntry()];
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [makeEntry()],
+      sharedEntries: entries,
+      grantedEntries: entries,
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,
@@ -158,6 +162,7 @@ describe('SharedFilesTable — row rendering', () => {
   it('skips contacts whose catalog is not accessible', () => {
     mockSharedCatalog.mockReturnValue({
       sharedEntries: [],
+      grantedEntries: [],
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: false,
@@ -222,8 +227,10 @@ describe('SharedFilesTable — row rendering', () => {
   });
 
   it('flags hasPdf=true for entries with application/pdf media type', async () => {
+    const pdfEntries = [makeEntry({ uri: 'https://alice.example/files/paper.pdf', mediaType: 'application/pdf' })];
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [makeEntry({ uri: 'https://alice.example/files/paper.pdf', mediaType: 'application/pdf' })],
+      sharedEntries: pdfEntries,
+      grantedEntries: pdfEntries,
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,
@@ -249,8 +256,10 @@ describe('SharedFilesTable — row rendering', () => {
 
 describe('SharedFilesTable — empty date cell', () => {
   it('shows an empty date cell when entry.modified is undefined', async () => {
+    const noDateEntries = [makeEntry({ modified: undefined })];
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [makeEntry({ modified: undefined })],
+      sharedEntries: noDateEntries,
+      grantedEntries: noDateEntries,
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,
@@ -270,8 +279,10 @@ describe('SharedFilesTable — empty date cell', () => {
   });
 
   it('shows an empty date cell when entry.modified is an invalid date', async () => {
+    const badDateEntries = [makeEntry({ modified: 'not-a-date' })];
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [makeEntry({ modified: 'not-a-date' })],
+      sharedEntries: badDateEntries,
+      grantedEntries: badDateEntries,
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,
@@ -293,15 +304,17 @@ describe('SharedFilesTable — empty date cell', () => {
 
 describe('SharedFilesTable — pickEntryVisual branches', () => {
   it('uses the PDF icon for entries with application/pdf mediaType', () => {
+    const pdfVisualEntries = [
+      makeEntry({
+        uri: 'https://alice.example/files/paper.pdf',
+        title: '',
+        mediaType: 'application/pdf',
+        conformsTo: undefined,
+      }),
+    ];
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [
-        makeEntry({
-          uri: 'https://alice.example/files/paper.pdf',
-          title: '',
-          mediaType: 'application/pdf',
-          conformsTo: undefined,
-        }),
-      ],
+      sharedEntries: pdfVisualEntries,
+      grantedEntries: pdfVisualEntries,
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,
@@ -321,15 +334,17 @@ describe('SharedFilesTable — pickEntryVisual branches', () => {
   });
 
   it('uses the generic DigitalDocument fallback when conformsTo is undefined and not PDF', () => {
+    const genericEntries = [
+      makeEntry({
+        uri: 'https://alice.example/files/unknown.bin',
+        title: '',
+        mediaType: 'application/octet-stream',
+        conformsTo: undefined,
+      }),
+    ];
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [
-        makeEntry({
-          uri: 'https://alice.example/files/unknown.bin',
-          title: '',
-          mediaType: 'application/octet-stream',
-          conformsTo: undefined,
-        }),
-      ],
+      sharedEntries: genericEntries,
+      grantedEntries: genericEntries,
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,
@@ -352,6 +367,7 @@ describe('SharedFilesTable — by-you direction', () => {
   it('reads the catalog from the OWNER\'s pod (swapped useSharedCatalog args)', () => {
     mockSharedCatalog.mockReturnValue({
       sharedEntries: [],
+      grantedEntries: [],
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: false,
@@ -392,6 +408,7 @@ describe('SharedFilesTable — by-you direction', () => {
   it('renders "Shared with" instead of "Shared by" in the third column', () => {
     mockSharedCatalog.mockReturnValue({
       sharedEntries: [],
+      grantedEntries: [],
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: false,
@@ -413,7 +430,8 @@ describe('SharedFilesTable — by-you direction', () => {
 
   it('keys observations with "by-you::" so they do not collide with with-you', async () => {
     mockSharedCatalog.mockReturnValue({
-      sharedEntries: [makeEntry()],
+      sharedEntries: [],
+      grantedEntries: [makeEntry()],
       typeGroups: new Map(),
       resolvedCatalogUri: null,
       catalogAccessible: true,

@@ -20,6 +20,7 @@ import type { FunctionComponent } from 'react';
 import { useSolidAuth } from '@ldo/solid-react';
 import { useContacts } from '@/features/file-explorer/hooks/useContacts';
 import { useSharedFilters } from '@/features/onedrive-layout/hooks/useSharedFilters';
+import { notifySharedCatalogsChanged } from '@/shared/hooks/useSharedCatalogVersion';
 import { SharedToolbar, type SharedTabId } from './SharedToolbar';
 import { SharedBody } from './SharedBody';
 import { useObservedSharedTypes } from './useObservedSharedTypes';
@@ -43,11 +44,9 @@ export const SharedView: FunctionComponent = () => {
     (next: SharedTabId) => {
       setTab((current) => {
         if (current === next) return current;
-        // The other tab observes a different catalog set — clear the
-        // chip filter and the observed-types map so chips repopulate
-        // from the new tab's data instead of leaking from the old.
         filters.resetClasses();
         reset();
+        notifySharedCatalogsChanged();
         return next;
       });
     },
