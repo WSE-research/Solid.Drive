@@ -10,6 +10,7 @@ const mockDiscoverAclUri = vi.fn();
 const mockWriteResourceAcl = vi.fn();
 const mockGrantContainerReadAccess = vi.fn();
 const mockEnsureDiscoveryAccess = vi.fn();
+const mockAppendToCatalog = vi.fn();
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
@@ -40,6 +41,7 @@ const mockParseCatalog = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
   EMPTY_CATALOG_TURTLE: '@prefix dcat: <http://www.w3.org/ns/dcat#>.',
   parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
+  appendToCatalog: (...args: unknown[]) => mockAppendToCatalog(...args),
 }));
 
 vi.mock('@/config', () => ({
@@ -63,8 +65,9 @@ describe('useAccessRequests', () => {
     mockWriteResourceAcl.mockResolvedValue(undefined);
     mockGrantContainerReadAccess.mockResolvedValue(undefined);
     mockEnsureDiscoveryAccess.mockResolvedValue(undefined);
+    mockAppendToCatalog.mockResolvedValue(undefined);
     mockParseCatalog.mockReturnValue([]);
-    mockFetch.mockResolvedValue({ ok: true });
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
   });
 
   it('fetches access requests from inbox on mount and exposes them via requests array', async () => {
@@ -145,6 +148,82 @@ describe('useAccessRequests', () => {
       mockFetch
     );
     expect(mockDeleteAccessRequest).toHaveBeenCalled();
+  });
+
+  it('approve(file) writes the granted entry to the per-viewer catalog so it shows up in the owner\'s By-you list', async () => {
+    const request = {
+      messageUri: 'https://pod.example/inbox/msg-file-sync',
+      requesterWebId: 'https://alice.example/profile/card#me',
+      requestType: 'file' as const,
+      accessTo: 'https://pod.example/files/doc/',
+      timestamp: '',
+    };
+    const entry = {
+      uri: 'https://pod.example/files/doc/index.ttl',
+      conformsTo: 'http://schema.org/DigitalDocument',
+      title: 'Doc',
+      description: '',
+      modified: '2026-01-01T00:00:00Z',
+      publisher: ownerWebId,
+      mediaType: 'application/pdf',
+      byteSize: 1024,
+      accessURL: 'https://pod.example/files/doc/file.pdf',
+    };
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockParseCatalog.mockReturnValue([entry]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    expect(mockAppendToCatalog).toHaveBeenCalledWith(
+      `https://pod.example/my-solid-app/.shared-${encodeURIComponent(request.requesterWebId)}.ttl`,
+      entry.uri,
+      entry.accessURL,
+      entry.conformsTo,
+      entry.mediaType,
+      entry.byteSize,
+      entry.title,
+      entry.description,
+      entry.modified,
+      ownerWebId,
+      mockFetch,
+    );
+  });
+
+  it('approve(type) writes every matching entry to the per-viewer catalog', async () => {
+    const request = {
+      messageUri: 'https://pod.example/inbox/msg-type-sync',
+      requesterWebId: 'https://alice.example/profile/card#me',
+      requestType: 'type' as const,
+      accessTo: '',
+      forClass: 'http://schema.org/ImageObject',
+      timestamp: '',
+    };
+    const imageA = {
+      uri: 'https://pod.example/files/img-a/index.ttl',
+      conformsTo: 'http://schema.org/ImageObject',
+      title: 'A', description: '', modified: '', publisher: ownerWebId,
+      mediaType: 'image/png', byteSize: 1, accessURL: 'https://pod.example/files/img-a/a.png',
+    };
+    const imageB = {
+      uri: 'https://pod.example/files/img-b/index.ttl',
+      conformsTo: 'http://schema.org/ImageObject',
+      title: 'B', description: '', modified: '', publisher: ownerWebId,
+      mediaType: 'image/png', byteSize: 1, accessURL: 'https://pod.example/files/img-b/b.png',
+    };
+    const otherType = { ...imageA, uri: 'https://pod.example/files/doc/index.ttl', conformsTo: 'http://schema.org/DigitalDocument' };
+    mockListAccessRequests.mockResolvedValue([request]);
+    mockParseCatalog.mockReturnValue([imageA, imageB, otherType]);
+
+    const { result } = renderHook(() => useAccessRequests(ownerWebId, storageRoot, catalogUri));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => { await result.current.approve(request); });
+
+    const appendedUris = mockAppendToCatalog.mock.calls.map((args) => args[1]);
+    expect(appendedUris).toEqual([imageA.uri, imageB.uri]);
   });
 
   it('approve(file) also grants discovery access to the main catalog so the requester can browse other items', async () => {

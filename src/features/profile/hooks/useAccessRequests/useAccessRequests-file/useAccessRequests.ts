@@ -24,8 +24,12 @@ import {
   toContainerUri,
 } from "@/infrastructure/solid/sharedCatalog";
 import { EMPTY_CATALOG_TURTLE, parseCatalog } from "@/infrastructure/solid/catalog";
+import {
+  catalogEntryToSharedEntry,
+  syncSharedCatalog,
+} from "@/features/sharing/services/sharedCatalogWriter";
 import { CONTENT_TYPES } from "@/config";
-import type { FetchFn } from "@/types";
+import type { CatalogEntry, FetchFn } from "@/types";
 
 const dedupeKey = (request: AccessRequest): string =>
   `${request.requestType}|${request.requesterWebId}|${request.accessTo}|${request.forClass ?? ""}`;
@@ -78,23 +82,28 @@ async function grantCatalogAccess(
   );
 }
 
-async function grantTypeAccess(
-  request: AccessRequest,
-  catalogUri: string,
-  ownerWebId: string,
-  fetch: FetchFn,
-): Promise<void> {
+async function readCatalogEntries(catalogUri: string, fetch: FetchFn): Promise<CatalogEntry[]> {
   const response = await fetch(catalogUri);
   if (!response.ok) {
     throw new Error(
       `Failed to read catalog at ${catalogUri}: ${response.status} ${response.statusText}`,
     );
   }
-  const entries = parseCatalog(await response.text(), catalogUri);
+  return parseCatalog(await response.text(), catalogUri);
+}
+
+async function grantTypeAccess(
+  request: AccessRequest,
+  catalogUri: string,
+  appContainerUri: string,
+  ownerWebId: string,
+  fetch: FetchFn,
+): Promise<void> {
+  const entries = await readCatalogEntries(catalogUri, fetch);
   const matching = entries.filter((entry) => entry.conformsTo === request.forClass);
 
+  const granted: CatalogEntry[] = [];
   const failures: unknown[] = [];
-  let granted = 0;
   for (const entry of matching) {
     try {
       await grantContainerReadAccess(
@@ -103,14 +112,51 @@ async function grantTypeAccess(
         request.requesterWebId,
         fetch,
       );
-      granted += 1;
+      granted.push(entry);
     } catch (err) {
       failures.push(err);
     }
   }
-  if (matching.length > 0 && granted === 0) {
+  await syncSharedCatalog({
+    appContainerUri,
+    contactWebId: request.requesterWebId,
+    ownerWebId,
+    entries: granted.map(catalogEntryToSharedEntry),
+    fetch,
+  });
+  if (matching.length > 0 && granted.length === 0) {
     const first = failures[0];
     throw first instanceof Error ? first : new Error(String(first));
+  }
+}
+
+async function grantFileAccess(
+  request: AccessRequest,
+  catalogUri: string,
+  appContainerUri: string,
+  ownerWebId: string,
+  fetch: FetchFn,
+): Promise<void> {
+  await grantContainerReadAccess(
+    request.accessTo,
+    ownerWebId,
+    request.requesterWebId,
+    fetch,
+  );
+  try {
+    const entries = await readCatalogEntries(catalogUri, fetch);
+    const entry = entries.find((candidate) => toContainerUri(candidate.uri) === request.accessTo);
+    if (entry) {
+      await syncSharedCatalog({
+        appContainerUri,
+        contactWebId: request.requesterWebId,
+        ownerWebId,
+        entries: [catalogEntryToSharedEntry(entry)],
+        fetch,
+      });
+    }
+  } catch {
+    return;
   }
 }
 
@@ -200,14 +246,9 @@ export function useAccessRequests(
         if (request.requestType === "catalog") {
           await grantCatalogAccess(request, appContainerUri, ownerWebId, solidFetch);
         } else if (request.requestType === "type") {
-          await grantTypeAccess(request, catalogUri, ownerWebId, solidFetch);
+          await grantTypeAccess(request, catalogUri, appContainerUri, ownerWebId, solidFetch);
         } else {
-          await grantContainerReadAccess(
-            request.accessTo,
-            ownerWebId,
-            request.requesterWebId,
-            solidFetch,
-          );
+          await grantFileAccess(request, catalogUri, appContainerUri, ownerWebId, solidFetch);
         }
 
         await ensureDiscoveryAccess(

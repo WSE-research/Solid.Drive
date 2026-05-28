@@ -157,13 +157,18 @@ describe('useAclManager', () => {
     expect(result.current.grantees).not.toContain('https://alice.example/profile/card#me');
   });
 
-  it('revoke leaves the per-viewer shared catalog intact so the entry stays visible as browsable on the requester side', async () => {
+  it('revoke removes the per-contact catalog entry so the By-you tab drops the file', async () => {
     mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
     const { result } = renderAclManager();
     await doLoadAcl(result);
     mockRemoveFromCatalog.mockClear();
     await act(async () => { await result.current.revoke('https://alice.example/profile/card#me'); });
-    expect(mockRemoveFromCatalog).not.toHaveBeenCalled();
+    const expectedSharedCatalogUri = `${appContainerUri}.shared-${encodeURIComponent('https://alice.example/profile/card#me')}.ttl`;
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith(
+      expectedSharedCatalogUri,
+      sharedEntry.metadataUri,
+      mockFetch,
+    );
   });
 
   it('revoke does nothing when aclUri is null', async () => {
