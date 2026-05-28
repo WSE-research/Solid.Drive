@@ -312,6 +312,7 @@
       "link": "Copy link",
       "delete": "Delete",
       "download": "Download",
+      "open": "Open",
       "moveTo": "Move to",
       "rename": "Rename",
       "more": "More actions",
@@ -328,6 +329,10 @@
       "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
       "deleteSuccess": "\"{{name}}\" deleted",
       "deleteFail": "Delete failed"
+    },
+    "preview": {
+      "loading": "Loading preview…",
+      "error": "Could not load preview"
     },
     "filters": {
       "typeGroup": "File type filter",

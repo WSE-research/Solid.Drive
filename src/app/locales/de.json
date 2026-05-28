@@ -312,6 +312,7 @@
       "link": "Link kopieren",
       "delete": "Löschen",
       "download": "Herunterladen",
+      "open": "Öffnen",
       "moveTo": "Verschieben",
       "rename": "Umbenennen",
       "more": "Weitere Aktionen",
@@ -328,6 +329,10 @@
       "deleteConfirm": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",
       "deleteSuccess": "„{{name}}\" gelöscht",
       "deleteFail": "Löschen fehlgeschlagen"
+    },
+    "preview": {
+      "loading": "Vorschau wird geladen…",
+      "error": "Vorschau konnte nicht geladen werden"
     },
     "filters": {
       "typeGroup": "Dateitypfilter",

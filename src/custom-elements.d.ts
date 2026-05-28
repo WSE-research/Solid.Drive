@@ -191,6 +191,10 @@ declare module "react" {
       "shared-files-row": El;
       "shared-files-cell": El;
       "shared-files-name": El;
+      // OneDriveLayout — FilePreviewDialog
+      "file-preview-header": El;
+      "file-preview-actions": El;
+      "file-preview-body": El;
       // OneDriveLayout — PeopleView (list + detail)
       "people-view-grid": El;
       "people-view-list": El;
