@@ -262,4 +262,47 @@ describe('FileUpload', () => {
     render(<FileUpload {...baseProps} prefilledFile={prefilled} />);
     expect(screen.getByText('fileUpload.title')).toBeInTheDocument();
   });
+
+  it('shows a cancel button after a file is selected', () => {
+    render(<FileUpload {...baseProps} />);
+    expect(screen.queryByText('fileUpload.cancel')).not.toBeInTheDocument();
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'f.txt', { type: 'text/plain' })] } });
+    expect(screen.getByText('fileUpload.cancel')).toBeInTheDocument();
+  });
+
+  it('clears the form when cancel is clicked', () => {
+    render(<FileUpload {...baseProps} />);
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'report.pdf', { type: 'application/pdf' })] } });
+
+    const titleInput = screen.getByPlaceholderText('fileUpload.titlePlaceholder');
+    fireEvent.change(titleInput, { target: { value: 'My Report' } });
+
+    fireEvent.click(screen.getByText('fileUpload.cancel'));
+
+    expect(screen.queryByText('report.pdf')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('fileUpload.titlePlaceholder')).not.toBeInTheDocument();
+    expect(screen.queryByText('fileUpload.cancel')).not.toBeInTheDocument();
+  });
+
+  it('calls onUploadSuccess when cancel is clicked so the form closes', () => {
+    const onSuccess = vi.fn();
+    render(<FileUpload {...baseProps} onUploadSuccess={onSuccess} />);
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'f.txt', { type: 'text/plain' })] } });
+
+    fireEvent.click(screen.getByText('fileUpload.cancel'));
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
+  it('disables the cancel button while uploading', () => {
+    mockIsUploading = true;
+    render(<FileUpload {...baseProps} />);
+    const input = screen.getByLabelText('fileUpload.chooseFile');
+    fireEvent.change(input, { target: { files: [new File(['x'], 'f.txt', { type: 'text/plain' })] } });
+    expect(screen.getByText('fileUpload.cancel')).toBeDisabled();
+  });
 });

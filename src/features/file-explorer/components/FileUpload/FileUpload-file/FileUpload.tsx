@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { FunctionComponent } from "react";
 import { useTranslation } from "react-i18next";
 import type { SolidContainer } from "@ldo/connected-solid";
@@ -40,6 +40,8 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   const [description, setDescription] = useState("");
   const [pendingFile, setPendingFile] = useState<File | undefined>(prefilledFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = useId();
+  const titleInputId = useId();
 
   const { validation, tboxError } = useFileValidation(pendingFile, title, description, session.webId);
   const { isUploading, upload } = useFileUpload();
@@ -55,6 +57,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
   const fileSizeKb = pendingFile ? `${(pendingFile.size / 1024).toFixed(1)} KB` : "";
   const fileTypeLabel = pendingFile?.type || translate("fileUpload.unknownType");
+  const fileMetaSummary = `${fileTypeLabel} · ${fileSizeKb}`;
 
   const submitButtonLabel = isUploading
     ? translate("fileUpload.uploading")
@@ -62,10 +65,15 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
       ? translate("fileUpload.fillRequired")
       : translate("fileUpload.upload");
 
-  const violationsWithDetail = nonTitleViolations.map((violation) => ({
-    ...violation,
-    detail: violation.description ? `. ${violation.description}` : "",
-  }));
+  const violationItems = nonTitleViolations.map((violation) => {
+    const detail = violation.description ? `. ${violation.description}` : "";
+    return (
+      <p key={violation.path} className="file-upload__validation-item">
+        <strong>{violation.label}</strong>
+        {detail && <span>{detail}</span>}
+      </p>
+    );
+  });
 
   const tboxErrorPrefix = translate("fileUpload.tboxError");
   const chooseFileLabel = translate("fileUpload.chooseFile");
@@ -73,6 +81,7 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
   const titlePlaceholder = translate("fileUpload.titlePlaceholder");
   const descriptionPlaceholder = translate("fileUpload.descriptionPlaceholder");
   const missingRequiredLabel = translate("fileUpload.missingRequired");
+  const cancelLabel = translate("fileUpload.cancel");
   const hasNonTitleViolations = nonTitleViolations.length > 0;
   const submitDisabled = isUploading || !canUpload;
   const validationShapeLabel = validation?.shape?.label ?? "";
@@ -84,6 +93,13 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     setTitle(event.target.value);
   const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) =>
     setDescription(event.target.value);
+  const handleCancel = useCallback(() => {
+    setTitle("");
+    setDescription("");
+    setPendingFile(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    onUploadSuccess?.();
+  }, [onUploadSuccess]);
 
   const handleSubmit = useCallback(async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,11 +145,11 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
         <p className="file-upload__validation-error">{tboxErrorPrefix} {tboxError}</p>
       )}
       <file-upload-row>
-        <label className="file-upload__label" htmlFor="file-upload-input">
+        <label className="file-upload__label" htmlFor={fileInputId}>
           {chooseFileLabel}
         </label>
         <input
-          id="file-upload-input"
+          id={fileInputId}
           ref={fileInputRef}
           type="file"
           onChange={handleFileChange}
@@ -145,15 +161,15 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
 
       {pendingFile && (
         <>
-          <div className="file-upload__divider" />
-          <label className="file-upload__field-label" htmlFor="file-upload-title">
+          <file-upload-divider />
+          <label className="file-upload__field-label" htmlFor={titleInputId}>
             {titleFieldLabel}{" "}
             {titleViolationMessage && (
               <span className="file-upload__field-error">{titleViolationMessage}</span>
             )}
           </label>
           <input
-            id="file-upload-title"
+            id={titleInputId}
             className={titleClassName}
             type="text"
             placeholder={titlePlaceholder}
@@ -168,27 +184,30 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
             onChange={handleDescriptionChange}
             rows={2}
           />
-          <div className="file-upload__divider" />
+          <file-upload-divider />
 
           {hasNonTitleViolations && (
             <file-upload-errors>
               <p className="file-upload__validation-heading">{missingRequiredLabel}</p>
-              {violationsWithDetail.map((violation) => (
-                <p key={violation.path} className="file-upload__validation-item">
-                  <strong>{violation.label}</strong>
-                  {violation.detail && <span>{violation.detail}</span>}
-                </p>
-              ))}
+              {violationItems}
             </file-upload-errors>
           )}
 
           <file-upload-footer>
             <span className="file-upload__meta">
-              {fileTypeLabel} · {fileSizeKb}
+              {fileMetaSummary}
               {hasValidationShape && (
                 <span className="file-upload__type-label"> · {validationShapeLabel}</span>
               )}
             </span>
+            <button
+              className="btn btn--primary btn--primary-muted"
+              type="button"
+              onClick={handleCancel}
+              disabled={isUploading}
+            >
+              {cancelLabel}
+            </button>
             <button className="btn btn--primary" type="submit" disabled={submitDisabled}>
               {submitButtonLabel}
             </button>

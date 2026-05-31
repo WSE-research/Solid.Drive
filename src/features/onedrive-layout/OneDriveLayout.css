@@ -1265,7 +1265,7 @@ selection-actions-kebab {
   border-color: var(--odl-accent);
   color: var(--odl-accent);
 }
-.odl-main .file-upload__divider {
+.odl-main file-upload-divider {
   background: var(--odl-divider);
 }
 .odl-main .file-upload__field-label {
@@ -1361,6 +1361,15 @@ selection-actions-kebab {
 .odl-main .file-upload .btn--primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.odl-main .file-upload .btn--primary.btn--primary-muted {
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text-muted);
+  margin-left: 170px;
+}
+.odl-main .file-upload .btn--primary.btn--primary-muted:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
 }
 
 /* Ghost / secondary action (Cancel). Always the last button in the row. */
