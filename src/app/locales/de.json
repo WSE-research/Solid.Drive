@@ -151,7 +151,8 @@
     "missingRequired": "Fehlende Pflichtfelder:",
     "fieldRequired": "\u2014 {label} ist erforderlich",
     "tboxError": "TBox konnte nicht geladen werden:",
-    "uploadSuccess": "Datei erfolgreich hochgeladen"
+    "uploadSuccess": "Datei erfolgreich hochgeladen",
+    "cancel": "Abbrechen"
   },
   "profileSidebar": {
     "loading": "Wird geladen…",

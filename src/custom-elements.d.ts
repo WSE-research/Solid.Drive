@@ -43,6 +43,7 @@ declare module "react" {
       "new-folder-input": El;
       // FileUpload
       "file-upload-row": El;
+      "file-upload-divider": El;
       "file-upload-errors": El;
       "file-upload-footer": El;
       // SharedWithMeSection

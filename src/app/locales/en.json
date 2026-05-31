@@ -151,7 +151,8 @@
     "missingRequired": "Missing required fields:",
     "fieldRequired": "\u2014 {label} is required",
     "tboxError": "TBox could not be loaded:",
-    "uploadSuccess": "File uploaded successfully"
+    "uploadSuccess": "File uploaded successfully",
+    "cancel": "Cancel"
   },
   "profileSidebar": {
     "loading": "Loading…",
