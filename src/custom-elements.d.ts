@@ -103,7 +103,6 @@ declare module "react" {
       "landing-layout-radio": El;
       "landing-footer-meta": El;
       "landing-footer-dot": El;
-      "landing-video-play": El;
       // AuthCallbackSkeleton
       "auth-callback-skeleton": El;
       "auth-callback-backdrop": El;

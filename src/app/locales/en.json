@@ -26,8 +26,8 @@
       "step3": "Choose a Pod name and finish the setup.",
       "step4": "Return here and authenticate with your Pod provider.",
       "videoLink": "Walkthrough video",
-      "videoCaption": "Walkthrough video coming soon",
-      "videoAria": "Walkthrough video placeholder"
+      "videoCaption": "A quick walkthrough of Solid.drive",
+      "videoAria": "Solid.drive walkthrough video"
     },
     "providers": {
       "heading": "Solid providers",
