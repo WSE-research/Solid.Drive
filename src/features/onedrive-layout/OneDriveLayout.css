@@ -2460,6 +2460,7 @@ person-detail-browse type-folders {
   padding: 0;
   margin: 0;
 }
+person-detail-browse .type-folders__heading { display: none; }
 person-detail-browse type-folder {
   border: 0;
   border-radius: 0;
