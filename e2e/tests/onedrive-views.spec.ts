@@ -45,13 +45,10 @@ test("Requests view renders the empty state and a Refresh control", async ({ bro
   await enterOneDriveLayout(page, "requests");
 
   // Requests is the only non-MyFiles view that still uses the page-header,
-  // so both the page title and the per-view heading render.
+  // so the page title renders.
   await expect(page.locator(".odl-page-title")).toHaveText("Requests", {
     timeout: UI_TIMEOUTS.short,
   });
-  await expect(page.locator(".odl-requests-list__heading")).toHaveText(
-    "Pending requests",
-  );
 
   // No pending requests on a fresh pod — the list shows the empty title
   // and the Refresh button is wired to re-fetch.

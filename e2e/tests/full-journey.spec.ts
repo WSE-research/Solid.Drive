@@ -54,7 +54,7 @@ test("full UI journey: add contact → catalog approve → per-file request → 
 
   await clickRequestAccessForContact(parniSession.page, "Peach");
   await expect(
-    parniSession.page.locator("contact-row").filter({ hasText: "Peach" }).getByText(/Requested|Angefragt/),
+    parniSession.page.locator("contact-row").filter({ hasText: "Peach" }).getByText(/Pending|Ausstehend/),
   ).toBeVisible({ timeout: UI_TIMEOUTS.short });
 
   // Peach approves catalog access 
@@ -77,7 +77,7 @@ test("full UI journey: add contact → catalog approve → per-file request → 
     .getByRole("button", { name: /^(Request|Anfragen)$/ })
     .click();
   await expect(
-    imageFolder.locator("type-folder-file-row").filter({ hasText: "Single Image" }).getByText(/Requested|Angefragt/),
+    imageFolder.locator("type-folder-file-row").filter({ hasText: "Single Image" }).getByText(/Pending|Ausstehend/),
   ).toBeVisible({ timeout: UI_TIMEOUTS.short });
 
   await peachSession.page.goto("/");
@@ -92,8 +92,8 @@ test("full UI journey: add contact → catalog approve → per-file request → 
   await expect(imageFolder.getByText("Bulk Image")).toBeVisible();
 
   // 8–9. Parni requests the rest of the type; Peach approves 
-  await imageFolder.getByRole("button", { name: /Request all Image/i }).click();
-  await expect(imageFolder.getByText(/Requested|Angefragt/).first()).toBeVisible({ timeout: UI_TIMEOUTS.short });
+  await imageFolder.getByRole("button", { name: /Request all|Alle anfragen/i }).click();
+  await expect(imageFolder.getByText(/Pending|Ausstehend/).first()).toBeVisible({ timeout: UI_TIMEOUTS.short });
 
   await peachSession.page.goto("/");
   await approveTopRequest(peachSession.page);
@@ -104,7 +104,7 @@ test("full UI journey: add contact → catalog approve → per-file request → 
   parniSession = await freshLogin(browser, parni);
   await expect(parniSession.page.locator("file-card").filter({ hasText: "Single Image" })).toBeVisible({ timeout: UI_TIMEOUTS.medium });
   await expect(parniSession.page.locator("file-card").filter({ hasText: "Bulk Image" })).toBeVisible({ timeout: UI_TIMEOUTS.medium });
-  await expect(parniSession.page.getByRole("button", { name: /Request all Image/i })).toHaveCount(0);
+  await expect(parniSession.page.getByRole("button", { name: /Request all|Alle anfragen/i })).toHaveCount(0);
 
   await parniSession.close();
   await peachSession.close();
