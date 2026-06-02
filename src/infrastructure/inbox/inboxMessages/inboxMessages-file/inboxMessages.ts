@@ -25,6 +25,7 @@ const CATALOG_ACCESS_REQUEST_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}Cat
 const FILE_ACCESS_REQUEST_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}FileAccessRequest`);
 const TYPE_ACCESS_REQUEST_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}TypeAccessRequest`);
 const ACCESS_REJECTION_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}AccessRejected`);
+const ACCESS_APPROVAL_TYPE = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}AccessApproved`);
 const ACL_AGENT = namedNode(`${RDF_NAMESPACES.ACL}agent`);
 const ACL_ACCESS_TO = namedNode(`${RDF_NAMESPACES.ACL}accessTo`);
 const SOLID_ACCESS_FOR_CLASS = namedNode(`${RDF_NAMESPACES.SOLID_ACCESS}forClass`);
@@ -68,6 +69,20 @@ export type AccessRequest = {
 export type AccessRejection = {
   messageUri: string;
   /** Original WebID or resource URI tied to the rejected request. */
+  accessTo: string;
+};
+
+/**
+ * Parsed access approval from an inbox message. Mirrors
+ * {@link AccessRejection}: the owner posts one to the requester's inbox
+ * when they approve, so the requester learns the outcome of *this*
+ * request rather than inferring it from catalog reachability.
+ *
+ * @public
+ */
+export type AccessApproval = {
+  messageUri: string;
+  /** WebID or resource URI the request was approved for. */
   accessTo: string;
 };
 
@@ -144,6 +159,22 @@ export function buildAccessRequestMessage(
 export function buildAccessRejectionMessage(accessTo: string): string {
   return serializeTurtle([
     quad(namedNode(""), RDF_TYPE, ACCESS_REJECTION_TYPE),
+    quad(namedNode(""), ACL_ACCESS_TO, namedNode(accessTo)),
+    quad(namedNode(""), DCTERMS_CREATED, literal(new Date().toISOString(), XSD_DATETIME)),
+  ], WRITER_PREFIXES);
+}
+
+/**
+ * Builds a Turtle message for an approved access request.
+ *
+ * @param accessTo - The resource or WebID being approved
+ * @returns Serialized Turtle message
+ *
+ * @public
+ */
+export function buildAccessApprovalMessage(accessTo: string): string {
+  return serializeTurtle([
+    quad(namedNode(""), RDF_TYPE, ACCESS_APPROVAL_TYPE),
     quad(namedNode(""), ACL_ACCESS_TO, namedNode(accessTo)),
     quad(namedNode(""), DCTERMS_CREATED, literal(new Date().toISOString(), XSD_DATETIME)),
   ], WRITER_PREFIXES);
@@ -233,6 +264,28 @@ export function parseAccessRejectionMessage(messageUri: string, turtle: string):
     (quad) => quad.predicate.equals(RDF_TYPE) && quad.object.equals(ACCESS_REJECTION_TYPE)
   );
   if (!isRejection) return null;
+
+  const accessToQuad = quads.find((quad) => quad.predicate.equals(ACL_ACCESS_TO));
+  if (!accessToQuad) return null;
+
+  return { messageUri, accessTo: accessToQuad.object.value };
+}
+
+/**
+ * Parses a Turtle inbox message as an access approval.
+ *
+ * @param messageUri - URI of the inbox message
+ * @param turtle - Raw Turtle content of the message
+ * @returns Parsed access approval, or null if not a valid approval
+ *
+ * @public
+ */
+export function parseAccessApprovalMessage(messageUri: string, turtle: string): AccessApproval | null {
+  const quads = new Parser({ baseIRI: messageUri }).parse(turtle);
+  const isApproval = quads.some(
+    (quad) => quad.predicate.equals(RDF_TYPE) && quad.object.equals(ACCESS_APPROVAL_TYPE)
+  );
+  if (!isApproval) return null;
 
   const accessToQuad = quads.find((quad) => quad.predicate.equals(ACL_ACCESS_TO));
   if (!accessToQuad) return null;

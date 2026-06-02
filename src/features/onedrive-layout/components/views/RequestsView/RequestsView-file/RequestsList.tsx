@@ -67,9 +67,6 @@ export const RequestsList: FunctionComponent = () => {
   return (
     <requests-list>
       <requests-list-header>
-        <h2 className="odl-requests-list__heading">
-          {translate('oneDriveLayout.requestsView.heading', 'Pending requests')}
-        </h2>
         <button
           type="button"
           className="odl-requests-list__refresh"

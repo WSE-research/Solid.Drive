@@ -24,6 +24,12 @@ vi.mock('@/features/onedrive-layout/icons', () => ({
   ChevronLeftIcon: () => <span data-testid="chevron-left" />,
 }));
 
+vi.mock('@/features/file-explorer/components/ContactCatalogBrowser', () => ({
+  ContactCatalogBrowser: (props: { contactWebId: string; viewerWebId: string }) => (
+    <div data-testid="catalog-browser" data-contact={props.contactWebId} data-viewer={props.viewerWebId} />
+  ),
+}));
+
 vi.mock('@/features/onedrive-layout/components/filters/TypeFilterChips', () => ({
   TypeFilterChips: () => <div data-testid="chips-inline" />,
   TypeFilterChipsDropdown: () => <div data-testid="chips-dropdown" />,
@@ -137,5 +143,31 @@ describe('PersonDetailView', () => {
   it('forwards the onObserve callback to the table', () => {
     renderDetail();
     expect(typeof lastTableProps?.onObserve).toBe('function');
+  });
+
+  describe('catalog drill-down', () => {
+    it('shows a Catalog button next to the name, and the browser is not inline', () => {
+      renderDetail();
+      expect(screen.getByRole('button', { name: 'Catalog' })).toBeInTheDocument();
+      expect(screen.queryByTestId('catalog-browser')).not.toBeInTheDocument();
+    });
+
+    it('opens the MyFiles-style catalog screen when Catalog is clicked', () => {
+      renderDetail();
+      fireEvent.click(screen.getByRole('button', { name: 'Catalog' }));
+      const browser = screen.getByTestId('catalog-browser');
+      expect(browser.getAttribute('data-contact')).toBe('https://alice.example/profile/card#me');
+      expect(browser.getAttribute('data-viewer')).toBe('https://owner.example/profile/card#me');
+      // The catalog screen replaces the shared files table.
+      expect(screen.queryByTestId('shared-files-table')).not.toBeInTheDocument();
+    });
+
+    it('returns to the contact detail from the catalog screen', () => {
+      renderDetail();
+      fireEvent.click(screen.getByRole('button', { name: 'Catalog' }));
+      fireEvent.click(screen.getByRole('button', { name: /alice doe/i }));
+      expect(screen.getByTestId('shared-files-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('catalog-browser')).not.toBeInTheDocument();
+    });
   });
 });

@@ -7,7 +7,8 @@ describe("infrastructure/inbox/index exports", () => {
     "postCatalogAccessRequest",
     "postFileAccessRequest",
     "postRejectionNotification",
-    "listRejectionNotifications",
+    "postApprovalNotification",
+    "listOutcomeNotifications",
     "listAccessRequests",
     "deleteAccessRequest",
   ] as const;
@@ -16,7 +17,7 @@ describe("infrastructure/inbox/index exports", () => {
     expect(typeof (InboxModule as Record<string, unknown>)[name]).toBe("function");
   });
 
-  it("exports exactly 7 runtime values (types are not included)", () => {
-    expect(Object.keys(InboxModule)).toHaveLength(7);
+  it("exports exactly 8 runtime values (types are not included)", () => {
+    expect(Object.keys(InboxModule)).toHaveLength(8);
   });
 });

@@ -67,18 +67,6 @@ function pickEntryVisual(entry: ChipEntry): { Icon: FilterChipDef['Icon'] } {
   return { Icon: chipForClassUri(entry.conformsTo || DEFAULT_DOCUMENT_CLASS).Icon };
 }
 
-/**
- * Recognises an entry as a PDF by either its media type or its URI
- * suffix, so the chip toolbar can advertise the synthetic PDF chip
- * even when the catalog only set one of the two.
- */
-function isPdfEntry(entry: { mediaType?: string; uri: string }): boolean {
-  return (
-    entry.mediaType?.toLowerCase() === 'application/pdf' ||
-    entry.uri.toLowerCase().endsWith('.pdf')
-  );
-}
-
 const formatDate = (modified: string | undefined): string =>
   formatRowDate(modified, SHORT_DATE_FORMAT_OPTIONS, '');
 
@@ -152,7 +140,10 @@ const ContactSharedRows: FunctionComponent<{
     .filter((value) => value.length > 0)
     .sort()
     .join('|');
-  const hasPdf = entries.some(isPdfEntry);
+  const pdfChip = chipForPdf();
+  const hasPdf = entries.some((entry) =>
+    pdfChip.matches({ mediaType: entry.mediaType, name: entry.uri }),
+  );
   const reportKey = `${direction}::${contactWebId}`;
 
   useEffect(() => {

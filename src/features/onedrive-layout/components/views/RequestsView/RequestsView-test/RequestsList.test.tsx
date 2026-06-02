@@ -82,9 +82,8 @@ describe('RequestsList', () => {
     lastCardProps = undefined;
   });
 
-  it('renders the heading and a Refresh button', () => {
+  it('renders a Refresh button', () => {
     renderList();
-    expect(screen.getByText('Pending requests')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 

@@ -1,0 +1,10 @@
+= RequestStatusPill
+
+Shows where an outgoing access request stands as a coloured pill: Approved,
+Denied, or Pending. For settled outcomes it can also show a "Request Again"
+button. Used by `ContactRow` and `TypeFolder`.
+
+== Navigation
+
+.Parent
+link:../[shared/components]

@@ -323,6 +323,22 @@ export const SEEN_REQUESTS_CHANGE_EVENT = "solid-drive:seen-requests-changed";
 export const SEEN_REQUESTS_MAX_STORED = 500;
 
 /**
+ * `localStorage` key under which the set of access-request targets still
+ * awaiting a decision (the "pending" set) is persisted.
+ *
+ * @public
+ */
+export const PENDING_REQUESTS_STORAGE_KEY = "solid-drive.pendingRequestIds";
+
+/**
+ * Custom DOM event name dispatched when the pending-requests set changes,
+ * used to keep multiple in-tab hook instances in sync.
+ *
+ * @public
+ */
+export const PENDING_REQUESTS_CHANGE_EVENT = "solid-drive:pending-requests-changed";
+
+/**
  * Time in milliseconds the toast firer waits for a requester's Solid
  * profile to resolve before falling back to a WebID-derived name.
  *

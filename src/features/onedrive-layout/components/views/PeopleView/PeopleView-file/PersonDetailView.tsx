@@ -10,6 +10,7 @@
  * @packageDocumentation
  */
 
+import { useState } from 'react';
 import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/shared/components/Avatar';
@@ -21,6 +22,7 @@ import {
 } from '@/features/onedrive-layout/components/filters/TypeFilterChips';
 import { PersonNameFilter } from '@/features/onedrive-layout/components/filters/PersonNameFilter';
 import { ChevronLeftIcon } from '@/features/onedrive-layout/icons';
+import { ContactCatalogBrowser } from '@/features/file-explorer/components/ContactCatalogBrowser';
 import { SharedFilesTable } from '@/features/onedrive-layout/components/views/SharedView/SharedView-file/SharedFilesTable';
 import { useObservedSharedTypes } from '@/features/onedrive-layout/components/views/SharedView/SharedView-file/useObservedSharedTypes';
 
@@ -52,6 +54,30 @@ export const PersonDetailView: FunctionComponent<PersonDetailViewProps> = ({
   const { displayName, avatarUrl, initial } = useContactProfile(contactWebId);
   const filters = useSharedFilters();
   const { chips, report } = useObservedSharedTypes();
+  const [viewingCatalog, setViewingCatalog] = useState(false);
+
+  if (viewingCatalog) {
+    return (
+      <onedrive-view data-view-id="people-catalog">
+        <h1 className="odl-view-title">
+          {translate('oneDriveLayout.peopleView.catalog', 'Catalog')}
+        </h1>
+
+        <button
+          type="button"
+          className="odl-people-back"
+          onClick={() => setViewingCatalog(false)}
+        >
+          <ChevronLeftIcon aria-hidden focusable={false} />
+          <span>{displayName}</span>
+        </button>
+
+        <person-detail-browse>
+          <ContactCatalogBrowser contactWebId={contactWebId} viewerWebId={ownerWebId} />
+        </person-detail-browse>
+      </onedrive-view>
+    );
+  }
 
   return (
     <onedrive-view data-view-id="people-detail">
@@ -82,6 +108,13 @@ export const PersonDetailView: FunctionComponent<PersonDetailViewProps> = ({
             initial={initial}
           />
           <h2 className="odl-person-detail__name">{displayName}</h2>
+          <button
+            type="button"
+            className="odl-person-detail__catalog"
+            onClick={() => setViewingCatalog(true)}
+          >
+            {translate('oneDriveLayout.peopleView.catalog', 'Catalog')}
+          </button>
         </person-detail-identity>
 
         <shared-toolbar-chips className="odl-shared-toolbar__chips--inline">

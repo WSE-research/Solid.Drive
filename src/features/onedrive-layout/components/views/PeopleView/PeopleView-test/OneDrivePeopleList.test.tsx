@@ -12,9 +12,24 @@ vi.mock('@ldo/solid-react', () => ({
 
 const mockDiscoverInboxUri = vi.fn();
 const mockPostCatalogAccessRequest = vi.fn();
+const mockDeleteAccessRequest = vi.fn();
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
   discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
   postCatalogAccessRequest: (...args: unknown[]) => mockPostCatalogAccessRequest(...args),
+  deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
+}));
+
+import type { RequestStatus } from '@/shared/hooks/usePendingRequests';
+let mockStatus: RequestStatus = 'none';
+vi.mock('@/shared/hooks/usePendingRequests', () => ({
+  usePendingRequests: () => ({ isPending: () => false, markPending: vi.fn(), clearPending: vi.fn() }),
+  useRequestStatus: () => mockStatus,
+}));
+
+let mockRejections = new Map();
+let mockApprovals = new Map();
+vi.mock('@/shared/hooks/useContactRejections', () => ({
+  useContactRejections: () => ({ fileRejections: mockRejections, fileApprovals: mockApprovals, handleClearRejection: vi.fn() }),
 }));
 
 vi.mock('@/shared/components/Avatar', () => ({
@@ -90,6 +105,10 @@ describe('OneDrivePeopleList', () => {
     mockSolidFetch.mockReset();
     mockDiscoverInboxUri.mockReset();
     mockPostCatalogAccessRequest.mockReset();
+    mockDeleteAccessRequest.mockReset();
+    mockStatus = 'none';
+    mockRejections = new Map();
+    mockApprovals = new Map();
   });
 
   it('renders the inline "People" title alongside the filter + add toggle', () => {
@@ -232,17 +251,29 @@ describe('OneDrivePeopleList', () => {
       );
     });
 
-    it('switches to the "Requested" state on success and disables the button', async () => {
+    it('shows the "Pending" pill while awaiting a decision', () => {
       mockContacts = [ALICE];
-      mockDiscoverInboxUri.mockResolvedValue('https://alice.example/inbox/');
-      mockPostCatalogAccessRequest.mockResolvedValue(undefined);
+      mockStatus = 'pending';
       renderList();
-      await act(async () => {
-        fireEvent.click(screen.getByLabelText('Request Access'));
-      });
-      const requested = screen.getByLabelText('Requested');
-      expect(requested).toBeInTheDocument();
-      expect(requested).toBeDisabled();
+      expect(screen.getByText('Pending…')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Request Access')).not.toBeInTheDocument();
+    });
+
+    it('shows the "Approved" pill with a re-request key beside it once granted', () => {
+      mockContacts = [ALICE];
+      mockStatus = 'approved';
+      renderList();
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.getByLabelText('Request Again')).toBeInTheDocument();
+    });
+
+    it('shows the "Denied" pill with a re-request action', () => {
+      mockContacts = [ALICE];
+      mockStatus = 'denied';
+      mockRejections = new Map([[ALICE, { accessTo: ALICE, messageUri: 'urn:rej:1' }]]);
+      renderList();
+      expect(screen.getByText('Denied')).toBeInTheDocument();
+      expect(screen.getByLabelText('Request Again')).toBeInTheDocument();
     });
 
     it('switches to the "Retry" state when the request fails', async () => {

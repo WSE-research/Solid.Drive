@@ -4,18 +4,20 @@
  */
 
 import {
+  buildAccessApprovalMessage,
   buildAccessRejectionMessage,
   buildAccessRequestMessage,
   discoverInboxUriFromProfile,
+  parseAccessApprovalMessage,
   parseAccessRejectionMessage,
   parseAccessRequestMessage,
   parseContainedResourceUris,
 } from "../../inboxMessages";
-import type { AccessRejection, AccessRequest } from "../../inboxMessages";
+import type { AccessApproval, AccessRejection, AccessRequest } from "../../inboxMessages";
 import type { FetchFn } from "@/types";
 import { CONTENT_TYPES } from "@/config";
 
-export type { AccessRejection, AccessRequest, AccessRequestType } from "../../inboxMessages";
+export type { AccessApproval, AccessRejection, AccessRequest, AccessRequestType } from "../../inboxMessages";
 
 /**
  * Fetches a profile and returns its ldp:inbox URI.
@@ -99,15 +101,42 @@ export async function postRejectionNotification(
 }
 
 /**
- * Lists rejection messages in an inbox.
+ * Sends an approval notice to a requester's inbox.
  *
  * @public
  */
-export async function listRejectionNotifications(inboxUri: string, fetch: FetchFn): Promise<AccessRejection[]> {
+export async function postApprovalNotification(
+  requesterInboxUri: string,
+  accessTo: string,
+  fetch: FetchFn
+): Promise<void> {
+  await postRequest(requesterInboxUri, buildAccessApprovalMessage(accessTo), fetch);
+}
+
+/**
+ * The approval and rejection notices found in a requester's inbox.
+ *
+ * @public
+ */
+export interface InboxOutcomes {
+  approvals: AccessApproval[];
+  rejections: AccessRejection[];
+}
+
+/**
+ * Lists the request outcomes (approvals and rejections) in an inbox in a
+ * single pass: the index is read once and each message fetched once, then
+ * parsed as either kind. This keeps the requester's polling to one inbox
+ * sweep instead of one per outcome type.
+ *
+ * @public
+ */
+export async function listOutcomeNotifications(inboxUri: string, fetch: FetchFn): Promise<InboxOutcomes> {
   const indexResponse = await fetch(inboxUri, { headers: { Accept: CONTENT_TYPES.TURTLE } });
-  if (!indexResponse.ok) return [];
+  if (!indexResponse.ok) return { approvals: [], rejections: [] };
   const childUris = parseContainedResourceUris(inboxUri, await indexResponse.text());
 
+  const approvals: AccessApproval[] = [];
   const rejections: AccessRejection[] = [];
 
   await Promise.all(
@@ -115,7 +144,13 @@ export async function listRejectionNotifications(inboxUri: string, fetch: FetchF
       try {
         const response = await fetch(messageUri, { headers: { Accept: CONTENT_TYPES.TURTLE } });
         if (!response.ok) return;
-        const rejection = parseAccessRejectionMessage(messageUri, await response.text());
+        const text = await response.text();
+        const approval = parseAccessApprovalMessage(messageUri, text);
+        if (approval) {
+          approvals.push(approval);
+          return;
+        }
+        const rejection = parseAccessRejectionMessage(messageUri, text);
         if (rejection) rejections.push(rejection);
       } catch {
         // ignore unreadable messages
@@ -123,7 +158,7 @@ export async function listRejectionNotifications(inboxUri: string, fetch: FetchF
     })
   );
 
-  return rejections;
+  return { approvals, rejections };
 }
 
 /**

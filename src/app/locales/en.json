@@ -152,6 +152,7 @@
     "fieldRequired": "\u2014 {label} is required",
     "tboxError": "TBox could not be loaded:",
     "uploadSuccess": "File uploaded successfully",
+    "uploadError": "Upload failed: {{message}}",
     "cancel": "Cancel"
   },
   "profileSidebar": {
@@ -171,7 +172,8 @@
     "profileSaved": "Profile saved successfully",
     "invalidWebId": "WebID must be a valid http(s):// URL",
     "requestAccess": "Request Access",
-    "requestSent": "Requested",
+    "requestPending": "Pending…",
+    "requestApproved": "Approved",
     "requestError": "Retry",
     "requestDenied": "Denied",
     "requestAgain": "Request Again"
@@ -205,9 +207,12 @@
     "from": "From {{name}}",
     "noFilesYet": "Access granted — no files shared yet.",
     "browseHeading": "Also available",
+    "item": "item",
+    "items": "items",
     "requestFile": "Request",
-    "requestAll": "Request all {{type}}",
-    "requestSent": "Requested",
+    "requestAll": "Request all",
+    "requestPending": "Pending…",
+    "requestApproved": "Approved",
     "requestError": "Retry",
     "requestDenied": "Denied",
     "requestAgain": "Request Again"
@@ -387,7 +392,8 @@
       "heading": "People",
       "selectPrompt": "Select a contact to see what they have shared with you.",
       "filesByHeading": "Files shared by {{name}}",
-      "back": "Back to People"
+      "back": "Back to People",
+      "catalog": "Catalog"
     }
   }
 }

@@ -201,11 +201,13 @@ declare module "react" {
       "people-view-list": El;
       "people-view-detail": El;
       "person-detail-identity": El;
+      "person-detail-browse": El;
       "people-list": El;
       "people-list-header": El;
       "people-list-body": El;
       "people-list-add": El;
       "person-row": El;
+      "people-row-request": El;
       // OneDriveLayout — RequestsView (cards + states)
       "requests-list": El;
       "requests-list-header": El;
