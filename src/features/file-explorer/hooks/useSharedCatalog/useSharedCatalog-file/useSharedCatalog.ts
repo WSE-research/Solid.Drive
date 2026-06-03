@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSolidAuth, useResource, useSubject } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { parseCatalog } from "@/infrastructure/solid/catalog";
+import { isVisibleResourceUri } from "@/features/file-explorer/services/fileFilter";
 import { getAppContainerUri, getCandidateSharedCatalogUris, hasAccess } from "@/infrastructure/solid/sharedCatalog";
 import { useSharedCatalogVersion } from "@/shared/hooks/useSharedCatalogVersion";
 import { DEFAULT_FILE_TYPE_URI, DEFAULT_CATALOG_FILENAME } from "@/config";
@@ -56,6 +57,10 @@ function cacheKey(
   return `${catalogUris.join("|")}::${mainCatalogUri ?? ""}#v${version}`;
 }
 
+function parseVisibleCatalog(turtleText: string, baseUri: string): CatalogEntry[] {
+  return parseCatalog(turtleText, baseUri).filter((entry) => isVisibleResourceUri(entry.uri));
+}
+
 function bucketByClass(entries: CatalogEntry[]): Map<string, CatalogEntry[]> {
   const groups = new Map<string, CatalogEntry[]>();
   for (const entry of entries) {
@@ -79,7 +84,7 @@ async function loadSharedCatalog(
       const response = await solidFetch(catalogUri);
       if (!response.ok) continue;
       const text = await response.text();
-      const parsed = parseCatalog(text, catalogUri);
+      const parsed = parseVisibleCatalog(text, catalogUri);
       perContactAccessible = true;
       if (parsed.length > 0) {
         foundShared = parsed;
@@ -112,7 +117,7 @@ async function loadSharedCatalog(
         const mainResponse = await solidFetch(mainCatalogUri);
         if (mainResponse.ok) {
           const mainText = await mainResponse.text();
-          const allMainEntries = parseCatalog(mainText, mainCatalogUri);
+          const allMainEntries = parseVisibleCatalog(mainText, mainCatalogUri);
           const sharedUris = new Set(foundShared.map((entry) => entry.uri));
           const notYetShared = allMainEntries.filter((entry) => !sharedUris.has(entry.uri));
 
@@ -147,7 +152,7 @@ async function loadSharedCatalog(
       const response = await solidFetch(mainCatalogUri);
       if (response.ok) {
         const text = await response.text();
-        const parsed = parseCatalog(text, mainCatalogUri);
+        const parsed = parseVisibleCatalog(text, mainCatalogUri);
         if (parsed.length > 0) {
           const accessChecks = await Promise.all(
             parsed.map(async (entry) => ({

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SolidLeaf } from '@ldo/connected-solid';
-import { isVisibleLeaf } from '../fileFilter-file/fileFilter';
+import { isVisibleLeaf, isVisibleResourceUri } from '../fileFilter-file/fileFilter';
 
 // Mock dependencies
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -75,5 +75,23 @@ describe('isVisibleLeaf', () => {
     } finally {
       Array.prototype.pop = original;
     }
+  });
+});
+
+describe('isVisibleResourceUri', () => {
+  it('returns true for a normal catalog entry', () => {
+    expect(isVisibleResourceUri('https://pod.example/files/photo/index.ttl')).toBe(true);
+  });
+
+  it('returns false for a shared-catalog helper file whose name is a URI-encoded WebID', () => {
+    expect(
+      isVisibleResourceUri(
+        'https://pod.example/my-solid-app/.shared-https%3A%2F%2Fuser.example%2Fprofile%2Fcard.ttl',
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false for a system file', () => {
+    expect(isVisibleResourceUri('https://pod.example/my-solid-app/catalog.ttl')).toBe(false);
   });
 });
