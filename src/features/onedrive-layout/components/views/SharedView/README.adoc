@@ -14,9 +14,12 @@ Switching between With you and By you resets the chip selection and the observed
 == Internal pieces
 
 * `SharedToolbar` renders the tabs, the chip dropdown, and the person filter.
+* `SharedSelectionToolbar` replaces the toolbar while a row is selected, exposing Open and Download plus a clearable selection count.
 * `SharedBody` wraps `SharedFilesTable` per tab.
 * `SharedFilesTable` renders the flat With you and By you rows.
 * `useObservedSharedTypes` collects schema.org class observations from child tables and derives the chip set.
+* `useSharedSelection` tracks the active row, toggles off when reselected, and clears on Escape.
+* link:../../FilePreviewDialog/[FilePreviewDialog] is the in-app preview the Open action mounts; it reuses the existing `FileMediaPreview` from the file explorer.
 
 == Navigation
 

@@ -19,6 +19,7 @@ When you find yourself writing a literal string or number that has meaning beyon
 | MIME types | `MIME_PREFIXES`, `CONTENT_TYPES`, `SPREADSHEET_MIME_TYPES`, `DOCUMENT_MIME_TYPES`
 | UI | `MAX_DISPLAY_NAME_LENGTH`, `DATE_FORMAT_OPTIONS`, `SHORT_DATE_FORMAT_OPTIONS`, `STORAGE_RETRY_DELAY_MS`
 | Validation | `DEFAULT_TBOX_PATH`
+| Routing | `ROUTER_BASENAME`
 |===
 
 == Navigation

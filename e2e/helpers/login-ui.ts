@@ -5,11 +5,9 @@ const cssUrlPattern = new RegExp(new URL(URLS.css).host);
 const appUrlPattern = new RegExp(new URL(URLS.app).host);
 
 /**
- * Drives the full Solid OIDC login flow against a CSS instance via the
- * Classic shell's auth form. Assumes the app is served at `URLS.app` and
- * CSS at `URLS.css`.
+ * Drives the Solid OIDC login flow against CSS through the LandingPage.
  *
- * @param page - Playwright page; starts at any URL, returns landed on the app
+ * @param page - Playwright page; starts anywhere, ends on the app
  * @param email - CSS account email
  * @param password - CSS account password
  */
@@ -19,19 +17,20 @@ export async function loginAsViaUI(
   password: string,
 ): Promise<void> {
   await page.goto("/");
-  await page.locator("auth-provider-row select").selectOption("custom");
-  await page.locator("auth-provider-row input").fill(URLS.css);
+  await page.locator("main.landing").waitFor({ timeout: UI_TIMEOUTS.medium });
+  await page.getByPlaceholder(/your-provider|ihr-pod-anbieter/i).fill(URLS.css);
 
   await Promise.all([
     page.waitForURL(cssUrlPattern, { timeout: UI_TIMEOUTS.medium }),
-    page.getByRole("button", { name: /log ?in|anmelden/i }).first().click(),
+    page
+      .getByRole("button", { name: /sign in with the selected|mit dem ausgewählten/i })
+      .click(),
   ]);
 
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
   await page.locator('button[name="submit"]').click();
 
-  // Optional consent step
   await page
     .getByRole("button", { name: /authorize|continue|allow|agree/i })
     .first()

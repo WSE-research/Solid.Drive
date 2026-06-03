@@ -182,8 +182,59 @@ describe('useSharedCatalog', () => {
       // A (from shared) + B (recovered from main)
       expect(result.current.sharedEntries.length).toBe(2);
     });
+    expect(result.current.grantedEntries.map((entry) => entry.title)).toEqual(['A']);
     // C goes to type groups
     expect(result.current.typeGroups.size).toBe(1);
+  });
+
+  it('grantedEntries includes every per-viewer catalog entry regardless of hasAccess so revoked-but-still-listed shares stay visible in By-you', async () => {
+    const perViewerEntries = [
+      { uri: 'https://contact.example/files/granted/index.ttl', title: 'Granted', conformsTo: '' },
+      { uri: 'https://contact.example/files/no-head/index.ttl', title: 'NoHead', conformsTo: '' },
+    ];
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('per-viewer') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockReturnValue(perViewerEntries);
+    mockHasAccess.mockImplementation((uri: string) => Promise.resolve(uri.includes('/granted/')));
+
+    const { result } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(result.current.grantedEntries.length).toBe(2);
+    });
+    expect(result.current.grantedEntries.map((entry) => entry.title)).toEqual(['Granted', 'NoHead']);
+  });
+
+  it('grantedEntries is empty in the main-catalog fallback because nothing was explicitly granted', async () => {
+    const mainEntries = [{ uri: 'https://contact.example/files/doc/index.ttl', title: 'Doc', conformsTo: '' }];
+
+    mockHasAccess.mockResolvedValue(true);
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('.shared-viewer')) {
+        return Promise.resolve({ ok: false });
+      }
+      if (url === 'https://contact.example/catalog.ttl') {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('main') });
+      }
+      return Promise.resolve({ ok: false });
+    });
+    mockParseCatalog.mockReturnValue(mainEntries);
+
+    const { result } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(result.current.sharedEntries.length).toBe(1);
+    });
+    expect(result.current.grantedEntries).toEqual([]);
   });
 
   it('falls back to main catalog when per-contact catalogs fail', async () => {

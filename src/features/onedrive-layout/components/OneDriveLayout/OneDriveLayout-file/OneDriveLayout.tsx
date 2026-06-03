@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useResource, useSolidAuth, useSubject } from '@ldo/solid-react';
 import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
 import { resolveCatalogUri } from '@/infrastructure/solid/catalog';
+import { getAppContainerUri } from '@/infrastructure/solid/sharedCatalog';
 import { useDriveInitialization } from '@/features/file-explorer/hooks/useDriveInitialization';
 import { useContacts } from '@/features/file-explorer/hooks/useContacts';
 import { useCatalog } from '@/features/file-explorer/hooks/useCatalog';
@@ -295,12 +296,13 @@ export const OneDriveLayout: FunctionComponent = () => {
           onClose={handleDetailsClose}
         />
       )}
-      {selected && catalogUri && sharedEntry && (
+      {selected && catalogUri && storageRootUri && sharedEntry && (
         <ShareDialog
           open={shareOpen}
           onOpenChange={setShareOpen}
           containerUri={selected.uri}
           catalogUri={catalogUri}
+          appContainerUri={getAppContainerUri(storageRootUri)}
           contacts={contacts}
           sharedEntry={sharedEntry}
         />

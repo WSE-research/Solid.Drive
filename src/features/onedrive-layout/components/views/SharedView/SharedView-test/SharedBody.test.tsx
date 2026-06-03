@@ -43,6 +43,7 @@ describe('SharedBody', () => {
         filters={filtersStub()}
         chips={[]}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByTestId('files-table').getAttribute('data-direction')).toBe('with-you');
@@ -57,14 +58,16 @@ describe('SharedBody', () => {
         filters={filtersStub()}
         chips={[]}
         onObserve={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
     expect(screen.getByTestId('files-table').getAttribute('data-direction')).toBe('by-you');
   });
 
-  it('forwards the contacts list, viewerWebId, filters, chips and onObserve to the table', () => {
+  it('forwards contacts, viewerWebId, filters, chips, onObserve and selection wiring to the table', () => {
     const filters = filtersStub();
     const onObserve = vi.fn();
+    const onSelect = vi.fn();
     render(
       <SharedBody
         tab="with-you"
@@ -73,11 +76,17 @@ describe('SharedBody', () => {
         filters={filters}
         chips={[]}
         onObserve={onObserve}
+        selectedEntryUri="https://alice/me/files/notes/index.ttl"
+        onSelect={onSelect}
       />,
     );
     expect(lastTableProps?.contacts).toEqual(['https://alice/me', 'https://bob/me']);
     expect(lastTableProps?.viewerWebId).toBe('https://owner/me');
     expect(lastTableProps?.filters).toBe(filters);
     expect(lastTableProps?.onObserve).toBe(onObserve);
+    expect(lastTableProps?.selectedEntryUri).toBe(
+      'https://alice/me/files/notes/index.ttl',
+    );
+    expect(lastTableProps?.onSelect).toBe(onSelect);
   });
 });

@@ -1265,7 +1265,7 @@ selection-actions-kebab {
   border-color: var(--odl-accent);
   color: var(--odl-accent);
 }
-.odl-main .file-upload__divider {
+.odl-main file-upload-divider {
   background: var(--odl-divider);
 }
 .odl-main .file-upload__field-label {
@@ -1361,6 +1361,15 @@ selection-actions-kebab {
 .odl-main .file-upload .btn--primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.odl-main .file-upload .btn--primary.btn--primary-muted {
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text-muted);
+  margin-left: 170px;
+}
+.odl-main .file-upload .btn--primary.btn--primary-muted:hover {
+  background: var(--odl-bg-hover);
+  color: var(--odl-text);
 }
 
 /* Ghost / secondary action (Cancel). Always the last button in the row. */
@@ -1918,6 +1927,74 @@ has-access-row {
   cursor: not-allowed;
 }
 
+/* ─── File preview dialog ─────────────────────────────────────────────── */
+
+.odl-preview-dialog {
+  width: min(960px, calc(100vw - var(--odl-space-6)));
+  max-height: calc(100vh - var(--odl-space-6));
+  display: flex;
+  flex-direction: column;
+  padding: var(--odl-space-4);
+}
+
+.odl-preview-dialog__title {
+  font-size: var(--odl-font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  margin-right: var(--odl-space-3);
+}
+
+file-preview-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+  flex-shrink: 0;
+}
+
+file-preview-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--odl-bg-panel);
+  border-radius: var(--odl-radius-panel);
+  overflow: hidden;
+}
+
+file-preview-body[data-state] {
+  flex-direction: column;
+  gap: var(--odl-space-3);
+  color: var(--odl-text-muted);
+  padding: var(--odl-space-6);
+}
+
+file-preview-body .file-card__preview {
+  max-height: calc(100vh - 200px);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  margin: 0;
+  border-radius: var(--odl-radius-card);
+}
+
+file-preview-body .file-card__preview--doc {
+  width: 100%;
+  height: calc(100vh - 160px);
+  border: 0;
+  margin: 0;
+}
+
+file-preview-body .file-card__preview--audio {
+  width: 100%;
+  max-width: 480px;
+  margin: 0;
+}
+
 /* ─── SharedView ─────────────────────────────────────────────────────── */
 onedrive-layout > shared-toolbar { grid-area: toolbar; }
 onedrive-layout > shared-body { grid-area: main; }
@@ -2165,10 +2242,21 @@ shared-files-body {
 shared-files-row {
   height: 56px;
   border-bottom: 1px solid var(--odl-border);
+  cursor: pointer;
   transition: background var(--odl-transition-fast);
 }
 shared-files-row:hover {
   background: var(--odl-bg-hover);
+}
+shared-files-row:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: -2px;
+}
+shared-files-row[aria-selected="true"] {
+  background: var(--odl-accent-soft);
+}
+shared-files-row[aria-selected="true"] .odl-shared-row__title {
+  color: var(--odl-accent);
 }
 
 shared-files-cell {

@@ -56,6 +56,7 @@ vi.mock('@/shared/utils', async (importOriginal) => {
 const baseProps = {
   containerUri: 'https://pod.example/my-solid-app/files/doc/',
   catalogUri: 'https://pod.example/catalog.ttl',
+  appContainerUri: 'https://pod.example/my-solid-app/',
   contacts: [
     'https://owner.example/profile/card#me',
     'https://alice.example/profile/card#me',

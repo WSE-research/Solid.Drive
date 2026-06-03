@@ -17,7 +17,7 @@
  *
  * @public
  */
-export const APP_NAME = "solid.drive";
+export const APP_NAME = "Solid.drive";
 
 // ============================================================================
 // AUTHENTICATION PROVIDERS
@@ -110,6 +110,8 @@ export const EXTERNAL_LINKS = {
   solidProjectAbout: "https://solidproject.org/about",
   /** Fallback URL for pod registration when no provider-specific URL is available */
   defaultGetPod: "https://solidproject.org/users/get-a-pod",
+  /** Public GitHub repository for the project */
+  githubRepo: "https://github.com/WSE-research/Solid-Hello-World-Frontend-React",
 } as const;
 
 // ============================================================================
@@ -455,6 +457,22 @@ export const DOCUMENT_MIME_TYPES = [
  * @public
  */
 export const DEFAULT_TBOX_PATH = `${import.meta.env.BASE_URL}tbox.ttl`;
+
+// ============================================================================
+// ROUTING
+// ============================================================================
+
+/**
+ * Application base path used as react-router-dom's `basename`.
+ *
+ * @remarks
+ * Derived from Vite's `BASE_URL` so it stays in sync with the value
+ * configured in `vite.config.ts`. The trailing slash is stripped because
+ * `BrowserRouter.basename` rejects it.
+ *
+ * @public
+ */
+export const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // ============================================================================
 // I18N CONFIGURATION

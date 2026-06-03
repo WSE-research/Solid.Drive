@@ -12,12 +12,7 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import en from "../../locales/en.json";
 import de from "../../locales/de.json";
-import {
-  SUPPORTED_LANGUAGE_CODES,
-  FALLBACK_LANGUAGE,
-  LANGUAGE_DETECTION_ORDER,
-  LANGUAGE_CACHE_LOCATIONS,
-} from "@/config";
+import { SUPPORTED_LANGUAGE_CODES, FALLBACK_LANGUAGE, LANGUAGE_DETECTION_ORDER, LANGUAGE_CACHE_LOCATIONS } from "@/config";
 
 i18n
   .use(LanguageDetector)

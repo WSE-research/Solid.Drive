@@ -4,7 +4,9 @@ React hooks for authentication logic.
 
 == Contents
 
-*useAuth*:: Exposes `isLoggedIn`, `webId`, `session`, `login(issuerUrl)`, and `logout()`. A thin convenience wrapper over `useSolidAuth` from `@ldo/solid-react`
+*useAuth*:: Exposes `isLoggedIn`, `webId`, `session`, `login(issuerUrl)`, and `logout()`. A thin convenience wrapper over `useSolidAuth` from `@ldo/solid-react`.
+*useIssuerSelection*:: State and validation for the landing-page Solid provider picker (suggested provider vs. custom issuer URL).
+*useResizeObserver*:: Tracks a ref'd element's rendered `{ width, height }` via `ResizeObserver`, used by the landing page to drive container-width breakpoints.
 
 == Navigation
 

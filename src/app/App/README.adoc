@@ -1,18 +1,27 @@
 = App
 
-Root component that bootstraps the application.
-Wraps everything in the Solid authentication provider and notification provider, then renders the header and main layout.
+Root component. Sets up providers and picks the shell the user sees.
 
-== Layout
+The provider stack is always the same: `<BrowserRouter>` > `<BrowserSolidLdoProvider>` > `<NotificationProvider>` > `<RequestNotificationsGate>`.
+What changes is what gets rendered inside it, based on auth state and the saved layout preference.
+
+== Which shell renders
 
 [cols="1,2", options="header"]
 |===
 | Condition | Renders
 
-| Always | `<BrowserSolidLdoProvider>` wrapping `<NotificationProvider>` wrapping `<Header />`
-| Logged in | `<ProfileSidebar />` and `<FileExplorer />`
-| Logged out | `<FileExplorer />` only
+| Coming back from the Solid issuer (URL has `code` + `state`) | `<AuthCallbackSkeleton />`
+| Logged out | `<LandingPage />`
+| Logged in, OneDrive preference | `<OneDriveLayout />`
+| Logged in, Classic preference | `<Header />` + `<ClassicLayout />`
 |===
+
+A few details worth knowing:
+
+* Session continuity: after a refresh, the previously logged-in shell stays mounted while auth restores. We never flash back to the LandingPage in that case.
+* The auth-callback skeleton also covers a short boot window after the handshake resolves, so the next layout has time to start pod discovery before it takes over.
+* See link:../hooks/useSessionContinuity/[useSessionContinuity] for the exact logic.
 
 == Navigation
 
@@ -21,6 +30,9 @@ link:../[app]
 
 .Uses
 * link:../../features/auth/components/Header/[Header]
-* link:../../features/file-explorer/components/FileExplorer/[FileExplorer]
-* link:../../features/profile/components/ProfileSidebar/[ProfileSidebar]
+* link:../../features/auth/components/LandingPage/[LandingPage]
+* link:../AuthCallbackSkeleton/[AuthCallbackSkeleton]
+* link:../ClassicLayout/[ClassicLayout]
+* link:../../features/onedrive-layout/[onedrive-layout]
 * link:../../shared/contexts/NotificationContext/[NotificationContext]
+* link:../RequestNotificationsGate/[RequestNotificationsGate]

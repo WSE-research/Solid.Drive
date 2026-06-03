@@ -1,0 +1,43 @@
+= LandingPage
+
+Public landing page shown to logged-out visitors. Walks the visitor through
+choosing a Solid Pod provider and starting the OIDC flow with the picked issuer.
+
+== Structure
+
+`LandingPage` is the shell. It hosts the top bar, the right-side hero blob, the
+GitHub fork ribbon, the footer, and a nested `react-router-dom` `Routes` block
+that swaps the main column between three views:
+
+[cols="1,2", options="header"]
+|===
+| Route | Component
+
+| `/` (index)       | Hero sign-in: `LandingHero` + `ProviderPicker` + `CustomIssuerField` + `LayoutPicker` + login actions
+| `/no-pod`         | `OnboardingPage`: four numbered steps for visitors without a Pod yet
+| `/video`          | `VideoPage`: walkthrough video placeholder
+|===
+
+`LandingTopBar` provides the brand link, in-page navigation between those
+routes, and the language switcher.
+
+== Customisation surfaces
+
+. Suggested providers: sourced from `SOLID_PROVIDERS` in `@/config`; the first entry is marked recommended.
+. Custom issuer: free-form URL input validated via link:../../utils/isValidIssuerUrl[`isValidIssuerUrl`] (HTTPS required, HTTP allowed for localhost only).
+. Layout style: Classic vs OneDrive cards bound to `useLayoutPreference`; the chosen layout applies after login.
+. Branding, route base path, GitHub repo URL: all sourced from `@/config` constants.
+. UI copy and ARIA labels: sourced from `i18n` keys under `landing.*`.
+
+== State
+
+State lives in link:../../hooks/useIssuerSelection[`useIssuerSelection`], so this
+component stays declarative. Container width breakpoints come from
+link:../../hooks/useResizeObserver[`useResizeObserver`] and are exposed as
+`data-narrow`, `data-compact`, and `data-phone` attributes on the `.landing`
+root.
+
+== Navigation
+
+.Parent
+link:../[features/auth/components]

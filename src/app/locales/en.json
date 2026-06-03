@@ -1,6 +1,75 @@
 {
+  "landing": {
+    "subtitle": "File management, reimagined \nDecentralised, familiar, digitally sovereign",
+    "hero": {
+      "nav": {
+        "label": "Landing navigation",
+        "onboarding": "No Pod yet?",
+        "video": "Video"
+      }
+    },
+    "forkRibbon": {
+      "label": "Fork me on GitHub"
+    },
+    "pages": {
+      "back": "Back to sign in",
+      "video": {
+        "title": "Walkthrough",
+        "lead": "Explore how Solid.drive works\n from signing in and uploading files to sharing and managing content in your personal Pod."
+      }
+    },
+    "onboarding": {
+      "heading": "New to Solid?",
+      "lead": "Create your Solid Pod in a few quick steps, then connect it to Solid.drive.",
+      "step1": "Visit a Solid provider like solidcommunity.net.",
+      "step2": "Click Register to create your account.",
+      "step3": "Choose a Pod name and finish the setup.",
+      "step4": "Return here and authenticate with your Pod provider.",
+      "videoLink": "Walkthrough video",
+      "videoCaption": "Walkthrough video coming soon",
+      "videoAria": "Walkthrough video placeholder"
+    },
+    "providers": {
+      "heading": "Solid providers",
+      "hint": "Pick one of the suggested providers or use your own URL.",
+      "recommended": "Recommended",
+      "selected": "Selected provider",
+      "expand": "Show providers",
+      "collapse": "Hide providers",
+      "noneSelected": "No provider selected yet."
+    },
+    "customIssuer": {
+      "heading": "Use your own provider",
+      "hint": "OIDC issuer URL of your Solid identity provider.",
+      "about": "Solid supports decentralized identity providers. You may use a self-hosted Pod server or any compatible OIDC (OpenID Connect) issuer.",
+      "placeholder": "https://your-provider.example",
+      "invalid": "Invalid issuer URL. Use https:// unless running on localhost.",
+      "selectedNotice": "Custom issuer active."
+    },
+    "layoutPicker": {
+      "heading": "Choose your Solid.drive experience",
+      "hint": "Pick the view that feels most familiar to you. You can switch between views anytime.",
+      "classic": {
+        "label": "Solid.drive Classic"
+      },
+      "onedrive": {
+        "label": "OneDrive inspired"
+      }
+    },
+    "actions": {
+      "login": "Login",
+      "loginAria": "Sign in with the selected Solid provider",
+      "createPod": "Create a Pod",
+      "learnMore": " Learn more"
+    },
+    "footer": {
+      "protocol": "Solid OIDC Login",
+      "learnMoreDescription": "Curious about Solid?"
+    },
+    "logoAlt": "solid.drive logo"
+  },
   "header": {
-    "brand": "solid.drive",
+    "brand": "Solid.drive",
     "loggedInAs": "Logged in as",
     "logOut": "Log Out",
     "provider": "Provider",
@@ -82,7 +151,8 @@
     "missingRequired": "Missing required fields:",
     "fieldRequired": "\u2014 {label} is required",
     "tboxError": "TBox could not be loaded:",
-    "uploadSuccess": "File uploaded successfully"
+    "uploadSuccess": "File uploaded successfully",
+    "cancel": "Cancel"
   },
   "profileSidebar": {
     "loading": "Loading…",
@@ -155,6 +225,10 @@
   },
   "requestNotifications": {
     "toast": "{{name}} {{description}}"
+  },
+  "authCallback": {
+    "title": "Signing you in…",
+    "subtitle": "Finishing the handshake with your Pod provider."
   },
   "oneDriveLayout": {
     "layout": "Layout",
@@ -239,6 +313,7 @@
       "link": "Copy link",
       "delete": "Delete",
       "download": "Download",
+      "open": "Open",
       "moveTo": "Move to",
       "rename": "Rename",
       "more": "More actions",
@@ -255,6 +330,10 @@
       "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
       "deleteSuccess": "\"{{name}}\" deleted",
       "deleteFail": "Delete failed"
+    },
+    "preview": {
+      "loading": "Loading preview…",
+      "error": "Could not load preview"
     },
     "filters": {
       "typeGroup": "File type filter",

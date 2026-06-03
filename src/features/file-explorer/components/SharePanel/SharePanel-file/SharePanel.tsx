@@ -87,6 +87,7 @@ const ContactPickerRow: FunctionComponent<{ webId: string; onGrant: () => void; 
 type SharePanelProps = {
   containerUri: string;
   catalogUri: string;
+  appContainerUri: string;
   contacts: string[];
   sharedEntry: SharedEntry;
 };
@@ -97,11 +98,16 @@ type SharePanelProps = {
  *
  * @public
  */
-export const SharePanel: FunctionComponent<SharePanelProps> = ({ containerUri, catalogUri, contacts, sharedEntry }) => {
+export const SharePanel: FunctionComponent<SharePanelProps> = ({
+  containerUri,
+  catalogUri,
+  appContainerUri,
+  contacts,
+  sharedEntry,
+}) => {
   const [translate] = useTranslation();
   const { session } = useSolidAuth();
   const ownerWebId = session.webId ?? "";
-  const appContainerUri = containerUri.replace(/\/$/, "").split("/").slice(0, -1).join("/") + "/";
 
   const { grantees, loading, error, isSaving, loadAcl, grant, revoke } = useAclManager(
     containerUri,

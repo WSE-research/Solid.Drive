@@ -14,6 +14,7 @@ link:SelectionActions/[SelectionActions]:: Page header action strip for the curr
 link:DetailPanel/[DetailPanel]:: Right edge slide in panel showing metadata for the selected file or folder.
 link:NewFolderDialog/[NewFolderDialog]:: Modal create folder dialog used by My Files.
 link:ShareDialog/[ShareDialog]:: Modal wrapper around `file-explorer/SharePanel`.
+link:FilePreviewDialog/[FilePreviewDialog]:: Modal preview the SharedView opens from the selection toolbar.
 link:LayoutToggle/[LayoutToggle]:: Segmented Classic ↔ OneDrive control bound to the persisted layout preference.
 link:views/[views/]:: One component per nav rail destination: Recent, My Files, Shared, Requests, People.
 link:filters/[filters/]:: Shared filter widgets, the type chips and the person filter, used by Shared, Recent, and People.

@@ -5,11 +5,16 @@
 
 import { useState, useCallback } from "react";
 import { useSolidAuth } from "@ldo/solid-react";
-import { discoverAclUri, ensureDiscoveryAccess, readAclAgents, writeAcl, writeResourceAcl } from "@/infrastructure/wac/aclManager";
-import { appendToCatalog } from "@/infrastructure/solid/catalog";
+import { discoverAclUri, ensureDiscoveryAccess, readAclAgents, writeAcl } from "@/infrastructure/wac/aclManager";
+import { removeFromCatalog } from "@/infrastructure/solid/catalog";
 import { getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
+import { syncSharedCatalog } from "@/features/sharing/services/sharedCatalogWriter";
 import { notifyAclChanged } from "@/shared/hooks/useAclVersion";
+import { notifySharedCatalogsChanged } from "@/shared/hooks/useSharedCatalogVersion";
 import type { SharedEntry } from "@/types";
+
+const toErrorMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : String(err);
 
 interface UseAclManagerReturn {
   aclUri: string | null;
@@ -47,24 +52,17 @@ export function useAclManager(
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const syncSharedCatalog = useCallback(async (contactWebId: string) => {
-    const sharedCatalogUri = getSharedCatalogUri(appContainerUri, contactWebId);
-    await appendToCatalog(
-      sharedCatalogUri,
-      sharedEntry.metadataUri,
-      sharedEntry.binaryUri,
-      sharedEntry.classUri,
-      sharedEntry.mediaType,
-      sharedEntry.byteSize,
-      sharedEntry.title,
-      sharedEntry.description,
-      sharedEntry.modified,
-      ownerWebId,
-      solidFetch
-    );
-    const sharedCatalogAclUri = await discoverAclUri(sharedCatalogUri, solidFetch);
-    await writeResourceAcl(sharedCatalogAclUri, sharedCatalogUri, ownerWebId, [contactWebId], solidFetch);
-  }, [appContainerUri, ownerWebId, sharedEntry, solidFetch]);
+  const writeSharedEntry = useCallback(
+    (contactWebId: string) =>
+      syncSharedCatalog({
+        appContainerUri,
+        contactWebId,
+        ownerWebId,
+        entries: [sharedEntry],
+        fetch: solidFetch,
+      }),
+    [appContainerUri, ownerWebId, sharedEntry, solidFetch],
+  );
 
   const loadAcl = useCallback(async () => {
     setLoading(true);
@@ -75,15 +73,15 @@ export function useAclManager(
       const currentGrantees = await readAclAgents(discoveredAclUri, solidFetch);
       setGrantees(currentGrantees);
       for (const contactWebId of currentGrantees) {
-        await syncSharedCatalog(contactWebId);
+        await writeSharedEntry(contactWebId);
         await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [appContainerUri, catalogUri, containerUri, ownerWebId, solidFetch, syncSharedCatalog]);
+  }, [appContainerUri, catalogUri, containerUri, ownerWebId, solidFetch, writeSharedEntry]);
 
   const grant = useCallback(async (contactWebId: string) => {
     if (!aclUri) return;
@@ -92,16 +90,21 @@ export function useAclManager(
     try {
       const newGrantees = [...grantees, contactWebId];
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
-      await syncSharedCatalog(contactWebId);
-      await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
       setGrantees(newGrantees);
       notifyAclChanged(containerUri);
+      try {
+        await writeSharedEntry(contactWebId);
+        await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
+        notifySharedCatalogsChanged();
+      } catch (catalogErr) {
+        setError(toErrorMessage(catalogErr));
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
-  }, [aclUri, appContainerUri, catalogUri, containerUri, grantees, ownerWebId, solidFetch, syncSharedCatalog]);
+  }, [aclUri, appContainerUri, catalogUri, containerUri, grantees, ownerWebId, solidFetch, writeSharedEntry]);
 
   const revoke = useCallback(async (contactWebId: string) => {
     if (!aclUri) return;
@@ -112,12 +115,19 @@ export function useAclManager(
       await writeAcl(aclUri, containerUri, ownerWebId, newGrantees, solidFetch);
       setGrantees(newGrantees);
       notifyAclChanged(containerUri);
+      try {
+        const sharedCatalogUri = getSharedCatalogUri(appContainerUri, contactWebId);
+        await removeFromCatalog(sharedCatalogUri, sharedEntry.metadataUri, solidFetch);
+        notifySharedCatalogsChanged();
+      } catch (catalogErr) {
+        setError(toErrorMessage(catalogErr));
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setIsSaving(false);
     }
-  }, [aclUri, containerUri, grantees, ownerWebId, solidFetch]);
+  }, [aclUri, appContainerUri, containerUri, grantees, ownerWebId, sharedEntry, solidFetch]);
 
   return { aclUri, grantees, loading, error, isSaving, loadAcl, grant, revoke };
 }

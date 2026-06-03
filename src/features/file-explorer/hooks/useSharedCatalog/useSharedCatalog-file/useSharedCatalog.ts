@@ -14,6 +14,7 @@ import type { CatalogEntry } from "@/types";
 
 interface UseSharedCatalogReturn {
   sharedEntries: CatalogEntry[];
+  grantedEntries: CatalogEntry[];
   typeGroups: Map<string, CatalogEntry[]>;
   resolvedCatalogUri: string | null;
   catalogAccessible: boolean;
@@ -22,6 +23,7 @@ interface UseSharedCatalogReturn {
 
 interface ResolvedSharedCatalog {
   sharedEntries: CatalogEntry[];
+  grantedEntries: CatalogEntry[];
   typeGroups: Map<string, CatalogEntry[]>;
   resolvedCatalogUri: string | null;
   catalogAccessible: boolean;
@@ -29,6 +31,7 @@ interface ResolvedSharedCatalog {
 
 const EMPTY_RESOLVED: ResolvedSharedCatalog = {
   sharedEntries: [],
+  grantedEntries: [],
   typeGroups: new Map(),
   resolvedCatalogUri: null,
   catalogAccessible: false,
@@ -132,6 +135,7 @@ async function loadSharedCatalog(
 
     return {
       sharedEntries: [...accessibleShared, ...extraAccessible],
+      grantedEntries: foundShared,
       typeGroups: bucketByClass(browsable),
       resolvedCatalogUri: foundCatalogUri,
       catalogAccessible: true,
@@ -157,6 +161,7 @@ async function loadSharedCatalog(
 
           return {
             sharedEntries: accessible,
+            grantedEntries: [],
             typeGroups: bucketByClass(browsable),
             resolvedCatalogUri: mainCatalogUri,
             catalogAccessible: true,
@@ -243,6 +248,7 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
 
   return {
     sharedEntries: resolved.sharedEntries,
+    grantedEntries: resolved.grantedEntries,
     typeGroups: resolved.typeGroups,
     resolvedCatalogUri: resolved.resolvedCatalogUri,
     catalogAccessible: resolved.catalogAccessible,

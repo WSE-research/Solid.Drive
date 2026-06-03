@@ -11,11 +11,12 @@ import { TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 
 /**
  * Regression for the "revoke loses visibility" bug. Revoking a shared file
- * used to drop the entry entirely, leaving no way to ask again. The fix:
- * `useAclManager.revoke` keeps the entry in the per-viewer shared catalog,
- * and `useSharedCatalog` re-classifies entries `hasAccess` rejects as
- * browsable. Drives the ACL change via fetch, not the SharePanel UI, to
- * focus on the requester-side rendering.
+ * used to drop the entry entirely, leaving no way to ask again. With the
+ * fix, `useSharedCatalog` falls back to the owner's main catalog and
+ * re-classifies entries `hasAccess` rejects as browsable, so the file shows
+ * up under "Also available" with a Request button. Drives the ACL change
+ * via fetch, not the SharePanel UI, to focus on the requester-side
+ * rendering.
  */
 test("revoking access moves a previously-shared file into Also available, not gone", async ({ browser, peach, parni }) => {
   test.setTimeout(TEST_TIMEOUTS.medium);

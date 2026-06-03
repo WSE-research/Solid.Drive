@@ -1,0 +1,13 @@
+= features/auth/utils
+
+Pure utilities for the auth feature. No React, no Solid client — input in, value out,
+so each one is trivially unit-testable.
+
+== Contents
+
+link:./isValidIssuerUrl[isValidIssuerUrl]:: Validate an OIDC issuer URL pasted into the custom-issuer field.
+
+== Navigation
+
+.Parent
+link:../[features/auth]

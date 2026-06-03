@@ -12,7 +12,7 @@
     right: 0;
     z-index: 50;
     pointer-events: none;
-    font-size: 13px;
+    font-size: 15px;
     text-decoration: none;
     text-indent: -999999px;
 }
@@ -50,7 +50,7 @@
     /* Add a bit of padding to give some substance outside the "stitching" */
     padding: .38em 0;
     /* Set the base colour */
-    background-color: #a00;
+    background-color: rgb(116, 0, 170);
     /* Set a gradient: transparent black at the top to almost-transparent black at the bottom */
     background-image: -webkit-gradient(linear, left top, left bottom, from(rgba(0, 0, 0, 0)), to(rgba(0, 0, 0, 0.15)));
     background-image: -webkit-linear-gradient(top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15));
@@ -130,9 +130,9 @@
     -webkit-transition: background 0.25s;
     /* For modern browsers */
     transition: background 0.25s;
-    background-color: #4186f7;
+    background-color: #558ce4;
 }
 
 .github-fork-ribbon:hover::before {
-    background-color: #eb4134;
+    background-color: #864fee;
 }

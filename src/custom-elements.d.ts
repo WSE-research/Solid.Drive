@@ -43,6 +43,7 @@ declare module "react" {
       "new-folder-input": El;
       // FileUpload
       "file-upload-row": El;
+      "file-upload-divider": El;
       "file-upload-errors": El;
       "file-upload-footer": El;
       // SharedWithMeSection
@@ -79,6 +80,39 @@ declare module "react" {
       "requests-panel-item": El;
       "requests-panel-requester": El;
       "requests-panel-actions": El;
+      // LandingPage
+      "landing-shell": El;
+      "landing-hero-brand": El;
+      "landing-hero-brand-row": El;
+      "landing-hero-topbar": El;
+      "landing-hero-left": El;
+      "landing-hero-right": El;
+      "landing-hero-blob": El;
+      "landing-hero-blob-bubbles": El;
+      "landing-hero-blob-bubble": El;
+      "landing-hero-form": El;
+      "landing-hero-actions": El;
+      "landing-logo-wrap": El;
+      "landing-card-header": El;
+      "landing-provider-info": El;
+      "landing-providers-combobox": El;
+      "landing-providers-listbox-wrapper": El;
+      "landing-providers-chevron": El;
+      "landing-layout-grid": El;
+      "landing-layout-info": El;
+      "landing-layout-radio": El;
+      "landing-footer-meta": El;
+      "landing-footer-dot": El;
+      "landing-video-play": El;
+      // AuthCallbackSkeleton
+      "auth-callback-skeleton": El;
+      "auth-callback-backdrop": El;
+      "auth-callback-card": El;
+      "auth-callback-brand": El;
+      "auth-callback-title": El;
+      "auth-callback-subtitle": El;
+      "auth-callback-bars": El;
+      "auth-callback-bar": El;
       // ErrorBoundary
       "error-boundary": El;
       // NotificationContext
@@ -158,6 +192,10 @@ declare module "react" {
       "shared-files-row": El;
       "shared-files-cell": El;
       "shared-files-name": El;
+      // OneDriveLayout — FilePreviewDialog
+      "file-preview-header": El;
+      "file-preview-actions": El;
+      "file-preview-body": El;
       // OneDriveLayout — PeopleView (list + detail)
       "people-view-grid": El;
       "people-view-list": El;

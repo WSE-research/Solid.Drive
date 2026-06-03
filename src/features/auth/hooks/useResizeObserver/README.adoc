@@ -1,0 +1,21 @@
+= useResizeObserver
+
+Observes a DOM element's rendered size via `ResizeObserver`.
+
+Returns the element's current `{ width, height }` and updates on every size change. Useful when a component must adapt to its **container** size rather than the viewport — i.e. when CSS media queries or `matchMedia` are too coarse.
+
+== Usage
+
+[source,tsx]
+----
+const containerRef = useRef<HTMLDivElement>(null);
+const { width } = useResizeObserver(containerRef);
+
+return <div ref={containerRef}>{width < 600 ? 'narrow' : 'wide'}</div>;
+----
+
+The hook measures synchronously on mount via `useLayoutEffect`, so the first paint already has the correct size. Falls back to `{ width: 0, height: 0 }` in environments without `ResizeObserver`.
+
+== Parent
+
+xref:../README.adoc[../README.adoc]

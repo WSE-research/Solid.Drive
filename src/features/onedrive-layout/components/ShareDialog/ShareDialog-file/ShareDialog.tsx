@@ -18,6 +18,7 @@ interface ShareDialogProps {
   onOpenChange: (next: boolean) => void;
   containerUri: string;
   catalogUri: string;
+  appContainerUri: string;
   contacts: string[];
   sharedEntry: SharedEntry;
 }
@@ -30,6 +31,7 @@ export const ShareDialog: FunctionComponent<ShareDialogProps> = ({
   onOpenChange,
   containerUri,
   catalogUri,
+  appContainerUri,
   contacts,
   sharedEntry,
 }) => {
@@ -56,6 +58,7 @@ export const ShareDialog: FunctionComponent<ShareDialogProps> = ({
           <SharePanel
             containerUri={containerUri}
             catalogUri={catalogUri}
+            appContainerUri={appContainerUri}
             contacts={contacts}
             sharedEntry={sharedEntry}
           />

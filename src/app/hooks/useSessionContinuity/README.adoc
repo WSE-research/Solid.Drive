@@ -1,16 +1,21 @@
 = useSessionContinuity
 
-Reports whether the user is, or was just, logged in inside the current browser tab.
+Tells AppShell which shell to render while Solid auth is settling.
 
-The Solid auth provider needs roughly a second after page load to restore a saved session, and during that window `useSolidAuth().session.isLoggedIn` is `false`.
-Without this hook, refreshing inside the OneDrive layout would flash the classic header and file explorer until auth resolved.
+`useSolidAuth().session.isLoggedIn` lies for about a second after page load: it returns `false` while the provider is restoring a saved session or finishing an OIDC redirect.
+Two things break without help here:
 
-The hook writes a `solid-drive.session-active` flag to `sessionStorage` while a session is live, and clears it on logout.
-A refresh inside the same tab can read the flag and short circuit the gap.
+* Refreshing the page inside the OneDrive layout briefly flashes the logged-out shell.
+* Coming back from the issuer with `?code&state` bounces the user back to the LandingPage for a moment.
+
+This hook smooths over both cases.
+It writes a `solid-drive.session-active` flag to `sessionStorage` whenever a session is live, so a refresh can tell that auth is restoring rather than starting fresh.
+It also checks the URL on mount: if the OIDC callback params are there, it holds a short boot window (~2.5s) so the next layout gets a head start on pod discovery instead of mounting into an empty loading state.
 
 == Returns
 
-`isActive`:: `true` while a real session is active or while one is being restored after a refresh. `false` once the user has truly logged out.
+`assumeLoggedIn`:: `true` while a session is live, or being restored after a refresh. Flips to `false` once the user really logs out.
+`isAuthenticating`:: `true` while the OIDC callback is being processed or the boot window is still open. AppShell shows the auth-callback skeleton while this is `true`.
 
 == Navigation
 

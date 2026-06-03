@@ -60,6 +60,8 @@ export {
   DOCUMENT_MIME_TYPES,
   // Validation
   DEFAULT_TBOX_PATH,
+  // Routing
+  ROUTER_BASENAME,
 } from "./constants";
 export type { SolidProvider, Language, DefaultFileTypeDef } from "./constants";
 

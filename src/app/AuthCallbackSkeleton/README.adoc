@@ -1,0 +1,22 @@
+= AuthCallbackSkeleton
+
+The loading screen shown after the user comes back from their Solid issuer.
+
+When the user clicks *Login* on the LandingPage, they get redirected to the issuer (solidcommunity.net, inrupt.net, whatever) and then back to the app with `?code&state` in the URL.
+The auth provider then takes about a second to finish the handshake, and the chosen layout needs another moment to start pod discovery.
+Without something in between, the user briefly sees the LandingPage again, then an empty layout, then the real one.
+
+This skeleton bridges that gap.
+It reuses the LandingPage's `HeroBlob` and brand wordmark so the transition feels like a single continuous screen rather than three different ones.
+
+It is mounted by `App` whenever `useSessionContinuity` reports `isAuthenticating === true`.
+
+== Visual
+
+Full-viewport landing-style backdrop with a centered card: brand wordmark, status text, and a few shimmer bars.
+Honours `prefers-reduced-motion`.
+
+== Navigation
+
+.Parent
+link:../[app]

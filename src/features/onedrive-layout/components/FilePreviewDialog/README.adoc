@@ -1,0 +1,37 @@
+= FilePreviewDialog
+
+In app preview for a shared file. SharedView opens it when the user hits Open on the selection toolbar.
+
+The dialog fetches the binary with the session bound `solidFetch`, turns the blob into an object URL, and hands it to `FileMediaPreview` — the same component the My Files FileCard already uses for inline previews. Radix Dialog takes care of focus trap, Esc, overlay click, and scroll lock.
+
+There's a Download button in the header that just calls the `onDownload` passed in by the parent, so the in dialog Download and the toolbar Download stay one handler.
+
+== Props
+
+[cols="1,3", options="header"]
+|===
+| Prop | Description
+
+| `open` | Dialog visibility
+| `onOpenChange` | Fires when the user closes the dialog
+| `binaryUri` | URL the dialog fetches
+| `title` | Header text
+| `mediaType` | MIME type forwarded to `FileMediaPreview`
+| `solidFetch` | Session bound fetch
+| `onDownload` | Reused from the SharedView selection toolbar
+|===
+
+== Files
+
+`FilePreviewDialog-file/FilePreviewDialog.tsx`:: Owns the fetch lifecycle and the modal shell.
+`FilePreviewDialog-file/FilePreviewBody.tsx`:: Renders the loading, error, or ready branch.
+`FilePreviewDialog-file/loadState.ts`:: Load state union shared between the two.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../../file-explorer/components/FileCard/[FileCard] for `FileMediaPreview`
+* link:../../icons/[icons]

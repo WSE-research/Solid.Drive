@@ -87,6 +87,19 @@ through the share panel, expand a type folder.
 | OneDrive-layout helpers: switch the layout preference, navigate
 between rail views, jump to My Files and wait for the table.
 
+2+| **Tests, landing and auth bootstrap**
+
+| `e2e/tests/landing-page.spec.ts`
+| The logged-out LandingPage: brand, provider picker, layout picker,
+custom-issuer validation, the No-Pod and Video sub-routes, and that
+clicking Login actually redirects to the chosen issuer.
+
+| `e2e/tests/auth-callback-skeleton.spec.ts`
+| The skeleton shown while we are coming back from the issuer: it
+appears whenever the URL has `?code&state`, reuses the landing brand
+wordmark and HeroBlob, and lifts on its own after the boot window so
+the next shell can take over.
+
 2+| **Tests, category-level access**
 
 | `e2e/tests/category-share.spec.ts`
