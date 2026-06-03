@@ -178,6 +178,7 @@ vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ session: mockSession.current, fetch: vi.fn() }),
   useSubject: () => mockProfileSubject.current,
   useResource: () => null,
+  useLdo: () => ({ dataset: { match: () => [] } }),
 }));
 
 const mockDeleteResource = vi.fn().mockResolvedValue({ ok: true });

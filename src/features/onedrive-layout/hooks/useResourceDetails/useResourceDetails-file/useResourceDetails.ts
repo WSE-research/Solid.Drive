@@ -7,8 +7,9 @@
  * @packageDocumentation
  */
 
-import { useResource } from '@ldo/solid-react';
+import { useLdo, useResource } from '@ldo/solid-react';
 import { isSolidContainer } from '@/infrastructure/solid/resourceGuards';
+import { readModifiedFromDataset } from '@/features/onedrive-layout/hooks/useResourceModified';
 import { INDEX_FILE } from '@/config';
 import type { CatalogEntry } from '@/types';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
@@ -57,6 +58,7 @@ export function useResourceDetails({
   // returns undefined.
   const folderUri = selection?.kind === 'folder' ? selection.uri : undefined;
   const folderResource = useResource(folderUri);
+  const { dataset } = useLdo();
 
   if (!selection) return null;
 
@@ -86,6 +88,6 @@ export function useResourceDetails({
     uri: selection.uri,
     name: selection.name,
     itemCount,
-    modified: undefined,
+    modified: readModifiedFromDataset(dataset, selection.uri),
   };
 }

@@ -102,6 +102,7 @@ vi.mock('@ldo/solid-react', () => ({
     fetch: vi.fn(),
   }),
   useSubject: () => ({ catalog: { '@id': 'https://pod/catalog' } }),
+  useLdo: () => ({ dataset: { match: () => [] } }),
 }));
 
 const mockEnqueueInstant = vi.fn();

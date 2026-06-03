@@ -267,6 +267,8 @@ export const RDF_NAMESPACES = {
   FOAF: "http://xmlns.com/foaf/0.1/",
   /** Linked Data Platform namespace */
   LDP: "http://www.w3.org/ns/ldp#",
+  /** POSIX stat namespace (file system metadata such as mtime/size) */
+  POSIX: "http://www.w3.org/ns/posix/stat#",
   /** RDF syntax namespace */
   RDF: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
   /** RDF Schema namespace */

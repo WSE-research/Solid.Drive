@@ -11,10 +11,51 @@ import { getSharedCatalogUri } from "@/infrastructure/solid/sharedCatalog";
 import { syncSharedCatalog } from "@/features/sharing/services/sharedCatalogWriter";
 import { notifyAclChanged } from "@/shared/hooks/useAclVersion";
 import { notifySharedCatalogsChanged } from "@/shared/hooks/useSharedCatalogVersion";
-import type { SharedEntry } from "@/types";
+import type { FetchFn, SharedEntry } from "@/types";
 
 const toErrorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
+
+/**
+ * Number of times the initial ACL read is attempted. The first
+ * authenticated request to a pod can reject with a network error while
+ * the DPoP/token handshake warms up; retrying clears that transient.
+ */
+const ACL_READ_ATTEMPTS = 3;
+const ACL_READ_RETRY_DELAY_MS = 300;
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A rejected `fetch` surfaces as a `TypeError` ("NetworkError when
+ * attempting to fetch resource."). HTTP error responses throw a plain
+ * `Error`, which is meaningful (403/404) and must not be retried.
+ */
+const isTransientFetchError = (err: unknown): boolean => err instanceof TypeError;
+
+/**
+ * Discovers the container's ACL and reads its read-only grantees,
+ * retrying only on transient network rejections.
+ */
+async function readGranteesWithRetry(
+  containerUri: string,
+  fetch: FetchFn,
+): Promise<{ aclUri: string; grantees: string[] }> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= ACL_READ_ATTEMPTS; attempt += 1) {
+    try {
+      const aclUri = await discoverAclUri(containerUri, fetch);
+      const grantees = await readAclAgents(aclUri, fetch);
+      return { aclUri, grantees };
+    } catch (err) {
+      lastError = err;
+      if (!isTransientFetchError(err) || attempt === ACL_READ_ATTEMPTS) throw err;
+      await wait(ACL_READ_RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw lastError;
+}
 
 interface UseAclManagerReturn {
   aclUri: string | null;
@@ -68,9 +109,9 @@ export function useAclManager(
     setLoading(true);
     setError(null);
     try {
-      const discoveredAclUri = await discoverAclUri(containerUri, solidFetch);
+      const { aclUri: discoveredAclUri, grantees: currentGrantees } =
+        await readGranteesWithRetry(containerUri, solidFetch);
       setAclUri(discoveredAclUri);
-      const currentGrantees = await readAclAgents(discoveredAclUri, solidFetch);
       setGrantees(currentGrantees);
       for (const contactWebId of currentGrantees) {
         await writeSharedEntry(contactWebId);
