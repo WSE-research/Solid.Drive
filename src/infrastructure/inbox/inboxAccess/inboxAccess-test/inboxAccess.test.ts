@@ -6,11 +6,12 @@ import {
   postFileAccessRequest,
   postTypeAccessRequest,
   postRejectionNotification,
-  listRejectionNotifications,
+  postApprovalNotification,
+  listOutcomeNotifications,
   listAccessRequests,
   deleteAccessRequest,
 } from '../inboxAccess-file/inboxAccess';
-import { buildAccessRequestMessage, buildAccessRejectionMessage } from "../../inboxMessages";
+import { buildAccessRequestMessage, buildAccessRejectionMessage, buildAccessApprovalMessage } from "../../inboxMessages";
 
 const LDP_NS = "http://www.w3.org/ns/ldp#";
 
@@ -197,6 +198,19 @@ describe("postRejectionNotification", () => {
   });
 });
 
+// ─── postApprovalNotification ─────────────────────────────────────────────────
+
+describe("postApprovalNotification", () => {
+  it("POSTs an approval message to the requester's inbox", async () => {
+    const mockFetch = makeFetch({ "POST https://requester.example/inbox/": { status: 201 } });
+    await postApprovalNotification("https://requester.example/inbox/", "https://owner.example/profile/card#me", mockFetch);
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://requester.example/inbox/",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+});
+
 // ─── listAccessRequests ───────────────────────────────────────────────────────
 
 describe("listAccessRequests", () => {
@@ -255,64 +269,54 @@ describe("listAccessRequests", () => {
   });
 });
 
-// ─── listRejectionNotifications ───────────────────────────────────────────────
+// ─── listOutcomeNotifications ─────────────────────────────────────────────────
 
-describe("listRejectionNotifications", () => {
-  it("returns an empty array when the inbox fetch fails", async () => {
-    const mockFetch = makeFetch({ "https://requester.example/inbox/": { status: 500 } });
-    const result = await listRejectionNotifications("https://requester.example/inbox/", mockFetch);
-    expect(result).toEqual([]);
+describe("listOutcomeNotifications", () => {
+  const INBOX = "https://requester.example/inbox/";
+  const inboxTurtle = `
+    @prefix ldp: <${LDP_NS}> .
+    <${INBOX}> ldp:contains <${INBOX}msg1>, <${INBOX}msg2> .
+  `;
+
+  it("returns empty outcomes when the inbox fetch fails", async () => {
+    const mockFetch = makeFetch({ [INBOX]: { status: 500 } });
+    expect(await listOutcomeNotifications(INBOX, mockFetch)).toEqual({ approvals: [], rejections: [] });
   });
 
-  it("returns parsed rejection notifications from inbox messages", async () => {
-    const accessTo = "https://owner.example/files/videos/";
-    const rejectionTurtle = buildAccessRejectionMessage(accessTo);
-
-    const inboxTurtle = `
-      @prefix ldp: <${LDP_NS}> .
-      <https://requester.example/inbox/> ldp:contains <https://requester.example/inbox/msg1> .
-    `;
-
+  it("sorts each message into approvals or rejections in a single pass", async () => {
+    const accessTo = "https://owner.example/profile/card#me";
     const mockFetch = makeFetch({
-      "https://requester.example/inbox/": { status: 200, body: inboxTurtle },
-      "https://requester.example/inbox/msg1": { status: 200, body: rejectionTurtle },
+      [INBOX]: { status: 200, body: inboxTurtle },
+      [`${INBOX}msg1`]: { status: 200, body: buildAccessApprovalMessage(accessTo) },
+      [`${INBOX}msg2`]: { status: 200, body: buildAccessRejectionMessage(accessTo) },
     });
 
-    const result = await listRejectionNotifications("https://requester.example/inbox/", mockFetch);
-    expect(result).toHaveLength(1);
-    expect(result[0].accessTo).toBe(accessTo);
-    expect(result[0].messageUri).toBe("https://requester.example/inbox/msg1");
+    const { approvals, rejections } = await listOutcomeNotifications(INBOX, mockFetch);
+    expect(approvals.map((a) => a.messageUri)).toEqual([`${INBOX}msg1`]);
+    expect(rejections.map((r) => r.messageUri)).toEqual([`${INBOX}msg2`]);
   });
 
-  it("returns empty array when an individual message returns a non-2xx status", async () => {
-    const inboxTurtle = `
-      @prefix ldp: <${LDP_NS}> .
-      <https://requester.example/inbox/> ldp:contains <https://requester.example/inbox/msg1> .
-    `;
+  it("fetches each message only once", async () => {
+    const accessTo = "https://owner.example/profile/card#me";
     const mockFetch = makeFetch({
-      "https://requester.example/inbox/": { status: 200, body: inboxTurtle },
-      "https://requester.example/inbox/msg1": { status: 403 },
+      [INBOX]: { status: 200, body: inboxTurtle },
+      [`${INBOX}msg1`]: { status: 200, body: buildAccessApprovalMessage(accessTo) },
+      [`${INBOX}msg2`]: { status: 200, body: buildAccessRejectionMessage(accessTo) },
     });
 
-    const result = await listRejectionNotifications("https://requester.example/inbox/", mockFetch);
-    expect(result).toEqual([]);
+    await listOutcomeNotifications(INBOX, mockFetch);
+    const messageFetches = mockFetch.mock.calls.filter(([url]) => String(url).startsWith(`${INBOX}msg`));
+    expect(messageFetches).toHaveLength(2);
   });
 
-  it("returns empty array when individual rejection message fetch throws", async () => {
-    const inboxTurtle = `
-      @prefix ldp: <${LDP_NS}> .
-      <https://requester.example/inbox/> ldp:contains <https://requester.example/inbox/msg1> .
-    `;
-    const mockFetch = vi.fn(async (url: RequestInfo) => {
-      const urlStr = url as string;
-      if (urlStr === "https://requester.example/inbox/") {
-        return { ok: true, status: 200, text: () => Promise.resolve(inboxTurtle) };
-      }
-      throw new Error("network error");
+  it("skips messages that fail or are neither approval nor rejection", async () => {
+    const mockFetch = makeFetch({
+      [INBOX]: { status: 200, body: inboxTurtle },
+      [`${INBOX}msg1`]: { status: 403 },
+      [`${INBOX}msg2`]: { status: 200, body: `<> a <http://example.org/Other> .` },
     });
 
-    const result = await listRejectionNotifications("https://requester.example/inbox/", mockFetch as unknown as FetchFn);
-    expect(result).toEqual([]);
+    expect(await listOutcomeNotifications(INBOX, mockFetch)).toEqual({ approvals: [], rejections: [] });
   });
 });
 

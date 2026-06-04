@@ -37,7 +37,7 @@ test("revoking access moves a previously-shared file into Also available, not go
   // Pre-state: Parni sees the file as shared 
   const before = await freshLogin(browser, parni);
   await expect(before.page.getByText("To Be Revoked")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
-  await expect(before.page.getByRole("button", { name: /Request all Image/i })).toHaveCount(0);
+  await expect(before.page.getByRole("button", { name: /Request all|Alle anfragen/i })).toHaveCount(0);
   await before.close();
 
   // Owner revokes by writing a new ACL without Parni 

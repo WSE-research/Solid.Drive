@@ -11,10 +11,12 @@
 import { Parser as N3Parser, Store as N3Store } from "n3";
 import type { FetchFn, CatalogEntry } from "@/types";
 import type { SolidProfile } from "@/.ldo/solidProfile.typings";
+import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
 import {
   DEFAULT_CATALOG_FILENAME,
   RDF_NAMESPACES,
   CONTENT_TYPES,
+  SYSTEM_FILES,
 } from "@/config";
 
 /**
@@ -202,6 +204,52 @@ export async function removeFromCatalog(
 }
 
 /**
+ * Returns a URI's resource filename, decoding percent-escapes when the
+ * tail is well-formed and falling back to the raw tail otherwise.
+ *
+ * @internal
+ */
+function resourceFileName(uri: string): string {
+  const tail = uri.split("/").pop() ?? "";
+  try {
+    return decodeURIComponent(tail);
+  } catch {
+    return tail;
+  }
+}
+
+/**
+ * True when a dataset URI points at a user file rather than an internal
+ * bookkeeping resource (the catalog itself, ACL/meta files, or a
+ * per-contact shared catalog). Keeps internal `.shared-*.ttl` and system
+ * files from ever surfacing as catalog entries in any view.
+ *
+ * @internal
+ */
+function isUserVisibleDatasetUri(uri: string): boolean {
+  const fileName = resourceFileName(uri);
+  return !SYSTEM_FILES.has(fileName) && !isSharedCatalogFile(fileName);
+}
+
+/**
+ * Normalizes a `dcterms:conformsTo` value to a usable class URI. A real
+ * type is a vocabulary term, never a pod resource, so a value that points
+ * at a `.ttl` file (a stray catalog, ACL, or shared-catalog reference) is
+ * not a type and is dropped to "" so the entry falls back to its default
+ * type instead of producing a junk filter chip.
+ *
+ * @internal
+ */
+function sanitizeClassUri(uri: string): string {
+  if (!uri) return "";
+  const fileName = resourceFileName(uri);
+  if (fileName.endsWith(".ttl") || SYSTEM_FILES.has(fileName) || isSharedCatalogFile(fileName)) {
+    return "";
+  }
+  return uri;
+}
+
+/**
  * Parses DCAT catalog entries from Turtle text.
  *
  * @remarks
@@ -225,7 +273,10 @@ export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry
   const DCAT = RDF_NAMESPACES.DCAT;
   const DCTERMS = RDF_NAMESPACES.DCTERMS;
 
-  const datasetUris = store.getObjects(null, `${DCAT}dataset`, null).map((term) => term.value);
+  const datasetUris = store
+    .getObjects(null, `${DCAT}dataset`, null)
+    .map((term) => term.value)
+    .filter(isUserVisibleDatasetUri);
 
   const queryFirstValue = (subject: string, predicate: string) =>
     store.getObjects(subject, predicate, null)[0]?.value ?? "";
@@ -234,7 +285,7 @@ export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry
     const distUri = queryFirstValue(datasetUri, `${DCAT}distribution`);
     return {
       uri: datasetUri,
-      conformsTo: queryFirstValue(datasetUri, `${DCTERMS}conformsTo`),
+      conformsTo: sanitizeClassUri(queryFirstValue(datasetUri, `${DCTERMS}conformsTo`)),
       title: queryFirstValue(datasetUri, `${DCTERMS}title`),
       description: queryFirstValue(datasetUri, `${DCTERMS}description`),
       modified: queryFirstValue(datasetUri, `${DCTERMS}modified`),

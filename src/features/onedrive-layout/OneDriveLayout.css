@@ -1,15 +1,11 @@
 /*
  * OneDrive inspired layout: design tokens and base shell styles.
- * All tokens are scoped to <onedrive-layout> so the classic layout is unaffected.
  *
- * Token values are placeholders measured against docs/images/Solid.drive_*.png;
- * the visual-polish task locks final values.
- */
-
-/*
- * Tokens are declared at :root so Radix portaled content (DropdownMenu, Tooltip,
- * Dialog) — which renders into document.body, OUTSIDE the <onedrive-layout>
- * subtree — can still resolve --odl-* variables.
+ * Tokens are declared on :root, not scoped to <onedrive-layout>, so Radix
+ * portaled content (DropdownMenu, Tooltip, Dialog) that renders into
+ * document.body, outside the layout subtree, can still resolve --odl-*.
+ * The classic layout is unaffected because only the OneDrive selectors
+ * reference these tokens.
  */
 :root {
   /* surfaces */
@@ -76,9 +72,6 @@
 }
 
 onedrive-layout {
-  /* OneDrive-style three-row, three-column layout: top bar spans the
-     full width, the contextual toolbar floats above main+detail in the
-     page background, then main and detail panels sit beneath it. */
   display: grid;
   grid-template-columns: var(--odl-rail-width) 1fr auto;
   grid-template-rows: var(--odl-topbar-height) auto 1fr;
@@ -127,8 +120,6 @@ page-header {
   background: transparent;
 }
 
-/* When a row is selected the entire toolbar row gets the same elevated
-   "cushion" treatment as the search input.*/
 page-header[data-selection-active="true"] {
   background: var(--odl-bg-elevated);
   border: 1px solid var(--odl-border);
@@ -434,9 +425,6 @@ nav-rail[data-expanded="false"] .rail-browse-header__label {
   margin: var(--odl-space-2) 0;
 }
 
-/* Chevron toggle that expands / collapses the bottom rail panel
-   (Requests + People). Sized like a normal rail item but rendered
-   as the divider so the user can hide the lower section. */
 .rail-divider-toggle {
   display: inline-flex;
   align-items: center;
@@ -570,11 +558,6 @@ topbar-actions {
 .topbar-icon svg { width: var(--odl-icon-size); height: var(--odl-icon-size); }
 .topbar-search-trigger { display: none; }
 
-/* Full-width search overlay — a single rounded pill that replaces
-   the topbar content when the user activates the compact search
-   button. The pill packs the magnifier icon, the input, and the
-   close (×) button together so everything reads as one search bar,
-   matching the OneDrive reference. */
 topbar-search-overlay {
   position: absolute;
   top: 50%;
@@ -637,8 +620,6 @@ topbar-search-overlay:focus-within {
   height: 32px;
 }
 
-/* Narrow viewport: the centered search input collapses to an icon
-   button anchored on the right alongside the gear/avatar. */
 @media (max-width: 720px) {
   search-slot { display: none; }
   .topbar-search-trigger { display: inline-flex; }
@@ -741,6 +722,7 @@ theme-toggle-row {
   display: flex;
   align-items: center;
   justify-content: stretch;
+  width: 100%;
   padding: 4px 12px 8px;
 }
 .theme-toggle__trigger {
@@ -823,8 +805,6 @@ theme-toggle-row {
   height: 14px;
 }
 
-/* Dark theme override for the LayoutToggle when it's mounted inside the
-   topbar menu (its default colours target the Classic light theme). */
 .topbar-menu .layout-toggle {
   background: var(--odl-bg-page);
   border-color: var(--odl-border);
@@ -905,13 +885,10 @@ topbar-menu-profile-webid {
   min-height: 0;
 }
 
-/* The Recent (Home), People list and People detail surfaces all sit
-   flush against the page — no elevated panel — so the toolbar, chip
-   row, and table read like part of the surrounding shell rather than
-   a contained card. Other views keep the standard .odl-main panel. */
 .odl-main:has(> onedrive-view[data-view-id="recent"]),
 .odl-main:has(> onedrive-view[data-view-id="people"]),
-.odl-main:has(> onedrive-view[data-view-id="people-detail"]) {
+.odl-main:has(> onedrive-view[data-view-id="people-detail"]),
+.odl-main:has(> onedrive-view[data-view-id="people-catalog"]) {
   background: transparent;
   padding: var(--odl-space-3) var(--odl-space-2) var(--odl-space-4);
 }
@@ -923,7 +900,8 @@ topbar-menu-profile-webid {
   }
   .odl-main:has(> onedrive-view[data-view-id="recent"]),
   .odl-main:has(> onedrive-view[data-view-id="people"]),
-  .odl-main:has(> onedrive-view[data-view-id="people-detail"]) {
+  .odl-main:has(> onedrive-view[data-view-id="people-detail"]),
+  .odl-main:has(> onedrive-view[data-view-id="people-catalog"]) {
     padding-left: var(--odl-space-3);
   }
 }
@@ -990,10 +968,6 @@ toolbar-right { display: inline-flex; gap: var(--odl-space-2); margin-left: auto
 
 /* Selection actions */
 
-/* The container takes available width inside the page-header so the
-   ResizeObserver in SelectionActions actually sees the strip shrink
-   when the window narrows — that's what drives progressive overflow
-   into the kebab. */
 selection-actions {
   display: flex;
   flex: 1 1 auto;
@@ -1015,9 +989,6 @@ selection-actions-kebab {
   margin-left: auto;
 }
 
-/* Kebab matches the regular toolbar button look so the action strip
-   keeps a single visual rhythm — only its hover / open state lights
-   up with the accent so the user can see when the menu is active. */
 .odl-selection-kebab {
   appearance: none;
   display: inline-flex;
@@ -1124,16 +1095,9 @@ selection-actions-kebab {
   flex-direction: column;
   width: 100%;
   border-radius: var(--odl-radius-card);
-  /* Allow horizontal scroll when the available space is narrower than
-     the sum of the column minimums (e.g. detail panel open + small
-     viewport) instead of squashing cells into each other. */
   overflow-x: auto;
 }
-/* Shared column template — keep this in sync between the head row and
-   each body row so headers stay aligned with cells. Absolute minimums
-   prevent the Modified / File size / Sharing columns from crushing
-   into each other on narrow widths (e.g. when the detail panel is
-   open). The Name column flexes; the rest hold a sensible floor. */
+
 .odl-files-table__head,
 .odl-files-row {
   display: grid;
@@ -1192,8 +1156,6 @@ selection-actions-kebab {
 .odl-files-cell--name {
   color: var(--odl-text);
   font-weight: 500;
-  /* Name cells host the leading branded icon plus the title; lay them
-     out as a flex row so the icon never wraps below the text. */
   display: flex;
   align-items: center;
   gap: var(--odl-space-3);
@@ -1313,9 +1275,6 @@ selection-actions-kebab {
   font-size: var(--odl-font-size-sm);
 }
 
-/* Drop-zone banner reskin. App.css's `drop-zone.drop-zone--active` rule has
-   higher specificity than a single class, so the scoped `.odl-main` prefix
-   is needed for the dark tokens to take effect over the classic light ones. */
 .odl-main drop-zone.drop-zone--active {
   background: var(--odl-bg-elevated);
   border: 2px dashed var(--odl-accent);
@@ -1329,9 +1288,6 @@ selection-actions-kebab {
   color: var(--odl-text);
 }
 
-/* Primary action button (Create / Upload). Both `new-folder-input` and
-   `file-upload` host their submit button as the FIRST `<button>` in the
-   form — that's the one we paint accent-blue. */
 .odl-main new-folder-input > button[type="button"]:first-of-type,
 .odl-main .file-upload .btn--primary {
   appearance: none;
@@ -1372,7 +1328,6 @@ selection-actions-kebab {
   color: var(--odl-text);
 }
 
-/* Ghost / secondary action (Cancel). Always the last button in the row. */
 .odl-main new-folder-input > button[type="button"] + button[type="button"] {
   appearance: none;
   border: 1px solid transparent;
@@ -1562,9 +1517,6 @@ detail-panel {
   display: block;
   width: var(--odl-detail-width);
   background: var(--odl-bg-panel);
-  /* Match the main panel's vertical extent: same top/bottom margins so
-     the two cards align edge-to-edge. A small left gap separates them
-     visually (OneDrive does the same). */
   margin: 0 var(--odl-space-4) var(--odl-space-4) 0;
   padding: var(--odl-space-4);
   border-radius: var(--odl-radius-panel);
@@ -1619,8 +1571,6 @@ detail-panel-empty {
 /* ─── Selection-action toolbar buttons (stub variant) ─────────────────── */
 
 .odl-toolbar-button[data-stub="true"] {
-  /* Move To and Rename are UI-only until #36; keep them muted so the
-     user understands they're parked. */
   color: var(--odl-text-faint);
   cursor: not-allowed;
 }
@@ -1732,9 +1682,7 @@ editable-description {
   align-items: center;
   gap: var(--odl-space-2);
 }
-/* Selector chain `editable-description input.odl-editable-description__input`
-   beats the global `input[type="text"]` and `input[type="text"]:focus` rules
-   from App.css so we don't inherit the light-theme box-shadow halo. */
+
 editable-description input.odl-editable-description__input {
   appearance: none;
   flex: 1;
@@ -1791,8 +1739,7 @@ has-access-row {
   height: 28px;
   border-radius: 50%;
   overflow: hidden;
-  /* Overlap subsequent avatars and punch them out from the panel
-     surface so they read as a stacked group. */
+ 
   box-shadow: 0 0 0 2px var(--odl-bg-panel);
   margin-left: -8px;
 }
@@ -1863,8 +1810,6 @@ has-access-row {
   margin: 0;
 }
 
-/* Share panel embedded inside the OneDrive dialog — re-skin its
-   light-theme tokens onto the dark dialog surface. */
 .odl-dialog-content share-panel { color: var(--odl-text); }
 .odl-dialog-content .share-panel__heading,
 .odl-dialog-content .share-panel__subheading {
@@ -1889,9 +1834,6 @@ has-access-row {
 }
 .odl-dialog-content .share-panel__avatar--pending-wrap { opacity: 0.75; }
 
-/* Grant / Revoke buttons in the dark dialog — replace the light-theme
-   pill defaults with subtle outline buttons that match the OneDrive
-   accent and destructive colors. */
 .odl-dialog-content share-panel-row .btn {
   background: transparent;
   color: var(--odl-text);
@@ -1987,6 +1929,8 @@ file-preview-body .file-card__preview--doc {
   height: calc(100vh - 160px);
   border: 0;
   margin: 0;
+  background: var(--odl-bg-elevated);
+  color-scheme: dark;
 }
 
 file-preview-body .file-card__preview--audio {
@@ -2001,10 +1945,6 @@ onedrive-layout > shared-body { grid-area: main; }
 
 shared-toolbar {
   display: grid;
-  /* `auto 1fr auto` keeps the tabs and search at their natural widths
-     while the chip column flexes. `min-width: 0` on the children
-     prevents grid blow-out when chip text would otherwise force an
-     overflow. */
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--odl-space-4);
@@ -2037,11 +1977,7 @@ shared-body {
   font: inherit;
   font-size: 18px;
   font-weight: 600;
-  /* Tighter bottom padding pulls the active underline closer to the
-     text baseline so it reads like the OneDrive reference. */
   padding: 6px 2px 4px;
-  /* Tabs must never wrap their text — at narrow widths they collapse
-     vertically alongside the rest of the toolbar. */
   white-space: nowrap;
   position: relative;
   transition: color var(--odl-transition-fast);
@@ -2052,11 +1988,7 @@ shared-body {
 .odl-shared-tabs__trigger--active {
   color: var(--odl-text);
 }
-/* Active-tab underline. The class-based selector matches the buttons
-   we render (we no longer use Radix `data-state`); the data-state
-   variant is kept for any future Radix re-introduction. The bar sits
-   right below the text baseline (no negative offset) so the
-   underline hugs the label instead of floating below the trigger. */
+
 .odl-shared-tabs__trigger--active::after,
 .odl-shared-tabs__trigger[data-state="active"]::after {
   content: "";
@@ -2148,9 +2080,6 @@ type-filter-chips {
   outline: 2px solid var(--odl-accent);
   outline-offset: 2px;
 }
-/* Chip icons render as self-contained branded SVGs (Word=blue with W,
-   Excel=green with X, …). No CSS tile wrapper — the icon brings its
-   own colors so the chip pill looks like OneDrive's flat icons. */
 .odl-filter-chip__icon {
   display: inline-flex;
   align-items: center;
@@ -2174,9 +2103,6 @@ shared-toolbar-search {
 
 person-name-filter {
   display: block;
-  /* Width scales down with the viewport so the search never crowds
-     the chip row at medium widths. The narrow breakpoint snaps it to
-     full width. */
   width: min(280px, 36vw);
   max-width: 100%;
 }
@@ -2266,8 +2192,6 @@ shared-files-cell {
   min-width: 0;
 }
 
-/* Row icons mirror the chip icons — branded SVGs with no CSS tile,
-   so each file row reads like OneDrive's inline file glyphs. */
 .odl-shared-row__icon {
   display: inline-flex;
   align-items: center;
@@ -2310,18 +2234,12 @@ shared-files-name {
   white-space: nowrap;
 }
 
-/* Medium viewport (≤ 960px): toolbar starts to wrap, so the inline
-   chip row is replaced by the collapsed "All ▼" dropdown. The
-   layout still flows horizontally — toolbar items don't yet stack. */
 @media (max-width: 960px) {
   .odl-shared-toolbar__chips--inline { display: none; }
   .odl-shared-toolbar__chips--collapsed { display: block; }
 }
 
-/* Narrow viewport (≤ 560px): stack the toolbar vertically and fold the
-   table down to its Name column. The chip control stays as the
-   "All ▼" dropdown — the inline icon-only mode lives in a tighter
-   breakpoint below. */
+
 @media (max-width: 560px) {
   shared-toolbar {
     grid-template-columns: 1fr;
@@ -2351,17 +2269,10 @@ shared-files-name {
   }
 }
 
-/* Very narrow viewport (≤ 380px): replace the dropdown with inline
-   icon-only chips so the chip set is reachable in one tap on small
-   phones — the dropdown trigger plus its menu eat too much vertical
-   real estate at this width. */
 @media (max-width: 380px) {
   .odl-shared-toolbar__chips--inline { display: block; }
   .odl-shared-toolbar__chips--collapsed { display: none; }
 
-  /* Hide chip text on the branded chips (Folder/Word/Excel/...) and
-     compress them to a square icon-only button. The "All" chip has no
-     icon so it keeps its text label. */
   .odl-filter-chip--with-icon .odl-filter-chip__label {
     display: none;
   }
@@ -2435,9 +2346,6 @@ people-view-detail {
   font: inherit;
   font-size: var(--odl-font-size-md);
   padding: 4px 8px 4px 0;
-  /* The detail view's only divider sits beneath the back link, so
-     "Back to People" reads as the page header and the toolbar below
-     flows directly into the file table. */
   margin: 0 0 var(--odl-space-3);
   padding-bottom: var(--odl-space-3);
   border-bottom: 1px solid var(--odl-divider);
@@ -2459,11 +2367,6 @@ people-view-detail {
   height: 18px;
 }
 
-/* Inside the People detail view the shared-toolbar uses a flex row
-   instead of the grid SharedView relies on. That lets the "All" chip
-   hug the identity slot (no wide 1fr column between name and chip)
-   while the filter input slides to the far right via margin-left:
-   auto, matching the OneDrive reference 1:1. */
 onedrive-view[data-view-id="people-detail"] shared-toolbar {
   display: flex;
   align-items: center;
@@ -2474,9 +2377,6 @@ onedrive-view[data-view-id="people-detail"] shared-toolbar-search {
   margin-left: auto;
 }
 
-/* Only the file table inside the detail view sits on an elevated
-   panel — the back link + toolbar above stay flush against the page
-   so the layout reads exactly like the OneDrive reference. */
 onedrive-view[data-view-id="people-detail"] shared-files-table {
   background: var(--odl-bg-panel);
   border-radius: var(--odl-radius-panel);
@@ -2484,10 +2384,6 @@ onedrive-view[data-view-id="people-detail"] shared-files-table {
   margin-top: var(--odl-space-3);
 }
 
-/* Narrow viewports: the people-detail toolbar wraps so the filter
-   drops to its own row (full width) below the avatar + name + chip.
-   The flex container's wrap behavior keeps the identity row tight,
-   matching the OneDrive narrow-window reference. */
 @media (max-width: 560px) {
   onedrive-view[data-view-id="people-detail"] shared-toolbar {
     flex-wrap: wrap;
@@ -2511,8 +2407,6 @@ person-detail-identity {
 }
 .odl-person-detail__name {
   margin: 0;
-  /* Matches the OneDrive reference's prominent contact name — same
-     size as the page-header title in other views. */
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -2520,6 +2414,131 @@ person-detail-identity {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.odl-person-detail__catalog {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+  padding: var(--odl-space-2) var(--odl-space-3);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-pill);
+  background: var(--odl-bg-elevated);
+  color: var(--odl-text-muted);
+  font: inherit;
+  font-size: var(--odl-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--odl-transition-fast), border-color var(--odl-transition-fast), background var(--odl-transition-fast);
+}
+.odl-person-detail__catalog::before {
+  content: "📁";
+  font-size: 13px;
+  line-height: 1;
+}
+.odl-person-detail__catalog:hover {
+  color: var(--odl-text);
+  border-color: var(--odl-text-muted);
+  background: var(--odl-bg-hover);
+}
+.odl-person-detail__catalog:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+}
+
+person-detail-browse {
+  display: block;
+  background: var(--odl-bg-panel);
+  border-radius: var(--odl-radius-panel);
+  overflow: hidden;
+}
+
+person-detail-browse type-folders {
+  display: flex;
+  flex-direction: column;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+person-detail-browse .type-folders__heading { display: none; }
+person-detail-browse type-folder {
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--odl-divider);
+  background: transparent;
+  margin: 0;
+}
+person-detail-browse type-folder:last-child { border-bottom: 0; }
+
+person-detail-browse type-folder:has(type-folder-body) > type-folder-header { border-bottom: 0; }
+person-detail-browse type-folder-header {
+  gap: var(--odl-space-3);
+  padding: 0 var(--odl-space-4);
+  min-height: var(--odl-row-height);
+  background: transparent;
+}
+person-detail-browse type-folder-header:hover { background: var(--odl-bg-hover); }
+person-detail-browse .type-folder__toggle:hover .type-folder__label { color: var(--odl-text); }
+person-detail-browse .type-folder__toggle { gap: var(--odl-space-3); }
+person-detail-browse .type-folder__icon { font-size: 18px; }
+person-detail-browse .type-folder__label {
+  color: var(--odl-text);
+  font-weight: 500;
+  font-size: var(--odl-font-size-md);
+}
+
+person-detail-browse .type-folder__count {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-sm);
+  text-transform: none;
+  letter-spacing: 0;
+}
+person-detail-browse .type-folder__chevron { color: var(--odl-text-muted); }
+person-detail-browse type-folder-body {
+  border-top: 1px solid var(--odl-divider);
+  background: transparent;
+}
+person-detail-browse type-folder-file-row {
+  gap: var(--odl-space-3);
+  padding: 0 var(--odl-space-4) 0 var(--odl-space-8);
+  min-height: var(--odl-row-height);
+  border-bottom: 1px solid var(--odl-divider);
+}
+person-detail-browse type-folder-file-row:last-child { border-bottom: 0; }
+person-detail-browse type-folder-file-row:hover { background: var(--odl-bg-hover); }
+person-detail-browse .type-folder__file-name {
+  color: var(--odl-text);
+  font-size: var(--odl-font-size-md);
+}
+person-detail-browse .type-folder__file-name::before {
+  margin-right: var(--odl-space-3);
+  font-size: 16px;
+}
+person-detail-browse .btn--ghost {
+  background: transparent;
+  border: 1px solid var(--odl-border);
+  color: var(--odl-text-muted);
+}
+person-detail-browse .btn--ghost:hover:not(:disabled) {
+  color: var(--odl-text);
+  border-color: var(--odl-text-muted);
+  background: var(--odl-bg-hover);
+}
+
+person-detail-browse .request-status--pending { color: var(--odl-text-muted); background: var(--odl-bg-hover); }
+person-detail-browse .request-status--approved { color: #4ade80; background: rgba(74, 222, 128, 0.14); }
+person-detail-browse .request-status--denied { color: #f3a4a4; background: rgba(243, 164, 164, 0.14); }
+
+people-row-request {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--odl-space-2);
+  flex-shrink: 0;
 }
 
 /* ─── OneDrive-style people list ──────────────────────────────────────── */
@@ -2606,9 +2625,6 @@ people-list-add {
   align-items: center;
 }
 
-/* The `input[type="text"]` rule in App.css has type+attribute specificity
-   (0,1,1), which beats a single class selector. Qualifying with the tag
-   bumps this rule to the same level, so the dark tokens stick. */
 input[type="text"].odl-people-list__add-input {
   appearance: none;
   flex: 1;
@@ -2737,8 +2753,7 @@ person-row:hover .odl-people-row__action,
 person-row:focus-within .odl-people-row__action {
   opacity: 1;
 }
-/* The "sent" + "error" states stay visible even off hover so the
-   user keeps the receipt of their action. */
+
 .odl-people-row__action--sent,
 .odl-people-row__action--error {
   opacity: 1;
@@ -2836,7 +2851,6 @@ recent-toolbar-chips {
 }
 
 recent-toolbar-search {
-  /* Push the filter input to the far right of the toolbar row. */
   margin-left: auto;
 }
 
@@ -2845,9 +2859,6 @@ recent-files-table {
   flex-direction: column;
   width: 100%;
   margin-top: var(--odl-space-3);
-  /* Only the file table itself sits on the elevated panel — the
-     toolbar above (heading + chips + filter) stays flush against the
-     page surface, matching the OneDrive reference 1:1. */
   background: var(--odl-bg-panel);
   border-radius: var(--odl-radius-panel);
   padding: var(--odl-space-2) var(--odl-space-3) var(--odl-space-4);
@@ -2951,8 +2962,7 @@ recent-files-name {
   border-radius: var(--odl-radius-card);
 }
 
-/* Narrow viewport: stack the toolbar; fold the table to its Name
-   column so the layout matches the SharedView/MyFilesView pattern. */
+
 @media (max-width: 560px) {
   recent-toolbar {
     flex-wrap: wrap;
@@ -2987,7 +2997,7 @@ requests-list {
 requests-list-header {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--odl-space-3);
 }
 
@@ -3156,8 +3166,7 @@ request-card-actions {
   color: #ff8a8a;
 }
 
-/* Narrow viewports: cards stack the actions below the body so the
-   primary/secondary buttons stay readable. */
+
 @media (max-width: 560px) {
   request-card {
     grid-template-columns: auto 1fr;

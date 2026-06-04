@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 
 const mockDiscoverInbox = vi.fn();
 const mockPostRequest = vi.fn();
@@ -11,17 +11,24 @@ vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
   deleteAccessRequest: (...args: unknown[]) => mockDeleteRequest(...args),
 }));
 
+const mockMarkPending = vi.fn();
+const mockClearPending = vi.fn();
+vi.mock('@/shared/hooks/usePendingRequests', () => ({
+  usePendingRequests: () => ({
+    isPending: () => false,
+    markPending: mockMarkPending,
+    clearPending: mockClearPending,
+  }),
+}));
+
 import { useContactRequest } from '../useContactRequest-file/useContactRequest';
 
 const baseArgs = {
   webId: 'https://contact.example/profile/card#me',
   ownerWebId: 'https://owner.example/profile/card#me',
-  solidFetch: vi.fn() as unknown as (
-    url: RequestInfo,
-    init?: RequestInit,
-  ) => Promise<Response>,
-  rejection: undefined,
-  onClearRejection: vi.fn(),
+  solidFetch: vi.fn() as unknown as (url: RequestInfo, init?: RequestInit) => Promise<Response>,
+  outcomeMessageUri: undefined as string | undefined,
+  onClearOutcome: vi.fn(),
 };
 
 describe('useContactRequest', () => {
@@ -32,80 +39,64 @@ describe('useContactRequest', () => {
     mockDeleteRequest.mockResolvedValue(undefined);
   });
 
-  it('starts in the idle status', () => {
+  it('starts not failed', () => {
     const { result } = renderHook(() => useContactRequest(baseArgs));
-    expect(result.current.status).toBe('idle');
+    expect(result.current.failed).toBe(false);
   });
 
-  it('transitions through sending → sent on a successful request', async () => {
+  it('marks the contact pending and posts the request', async () => {
     const { result } = renderHook(() => useContactRequest(baseArgs));
     await act(async () => {
-      await result.current.requestAccess();
+      await result.current.request();
     });
-    expect(mockDiscoverInbox).toHaveBeenCalledWith(
-      baseArgs.webId,
-      baseArgs.solidFetch,
-    );
+    expect(mockMarkPending).toHaveBeenCalledWith(baseArgs.webId);
+    expect(mockDiscoverInbox).toHaveBeenCalledWith(baseArgs.webId, baseArgs.solidFetch);
     expect(mockPostRequest).toHaveBeenCalled();
-    expect(result.current.status).toBe('sent');
+    expect(result.current.failed).toBe(false);
   });
 
-  it('transitions to error when the inbox discovery throws', async () => {
+  it('rolls back the pending flag and flags failed when discovery throws', async () => {
     mockDiscoverInbox.mockRejectedValueOnce(new Error('boom'));
     const { result } = renderHook(() => useContactRequest(baseArgs));
     await act(async () => {
-      await result.current.requestAccess();
+      await result.current.request();
     });
-    expect(result.current.status).toBe('error');
+    expect(mockClearPending).toHaveBeenCalledWith(baseArgs.webId);
+    expect(result.current.failed).toBe(true);
   });
 
-  it('transitions to error when the post request rejects', async () => {
+  it('flags failed when the post rejects', async () => {
     mockPostRequest.mockRejectedValueOnce(new Error('rejected'));
     const { result } = renderHook(() => useContactRequest(baseArgs));
     await act(async () => {
-      await result.current.requestAccess();
+      await result.current.request();
     });
-    expect(result.current.status).toBe('error');
+    expect(result.current.failed).toBe(true);
   });
 
-  it('requestAgain clears the rejection, deletes the message, and re-posts', async () => {
-    const onClearRejection = vi.fn();
-    const rejection = {
-      messageUri: 'https://owner.example/inbox/msg-1',
-      accessTo: baseArgs.webId,
-    } as const;
-    const { result } = renderHook(() =>
-      useContactRequest({
-        ...baseArgs,
-        rejection,
-        onClearRejection,
-      }),
-    );
+  it('requestAgain deletes the prior outcome notice, clears it, and re-posts', async () => {
+    const onClearOutcome = vi.fn();
+    const outcomeMessageUri = 'https://owner.example/inbox/msg-1';
+    const { result } = renderHook(() => useContactRequest({ ...baseArgs, outcomeMessageUri, onClearOutcome }));
     await act(async () => {
       await result.current.requestAgain();
     });
-    expect(mockDeleteRequest).toHaveBeenCalledWith(
-      rejection.messageUri,
-      baseArgs.solidFetch,
-    );
-    expect(onClearRejection).toHaveBeenCalled();
-    await waitFor(() => expect(result.current.status).toBe('sent'));
+    expect(mockDeleteRequest).toHaveBeenCalledWith(outcomeMessageUri, baseArgs.solidFetch);
+    expect(onClearOutcome).toHaveBeenCalled();
+    expect(mockMarkPending).toHaveBeenCalledWith(baseArgs.webId);
+    expect(mockPostRequest).toHaveBeenCalled();
   });
 
   it('requestAgain swallows delete errors and still re-posts', async () => {
     mockDeleteRequest.mockRejectedValueOnce(new Error('cleanup failed'));
-    const onClearRejection = vi.fn();
+    const onClearOutcome = vi.fn();
     const { result } = renderHook(() =>
-      useContactRequest({
-        ...baseArgs,
-        rejection: { messageUri: 'https://x/m', accessTo: baseArgs.webId },
-        onClearRejection,
-      }),
+      useContactRequest({ ...baseArgs, outcomeMessageUri: 'https://x/m', onClearOutcome }),
     );
     await act(async () => {
       await result.current.requestAgain();
     });
-    expect(onClearRejection).toHaveBeenCalled();
+    expect(onClearOutcome).toHaveBeenCalled();
     expect(mockPostRequest).toHaveBeenCalled();
   });
 });

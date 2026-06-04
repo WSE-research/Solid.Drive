@@ -23,12 +23,12 @@ test("Parni requests all images, Peach approves, the images appears in the Share
   await grantDiscoveryAccess(peach.authedFetch, peach.pod, parni.pod.webId);
   await addContact(parni.authedFetch, parni.pod.webId, peach.pod.webId);
 
-  // Parni: click "Request all Image" 
+  // Parni: click "Request all"
   const parniSession = await freshLogin(browser, parni);
-  const requestAllButton = parniSession.page.getByRole("button", { name: /Request all Image/i });
+  const requestAllButton = parniSession.page.getByRole("button", { name: /Request all|Alle anfragen/i });
   await expect(requestAllButton).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await requestAllButton.click();
-  await expect(parniSession.page.getByText(/Requested|Angefragt/).first()).toBeVisible({ timeout: UI_TIMEOUTS.short });
+  await expect(parniSession.page.getByText(/Pending|Ausstehend/).first()).toBeVisible({ timeout: UI_TIMEOUTS.short });
 
   // Peach: approve the type-level request 
   const peachSession = await freshLogin(browser, peach);
@@ -43,7 +43,7 @@ test("Parni requests all images, Peach approves, the images appears in the Share
   await parniSession.close();
   const parniAfter = await freshLogin(browser, parni);
   await expect(parniAfter.page.getByText("Holiday Photo")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
-  await expect(parniAfter.page.getByRole("button", { name: /Request all Image/i })).toHaveCount(0);
+  await expect(parniAfter.page.getByRole("button", { name: /Request all|Alle anfragen/i })).toHaveCount(0);
 
   await parniAfter.close();
   await peachSession.close();

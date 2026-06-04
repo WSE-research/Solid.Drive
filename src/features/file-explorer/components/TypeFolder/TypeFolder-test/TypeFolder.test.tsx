@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import type { CatalogEntry } from '@/types';
-import type { AccessRejection } from '@/infrastructure/inbox/inboxAccess';
+import type { AccessApproval, AccessRejection } from '@/infrastructure/inbox/inboxAccess';
 import { TypeFolder } from '../TypeFolder-file/TypeFolder';
 
 const mockFetch = vi.fn();
@@ -48,22 +48,24 @@ const baseProps = {
   contactWebId: 'https://contact.example/profile/card#me',
   viewerWebId: 'https://viewer.example/profile/card#me',
   rejections: new Map(),
-  onClearRejection: vi.fn(),
+  approvals: new Map(),
+  onClearOutcome: vi.fn(),
 };
 
 describe('TypeFolder', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockDiscoverInboxUri.mockResolvedValue('https://contact.example/inbox/');
     mockPostFileAccessRequest.mockResolvedValue(undefined);
     mockPostTypeAccessRequest.mockResolvedValue(undefined);
     mockDeleteAccessRequest.mockResolvedValue(undefined);
   });
 
-  it('renders collapsed folder with label and count', () => {
+  it('renders collapsed folder with label and item count', () => {
     render(<TypeFolder {...baseProps} />);
     expect(screen.getByText('Image')).toBeInTheDocument();
-    expect(screen.getByText(String(entries.length))).toBeInTheDocument();
+    expect(screen.getByText(`${entries.length} sharedWithMe.items`)).toBeInTheDocument();
   });
 
   it('does not show file list when collapsed', () => {
@@ -108,21 +110,22 @@ describe('TypeFolder', () => {
     expect(mockPostFileAccessRequest).not.toHaveBeenCalled();
   });
 
-  it('shows "request sent" after successful bulk request', async () => {
+  it('shows the bulk "pending" label after a successful bulk request', async () => {
     render(<TypeFolder {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAll'));
     });
-    expect(screen.getByText('sharedWithMe.requestSent')).toBeInTheDocument();
+    expect(screen.getByText('sharedWithMe.requestPending')).toBeInTheDocument();
   });
 
-  it('shows "request error" when bulk request fails', async () => {
+  it('flags files for retry when the bulk request fails', async () => {
     mockDiscoverInboxUri.mockRejectedValue(new Error('fail'));
     render(<TypeFolder {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAll'));
     });
-    expect(screen.getByText('sharedWithMe.requestError')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Image'));
+    expect(screen.getAllByText('sharedWithMe.requestError').length).toBeGreaterThanOrEqual(1);
   });
 
   it('individual file request button sends access request on click', async () => {
@@ -164,15 +167,50 @@ describe('TypeFolder', () => {
       'https://viewer.example/inbox/rejection1',
       mockFetch
     );
-    expect(baseProps.onClearRejection).toHaveBeenCalledWith('https://pod.example/app/doc1/');
+    expect(baseProps.onClearOutcome).toHaveBeenCalledWith('https://pod.example/app/doc1/');
   });
 
-  it('disables request all button after sent', async () => {
+  it('shows the approved badge and a request again button', () => {
+    const approvals = new Map([
+      ['https://pod.example/app/doc1/', {
+        accessTo: 'https://pod.example/app/doc1/',
+        messageUri: 'https://viewer.example/inbox/approval1',
+      }],
+    ]);
+    render(<TypeFolder {...baseProps} approvals={approvals as Map<string, AccessApproval>} />);
+    fireEvent.click(screen.getByText('Image'));
+    expect(screen.getByText('sharedWithMe.requestApproved')).toBeInTheDocument();
+    expect(screen.getByText('sharedWithMe.requestAgain')).toBeInTheDocument();
+  });
+
+  it('request again from an approval deletes the approval notice and re-requests', async () => {
+    const approvals = new Map([
+      ['https://pod.example/app/doc1/', {
+        accessTo: 'https://pod.example/app/doc1/',
+        messageUri: 'https://viewer.example/inbox/approval1',
+      }],
+    ]);
+    render(<TypeFolder {...baseProps} approvals={approvals as Map<string, AccessApproval>} />);
+    fireEvent.click(screen.getByText('Image'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('sharedWithMe.requestAgain'));
+    });
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith('https://viewer.example/inbox/approval1', mockFetch);
+    expect(baseProps.onClearOutcome).toHaveBeenCalledWith('https://pod.example/app/doc1/');
+    expect(mockPostFileAccessRequest).toHaveBeenCalled();
+  });
+
+  it('renders a singular item label when the folder holds one entry', () => {
+    render(<TypeFolder {...baseProps} entries={[entries[0]] as CatalogEntry[]} />);
+    expect(screen.getByText('1 sharedWithMe.item')).toBeInTheDocument();
+  });
+
+  it('disables the request all button once every file is pending', async () => {
     render(<TypeFolder {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAll'));
     });
-    expect(screen.getByText('sharedWithMe.requestSent')).toBeDisabled();
+    expect(screen.getByText('sharedWithMe.requestPending')).toBeDisabled();
   });
 
   it('shows error status on individual file when handleRequestFile fails', async () => {
@@ -200,19 +238,16 @@ describe('TypeFolder', () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAgain'));
     });
     // Should still clear the rejection and re-request
-    expect(baseProps.onClearRejection).toHaveBeenCalledWith('https://pod.example/app/doc1/');
+    expect(baseProps.onClearOutcome).toHaveBeenCalledWith('https://pod.example/app/doc1/');
     expect(mockPostFileAccessRequest).toHaveBeenCalled();
   });
 
-  it('shows "sent" on individual file after bulk request succeeds', async () => {
+  it('shows the "pending" pill on each file after a bulk request succeeds', async () => {
     render(<TypeFolder {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('sharedWithMe.requestAll'));
     });
-    // Expand to see file rows
     fireEvent.click(screen.getByText('Image'));
-    // Individual file buttons should show "sent" since bulkStatus === "sent"
-    const sentButtons = screen.getAllByText('sharedWithMe.requestSent');
-    expect(sentButtons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('sharedWithMe.requestPending').length).toBeGreaterThanOrEqual(1);
   });
 });

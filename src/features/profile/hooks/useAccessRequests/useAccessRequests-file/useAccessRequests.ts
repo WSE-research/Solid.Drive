@@ -10,6 +10,7 @@ import {
   listAccessRequests,
   deleteAccessRequest,
   postRejectionNotification,
+  postApprovalNotification,
 } from "@/infrastructure/inbox/inboxAccess";
 import type { AccessRequest } from "@/infrastructure/inbox/inboxAccess";
 import {
@@ -143,20 +144,16 @@ async function grantFileAccess(
     request.requesterWebId,
     fetch,
   );
-  try {
-    const entries = await readCatalogEntries(catalogUri, fetch);
-    const entry = entries.find((candidate) => toContainerUri(candidate.uri) === request.accessTo);
-    if (entry) {
-      await syncSharedCatalog({
-        appContainerUri,
-        contactWebId: request.requesterWebId,
-        ownerWebId,
-        entries: [catalogEntryToSharedEntry(entry)],
-        fetch,
-      });
-    }
-  } catch {
-    return;
+  const entries = await readCatalogEntries(catalogUri, fetch);
+  const entry = entries.find((candidate) => toContainerUri(candidate.uri) === request.accessTo);
+  if (entry) {
+    await syncSharedCatalog({
+      appContainerUri,
+      contactWebId: request.requesterWebId,
+      ownerWebId,
+      entries: [catalogEntryToSharedEntry(entry)],
+      fetch,
+    });
   }
 }
 
@@ -258,6 +255,13 @@ export function useAccessRequests(
           request.requesterWebId,
           solidFetch,
         );
+
+        try {
+          const requesterInboxUri = await discoverInboxUri(request.requesterWebId, solidFetch);
+          await postApprovalNotification(requesterInboxUri, request.accessTo, solidFetch);
+        } catch {
+          /* best-effort: requester inbox may not be reachable */
+        }
 
         await deleteAndPrune(request);
       } catch (err) {

@@ -379,6 +379,57 @@ describe("parseCatalog", () => {
     expect(entries[0].uri).toBe("https://pod.example/my-app/entry/index.ttl");
     expect(entries[0].title).toBe("Relative Entry");
   });
+
+  it("excludes internal shared-catalog and system files from the entries", () => {
+    const sharedHelperUri =
+      "https://pod.example/my-solid-app/.shared-https%3A%2F%2Fcontact.example%2Fprofile%2Fcard.ttl";
+    const turtle = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dcterms: <http://purl.org/dc/terms/> .
+    <https://pod.example/my-solid-app/catalog.ttl> dcat:dataset
+      <https://pod.example/my-solid-app/photo/index.ttl> ,
+      <${sharedHelperUri}> ,
+      <https://pod.example/my-solid-app/catalog.ttl> .
+    <https://pod.example/my-solid-app/photo/index.ttl> a dcat:Dataset ;
+       dcterms:title "Photo" .
+    <${sharedHelperUri}> a dcat:Dataset ;
+       dcterms:title "Internal" .
+    <https://pod.example/my-solid-app/catalog.ttl> a dcat:Dataset ;
+       dcterms:title "Catalog" .
+    `.trim();
+    const entries = parseCatalog(turtle, "https://pod.example/my-solid-app/catalog.ttl");
+    expect(entries.map((entry) => entry.title)).toEqual(["Photo"]);
+  });
+
+  it("drops a conformsTo that points at a pod .ttl file instead of a real class", () => {
+    const sharedHelperUri =
+      "https://pod.example/my-solid-app/.shared-https%3A%2F%2Fcontact.example%2Fprofile%2Fcard.ttl";
+    const turtle = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dcterms: <http://purl.org/dc/terms/> .
+    <https://pod.example/my-solid-app/catalog.ttl> dcat:dataset
+      <https://pod.example/my-solid-app/poster/index.ttl> .
+    <https://pod.example/my-solid-app/poster/index.ttl> a dcat:Dataset ;
+       dcterms:title "Poster" ;
+       dcterms:conformsTo <${sharedHelperUri}> .
+    `.trim();
+    const [entry] = parseCatalog(turtle, "https://pod.example/my-solid-app/catalog.ttl");
+    expect(entry.title).toBe("Poster");
+    expect(entry.conformsTo).toBe("");
+  });
+
+  it("keeps a real schema.org conformsTo class", () => {
+    const turtle = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dcterms: <http://purl.org/dc/terms/> .
+    <https://pod.example/my-solid-app/catalog.ttl> dcat:dataset
+      <https://pod.example/my-solid-app/photo/index.ttl> .
+    <https://pod.example/my-solid-app/photo/index.ttl> a dcat:Dataset ;
+       dcterms:conformsTo <http://schema.org/ImageObject> .
+    `.trim();
+    const [entry] = parseCatalog(turtle, "https://pod.example/my-solid-app/catalog.ttl");
+    expect(entry.conformsTo).toBe("http://schema.org/ImageObject");
+  });
 });
 
 // ─── getFileTypeLabel ─────────────────────────────────────────────────────────

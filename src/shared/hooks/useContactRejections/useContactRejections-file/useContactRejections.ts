@@ -1,21 +1,32 @@
 /**
  * @packageDocumentation
- * Hook for tracking file access rejections from a contact's inbox.
+ * Tracks the outcome of the viewer's outgoing access requests by reading
+ * the approval and rejection notices the owner posts to the viewer's
+ * inbox. Refetched on focus/visibility so a decision made by the owner in
+ * another window shows up without a manual reload — the requester side
+ * stays in step with the owner instead of being frozen at its first read.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSolidAuth } from "@ldo/solid-react";
-import { discoverInboxUri, listRejectionNotifications } from "@/infrastructure/inbox/inboxAccess";
-import type { AccessRejection } from "@/infrastructure/inbox/inboxAccess";
+import { discoverInboxUri, listOutcomeNotifications } from "@/infrastructure/inbox/inboxAccess";
+import type { AccessApproval, AccessRejection } from "@/infrastructure/inbox/inboxAccess";
 
 interface UseContactRejectionsReturn {
+  /** Targets the owner denied, keyed by the request's accessTo. */
   fileRejections: Map<string, AccessRejection>;
-  handleClearRejection: (containerUri: string) => void;
+  /** Targets the owner approved, keyed by the request's accessTo. */
+  fileApprovals: Map<string, AccessApproval>;
+  /** Drops a target's outcome locally after its notice has been deleted. */
+  handleClearRejection: (accessTo: string) => void;
 }
 
+const toMap = <T extends { accessTo: string }>(items: T[]): Map<string, T> =>
+  new Map(items.map((item) => [item.accessTo, item]));
+
 /**
- * Fetches rejection notifications from the viewer's inbox and exposes
- * a handler to dismiss individual rejections.
+ * Reads the viewer's access-request outcomes from their inbox and keeps
+ * them current on focus.
  *
  * @param viewerWebId - WebID of the current user whose inbox to read
  *
@@ -24,34 +35,60 @@ interface UseContactRejectionsReturn {
 export function useContactRejections(viewerWebId: string): UseContactRejectionsReturn {
   const { fetch: solidFetch } = useSolidAuth();
   const [fileRejections, setFileRejections] = useState<Map<string, AccessRejection>>(new Map());
+  const [fileApprovals, setFileApprovals] = useState<Map<string, AccessApproval>>(new Map());
 
-  useEffect(() => {
-    if (!viewerWebId) return;
-    let cancelled = false;
-
-    void (async () => {
+  const loadOutcomes = useCallback(
+    async (isActive: () => boolean = () => true) => {
+      if (!viewerWebId) return;
       try {
         const inboxUri = await discoverInboxUri(viewerWebId, solidFetch);
-        const rejectionList = await listRejectionNotifications(inboxUri, solidFetch);
-        if (!cancelled) {
-          const rejectionMap = new Map(rejectionList.map((rejection) => [rejection.accessTo, rejection]));
-          setFileRejections(rejectionMap);
-        }
+        const { approvals, rejections } = await listOutcomeNotifications(inboxUri, solidFetch);
+        if (!isActive()) return;
+        setFileRejections(toMap(rejections));
+        setFileApprovals(toMap(approvals));
       } catch {
-        // inbox not accessible — silently ignore
+        return;
       }
+    },
+    [viewerWebId, solidFetch],
+  );
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      await loadOutcomes(() => active);
     })();
+    return () => {
+      active = false;
+    };
+  }, [loadOutcomes]);
 
-    return () => { cancelled = true; };
-  }, [viewerWebId, solidFetch]);
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") void loadOutcomes();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [loadOutcomes]);
 
-  const handleClearRejection = (containerUri: string) => {
+  const handleClearRejection = useCallback((accessTo: string) => {
     setFileRejections((prev) => {
+      if (!prev.has(accessTo)) return prev;
       const next = new Map(prev);
-      next.delete(containerUri);
+      next.delete(accessTo);
       return next;
     });
-  };
+    setFileApprovals((prev) => {
+      if (!prev.has(accessTo)) return prev;
+      const next = new Map(prev);
+      next.delete(accessTo);
+      return next;
+    });
+  }, []);
 
-  return { fileRejections, handleClearRejection };
+  return { fileRejections, fileApprovals, handleClearRejection };
 }

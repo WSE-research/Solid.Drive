@@ -41,6 +41,8 @@ describe("config/index exports", () => {
     "SEEN_REQUESTS_STORAGE_KEY",
     "SEEN_REQUESTS_CHANGE_EVENT",
     "SEEN_REQUESTS_MAX_STORED",
+    "PENDING_REQUESTS_STORAGE_KEY",
+    "PENDING_REQUESTS_CHANGE_EVENT",
     "REQUEST_TOAST_PROFILE_RESOLVE_TIMEOUT_MS",
     "NOTIFICATION_BELL_MAX_DROPDOWN_ITEMS",
     "NOTIFICATION_BELL_MAX_BADGE_DISPLAY",
@@ -55,7 +57,7 @@ describe("config/index exports", () => {
   });
 
   it("exports exactly the expected number of runtime values", () => {
-    // 41 constants + ENV
-    expect(Object.keys(Config)).toHaveLength(41);
+    // 43 constants + ENV
+    expect(Object.keys(Config)).toHaveLength(43);
   });
 });

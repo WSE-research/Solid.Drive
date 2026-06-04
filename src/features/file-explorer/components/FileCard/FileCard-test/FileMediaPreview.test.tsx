@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { FileMediaPreview } from '../FileCard-file/FileMediaPreview';
 
 vi.mock('@/config', () => ({
@@ -84,5 +84,52 @@ describe('FileMediaPreview', () => {
       <FileMediaPreview previewUrl={previewUrl} mimeType="application/zip" name="archive.zip" />
     );
     expect(container.innerHTML).toBe('');
+  });
+
+  it('injects a dark-theme stylesheet into the document frame on load', () => {
+    const { container } = render(
+      <FileMediaPreview previewUrl={previewUrl} mimeType="text/plain" name="readme.txt" />
+    );
+    const iframe = container.querySelector('iframe')!;
+    const frameDoc = document.implementation.createHTMLDocument('');
+    Object.defineProperty(iframe, 'contentDocument', {
+      configurable: true,
+      get() {
+        return frameDoc;
+      },
+    });
+    fireEvent.load(iframe);
+    const injected = frameDoc.head.querySelector('style');
+    expect(injected).not.toBeNull();
+    expect(injected!.textContent).toContain('color-scheme:dark');
+    expect(injected!.textContent).toContain('html,body');
+  });
+
+  it('silently ignores a frame whose document is unreachable', () => {
+    const { container } = render(
+      <FileMediaPreview previewUrl={previewUrl} mimeType="application/pdf" name="doc.pdf" />
+    );
+    const iframe = container.querySelector('iframe')!;
+    Object.defineProperty(iframe, 'contentDocument', {
+      configurable: true,
+      get() {
+        throw new Error('cross-origin');
+      },
+    });
+    expect(() => fireEvent.load(iframe)).not.toThrow();
+  });
+
+  it('does nothing when the frame document has no head', () => {
+    const { container } = render(
+      <FileMediaPreview previewUrl={previewUrl} mimeType="text/plain" name="readme.txt" />
+    );
+    const iframe = container.querySelector('iframe')!;
+    Object.defineProperty(iframe, 'contentDocument', {
+      configurable: true,
+      get() {
+        return {} as Document;
+      },
+    });
+    expect(() => fireEvent.load(iframe)).not.toThrow();
   });
 });

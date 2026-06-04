@@ -129,13 +129,13 @@ test("the No Pod link navigates to the onboarding sub-route and renders the four
   await expect(page.getByRole("link", { name: /walkthrough|einführungsvideo/i })).toBeVisible();
 });
 
-test("the Video link navigates to the walkthrough sub-route and renders the placeholder", async ({ page }) => {
+test("the Video link navigates to the walkthrough sub-route and renders the video", async ({ page }) => {
   test.setTimeout(TEST_TIMEOUTS.short);
   await gotoLanding(page);
 
   await page.getByRole("link", { name: /^video$/i }).click();
   await expect(page).toHaveURL(/\/video$/);
-  await expect(page.locator("landing-video-play")).toBeVisible();
+  await expect(page.locator("video.landing__video-player")).toBeVisible();
   await expect(page.locator(".landing__video-caption")).toBeVisible();
 });
 

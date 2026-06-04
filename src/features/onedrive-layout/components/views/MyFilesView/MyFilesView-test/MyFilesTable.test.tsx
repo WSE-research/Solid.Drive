@@ -23,6 +23,7 @@ vi.mock('@ldo/solid-react', () => ({
     uri,
     children: () => mockChildrenByUri.get(uri) ?? [],
   }),
+  useLdo: () => ({ dataset: { match: () => [] } }),
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({

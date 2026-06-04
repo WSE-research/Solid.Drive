@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { CatalogEntry } from '@/types';
-import type { AccessRejection } from '@/infrastructure/inbox/inboxAccess';
 
 const mockDiscoverInboxUri = vi.fn();
 const mockPostFileAccessRequest = vi.fn();
@@ -23,32 +22,16 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
 import { useFileAccessRequests } from '../useAccessRequests-file/useAccessRequests';
 
 const solidFetch = vi.fn() as unknown as typeof fetch;
-const onClearRejection = vi.fn();
+const onClearOutcome = vi.fn();
 
-const entryA: CatalogEntry = {
-  uri: 'https://pod.example/app/doc1/index.ttl',
-  title: 'Document 1',
-  conformsTo: '',
-  description: '',
-  modified: '',
-  publisher: '',
-  mediaType: '',
-  byteSize: 0,
-  accessURL: '',
-};
+const makeEntry = (uri: string, title: string): CatalogEntry => ({
+  uri, title, conformsTo: '', description: '', modified: '', publisher: '', mediaType: '', byteSize: 0, accessURL: '',
+});
 
-const entryB: CatalogEntry = {
-  uri: 'https://pod.example/app/doc2/index.ttl',
-  title: 'Document 2',
-  conformsTo: '',
-  description: '',
-  modified: '',
-  publisher: '',
-  mediaType: '',
-  byteSize: 0,
-  accessURL: '',
-};
-
+const entryA = makeEntry('https://pod.example/app/doc1/index.ttl', 'Document 1');
+const entryB = makeEntry('https://pod.example/app/doc2/index.ttl', 'Document 2');
+const CONTAINER_A = 'https://pod.example/app/doc1/';
+const CONTAINER_B = 'https://pod.example/app/doc2/';
 const classUri = 'http://schema.org/ImageObject';
 
 const baseParams = {
@@ -57,197 +40,123 @@ const baseParams = {
   solidFetch,
   entries: [entryA, entryB],
   classUri,
-  onClearRejection,
+  onClearOutcome,
 };
 
 describe('useFileAccessRequests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockDiscoverInboxUri.mockResolvedValue('https://contact.example/inbox/');
     mockPostFileAccessRequest.mockResolvedValue(undefined);
     mockPostTypeAccessRequest.mockResolvedValue(undefined);
     mockDeleteAccessRequest.mockResolvedValue(undefined);
   });
 
-  it('initialises with idle bulk status and empty file statuses', () => {
+  it('starts with nothing pending and no failures', () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-    expect(result.current.bulkStatus).toBe('idle');
-    expect(result.current.fileStatuses).toEqual({});
+    expect(result.current.allPending).toBe(false);
+    expect(result.current.failedUris.size).toBe(0);
   });
 
-  // --- handleRequestAll ---
-
-  it('sets bulkStatus to "sending" while request is in flight', async () => {
-    let resolveInbox!: (value: string) => void;
-    mockDiscoverInboxUri.mockReturnValue(new Promise<string>((resolve) => { resolveInbox = resolve; }));
-
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    act(() => { void result.current.handleRequestAll(); });
-    expect(result.current.bulkStatus).toBe('sending');
-
-    await act(async () => { resolveInbox('https://contact.example/inbox/'); });
+  it('reports allPending false when there are no entries', () => {
+    const { result } = renderHook(() => useFileAccessRequests({ ...baseParams, entries: [] }));
+    expect(result.current.allPending).toBe(false);
   });
 
-  it('sets bulkStatus to "sent" after the category request succeeds', async () => {
+  it('sends one category request and marks every entry pending', async () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
     await act(async () => { await result.current.handleRequestAll(); });
-
-    expect(result.current.bulkStatus).toBe('sent');
-  });
-
-  it('sends exactly one category-level request regardless of entry count', async () => {
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAll(); });
-
     expect(mockPostTypeAccessRequest).toHaveBeenCalledTimes(1);
     expect(mockPostFileAccessRequest).not.toHaveBeenCalled();
+    expect(result.current.allPending).toBe(true);
   });
 
   it('passes the classUri to postTypeAccessRequest', async () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
     await act(async () => { await result.current.handleRequestAll(); });
-
-    expect(mockDiscoverInboxUri).toHaveBeenCalledWith(
-      'https://contact.example/profile/card#me',
-      solidFetch
-    );
     expect(mockPostTypeAccessRequest).toHaveBeenCalledWith(
       'https://contact.example/inbox/',
       'https://viewer.example/profile/card#me',
       classUri,
-      solidFetch
+      solidFetch,
     );
   });
 
-  it('marks every entry as "sent" after a successful bulk request', async () => {
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAll(); });
-
-    expect(result.current.fileStatuses[entryA.uri]).toBe('sent');
-    expect(result.current.fileStatuses[entryB.uri]).toBe('sent');
-  });
-
-  it('sets bulkStatus to "error" when inbox discovery fails', async () => {
-    mockDiscoverInboxUri.mockRejectedValue(new Error('network error'));
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAll(); });
-
-    expect(result.current.bulkStatus).toBe('error');
-  });
-
-  it('sets bulkStatus to "error" when posting the category request fails', async () => {
+  it('rolls back pending and flags every entry failed when the bulk request fails', async () => {
     mockPostTypeAccessRequest.mockRejectedValue(new Error('post failed'));
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
     await act(async () => { await result.current.handleRequestAll(); });
-
-    expect(result.current.bulkStatus).toBe('error');
+    expect(result.current.allPending).toBe(false);
+    expect(result.current.failedUris.has(CONTAINER_A)).toBe(true);
+    expect(result.current.failedUris.has(CONTAINER_B)).toBe(true);
   });
 
-  // --- handleRequestFile ---
-
-  it('sets file status to "sending" then "sent" on success', async () => {
+  it('requests a single file by its container URI', async () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
     await act(async () => { await result.current.handleRequestFile(entryA); });
-
-    expect(result.current.fileStatuses[entryA.uri]).toBe('sent');
-    expect(mockPostFileAccessRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it('sends the correct container URI for the file', async () => {
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestFile(entryA); });
-
     expect(mockPostFileAccessRequest).toHaveBeenCalledWith(
       'https://contact.example/inbox/',
       'https://viewer.example/profile/card#me',
-      'https://pod.example/app/doc1/',
-      solidFetch
+      CONTAINER_A,
+      solidFetch,
     );
   });
 
-  it('sets file status to "error" when the request fails', async () => {
+  it('flags a single file failed when its request fails', async () => {
     mockDiscoverInboxUri.mockRejectedValue(new Error('inbox error'));
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
     await act(async () => { await result.current.handleRequestFile(entryA); });
-
-    expect(result.current.fileStatuses[entryA.uri]).toBe('error');
+    expect(result.current.failedUris.has(CONTAINER_A)).toBe(true);
   });
 
-  it('tracks statuses independently for different files', async () => {
-    mockDiscoverInboxUri
-      .mockResolvedValueOnce('https://contact.example/inbox/')
-      .mockRejectedValueOnce(new Error('fail'));
-
+  it('clears the failed flag once a retry succeeds', async () => {
+    mockDiscoverInboxUri.mockRejectedValueOnce(new Error('inbox error'));
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
     await act(async () => { await result.current.handleRequestFile(entryA); });
+    expect(result.current.failedUris.has(CONTAINER_A)).toBe(true);
+    await act(async () => { await result.current.handleRequestFile(entryA); });
+    expect(result.current.failedUris.has(CONTAINER_A)).toBe(false);
+  });
+
+  it('allPending turns true only once every file is requested', async () => {
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
+    await act(async () => { await result.current.handleRequestFile(entryA); });
+    expect(result.current.allPending).toBe(false);
     await act(async () => { await result.current.handleRequestFile(entryB); });
-
-    expect(result.current.fileStatuses[entryA.uri]).toBe('sent');
-    expect(result.current.fileStatuses[entryB.uri]).toBe('error');
+    expect(result.current.allPending).toBe(true);
   });
 
-  // --- handleRequestAgain ---
+  const OUTCOME_URI = 'https://viewer.example/inbox/outcome1';
 
-  const rejection: AccessRejection = {
-    accessTo: 'https://pod.example/app/doc1/',
-    messageUri: 'https://viewer.example/inbox/rejection1',
-  };
-
-  it('deletes the old rejection message before re-requesting', async () => {
+  it('deletes the prior outcome notice, clears it, and re-requests', async () => {
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
-
-    expect(mockDeleteAccessRequest).toHaveBeenCalledWith(
-      'https://viewer.example/inbox/rejection1',
-      solidFetch
-    );
-  });
-
-  it('calls onClearRejection with the container URI', async () => {
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
-
-    expect(onClearRejection).toHaveBeenCalledWith('https://pod.example/app/doc1/');
-  });
-
-  it('sends a new access request after clearing the rejection', async () => {
-    const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
-
+    await act(async () => { await result.current.handleRequestAgain(entryA, OUTCOME_URI); });
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith(OUTCOME_URI, solidFetch);
+    expect(onClearOutcome).toHaveBeenCalledWith(CONTAINER_A);
     expect(mockPostFileAccessRequest).toHaveBeenCalledTimes(1);
-    expect(result.current.fileStatuses[entryA.uri]).toBe('sent');
   });
 
-  it('still clears and re-requests even when deleteAccessRequest throws', async () => {
+  it('still re-requests when deleteAccessRequest throws', async () => {
     mockDeleteAccessRequest.mockRejectedValue(new Error('delete failed'));
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
-
-    expect(onClearRejection).toHaveBeenCalledWith('https://pod.example/app/doc1/');
+    await act(async () => { await result.current.handleRequestAgain(entryA, OUTCOME_URI); });
+    expect(onClearOutcome).toHaveBeenCalledWith(CONTAINER_A);
     expect(mockPostFileAccessRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('sets file status to "error" when the re-request fails after clearing', async () => {
+  it('skips the delete when re-requesting without a prior outcome notice', async () => {
+    const { result } = renderHook(() => useFileAccessRequests(baseParams));
+    await act(async () => { await result.current.handleRequestAgain(entryA, undefined); });
+    expect(mockDeleteAccessRequest).not.toHaveBeenCalled();
+    expect(onClearOutcome).toHaveBeenCalledWith(CONTAINER_A);
+    expect(mockPostFileAccessRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('flags failed when the re-request itself fails', async () => {
     mockPostFileAccessRequest.mockRejectedValue(new Error('post failed'));
     const { result } = renderHook(() => useFileAccessRequests(baseParams));
-
-    await act(async () => { await result.current.handleRequestAgain(entryA, rejection); });
-
-    expect(result.current.fileStatuses[entryA.uri]).toBe('error');
+    await act(async () => { await result.current.handleRequestAgain(entryA, OUTCOME_URI); });
+    expect(result.current.failedUris.has(CONTAINER_A)).toBe(true);
   });
 });

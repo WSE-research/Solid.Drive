@@ -79,12 +79,13 @@ test("a new request arriving while the page is open ticks the badge up and fires
   // refresh path alongside the Solid Notifications WebSocket. Triggering
   // the listener directly keeps the test deterministic. The live-refresh
   // contract is what we want to assert, regardless of whether the WS
-  // channel handshakes in time inside headless CSS.
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-
-  await expect(page.getByTestId("notification-bell-badge").first()).toHaveText("1", {
-    timeout: UI_TIMEOUTS.long,
-  });
+  // channel handshakes in time inside headless CSS. Re-dispatch on every
+  // poll so a single refresh that races inbox propagation (or reads a
+  // cached empty listing) under CI load doesn't strand the assertion.
+  await expect(async () => {
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(page.getByTestId("notification-bell-badge").first()).toHaveText("1");
+  }).toPass({ timeout: UI_TIMEOUTS.long });
   // Match either the resolved profile name ("Parni") or the WebID-derived
   // fallback ("parni"). The toast firer races a 1500ms timeout, and under
   // full-suite load the LDO profile fetch can lose that race.

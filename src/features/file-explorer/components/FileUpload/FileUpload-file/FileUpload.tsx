@@ -93,13 +93,17 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     setTitle(event.target.value);
   const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) =>
     setDescription(event.target.value);
-  const handleCancel = useCallback(() => {
+  const resetForm = useCallback(() => {
     setTitle("");
     setDescription("");
     setPendingFile(undefined);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    resetForm();
     onUploadSuccess?.();
-  }, [onUploadSuccess]);
+  }, [resetForm, onUploadSuccess]);
 
   const handleSubmit = useCallback(async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -107,33 +111,32 @@ export const FileUpload: FunctionComponent<FileUploadProps> = ({ mainContainer, 
     if (validation && !validation.valid) return;
 
     try {
-      await upload({ 
-        file: pendingFile, 
-        title, description, 
-        mainContainer, 
-        catalogUri, 
-        profileHasCatalog 
+      await upload({
+        file: pendingFile,
+        title, description,
+        mainContainer,
+        catalogUri,
+        profileHasCatalog
       });
       onUploadSuccess?.();
-      setTitle("");
-      setDescription("");
-      setPendingFile(undefined);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      resetForm();
       showSuccess(translate("fileUpload.uploadSuccess"));
     } catch (err) {
-      showError(`Upload failed: ${(err as Error).message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      showError(translate("fileUpload.uploadError", { message }));
     }
   }, [
-    session.webId, 
-    pendingFile, 
-    validation, 
-    upload, 
-    title, 
-    description, 
-    mainContainer, 
-    catalogUri, 
-    profileHasCatalog, 
-    onUploadSuccess, 
+    session.webId,
+    pendingFile,
+    validation,
+    upload,
+    title,
+    description,
+    mainContainer,
+    catalogUri,
+    profileHasCatalog,
+    onUploadSuccess,
+    resetForm,
     showError,
     showSuccess,
     translate,

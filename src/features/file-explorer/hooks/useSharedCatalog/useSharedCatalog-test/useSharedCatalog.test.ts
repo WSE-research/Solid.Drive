@@ -31,11 +31,13 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
   getCandidateSharedCatalogUris: (...args: unknown[]) => mockGetCandidateUris(...args),
   toContainerUri: (uri: string) => uri.replace(/[^/]+$/, ''),
   hasAccess: (...args: unknown[]) => mockHasAccess(...args),
+  isSharedCatalogFile: (name: string) => name.startsWith('.shared-') && name.endsWith('.ttl'),
 }));
 
 vi.mock('@/config', () => ({
   DEFAULT_FILE_TYPE_URI: 'http://schema.org/DigitalDocument',
   DEFAULT_CATALOG_FILENAME: 'catalog.ttl',
+  SYSTEM_FILES: new Set(['catalog.ttl', 'robots.txt', 'README', '.acl', '.meta']),
 }));
 
 import {
@@ -100,6 +102,26 @@ describe('useSharedCatalog', () => {
       expect(result.current.catalogAccessible).toBe(true);
     });
     expect(result.current.sharedEntries).toEqual([]);
+  });
+
+  it('hides internal shared-catalog helper files that appear in a contact catalog', async () => {
+    const realEntry = { uri: 'https://contact.example/files/photo/index.ttl', title: 'Photo', conformsTo: '' };
+    const helperEntry = {
+      uri: 'https://contact.example/my-solid-app/.shared-https%3A%2F%2Fviewer.example%2Fprofile%2Fcard.ttl',
+      title: 'Internal',
+      conformsTo: '',
+    };
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('per-viewer') });
+    mockParseCatalog.mockReturnValue([realEntry, helperEntry]);
+    mockHasAccess.mockResolvedValue(true);
+
+    const { result } = renderHook(() =>
+      useSharedCatalog('https://contact.example/profile/card#me', 'https://viewer.example/profile/card#me')
+    );
+
+    await waitFor(() => {
+      expect(result.current.sharedEntries.map((entry) => entry.title)).toEqual(['Photo']);
+    });
   });
 
   it('probes accessibility against entry.uri (the metadata index) — not the container — to avoid false negatives from servers that 404 on container HEAD', async () => {

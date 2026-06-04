@@ -1,5 +1,5 @@
 /*
- * OneDrive light theme — token overrides keyed off data-theme="light".
+ * OneDrive light theme: token overrides keyed off data-theme="light".
  * Must load after OneDriveLayout.css so the cascade picks up these values.
  * Direct-rule overrides below handle destructive accents and shadows that
  * the token map alone cannot retheme.
@@ -7,7 +7,7 @@
 
 :root[data-theme="light"] {
   /* surfaces */
-  --odl-bg-page:       #faf9f8;
+  --odl-bg-page:       #f4f3f1;
   --odl-bg-panel:      #ffffff;
   --odl-bg-elevated:   #ffffff;
   --odl-bg-hover:      #f3f2f1;
@@ -55,9 +55,6 @@
 :root[data-theme="light"] .odl-requests-list__error {
   color: #a4262c;
 }
-:root[data-theme="light"] .odl-people-row__action--error {
-  color: #a4262c;
-}
 :root[data-theme="light"] .odl-people-row__action--remove:hover:not(:disabled) {
   background: rgba(164, 38, 44, 0.10);
   color: #a4262c;
@@ -76,11 +73,7 @@
   color: #a4262c;
 }
 
-:root[data-theme="light"] .odl-people-row__action--sent {
-  color: #107c10;
-}
-
-/* Confirm-dialog scrim only — surface/text colors already flow through
+/* Confirm-dialog scrim only: surface/text colors already flow through
    the --odl-* tokens via App.css's body:has(onedrive-layout) rules. */
 :root[data-theme="light"] body:has(onedrive-layout) confirm-overlay {
   background: rgba(15, 23, 42, 0.40);

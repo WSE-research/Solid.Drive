@@ -1,2 +1,2 @@
-export { discoverInboxUri, postCatalogAccessRequest, postFileAccessRequest, postRejectionNotification, listRejectionNotifications, listAccessRequests, deleteAccessRequest } from "./inboxAccess";
-export type { AccessRejection, AccessRequest, AccessRequestType } from "./inboxAccess";
+export { discoverInboxUri, postCatalogAccessRequest, postFileAccessRequest, postRejectionNotification, postApprovalNotification, listOutcomeNotifications, listAccessRequests, deleteAccessRequest } from "./inboxAccess";
+export type { AccessApproval, AccessRejection, AccessRequest, AccessRequestType, InboxOutcomes } from "./inboxAccess";

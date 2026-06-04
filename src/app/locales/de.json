@@ -26,8 +26,8 @@
       "step3": "Richte deinen persönlichen Pod ein.",
       "step4": "Kehre anschließend hierher zurück und melde dich mit deinem Pod Anbieter an.",
       "videoLink": "Einführungsvideo",
-      "videoCaption": "Einführungsvideo folgt in Kürze",
-      "videoAria": "Platzhalter für Einführungsvideo"
+      "videoCaption": "Ein kurzer Rundgang durch Solid.drive",
+      "videoAria": "Solid.drive Rundgangsvideo"
     },
     "providers": {
       "heading": "Solid Anbieter",
@@ -152,6 +152,7 @@
     "fieldRequired": "\u2014 {label} ist erforderlich",
     "tboxError": "TBox konnte nicht geladen werden:",
     "uploadSuccess": "Datei erfolgreich hochgeladen",
+    "uploadError": "Upload fehlgeschlagen: {{message}}",
     "cancel": "Abbrechen"
   },
   "profileSidebar": {
@@ -171,7 +172,8 @@
     "profileSaved": "Profil erfolgreich gespeichert",
     "invalidWebId": "WebID muss eine gültige http(s)://-URL sein",
     "requestAccess": "Zugriff anfragen",
-    "requestSent": "Angefragt",
+    "requestPending": "Ausstehend…",
+    "requestApproved": "Genehmigt",
     "requestError": "Erneut versuchen",
     "requestDenied": "Abgelehnt",
     "requestAgain": "Erneut anfragen"
@@ -205,9 +207,12 @@
     "from": "Von {{name}}",
     "noFilesYet": "Zugriff gewährt — noch keine Dateien geteilt.",
     "browseHeading": "Auch verfügbar",
+    "item": "Element",
+    "items": "Elemente",
     "requestFile": "Anfragen",
-    "requestAll": "Alle {{type}} anfragen",
-    "requestSent": "Angefragt",
+    "requestAll": "Alle anfragen",
+    "requestPending": "Ausstehend…",
+    "requestApproved": "Genehmigt",
     "requestError": "Erneut versuchen",
     "requestDenied": "Abgelehnt",
     "requestAgain": "Erneut anfragen"
@@ -387,7 +392,8 @@
       "heading": "Personen",
       "selectPrompt": "Wähle einen Kontakt, um zu sehen, was er mit dir geteilt hat.",
       "filesByHeading": "Dateien geteilt von {{name}}",
-      "back": "Zurück zu Personen"
+      "back": "Zurück zu Personen",
+      "catalog": "Katalog"
     }
   }
 }

@@ -1,16 +1,18 @@
 /**
- * Hook for sending and tracking per-file access requests to a contact's inbox.
+ * Hook for sending per-file and per-type access requests to a contact's
+ * inbox. A request is marked pending optimistically so the row reads
+ * "Pending…" instantly; a failure rolls it back and flags the file for a
+ * retry. Approval and denial are resolved by the row via
+ * {@link useRequestStatus}, not here.
  *
  * @packageDocumentation
  */
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { CatalogEntry } from "@/types";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { discoverInboxUri, postFileAccessRequest, postTypeAccessRequest, deleteAccessRequest } from "@/infrastructure/inbox/inboxAccess";
-import type { AccessRejection } from "@/infrastructure/inbox/inboxAccess";
-
-export type RequestStatus = "idle" | "sending" | "sent" | "error";
+import { usePendingRequests } from "@/shared/hooks/usePendingRequests";
 
 type UseAccessRequestsParams = {
   contactWebId: string;
@@ -19,21 +21,21 @@ type UseAccessRequestsParams = {
   entries: CatalogEntry[];
   /** Schema.org class URI of the category these entries belong to. */
   classUri: string;
-  onClearRejection: (containerUri: string) => void;
+  onClearOutcome: (containerUri: string) => void;
 };
 
 type UseAccessRequestsResult = {
-  bulkStatus: RequestStatus;
-  fileStatuses: Record<string, RequestStatus>;
+  /** Every browsable entry in this folder has an outstanding request. */
+  allPending: boolean;
+  /** Container URIs whose last request attempt failed. */
+  failedUris: ReadonlySet<string>;
   handleRequestAll: () => Promise<void>;
   handleRequestFile: (entry: CatalogEntry) => Promise<void>;
-  handleRequestAgain: (entry: CatalogEntry, rejection: AccessRejection) => Promise<void>;
+  handleRequestAgain: (entry: CatalogEntry, outcomeMessageUri: string | undefined) => Promise<void>;
 };
 
 /**
- * Manages bulk and per-file access request state and actions.
- * Sends notifications to the contact's inbox and tracks send status
- * for both individual files and the entire type folder.
+ * Manages bulk and per-file access request actions for one type folder.
  *
  * @public
  */
@@ -43,50 +45,68 @@ export function useFileAccessRequests({
   solidFetch,
   entries,
   classUri,
-  onClearRejection,
+  onClearOutcome,
 }: UseAccessRequestsParams): UseAccessRequestsResult {
-  const [bulkStatus, setBulkStatus] = useState<RequestStatus>("idle");
-  const [fileStatuses, setFileStatuses] = useState<Record<string, RequestStatus>>({});
+  const { isPending, markPending, clearPending } = usePendingRequests();
+  const [failedUris, setFailedUris] = useState<ReadonlySet<string>>(new Set());
 
-  const sendRequest = useCallback(async (containerUri: string, entryUri: string) => {
-    setFileStatuses((prev) => ({ ...prev, [entryUri]: "sending" }));
+  const setFailed = useCallback((containerUri: string, failed: boolean) => {
+    setFailedUris((prev) => {
+      const next = new Set(prev);
+      if (failed) next.add(containerUri);
+      else next.delete(containerUri);
+      return next;
+    });
+  }, []);
+
+  const send = useCallback(async (containerUri: string) => {
+    setFailed(containerUri, false);
+    markPending(containerUri);
     try {
       const inboxUri = await discoverInboxUri(contactWebId, solidFetch);
       await postFileAccessRequest(inboxUri, viewerWebId, containerUri, solidFetch);
-      setFileStatuses((prev) => ({ ...prev, [entryUri]: "sent" }));
     } catch {
-      setFileStatuses((prev) => ({ ...prev, [entryUri]: "error" }));
+      clearPending(containerUri);
+      setFailed(containerUri, true);
     }
-  }, [contactWebId, viewerWebId, solidFetch]);
+  }, [contactWebId, viewerWebId, solidFetch, markPending, clearPending, setFailed]);
+
+  const handleRequestFile = useCallback(
+    (entry: CatalogEntry) => send(toContainerUri(entry.uri)),
+    [send],
+  );
 
   const handleRequestAll = useCallback(async () => {
-    setBulkStatus("sending");
-    setFileStatuses(Object.fromEntries(entries.map((e) => [e.uri, "sending" as RequestStatus])));
+    const containerUris = entries.map((entry) => toContainerUri(entry.uri));
+    containerUris.forEach((containerUri) => {
+      setFailed(containerUri, false);
+      markPending(containerUri);
+    });
     try {
       const inboxUri = await discoverInboxUri(contactWebId, solidFetch);
       await postTypeAccessRequest(inboxUri, viewerWebId, classUri, solidFetch);
-      setBulkStatus("sent");
-      setFileStatuses(Object.fromEntries(entries.map((e) => [e.uri, "sent" as RequestStatus])));
     } catch {
-      setBulkStatus("error");
-      setFileStatuses({});
+      containerUris.forEach((containerUri) => {
+        clearPending(containerUri);
+        setFailed(containerUri, true);
+      });
     }
-  }, [contactWebId, viewerWebId, entries, classUri, solidFetch]);
+  }, [contactWebId, viewerWebId, entries, classUri, solidFetch, markPending, clearPending, setFailed]);
 
-  const handleRequestFile = useCallback(async (entry: CatalogEntry) => {
-    await sendRequest(toContainerUri(entry.uri), entry.uri);
-  }, [sendRequest]);
-
-  const handleRequestAgain = useCallback(async (entry: CatalogEntry, rejection: AccessRejection) => {
+  const handleRequestAgain = useCallback(async (entry: CatalogEntry, outcomeMessageUri: string | undefined) => {
     const containerUri = toContainerUri(entry.uri);
-    try {
-      await deleteAccessRequest(rejection.messageUri, solidFetch);
-    } catch {
-      // cleanup — best effort, proceed regardless
+    if (outcomeMessageUri) {
+      try {
+        await deleteAccessRequest(outcomeMessageUri, solidFetch);
+      } catch {
+        // cleanup is best effort, proceed regardless
+      }
     }
-    onClearRejection(containerUri);
-    await sendRequest(containerUri, entry.uri);
-  }, [solidFetch, onClearRejection, sendRequest]);
+    onClearOutcome(containerUri);
+    await send(containerUri);
+  }, [solidFetch, onClearOutcome, send]);
 
-  return { bulkStatus, fileStatuses, handleRequestAll, handleRequestFile, handleRequestAgain };
+  const allPending = entries.length > 0 && entries.every((entry) => isPending(toContainerUri(entry.uri)));
+
+  return { allPending, failedUris, handleRequestAll, handleRequestFile, handleRequestAgain };
 }

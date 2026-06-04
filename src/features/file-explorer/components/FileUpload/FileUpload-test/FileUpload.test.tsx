@@ -214,7 +214,7 @@ describe('FileUpload', () => {
       fireEvent.submit(screen.getByText('fileUpload.upload').closest('form')!);
     });
 
-    expect(mockShowError).toHaveBeenCalledWith('Upload failed: Network error');
+    expect(mockShowError).toHaveBeenCalledWith('fileUpload.uploadError');
   });
 
   it('does not call upload when form is submitted without selecting a file', async () => {

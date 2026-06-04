@@ -28,7 +28,7 @@ vi.mock('@/features/profile/hooks/useContacts', () => ({
 
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
   discoverInboxUri: vi.fn(() => Promise.resolve('https://owner.example/inbox/')),
-  listRejectionNotifications: vi.fn(() => Promise.resolve([])),
+  listOutcomeNotifications: vi.fn(() => Promise.resolve({ approvals: [], rejections: [] })),
 }));
 
 vi.mock('@/shared/contexts/NotificationContext', () => ({
@@ -38,12 +38,12 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
 let capturedOnClearRejection: (() => void) | undefined;
 
 vi.mock('@/features/profile/components/ContactRow', () => ({
-  ContactRow: ({ webId, onRemove, onClearRejection }: { webId: string; onRemove: () => void; onClearRejection: () => void }) => {
-    capturedOnClearRejection = onClearRejection;
+  ContactRow: ({ webId, onRemove, onClearOutcome }: { webId: string; onRemove: () => void; onClearOutcome: () => void }) => {
+    capturedOnClearRejection = onClearOutcome;
     return (
       <div data-testid="contact-row" data-webid={webId}>
         <button data-testid="remove-btn" onClick={onRemove}>Remove</button>
-        <button data-testid="clear-rejection-btn" onClick={onClearRejection}>ClearRejection</button>
+        <button data-testid="clear-rejection-btn" onClick={onClearOutcome}>ClearRejection</button>
       </div>
     );
   },
@@ -166,10 +166,11 @@ describe('ContactsList', () => {
 
   it('onClearRejection removes the rejection from the map', async () => {
     mockContacts = ['https://alice.example/profile/card#me'];
-    const { listRejectionNotifications } = await import('@/infrastructure/inbox/inboxAccess');
-    vi.mocked(listRejectionNotifications).mockResolvedValueOnce([
-      { accessTo: 'https://alice.example/profile/card#me', messageUri: 'https://owner.example/inbox/rej1' },
-    ]);
+    const { listOutcomeNotifications } = await import('@/infrastructure/inbox/inboxAccess');
+    vi.mocked(listOutcomeNotifications).mockResolvedValueOnce({
+      approvals: [],
+      rejections: [{ accessTo: 'https://alice.example/profile/card#me', messageUri: 'https://owner.example/inbox/rej1' }],
+    });
     await act(async () => {
       render(<ContactsList ownerWebId="https://owner.example/profile/card#me" />);
     });

@@ -11,14 +11,15 @@ import { useSubject } from '@ldo/solid-react';
 import { useTranslation } from 'react-i18next';
 import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
 import { FileCard } from '@/features/file-explorer/components/FileCard';
-import { TypeFolder } from '@/features/file-explorer/components/TypeFolder';
+import { ContactCatalogBrowser } from '@/features/file-explorer/components/ContactCatalogBrowser';
 import { toContainerUri } from '@/infrastructure/solid/sharedCatalog';
 import { useSharedCatalog } from '@/features/file-explorer/hooks/useSharedCatalog';
-import { useContactRejections } from '@/shared/hooks/useContactRejections';
 import { getProfileDisplayName } from '@/shared/utils/getProfileDisplayName';
 
 /**
- * Predicate applied to each catalog entry.
+ * Decides whether a catalog entry is shown. Every field is optional, so
+ * the same predicate filters both full entries and type groups, which
+ * carry only a `conformsTo`.
  *
  * @public
  */
@@ -30,21 +31,29 @@ export type SharedEntryPredicate = (entry: {
 }) => boolean;
 
 /**
+ * Props for {@link ContactSharedFiles}.
+ *
  * @public
  */
 export interface ContactSharedFilesProps {
-  /** WebID of the contact whose shares we are reading. */
+  /** WebID of the contact whose shares are being read. */
   contactWebId: string;
-  /** WebID of the viewer (used for ACL checks). */
+  /** WebID of the viewer; selects the shared catalog and probes file access. */
   viewerWebId: string;
+  /** Limits which shared entries and type groups are shown. Defaults to showing all. */
   entryFilter?: SharedEntryPredicate;
   /** Hides the "From {{name}}" header when a parent already shows the contact's name. */
   hideFromHeading?: boolean;
 }
 
+/** Default {@link ContactSharedFilesProps.entryFilter}: keeps every entry. */
 const passThrough: SharedEntryPredicate = () => true;
 
 /**
+ * Renders one contact's shared files as cards, followed by the
+ * browse-and-request folders for anything not yet shared. Returns nothing
+ * until the contact's catalog is reachable.
+ *
  * @public
  */
 export const ContactSharedFiles: FunctionComponent<ContactSharedFilesProps> = ({
@@ -58,7 +67,6 @@ export const ContactSharedFiles: FunctionComponent<ContactSharedFilesProps> = ({
 
   const { sharedEntries, typeGroups, resolvedCatalogUri, catalogAccessible } =
     useSharedCatalog(contactWebId, viewerWebId);
-  const { fileRejections, handleClearRejection } = useContactRejections(viewerWebId);
 
   if (!catalogAccessible) return null;
 
@@ -97,22 +105,11 @@ export const ContactSharedFiles: FunctionComponent<ContactSharedFilesProps> = ({
         />
       ))}
 
-      {filteredTypeGroups.length > 0 && (
-        <type-folders>
-          <p className="type-folders__heading">{translate('sharedWithMe.browseHeading')}</p>
-          {filteredTypeGroups.map(([classUri, entries]) => (
-            <TypeFolder
-              key={classUri}
-              classUri={classUri}
-              entries={entries}
-              contactWebId={contactWebId}
-              viewerWebId={viewerWebId}
-              rejections={fileRejections}
-              onClearRejection={handleClearRejection}
-            />
-          ))}
-        </type-folders>
-      )}
+      <ContactCatalogBrowser
+        contactWebId={contactWebId}
+        viewerWebId={viewerWebId}
+        entryFilter={entryFilter}
+      />
     </>
   );
 };

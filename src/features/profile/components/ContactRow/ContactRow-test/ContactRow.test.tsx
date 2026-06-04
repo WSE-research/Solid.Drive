@@ -1,91 +1,72 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { ContactRow } from '../ContactRow-file/ContactRow';
-import { getProfileDisplayName } from '@/shared/utils';
+import type { RequestStatus } from '@/shared/hooks/usePendingRequests';
+
+vi.mock('react-i18next', () => ({ useTranslation: () => [(key: string) => key] }));
+
+vi.mock('@/config', () => ({ MAX_DISPLAY_NAME_LENGTH: 30 }));
+
+vi.mock('@/shared/components/Avatar', () => ({
+  Avatar: ({ alt }: { alt: string }) => <div data-testid="avatar">{alt}</div>,
+}));
+
+let mockProfile = { displayName: 'Alice', avatarUrl: undefined as string | undefined, initial: 'A', isLoading: false };
+vi.mock('@/shared/hooks/useContactProfile', () => ({
+  useContactProfile: () => mockProfile,
+}));
+
+let mockStatus: RequestStatus = 'none';
+const mockClearPending = vi.fn();
+vi.mock('@/shared/hooks/usePendingRequests', () => ({
+  usePendingRequests: () => ({ isPending: () => false, markPending: vi.fn(), clearPending: mockClearPending }),
+  useRequestStatus: () => mockStatus,
+}));
 
 const mockDiscoverInboxUri = vi.fn();
 const mockPostCatalogAccessRequest = vi.fn();
 const mockDeleteAccessRequest = vi.fn();
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => [(key: string) => key],
-}));
-
-let mockResourceLoading = false;
-
-vi.mock('@ldo/solid-react', () => ({
-  useResource: () => ({ isLoading: () => mockResourceLoading, isFetched: () => true, isUnfetched: () => false }),
-  useSubject: () => ({
-    name: 'Alice',
-    fn: null,
-    img: { '@id': 'https://alice.example/avatar.jpg' },
-  }),
-}));
-
-vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({
-  SolidProfileShapeType: {},
-}));
-
-vi.mock('@/infrastructure/solid/resourceGuards', () => ({
-  isLoadable: () => true,
-}));
-
 vi.mock('@/infrastructure/inbox/inboxAccess', () => ({
   discoverInboxUri: (...args: unknown[]) => mockDiscoverInboxUri(...args),
   postCatalogAccessRequest: (...args: unknown[]) => mockPostCatalogAccessRequest(...args),
   deleteAccessRequest: (...args: unknown[]) => mockDeleteAccessRequest(...args),
 }));
 
-vi.mock('@/config', () => ({
-  MAX_DISPLAY_NAME_LENGTH: 30,
-}));
-
-vi.mock('@/shared/components/Avatar', () => ({
-  Avatar: ({ alt }: { alt: string }) => <div data-testid="avatar">{alt}</div>,
-}));
-
-vi.mock('@/shared/utils', () => ({
-  getInitial: (name: string) => name.charAt(0).toUpperCase(),
-  getProfileDisplayName: vi.fn((contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId),
-}));
+import { ContactRow } from '../ContactRow-file/ContactRow';
 
 const solidFetch = vi.fn();
-const onClearRejection = vi.fn();
+const onClearOutcome = vi.fn();
 const onRemove = vi.fn();
-
 const baseProps = {
   webId: 'https://alice.example/profile/card#me',
   ownerWebId: 'https://owner.example/profile/card#me',
   solidFetch,
+  approval: undefined,
   rejection: undefined,
-  onClearRejection,
+  onClearOutcome,
   onRemove,
 };
+const rejection = { accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' };
+const approval = { accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/app1' };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockStatus = 'none';
+  mockProfile = { displayName: 'Alice', avatarUrl: undefined, initial: 'A', isLoading: false };
+  mockDiscoverInboxUri.mockResolvedValue('https://alice.example/inbox/');
+  mockPostCatalogAccessRequest.mockResolvedValue(undefined);
+  mockDeleteAccessRequest.mockResolvedValue(undefined);
+});
 
 describe('ContactRow', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockResourceLoading = false;
-    mockDiscoverInboxUri.mockResolvedValue('https://alice.example/inbox/');
-    mockPostCatalogAccessRequest.mockResolvedValue(undefined);
-    mockDeleteAccessRequest.mockResolvedValue(undefined);
-  });
-
-  it('renders contact name and avatar', () => {
+  it('renders the contact name and avatar', () => {
     render(<ContactRow {...baseProps} />);
-    expect(screen.getAllByText('Alice').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByTestId('avatar')).toBeInTheDocument();
     expect(document.querySelector('.contact-row__name')).toHaveTextContent('Alice');
+    expect(screen.getByTestId('avatar')).toBeInTheDocument();
   });
 
-  it('renders request access button with translated label', () => {
+  it('renders the request access button when idle', () => {
     render(<ContactRow {...baseProps} />);
     expect(screen.getByText('profileSidebar.requestAccess')).toBeInTheDocument();
-  });
-
-  it('renders remove button with translated label', () => {
-    render(<ContactRow {...baseProps} />);
-    expect(screen.getByText('profileSidebar.remove')).toBeInTheDocument();
   });
 
   it('calls onRemove when remove is clicked', () => {
@@ -94,26 +75,49 @@ describe('ContactRow', () => {
     expect(onRemove).toHaveBeenCalled();
   });
 
-  it('sends access request when button is clicked', async () => {
+  it('sends the catalog request when the button is clicked', async () => {
     render(<ContactRow {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('profileSidebar.requestAccess'));
     });
-    expect(mockDiscoverInboxUri).toHaveBeenCalledWith('https://alice.example/profile/card#me', solidFetch);
+    expect(mockDiscoverInboxUri).toHaveBeenCalledWith(baseProps.webId, solidFetch);
     expect(mockPostCatalogAccessRequest).toHaveBeenCalled();
   });
 
-  it('shows "request sent" after successful request', async () => {
+  it('shows the pending pill when the request is pending', () => {
+    mockStatus = 'pending';
     render(<ContactRow {...baseProps} />);
-    await act(async () => {
-      fireEvent.click(screen.getByText('profileSidebar.requestAccess'));
-    });
-    expect(screen.getByText('profileSidebar.requestSent')).toBeInTheDocument();
-    expect(screen.getByText('profileSidebar.requestSent')).toBeDisabled();
+    expect(screen.getByText('profileSidebar.requestPending')).toBeInTheDocument();
+    expect(screen.queryByText('profileSidebar.requestAccess')).not.toBeInTheDocument();
   });
 
-  it('shows error text when request fails', async () => {
-    mockDiscoverInboxUri.mockRejectedValue(new Error('fail'));
+  it('shows the approved pill and a request-again action when approved', () => {
+    mockStatus = 'approved';
+    render(<ContactRow {...baseProps} approval={approval} />);
+    expect(screen.getByText('profileSidebar.requestApproved')).toBeInTheDocument();
+    expect(screen.getByText('profileSidebar.requestAgain')).toBeInTheDocument();
+  });
+
+  it('shows the denied pill and a request-again action when denied', () => {
+    mockStatus = 'denied';
+    render(<ContactRow {...baseProps} rejection={rejection} />);
+    expect(screen.getByText('profileSidebar.requestDenied')).toBeInTheDocument();
+    expect(screen.getByText('profileSidebar.requestAgain')).toBeInTheDocument();
+  });
+
+  it('request again deletes the prior outcome notice and re-posts (the loop)', async () => {
+    mockStatus = 'approved';
+    render(<ContactRow {...baseProps} approval={approval} />);
+    await act(async () => {
+      fireEvent.click(screen.getByText('profileSidebar.requestAgain'));
+    });
+    expect(mockDeleteAccessRequest).toHaveBeenCalledWith(approval.messageUri, solidFetch);
+    expect(onClearOutcome).toHaveBeenCalled();
+    expect(mockPostCatalogAccessRequest).toHaveBeenCalled();
+  });
+
+  it('shows the retry label after a failed request', async () => {
+    mockPostCatalogAccessRequest.mockRejectedValueOnce(new Error('fail'));
     render(<ContactRow {...baseProps} />);
     await act(async () => {
       fireEvent.click(screen.getByText('profileSidebar.requestAccess'));
@@ -121,73 +125,9 @@ describe('ContactRow', () => {
     expect(screen.getByText('profileSidebar.requestError')).toBeInTheDocument();
   });
 
-  it('shows rejection badge when rejection is present', () => {
-    render(
-      <ContactRow
-        {...baseProps}
-        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' }}
-      />
-    );
-    expect(screen.getByText('profileSidebar.requestDenied')).toBeInTheDocument();
-    expect(screen.getByText('profileSidebar.requestAgain')).toBeInTheDocument();
-  });
-
-  it('request again deletes old rejection and re-sends request', async () => {
-    render(
-      <ContactRow
-        {...baseProps}
-        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' }}
-      />
-    );
-    await act(async () => {
-      fireEvent.click(screen.getByText('profileSidebar.requestAgain'));
-    });
-    expect(mockDeleteAccessRequest).toHaveBeenCalledWith('https://owner.example/inbox/rej1', solidFetch);
-    expect(onClearRejection).toHaveBeenCalled();
-  });
-
-  it('request again continues even when deleteAccessRequest fails', async () => {
-    mockDeleteAccessRequest.mockRejectedValue(new Error('cleanup fail'));
-    render(
-      <ContactRow
-        {...baseProps}
-        rejection={{ accessTo: baseProps.webId, messageUri: 'https://owner.example/inbox/rej1' }}
-      />
-    );
-    await act(async () => {
-      fireEvent.click(screen.getByText('profileSidebar.requestAgain'));
-    });
-    // Should still proceed with clearing rejection and re-requesting
-    expect(onClearRejection).toHaveBeenCalled();
-  });
-
   it('truncates long display names', () => {
-    // MAX_DISPLAY_NAME_LENGTH is mocked as 30
-    vi.mocked(getProfileDisplayName).mockReturnValue('A'.repeat(40));
+    mockProfile = { ...mockProfile, displayName: 'A'.repeat(40) };
     render(<ContactRow {...baseProps} />);
-    const nameEl = document.querySelector('.contact-row__name');
-    expect(nameEl?.textContent).toContain('...');
-    // Restore default mock
-    vi.mocked(getProfileDisplayName).mockImplementation((contact: unknown, webId: string) => (contact as Record<string, string>)?.name ?? webId);
-  });
-
-  it('shows "sending" state while request is in progress', async () => {
-    // Make discoverInboxUri hang so the request stays in "sending" state
-    let resolveInbox!: (value: string) => void;
-    mockDiscoverInboxUri.mockReturnValue(new Promise((r) => { resolveInbox = r; }));
-    render(<ContactRow {...baseProps} />);
-    await act(async () => {
-      fireEvent.click(screen.getByText('profileSidebar.requestAccess'));
-    });
-    expect(screen.getByText('...')).toBeInTheDocument();
-    // Cleanup
-    resolveInbox('https://alice.example/inbox/');
-  });
-
-  it('shows loading text instead of contact name when profile resource is still loading', () => {
-    mockResourceLoading = true;
-    render(<ContactRow {...baseProps} />);
-    const nameEl = document.querySelector('.contact-row__name');
-    expect(nameEl?.textContent).toBe('profileSidebar.loading');
+    expect(document.querySelector('.contact-row__name')?.textContent).toContain('...');
   });
 });

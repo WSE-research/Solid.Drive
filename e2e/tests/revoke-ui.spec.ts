@@ -44,7 +44,7 @@ test("Peach revokes via the share panel and Parni loses access", async ({ browse
   // Parni re-logs in: file is no longer a shared FileCard, instead in "Also available" with a Request button.   
   const after = await freshLogin(browser, parni);
   await expect(after.page.locator("file-card").filter({ hasText: "Revoke Me" })).toHaveCount(0);
-  await expect(after.page.getByRole("button", { name: /Request all Image/i })).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  await expect(after.page.getByRole("button", { name: /Request all|Alle anfragen/i })).toBeVisible({ timeout: UI_TIMEOUTS.medium });
 
   await after.close();
   await peachSession.close();

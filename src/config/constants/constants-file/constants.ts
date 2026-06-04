@@ -267,6 +267,8 @@ export const RDF_NAMESPACES = {
   FOAF: "http://xmlns.com/foaf/0.1/",
   /** Linked Data Platform namespace */
   LDP: "http://www.w3.org/ns/ldp#",
+  /** POSIX stat namespace (file system metadata such as mtime/size) */
+  POSIX: "http://www.w3.org/ns/posix/stat#",
   /** RDF syntax namespace */
   RDF: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
   /** RDF Schema namespace */
@@ -321,6 +323,22 @@ export const SEEN_REQUESTS_CHANGE_EVENT = "solid-drive:seen-requests-changed";
  * @public
  */
 export const SEEN_REQUESTS_MAX_STORED = 500;
+
+/**
+ * `localStorage` key under which the set of access-request targets still
+ * awaiting a decision (the "pending" set) is persisted.
+ *
+ * @public
+ */
+export const PENDING_REQUESTS_STORAGE_KEY = "solid-drive.pendingRequestIds";
+
+/**
+ * Custom DOM event name dispatched when the pending-requests set changes,
+ * used to keep multiple in-tab hook instances in sync.
+ *
+ * @public
+ */
+export const PENDING_REQUESTS_CHANGE_EVENT = "solid-drive:pending-requests-changed";
 
 /**
  * Time in milliseconds the toast firer waits for a requester's Solid

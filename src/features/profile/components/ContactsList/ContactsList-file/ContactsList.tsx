@@ -49,7 +49,7 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({
   const { showError } = useNotifications();
   
   const [newWebId, setNewWebId] = useState("");
-  const { fileRejections, handleClearRejection } = useContactRejections(ownerWebId);
+  const { fileRejections, fileApprovals, handleClearRejection } = useContactRejections(ownerWebId);
 
   const handleAdd = async () => {
     const trimmed = newWebId.trim();
@@ -102,8 +102,9 @@ export const ContactsList: FunctionComponent<ContactsListProps> = ({
         webId={contactWebId}
         ownerWebId={ownerWebId}
         solidFetch={solidFetch}
+        approval={fileApprovals.get(contactWebId)}
         rejection={fileRejections.get(contactWebId)}
-        onClearRejection={() => handleClearRejection(contactWebId)}
+        onClearOutcome={() => handleClearRejection(contactWebId)}
         onRemove={() => handleRemove(contactWebId)}
       />
     );

@@ -32,7 +32,7 @@ test("denied file request shows a Denied label with a Request Again button on th
     .getByRole("button", { name: /^(Request|Anfragen)$/ })
     .click();
   await expect(
-    imageFolder.locator("type-folder-file-row").filter({ hasText: "Denied Image" }).getByText(/Requested|Angefragt/),
+    imageFolder.locator("type-folder-file-row").filter({ hasText: "Denied Image" }).getByText(/Pending|Ausstehend/),
   ).toBeVisible({ timeout: UI_TIMEOUTS.short });
 
   // Peach: deny the request
@@ -45,7 +45,7 @@ test("denied file request shows a Denied label with a Request Again button on th
   const parniAfter = await freshLogin(browser, parni);
   imageFolder = await expandTypeFolder(parniAfter.page, "Image");
   const deniedRow = imageFolder.locator("type-folder-file-row").filter({ hasText: "Denied Image" });
-  await expect(deniedRow.locator(".contact-row__denied")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  await expect(deniedRow.locator(".request-status--denied")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
   await expect(deniedRow.getByRole("button", { name: /Request Again|Erneut anfragen/i })).toBeVisible();
 
   await parniAfter.close();

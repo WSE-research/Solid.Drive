@@ -9,6 +9,9 @@ vi.mock('@ldo/solid-react', () => ({
     uri: 'https://pod/app/folder/',
     children: () => [{ uri: 'a' }, { uri: 'b' }],
   }),
+  useLdo: () => ({
+    dataset: { match: () => [{ object: { value: '2026-05-01T00:00:00Z' } }] },
+  }),
 }));
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isSolidContainer: () => true,
@@ -87,6 +90,7 @@ describe('useResourceDetails', () => {
       uri: 'https://pod/app/folder/',
       name: 'folder',
       itemCount: 2,
+      modified: '2026-05-01T00:00:00Z',
     });
   });
 });

@@ -4,9 +4,11 @@ import {
   discoverInboxUriFromProfile,
   buildAccessRequestMessage,
   buildAccessRejectionMessage,
+  buildAccessApprovalMessage,
   parseContainedResourceUris,
   parseAccessRequestMessage,
   parseAccessRejectionMessage,
+  parseAccessApprovalMessage,
 } from '../inboxMessages-file/inboxMessages';
 
 const LDP_NS = "http://www.w3.org/ns/ldp#";
@@ -180,6 +182,33 @@ describe("buildAccessRejectionMessage", () => {
         (quad) => quad.predicate.value === `${ACL_NS}accessTo` && quad.object.value === accessTo
       )
     ).toBe(true);
+  });
+});
+
+// ─── buildAccessApprovalMessage / parseAccessApprovalMessage ─────────────────
+
+describe("access approval messages", () => {
+  const accessTo = "https://owner.example/profile/card#me";
+  const messageUri = "https://requester.example/inbox/approval";
+
+  it("builds an approval with the AccessApproved RDF type and acl:accessTo", () => {
+    const quads = parseQuads(buildAccessApprovalMessage(accessTo), messageUri);
+    expect(quads.some((q) => q.predicate.value === RDF_TYPE && q.object.value === `${SOLID_ACCESS_NS}AccessApproved`)).toBe(true);
+    expect(quads.some((q) => q.predicate.value === `${ACL_NS}accessTo` && q.object.value === accessTo)).toBe(true);
+  });
+
+  it("round-trips through parseAccessApprovalMessage", () => {
+    const result = parseAccessApprovalMessage(messageUri, buildAccessApprovalMessage(accessTo));
+    expect(result).toEqual({ messageUri, accessTo });
+  });
+
+  it("returns null for a non-approval message (a rejection)", () => {
+    expect(parseAccessApprovalMessage(messageUri, buildAccessRejectionMessage(accessTo))).toBeNull();
+  });
+
+  it("returns null for an approval missing acl:accessTo", () => {
+    const turtle = `@prefix solid-access: <${SOLID_ACCESS_NS}> . <> a solid-access:AccessApproved .`;
+    expect(parseAccessApprovalMessage(messageUri, turtle)).toBeNull();
   });
 });
 

@@ -110,6 +110,25 @@ describe('useAclManager', () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it('does not retry a meaningful (non-network) ACL error', async () => {
+    mockDiscoverAclUri.mockRejectedValue(new Error('No ACL link header'));
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
+    expect(mockDiscoverAclUri).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a transient network rejection and then succeeds', async () => {
+    mockDiscoverAclUri
+      .mockRejectedValueOnce(new TypeError('NetworkError when attempting to fetch resource.'))
+      .mockResolvedValue('https://pod.example/my-solid-app/files/doc/.acl');
+    mockReadAclAgents.mockResolvedValue(['https://alice.example/profile/card#me']);
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
+    expect(mockDiscoverAclUri.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(result.current.error).toBeNull();
+    expect(result.current.grantees).toEqual(['https://alice.example/profile/card#me']);
+  });
+
   it('grant adds a grantee and writes ACL', async () => {
     const { result } = renderAclManager();
     await doLoadAcl(result);

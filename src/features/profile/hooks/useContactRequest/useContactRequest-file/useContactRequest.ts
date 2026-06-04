@@ -1,33 +1,31 @@
 /**
- * Owns the access-request lifecycle for a single contact row: discovers
- * the contact's inbox, posts the catalog access request, retries after
- * rejection, and exposes a small status state. Lifted out of `ContactRow`
- * so the component stays presentational.
+ * Owns the catalog access-request action for a single contact: posts the
+ * request, and re-requests after a decision. The request is marked
+ * pending optimistically so the row reads "Pending…" instantly; a failure
+ * rolls that back. Re-requesting deletes the previous outcome notice
+ * (approval or rejection) so the row returns to Pending and the owner
+ * sees a fresh request — the request → decision → re-request loop.
  *
  * @packageDocumentation
  */
 
 import { useCallback, useState } from 'react';
-import {
-  deleteAccessRequest,
-  discoverInboxUri,
-  postCatalogAccessRequest,
-  type AccessRejection,
-} from '@/infrastructure/inbox/inboxAccess';
-
-export type RequestStatus = 'idle' | 'sending' | 'sent' | 'error';
+import { deleteAccessRequest, discoverInboxUri, postCatalogAccessRequest } from '@/infrastructure/inbox/inboxAccess';
+import { usePendingRequests } from '@/shared/hooks/usePendingRequests';
 
 export interface UseContactRequestArgs {
   webId: string;
   ownerWebId: string;
   solidFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
-  rejection: AccessRejection | undefined;
-  onClearRejection: () => void;
+  /** Inbox URI of the current approval/rejection notice for this contact, if any. */
+  outcomeMessageUri: string | undefined;
+  /** Drops the contact's outcome locally once its notice has been deleted. */
+  onClearOutcome: () => void;
 }
 
 export interface UseContactRequestReturn {
-  status: RequestStatus;
-  requestAccess: () => Promise<void>;
+  failed: boolean;
+  request: () => Promise<void>;
   requestAgain: () => Promise<void>;
 }
 
@@ -38,34 +36,35 @@ export function useContactRequest({
   webId,
   ownerWebId,
   solidFetch,
-  rejection,
-  onClearRejection,
+  outcomeMessageUri,
+  onClearOutcome,
 }: UseContactRequestArgs): UseContactRequestReturn {
-  const [status, setStatus] = useState<RequestStatus>('idle');
+  const { markPending, clearPending } = usePendingRequests();
+  const [failed, setFailed] = useState(false);
 
-  const requestAccess = useCallback(async () => {
-    setStatus('sending');
+  const request = useCallback(async () => {
+    setFailed(false);
+    markPending(webId);
     try {
       const inboxUri = await discoverInboxUri(webId, solidFetch);
       await postCatalogAccessRequest(inboxUri, ownerWebId, webId, solidFetch);
-      setStatus('sent');
     } catch {
-      setStatus('error');
+      clearPending(webId);
+      setFailed(true);
     }
-  }, [webId, ownerWebId, solidFetch]);
+  }, [webId, ownerWebId, solidFetch, markPending, clearPending]);
 
   const requestAgain = useCallback(async () => {
-    /* v8 ignore next 2 */
-    if (!rejection) return;
-    try {
-      await deleteAccessRequest(rejection.messageUri, solidFetch);
-    } catch {
-      // Cleanup failure is non-critical — the user-facing retry still proceeds.
+    if (outcomeMessageUri) {
+      try {
+        await deleteAccessRequest(outcomeMessageUri, solidFetch);
+      } catch {
+        // Cleanup failure is non-critical — the user-facing retry still proceeds.
+      }
     }
-    onClearRejection();
-    setStatus('idle');
-    await requestAccess();
-  }, [rejection, solidFetch, onClearRejection, requestAccess]);
+    onClearOutcome();
+    await request();
+  }, [outcomeMessageUri, solidFetch, onClearOutcome, request]);
 
-  return { status, requestAccess, requestAgain };
+  return { failed, request, requestAgain };
 }

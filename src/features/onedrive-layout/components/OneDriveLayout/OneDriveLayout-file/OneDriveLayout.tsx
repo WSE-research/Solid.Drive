@@ -2,7 +2,7 @@
  * Top-level shell for the OneDrive layout.
  *
  * Owns search, sort, selection, the details-panel toggle, and the
- * create-menu state. Composes the nav rail, top bar, contextual
+ * new-folder and upload state. Composes the nav rail, top bar, contextual
  * toolbar, the active view, and the detail panel. Wires the
  * selection actions (share, copy link, download, delete, plus the
  * move and rename placeholders) and the share dialog.
@@ -32,7 +32,6 @@ import { ContextualToolbar } from '@/features/onedrive-layout/components/Context
 import { SelectionActions } from '@/features/onedrive-layout/components/SelectionActions';
 import { DetailPanel } from '@/features/onedrive-layout/components/DetailPanel';
 import { ShareDialog } from '@/features/onedrive-layout/components/ShareDialog';
-import { CatalogsPrefetcher } from '@/features/onedrive-layout/components/CatalogsPrefetcher';
 import { useRefreshCatalogsOnFocus } from '@/shared/hooks/useRefreshCatalogsOnFocus';
 import { CloseIcon } from '@/features/onedrive-layout/icons';
 import { RecentView } from '@/features/onedrive-layout/components/views/RecentView';
@@ -106,8 +105,8 @@ export const OneDriveLayout: FunctionComponent = () => {
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const { storageRootUri } = useDriveInitialization();
   const contacts = useContacts();
-  // Bumped after a successful delete so the My Files view re-reads the
-  // open folder in the background. Only the change matters.
+  // Bumped after a delete or upload so the My Files view re-reads the
+  // open folder. The value is unused; only that it changes.
   const [refreshNonce, setRefreshNonce] = useState(0);
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
   const { entries: catalogEntries } = useCatalog(catalogUri);
@@ -192,6 +191,7 @@ export const OneDriveLayout: FunctionComponent = () => {
   // Shared, People, and Recent each render their own toolbar inline,
   // so we suppress the standard page-header for those views. Shared
   // additionally takes over the main grid slot.
+  const isMyFilesView = view === 'my-files';
   const isSharedView = view === 'shared';
   const isPeopleView = view === 'people';
   const isRecentView = view === 'recent';
@@ -202,7 +202,6 @@ export const OneDriveLayout: FunctionComponent = () => {
       data-rail-expanded={navRailExpanded ? 'true' : 'false'}
       data-view={view}
     >
-      <CatalogsPrefetcher contacts={contacts} viewerWebId={webId} />
       <TopBar
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -221,9 +220,9 @@ export const OneDriveLayout: FunctionComponent = () => {
         <>
           {!isPeopleView && !isRecentView && (
           <page-header
-            data-selection-active={selected && view === 'my-files' ? 'true' : undefined}
+            data-selection-active={selected && isMyFilesView ? 'true' : undefined}
           >
-            {selected && view === 'my-files' ? (
+            {selected && isMyFilesView ? (
               <SelectionActions
                 selection={selected}
                 onShare={handleShare}
@@ -237,7 +236,7 @@ export const OneDriveLayout: FunctionComponent = () => {
               <h1 className="odl-page-title">{translate(VIEW_TITLE_KEYS[view])}</h1>
             )}
             <page-header-right>
-              {selected && view === 'my-files' && (
+              {selected && isMyFilesView && (
                 <button
                   type="button"
                   className="odl-selection-badge"
@@ -255,7 +254,7 @@ export const OneDriveLayout: FunctionComponent = () => {
                   </span>
                 </button>
               )}
-              {view === 'my-files' && (
+              {isMyFilesView && (
                 <ContextualToolbar
                   sort={sort}
                   onSortChange={setSort}
@@ -267,7 +266,7 @@ export const OneDriveLayout: FunctionComponent = () => {
           </page-header>
           )}
           <main data-view={view} className="odl-main">
-            {view === 'my-files' && (
+            {isMyFilesView && (
               <MyFilesView
                 searchValue={searchValue}
                 sort={sort}
@@ -288,7 +287,7 @@ export const OneDriveLayout: FunctionComponent = () => {
           </main>
         </>
       )}
-      {view === 'my-files' && (
+      {isMyFilesView && (
         <DetailPanel
           open={detailsOpen}
           selected={selected}

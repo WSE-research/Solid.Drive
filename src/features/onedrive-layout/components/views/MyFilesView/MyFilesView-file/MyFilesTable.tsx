@@ -11,6 +11,7 @@ import type { DragEvent, FunctionComponent } from 'react';
 import { useResource } from '@ldo/solid-react';
 import { useTranslation } from 'react-i18next';
 import { isSolidContainer } from '@/infrastructure/solid/resourceGuards';
+import { useResourceModified } from '@/features/onedrive-layout/hooks/useResourceModified';
 import { INDEX_FILE } from '@/config';
 import type { CatalogEntry } from '@/types';
 import type { SolidContainer, SolidLeaf } from '@ldo/connected-solid';
@@ -162,6 +163,9 @@ const FolderRow = memo<FolderRowProps>(({
   // Skip the fetch when the catalog already tells us this URI is a file.
   // Pass undefined to useResource so it does not request the container.
   const resource = useResource(isCatalogContainer ? undefined : entry.uri);
+  const folderModified = useResourceModified(
+    isCatalogContainer ? undefined : entry.uri,
+  );
 
   const hasIndex = useMemo(() => {
     if (isCatalogContainer) return true;
@@ -234,7 +238,7 @@ const FolderRow = memo<FolderRowProps>(({
         <span className="odl-files-row__title">{name}</span>
       </span>
       <span role="cell" className="odl-files-cell">
-        {EMPTY_CELL}
+        {formatModifiedDate(folderModified)}
       </span>
       <span role="cell" className="odl-files-cell">
         {translate('oneDriveLayout.itemCount', '{{count}} items', {
