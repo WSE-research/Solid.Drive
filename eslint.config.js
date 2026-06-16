@@ -87,7 +87,7 @@ export default defineConfig([
         patterns: [
           // @/features/onedrive-layout/* is intentionally allowed — auth/Header
           // mounts the LayoutToggle shipped by the onedrive-layout feature.
-          { group: ['@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
@@ -98,8 +98,6 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          // @/features/validation/* is intentionally allowed — it is a pure-service feature
-          // with no UI and is consumed by other features as a shared utility.
           { group: ['@/features/auth/*', '@/features/profile/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
@@ -111,7 +109,7 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/validation/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
@@ -122,18 +120,7 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
-          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/validation/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
-          { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
-        ],
-      }],
-    },
-  },
-  {
-    files: ['src/features/validation/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/file-explorer/*', '@/features/profile/*', '@/features/onedrive-layout/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],
@@ -159,7 +146,7 @@ export default defineConfig([
           // RequestsPanel) for the Shared / Requests / People views. The
           // three features intentionally share this layer; promoting them
           // into infrastructure/ is tracked separately.
-          { group: ['@/features/auth/*', '@/features/sharing/*', '@/features/validation/*'], message: 'Cross-feature imports are not allowed.' },
+          { group: ['@/features/auth/*', '@/features/sharing/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
       }],

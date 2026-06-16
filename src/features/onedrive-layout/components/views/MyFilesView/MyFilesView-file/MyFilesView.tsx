@@ -152,21 +152,31 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   // When the parent signals a stale folder OR any catalog mutation
   // fires (upload, delete via notifyCatalogChanged), re-fetch the
   // container from the pod and bump local state so React re-evaluates
-  // the rendered children. The fetch on its own does not trigger a
-  // re-render. Skip the initial render so the view does not
+  // the rendered children. Skip the initial render so the view does not
   // double-fetch on mount.
+  //
+  // The container is read through a ref rather than an effect dependency
+  // because the resource hook updates the container in-place when new
+  // data arrives, so the container reference does not change on updates
+  // and cannot be an effect dependency that way.
+  const currentContainerRef = useRef(currentContainer);
+  useEffect(() => {
+    currentContainerRef.current = currentContainer;
+  }, [currentContainer]);
+
   const [, setReloadTick] = useState(0);
   useEffect(() => {
     if (!refreshNonce && !catalogVersion) return;
-    if (!isSolidContainer(currentContainer)) return;
+    const container = currentContainerRef.current;
+    if (!isSolidContainer(container)) return;
     let cancelled = false;
-    void currentContainer.read().then(() => {
+    void container.read().then(() => {
       if (!cancelled) setReloadTick((current) => current + 1);
     });
     return () => {
       cancelled = true;
     };
-  }, [refreshNonce, catalogVersion, currentContainer]);
+  }, [refreshNonce, catalogVersion]);
 
   const currentFolderLabel =
     breadcrumbs.length > 0
