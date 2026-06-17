@@ -47,6 +47,7 @@ export type SolidProvider = {
  * @public
  */
 export const SOLID_PROVIDERS: SolidProvider[] = [
+  { label: "HTWK Leipzig (demos.swe)", value: "http://demos.swe.htwk-leipzig.de:40143/", registerUrl: "http://demos.swe.htwk-leipzig.de:40143/.account/" },
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
   { label: "inrupt.net", value: "https://inrupt.com", registerUrl: "https://start.inrupt.com/profile" },
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },
