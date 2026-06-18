@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable, isReloadable } from "@/infrastructure/solid/resourceGuards";
 import { getAppContainerUri } from "@/infrastructure/solid/sharedCatalog";
+import { discoverStorageRoot } from "@/infrastructure/solid/storageDiscovery";
 import type { SolidContainer, SolidContainerUri } from "@ldo/connected-solid";
 
 interface UsePodDiscoveryReturn {
@@ -29,51 +30,78 @@ interface UsePodDiscoveryReturn {
  */
 export function usePodDiscovery(storageRetryDelayMs: number): UsePodDiscoveryReturn {
   const [translate] = useTranslation();
-  const { session } = useSolidAuth();
+  const { session, fetch: solidFetch } = useSolidAuth();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const webIdResource = useResource(session.webId);
   const { getResource } = useLdo();
   const initialized = useRef(false);
+  const discoveryStarted = useRef(false);
+  const mounted = useRef(true);
   const [appContainerUri, setAppContainerUri] = useState<SolidContainerUri>();
   const [storageRootUri, setStorageRootUri] = useState<string | undefined>();
   const [noStorageDetected, setNoStorageDetected] = useState(false);
   const [initialCurrentUri, setInitialCurrentUri] = useState<SolidContainerUri>();
   const [initialBreadcrumbLabel, setInitialBreadcrumbLabel] = useState("");
 
+  const applyStorageRoot = useCallback(
+    (storageRoot: SolidContainerUri) => {
+      const appUri = getAppContainerUri(storageRoot) as SolidContainerUri;
+
+      setNoStorageDetected(false);
+      setInitialCurrentUri(storageRoot);
+      setAppContainerUri(appUri);
+      setStorageRootUri(storageRoot);
+      setInitialBreadcrumbLabel(translate("fileExplorer.myPod"));
+      initialized.current = true;
+
+      void (async () => {
+        const appContainerRes = getResource(appUri);
+        if ("createIfAbsent" in appContainerRes) {
+          await (appContainerRes as SolidContainer).createIfAbsent();
+        }
+      })();
+    },
+    [getResource, translate]
+  );
+
   useEffect(() => {
     if (initialized.current) return;
-    const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
 
-    if (!storageRootId) {
-      if (isLoadable(webIdResource) && !webIdResource.isLoading()) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setNoStorageDetected(true);
-      }
+    const storageRootId = profile?.storage?.toArray()?.[0]?.["@id"];
+    if (storageRootId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      applyStorageRoot(storageRootId as SolidContainerUri);
       return;
     }
 
-    setNoStorageDetected(false);
-    const storageRoot = storageRootId as SolidContainerUri;
-    const appUri = getAppContainerUri(storageRoot) as SolidContainerUri;
+    if (!(isLoadable(webIdResource) && !webIdResource.isLoading())) return;
+    if (!session.webId || discoveryStarted.current) return;
 
-    setInitialCurrentUri(storageRoot);
-    setAppContainerUri(appUri);
-    setStorageRootUri(storageRoot);
-    setInitialBreadcrumbLabel(translate("fileExplorer.myPod"));
-    initialized.current = true;
-
+    // Only start discovery once we know the WebID is valid and won't change.
+    discoveryStarted.current = true;
     void (async () => {
-      const appContainerRes = getResource(appUri);
-      if ("createIfAbsent" in appContainerRes) {
-        await (appContainerRes as SolidContainer).createIfAbsent();
+      const discoveredUri = await discoverStorageRoot(session.webId, solidFetch);
+      if (!mounted.current) return;
+      if (discoveredUri) {
+        applyStorageRoot(discoveredUri as SolidContainerUri);
+      } else {
+        setNoStorageDetected(true);
       }
     })();
-  }, [profile, webIdResource, getResource, translate]);
+  }, [profile, webIdResource, session.webId, solidFetch, applyStorageRoot]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const handleRetryStorage = useCallback(async () => {
     if (!isReloadable(webIdResource)) return;
     setNoStorageDetected(false);
     initialized.current = false;
+    discoveryStarted.current = false;
     await webIdResource.reload();
   }, [webIdResource]);
 

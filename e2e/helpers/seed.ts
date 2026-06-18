@@ -428,6 +428,37 @@ export async function ensureProfileBasics(
 }
 
 /**
+ * Removes the pim:storage triple that ensureProfileBasics adds to the user's
+ * profile, forcing the application to discover the storage root via the HTTP
+ * Link rel=type header walk (discoverStorageRoot) instead. This simulates the
+ * behavior of Community Solid Server pods, which do not advertise pim:storage
+ * on the WebID profile. Used by the pod-discovery test suite to validate the
+ * HTTP-based fallback discovery path.
+ *
+ * @param authedFetch - DPoP-bound fetch authenticated as the pod owner
+ * @param pod - the pod whose profile is being stripped of `pim:storage`
+ */
+export async function removeProfileStorage(
+  authedFetch: typeof fetch,
+  pod: PodIdentity,
+): Promise<void> {
+  const profileDocUri = pod.webId.split("#")[0];
+  const body = `@prefix pim: <http://www.w3.org/ns/pim/space#> .
+@prefix solid: <http://www.w3.org/ns/solid/terms#> .
+
+<> a solid:InsertDeletePatch;
+  solid:deletes { <#me> pim:storage <${pod.storageRoot}> . } .`;
+  const response = await authedFetch(profileDocUri, {
+    method: "PATCH",
+    headers: { "Content-Type": N3_PATCH },
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(`PATCH ${profileDocUri} returned ${response.status} ${response.statusText}`);
+  }
+}
+
+/**
  * Writes a per-file ACL granting the contact read access on the file's
  * per-file container (with `acl:default` so they can read children too).
  * Mirrors what `useAclManager.grant` does on the owner side.

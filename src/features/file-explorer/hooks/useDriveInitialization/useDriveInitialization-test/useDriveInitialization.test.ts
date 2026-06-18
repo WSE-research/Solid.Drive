@@ -34,6 +34,10 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
   getAppContainerUri: (root: string) => `${root}my-solid-app/`,
 }));
 
+vi.mock('@/infrastructure/solid/storageDiscovery', () => ({
+  discoverStorageRoot: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/config', () => ({
   STORAGE_RETRY_DELAY_MS: 10000,
 }));
@@ -106,13 +110,16 @@ describe('useDriveInitialization', () => {
     expect(result.current.noStorageDetected).toBe(false);
   });
 
-  it('sets noStorageDetected when profile has no storage and resource done loading', () => {
+  it('sets noStorageDetected when profile has no storage and resource done loading', async () => {
     mockProfileValue = {
       storage: { toArray: () => [] },
       knows: { toArray: () => [] },
     };
     mockWebIdResource = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
     const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(result.current.noStorageDetected).toBe(true);
   });
 
@@ -134,6 +141,9 @@ describe('useDriveInitialization', () => {
     mockWebIdResource = { isLoading: () => false, reload: vi.fn().mockResolvedValue(undefined) };
     const { result } = renderHook(() => useDriveInitialization(500), {
       wrapper: testWrapper(),
+    });
+    await act(async () => {
+      await Promise.resolve();
     });
     expect(result.current.noStorageDetected).toBe(true);
 

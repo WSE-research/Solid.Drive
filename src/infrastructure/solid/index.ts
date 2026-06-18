@@ -12,5 +12,6 @@ export type { ProfileFields } from "./profile";
 export { resolveCatalogUri, appendToCatalog, removeFromCatalog, parseCatalog, linkCatalogToProfile, EMPTY_CATALOG_TURTLE } from "./catalog";
 export { getAppContainerUri, getSharedCatalogUri, getSharedCatalogFileName, getCandidateSharedCatalogUris, isSharedCatalogFile, normalizeShareCatalogId, toContainerUri, hasAccess } from "./sharedCatalog";
 export { resolveDisplayName } from "./displayName";
+export { discoverStorageRoot } from "./storageDiscovery";
 // Re-export storage config for convenience
 export { APP_CONTAINER_PATH, SHARED_CATALOG_PREFIX } from "@/config";

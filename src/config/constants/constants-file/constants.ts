@@ -47,7 +47,7 @@ export type SolidProvider = {
  * @public
  */
 export const SOLID_PROVIDERS: SolidProvider[] = [
-  { label: "HTWK Leipzig (demos.swe)", value: "http://demos.swe.htwk-leipzig.de:40143/", registerUrl: "http://demos.swe.htwk-leipzig.de:40143/.account/" },
+  { label: "HTWK Leipzig Solid Community Server", value: "https://demos.swe.htwk-leipzig.de/solid-community-server/", registerUrl: "https://demos.swe.htwk-leipzig.de/solid-community-server/.account/" },
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
   { label: "inrupt.net", value: "https://inrupt.com", registerUrl: "https://start.inrupt.com/profile" },
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },
@@ -268,6 +268,8 @@ export const RDF_NAMESPACES = {
   FOAF: "http://xmlns.com/foaf/0.1/",
   /** Linked Data Platform namespace */
   LDP: "http://www.w3.org/ns/ldp#",
+  /** Personal Information Model namespace (pim:storage, pim:Storage) */
+  PIM: "http://www.w3.org/ns/pim/space#",
   /** POSIX stat namespace (file system metadata such as mtime/size) */
   POSIX: "http://www.w3.org/ns/posix/stat#",
   /** RDF syntax namespace */
