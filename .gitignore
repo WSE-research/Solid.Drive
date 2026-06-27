@@ -22,6 +22,11 @@ test-results
 playwright-report
 playwright/.cache
 
+# e2e step screenshots: generated per-test folders are kept out of local
+# trees (run with E2E_SCREENSHOTS=1 to produce them). CI force-adds them
+# on main; only e2e/screenshots/README.adoc is tracked by hand.
+e2e/screenshots/*/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

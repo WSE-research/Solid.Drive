@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { shot } from "./screenshots";
 
 /**
  * UI-action helpers that mirror what an end user does. Use these in
@@ -11,6 +12,7 @@ export async function addContactViaUI(page: Page, contactWebId: string): Promise
     .locator("contacts-input-row")
     .getByRole("button", { name: /^Add$/ })
     .click();
+  await shot(page, "contact added");
 }
 
 export async function clickRequestAccessForContact(page: Page, contactName: string): Promise<void> {
@@ -19,6 +21,7 @@ export async function clickRequestAccessForContact(page: Page, contactName: stri
     .filter({ has: page.locator(".contact-row__name", { hasText: contactName }) })
     .getByRole("button", { name: /Request Access/i })
     .click();
+  await shot(page, "request access");
 }
 
 export async function openRequestsPanel(page: Page): Promise<void> {
@@ -26,16 +29,19 @@ export async function openRequestsPanel(page: Page): Promise<void> {
   if ((await panel.locator("requests-panel-body").count()) === 0) {
     await panel.getByRole("button", { name: /^(Requests|Anfragen)/ }).click();
   }
+  await shot(page, "requests panel");
 }
 
 export async function approveTopRequest(page: Page): Promise<void> {
   await openRequestsPanel(page);
   await page.getByRole("button", { name: /^(Approve|Genehmigen)$/ }).first().click();
+  await shot(page, "request approved");
 }
 
 export async function denyTopRequest(page: Page): Promise<void> {
   await openRequestsPanel(page);
   await page.getByRole("button", { name: /^(Deny|Ablehnen)$/ }).first().click();
+  await shot(page, "request denied");
 }
 
 /**
@@ -46,6 +52,7 @@ export async function expandTypeFolder(page: Page, typeLabel: string) {
   const folder = page.locator("type-folder").filter({ hasText: typeLabel });
   await expect(folder).toBeVisible();
   await folder.locator(".type-folder__toggle").click();
+  await shot(page, `type folder ${typeLabel} expanded`);
   return folder;
 }
 
@@ -64,9 +71,11 @@ export async function revokeContactInSharePanel(
 
   const sharePanel = card.locator("share-panel");
   await expect(sharePanel).toBeVisible();
+  await shot(page, "share panel");
   await sharePanel
     .locator("share-panel-row")
     .filter({ hasText: contactName })
     .getByRole("button", { name: /^(Revoke|Widerrufen)$/ })
     .click();
+  await shot(page, "contact revoked");
 }
