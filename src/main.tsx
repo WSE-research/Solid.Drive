@@ -11,6 +11,7 @@ import './app/i18n'
 import './app/index.css'
 import App from './app/App'
 import { applyStoredTheme } from '@/features/onedrive-layout/hooks/useThemePreference'
+import { registerServiceWorker } from '@/shared/utils/registerServiceWorker'
 
 applyStoredTheme()
 
@@ -19,3 +20,7 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// Register the PWA service worker so the app is installable and can boot
+// its shell offline. Fire-and-forget; failures must not block start-up.
+void registerServiceWorker()

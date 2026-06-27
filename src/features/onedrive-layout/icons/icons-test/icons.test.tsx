@@ -7,6 +7,7 @@ import {
   ChevronDownIcon, PlusIcon, GearIcon, CheckmarkIcon,
   SortIcon, InfoIcon, CloseIcon, DetailsPanelIcon, DetailsPanelIconActive,
   ShareIcon, LinkIcon, DeleteIcon, DownloadIcon, MoveToIcon, RenameIcon,
+  InstallIcon,
 } from '../icons-file/icons';
 
 describe('icons module', () => {
@@ -31,6 +32,7 @@ describe('icons module', () => {
     ['DownloadIcon', DownloadIcon],
     ['MoveToIcon', MoveToIcon],
     ['RenameIcon', RenameIcon],
+    ['InstallIcon', InstallIcon],
   ] as const;
 
   const filled = [

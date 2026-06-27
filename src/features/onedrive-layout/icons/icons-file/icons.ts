@@ -40,6 +40,7 @@ export {
   PanelLeftContractRegular  as NavRailCollapseIcon,
   PanelLeftExpandRegular    as NavRailExpandIcon,
   AlertRegular              as BellIcon,
+  DesktopArrowDownRegular   as InstallIcon,
 } from '@fluentui/react-icons';
 
 export {

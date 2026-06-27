@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Browse, upload and share the files in your Solid Pod from a desktop-class app."
+    />
+    <!--
+      PWA wiring. Like the favicon above, these root-relative hrefs are
+      rewritten by Vite to include the configured `base`
+      (e.g. '/solid-hello-world-frontend-react/') in both dev and the
+      production build, so they resolve under the reverse proxy and at '/'
+      in tests. The manifest's own members (start_url, scope, icons) are
+      relative and resolve against the manifest URL, inheriting the same base.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#5854d6" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>solid.drive</title>
   </head>
   <body>
