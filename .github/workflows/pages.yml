@@ -1,0 +1,81 @@
+name: Deploy GitHub Pages (password-protected)
+
+# Builds the Solid.Drive landing page in gh-page/ with Jekyll, encrypts
+# the pages listed in gh-page/_protected_pages.txt with PageCrypt, and
+# deploys the result to GitHub Pages.
+#
+# Based on evanbaldonado/github-pages-jekyll-password-protection, scoped
+# to the gh-page/ subfolder so it never tries to Jekyll-build the React app.
+#
+# One-time setup by a repo admin: Settings → Pages → Build and deployment
+# → Source → "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gh-page/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; let an in-progress run finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./gh-page
+          destination: ./_site
+
+      - name: Encrypt protected pages with PageCrypt
+        run: |
+          set -euo pipefail
+          manifest="gh-page/_protected_pages.txt"
+          if [ ! -f "$manifest" ]; then
+            echo "No $manifest found; nothing to encrypt."
+            exit 0
+          fi
+          while IFS= read -r line || [ -n "$line" ]; do
+            # Skip blank lines and comments.
+            case "$line" in ''|\#*) continue ;; esac
+            file=$(printf '%s\n' "$line" | awk '{print $1}')
+            password=$(printf '%s\n' "$line" | cut -d' ' -f2-)
+            target="_site/$file"
+            if [ ! -f "$target" ]; then
+              echo "::error::Protected page '$target' not found in build output."
+              exit 1
+            fi
+            echo "Encrypting $target"
+            npx --yes pagecrypt "$target" "$target" "$password"
+          done < "$manifest"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,72 @@
+= Solid.Drive GitHub Pages site
+
+A small, password-protected marketing page for Solid.Drive, styled after
+the app's dark indigo/violet theme (issue #69).
+
+It presents a short description of Solid.Drive and its digital-sovereignty
+intention, the provided features, a gallery of screenshots, and links to
+the live demo, the GitHub repository, and the companion
+https://github.com/WSE-research/SolidPodDeviceSynchronizer[Solid Pod Device Synchronizer].
+
+== Contents
+
+[cols="1,3", options="header"]
+|===
+| Path | Purpose
+
+| `index.html`
+| The page itself. Carries empty Jekyll front matter so it is processed
+by the build; all markup is inline.
+
+| `assets/css/style.css`
+| Hand-written theme matching the Solid.Drive app.
+
+| `assets/img/`
+| `hero-laptop.svg` and the `gallery/` screenshots (copied from
+`docs/images/`).
+
+| `_config.yml`
+| Minimal Jekyll config (no theme, no plugins).
+
+| `_protected_pages.txt`
+| PageCrypt manifest: `<page> <password>`, one per line. Read by the
+deploy workflow. The password is stored in plaintext here, so it
+gate-keeps the page rather than being a strong secret.
+|===
+
+== Deployment
+
+Built and deployed by `.github/workflows/pages.yml` on every push to
+`main` that touches `gh-page/**`:
+
+. `actions/jekyll-build-pages` builds `gh-page/` into `_site/`.
+. PageCrypt (https://github.com/Greenheart/pagecrypt[pagecrypt]) encrypts
+  each page listed in `_protected_pages.txt` in place — client-side AES,
+  so visitors must enter the password to view the content. This follows
+  https://github.com/evanbaldonado/github-pages-jekyll-password-protection[evanbaldonado/github-pages-jekyll-password-protection].
+. `actions/deploy-pages` publishes `_site/` to GitHub Pages.
+
+[NOTE]
+====
+*One-time setup by a repo admin:* enable GitHub Pages with
+Settings → Pages → Build and deployment → Source → *GitHub Actions*.
+Until then the workflow builds but has nowhere to deploy.
+
+PageCrypt only encrypts the HTML, not its assets (CSS, images), matching
+the upstream tool's behaviour — fine here, since the page content is
+public-facing marketing.
+====
+
+== Local preview
+
+[source,bash]
+----
+# Emulate the Jekyll build (strip the empty front matter) and serve it:
+mkdir -p _preview && cp -r gh-page/assets _preview/
+tail -n +3 gh-page/index.html > _preview/index.html
+python3 -m http.server -d _preview 8099   # then open http://localhost:8099/
+----
+
+Validated by `tests/integration/gh-page.test.ts` (`npm test`): required
+content and links, that every referenced asset exists, and that the
+PageCrypt + Pages deploy wiring is in place.
