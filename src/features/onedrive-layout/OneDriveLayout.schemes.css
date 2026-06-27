@@ -1,0 +1,84 @@
+/*
+ * OneDrive accent color schemes: re-tint the accent and brand tokens
+ * based on data-scheme on :root. Orthogonal to data-theme (dark/light).
+ *
+ * Must load AFTER OneDriveLayout.css and OneDriveLayout.light.css so the
+ * scheme rules win the cascade, and so the per-scheme light "soft" tweaks
+ * (higher specificity) override the generic light-theme soft values.
+ *
+ * "indigo" is the default Solid.drive look and intentionally has no
+ * override block — it falls through to the :root tokens, so the default
+ * appearance is byte-for-byte unchanged.
+ */
+
+/* ---- Emerald ------------------------------------------------------- */
+:root[data-scheme="emerald"] {
+  --odl-accent:        #0e8a5f;
+  --odl-accent-strong: #0b7350;
+  --odl-accent-soft:   rgba(16, 138, 95, 0.16);
+
+  --odl-brand:               #10b981;
+  --odl-brand-strong:        #059669;
+  --odl-brand-soft:          rgba(16, 185, 129, 0.30);
+  --odl-brand-gradient:       linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  --odl-brand-gradient-hover: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+:root[data-theme="light"][data-scheme="emerald"] {
+  --odl-accent-soft: rgba(16, 138, 95, 0.10);
+  --odl-brand-soft:  rgba(16, 185, 129, 0.18);
+}
+
+/* ---- Amber --------------------------------------------------------- */
+:root[data-scheme="amber"] {
+  --odl-accent:        #b8730f;
+  --odl-accent-strong: #9a6010;
+  --odl-accent-soft:   rgba(184, 115, 15, 0.16);
+
+  --odl-brand:               #f59e0b;
+  --odl-brand-strong:        #d97706;
+  --odl-brand-soft:          rgba(245, 158, 11, 0.30);
+  --odl-brand-gradient:       linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  --odl-brand-gradient-hover: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+:root[data-theme="light"][data-scheme="amber"] {
+  --odl-accent-soft: rgba(184, 115, 15, 0.10);
+  --odl-brand-soft:  rgba(245, 158, 11, 0.18);
+}
+
+/* ---- Rose ---------------------------------------------------------- */
+:root[data-scheme="rose"] {
+  --odl-accent:        #be123c;
+  --odl-accent-strong: #9f1239;
+  --odl-accent-soft:   rgba(190, 18, 60, 0.16);
+
+  --odl-brand:               #f43f5e;
+  --odl-brand-strong:        #e11d48;
+  --odl-brand-soft:          rgba(244, 63, 94, 0.30);
+  --odl-brand-gradient:       linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
+  --odl-brand-gradient-hover: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+}
+:root[data-theme="light"][data-scheme="rose"] {
+  --odl-accent-soft: rgba(190, 18, 60, 0.10);
+  --odl-brand-soft:  rgba(244, 63, 94, 0.18);
+}
+
+/* ---- Settings picker: row + colour swatches ----------------------- */
+color-scheme-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: stretch;
+  width: 100%;
+  padding: 4px 12px 8px;
+}
+
+.color-scheme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.color-scheme-swatch--indigo  { background: #5854d6; }
+.color-scheme-swatch--emerald { background: #10b981; }
+.color-scheme-swatch--amber   { background: #f59e0b; }
+.color-scheme-swatch--rose    { background: #f43f5e; }

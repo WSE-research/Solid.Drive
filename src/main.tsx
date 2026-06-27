@@ -11,8 +11,10 @@ import './app/i18n'
 import './app/index.css'
 import App from './app/App'
 import { applyStoredTheme } from '@/features/onedrive-layout/hooks/useThemePreference'
+import { applyStoredColorScheme } from '@/features/onedrive-layout/hooks/useColorScheme'
 
 applyStoredTheme()
+applyStoredColorScheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

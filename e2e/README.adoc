@@ -166,6 +166,11 @@ OneDrive click-through navigates to the Requests view and clears the
 badge, real-time arrival ticks the badge up and fires a toast,
 duplicate inbox messages collapse into one row, Classic click-through
 auto-opens the RequestsPanel with the row highlighted.
+
+| `e2e/tests/theme-color-gallery.spec.ts`
+| Captures My Files in every dark/light theme × accent color-scheme
+combination into `e2e/screenshots/showcase/`, and asserts each scheme
+re-tints the accent. Feeds the GitHub Pages "See it in action" switcher.
 |===
 
 == Adding a test
