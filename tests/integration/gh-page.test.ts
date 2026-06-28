@@ -249,6 +249,17 @@ describe("webpage Docker deployment (WSE docker-service-updater)", () => {
     const dockerfile = read("gh-page/Dockerfile");
     expect(dockerfile).toMatch(/FROM nginx/i);
     expect(dockerfile).toContain("pagecrypt");
+    expect(dockerfile).toContain("gh-page/nginx.conf");
+  });
+
+  it("serves the page under the /Solid.Drive/ proxy prefix", () => {
+    expect(existsSync(fromRoot("gh-page/nginx.conf"))).toBe(true);
+    const conf = read("gh-page/nginx.conf");
+    // Serve under the prefix and normalise the bare prefix to a trailing slash.
+    expect(conf).toMatch(/location\s+\/Solid\.Drive\/\s*\{/);
+    expect(conf).toMatch(/location\s*=\s*\/Solid\.Drive\s*\{/);
+    expect(conf).toMatch(/alias\s+\/usr\/share\/nginx\/html\//);
+    expect(conf).toContain("try_files");
   });
 
   it("builds from gh-page/Dockerfile and pushes solid.drive-webpage on tags only", () => {

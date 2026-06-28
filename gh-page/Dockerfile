@@ -30,4 +30,7 @@ RUN set -eu; \
 # ---- Serve -----------------------------------------------------------------
 FROM nginx:alpine
 COPY --from=build /site/_site /usr/share/nginx/html
+# Serve under the /Solid.Drive/ prefix to match the WSE reverse proxy
+# (https://wse-research.org/Solid.Drive) so the relative asset paths resolve.
+COPY gh-page/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
