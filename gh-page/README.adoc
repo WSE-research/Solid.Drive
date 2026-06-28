@@ -58,10 +58,13 @@ with nginx. Build from the repo root:
 `docker build -f gh-page/Dockerfile -t wseresearch/solid.drive-webpage .`
 
 | `nginx.conf`
-| Serves the site under the `/Solid.Drive/` prefix (and redirects the bare
-prefix / root to it) to match the WSE reverse proxy at
-`https://wse-research.org/Solid.Drive`, so the relative asset paths
-resolve. Open `http://localhost:8080/Solid.Drive/` when running locally.
+| Serves the site for the WSE reverse proxy at
+`https://wse-research.org/Solid.Drive`. That route forwards requests with
+the `/Solid.Drive` prefix *stripped*, so nginx serves from the site root
+(and also maps the prefix intact, just in case) and issues *no* redirect —
+a prefix redirect would loop behind a stripping proxy. `index.html` carries
+`<base href="/Solid.Drive/">` so the relative asset URLs resolve under the
+public prefix regardless of a trailing slash.
 |===
 
 == Deployment
