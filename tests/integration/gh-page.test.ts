@@ -252,14 +252,21 @@ describe("webpage Docker deployment (WSE docker-service-updater)", () => {
     expect(dockerfile).toContain("gh-page/nginx.conf");
   });
 
-  it("serves the page under the /Solid.Drive/ proxy prefix", () => {
+  it("serves the page for the /Solid.Drive proxy without a redirect loop", () => {
     expect(existsSync(fromRoot("gh-page/nginx.conf"))).toBe(true);
     const conf = read("gh-page/nginx.conf");
-    // Serve under the prefix and normalise the bare prefix to a trailing slash.
+    // The WSE proxy strips the prefix, so serve from root and also map the
+    // prefix (intact case). Crucially: no prefix redirect, which loops
+    // behind a stripping proxy.
+    expect(conf).toMatch(/location\s+\/\s*\{/);
     expect(conf).toMatch(/location\s+\/Solid\.Drive\/\s*\{/);
-    expect(conf).toMatch(/location\s*=\s*\/Solid\.Drive\s*\{/);
     expect(conf).toMatch(/alias\s+\/usr\/share\/nginx\/html\//);
     expect(conf).toContain("try_files");
+    expect(conf).not.toMatch(/return\s+30\d\s+\/Solid\.Drive/);
+  });
+
+  it("sets <base> so relative assets resolve under /Solid.Drive/", () => {
+    expect(read(PAGE)).toMatch(/<base\s+href="\/Solid\.Drive\/"/);
   });
 
   it("builds from gh-page/Dockerfile and pushes solid.drive-webpage on tags only", () => {
