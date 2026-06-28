@@ -51,6 +51,11 @@ action" switcher.
 | PageCrypt manifest: `<page> <password>`, one per line. Read by the
 deploy workflow. The password is stored in plaintext here, so it
 gate-keeps the page rather than being a strong secret.
+
+| `Dockerfile`
+| Self-contained image that rebuilds + encrypts the page and serves it
+with nginx. Build from the repo root:
+`docker build -f gh-page/Dockerfile -t wseresearch/solid.drive-webpage .`
 |===
 
 == Deployment
@@ -64,6 +69,12 @@ Built and deployed by `.github/workflows/pages.yml` on every push to
   so visitors must enter the password to view the content. This follows
   https://github.com/evanbaldonado/github-pages-jekyll-password-protection[evanbaldonado/github-pages-jekyll-password-protection].
 . `actions/deploy-pages` publishes `_site/` to GitHub Pages.
+
+In parallel, a `docker` job builds the same page as a Docker image from
+`gh-page/Dockerfile` (nginx serving the built, encrypted site) and pushes
+it to `wseresearch/solid.drive-webpage` on Docker Hub, using the
+`DOCKER_USER` / `DOCKER_PASSWORD` repository secrets. It is independent of
+the Pages deploy, so a registry hiccup never blocks the site going live.
 
 [NOTE]
 ====

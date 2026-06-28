@@ -237,4 +237,14 @@ describe(".github/workflows/pages.yml", () => {
     expect(wf).toContain("pages: write");
     expect(wf).toContain("id-token: write");
   });
+
+  it("also builds and pushes the page as a Docker image", () => {
+    expect(wf).toContain("docker/build-push-action");
+    expect(wf).toMatch(/file:\s*gh-page\/Dockerfile/);
+    expect(wf).toContain("wseresearch/solid.drive-webpage");
+    expect(existsSync(fromRoot("gh-page/Dockerfile"))).toBe(true);
+    const dockerfile = read("gh-page/Dockerfile");
+    expect(dockerfile).toMatch(/FROM nginx/i);
+    expect(dockerfile).toContain("pagecrypt");
+  });
 });

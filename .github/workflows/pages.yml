@@ -2,13 +2,16 @@ name: Deploy GitHub Pages (password-protected)
 
 # Builds the Solid.Drive landing page in gh-page/ with Jekyll, encrypts
 # the pages listed in gh-page/_protected_pages.txt with PageCrypt, and
-# deploys the result to GitHub Pages.
+# deploys the result to GitHub Pages. In parallel it builds the same page
+# as a Docker image (gh-page/Dockerfile) and pushes it to
+# wseresearch/solid.drive-webpage on Docker Hub.
 #
 # Based on evanbaldonado/github-pages-jekyll-password-protection, scoped
 # to the gh-page/ subfolder so it never tries to Jekyll-build the React app.
 #
 # One-time setup by a repo admin: Settings → Pages → Build and deployment
-# → Source → "GitHub Actions".
+# → Source → "GitHub Actions". The Docker push uses the DOCKER_USER and
+# DOCKER_PASSWORD repository secrets.
 
 on:
   push:
@@ -79,3 +82,32 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Build the same page as a Docker image and push it to Docker Hub.
+  # Independent of the Pages deploy so a registry hiccup never blocks it.
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push the webpage image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: gh-page/Dockerfile
+          push: true
+          tags: |
+            wseresearch/solid.drive-webpage:latest
+            wseresearch/solid.drive-webpage:${{ github.sha }}
