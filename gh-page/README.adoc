@@ -56,6 +56,12 @@ gate-keeps the page rather than being a strong secret.
 | Self-contained image that rebuilds + encrypts the page and serves it
 with nginx. Build from the repo root:
 `docker build -f gh-page/Dockerfile -t wseresearch/solid.drive-webpage .`
+
+| `nginx.conf`
+| Serves the site under the `/Solid.Drive/` prefix (and redirects the bare
+prefix / root to it) to match the WSE reverse proxy at
+`https://wse-research.org/Solid.Drive`, so the relative asset paths
+resolve. Open `http://localhost:8080/Solid.Drive/` when running locally.
 |===
 
 == Deployment
