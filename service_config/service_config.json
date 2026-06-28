@@ -5,6 +5,13 @@
       "port": "40211:80",
       "image": "wseresearch/solid-hello-world-frontend-react",
       "tag": "latest"
+    },
+    {
+      "mode": "dockerfile",
+      "port": "40213:80",
+      "image": "wseresearch/solid.drive-webpage",
+      "tag": "latest"
     }
+    
   ]
 }
