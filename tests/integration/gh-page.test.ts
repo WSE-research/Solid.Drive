@@ -75,6 +75,14 @@ describe("gh-page/index.html", () => {
     expect(text).toMatch(/install/i);
     expect(text).toMatch(/docker run/i);
     expect(text).toMatch(/npm run dev/i);
+    // Points to the repo README too.
+    expect(
+      Array.from(section!.querySelectorAll("a")).some((a) =>
+        /github\.com\/WSE-research\/Solid-Drive#readme/i.test(a.getAttribute("href") ?? ""),
+      ),
+    ).toBe(true);
+    // The standalone PWA install card was removed.
+    expect(text).not.toMatch(/desktop app \(PWA\)/i);
     // Linked from the primary nav.
     expect(
       Array.from(doc.querySelectorAll(".site-nav a")).some(
