@@ -66,13 +66,29 @@ describe("gh-page/index.html", () => {
     expect(features.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("links to the live demo, the repo and the device synchronizer", () => {
+  it("links to the live demo, the repo and Solid.Sync", () => {
     const links = hrefs(doc);
     expect(links.some((h) => h.includes("wse-research.org/Solid.Drive"))).toBe(true);
     expect(links.some((h) => h === "https://github.com/WSE-research/Solid-Drive")).toBe(true);
-    expect(
-      links.some((h) => h === "https://github.com/WSE-research/SolidPodDeviceSynchronizer"),
-    ).toBe(true);
+    // The companion project is now "Solid.Sync".
+    expect(links.some((h) => h === "https://github.com/WSE-research/Solid.Sync")).toBe(true);
+    expect(links.some((h) => h.includes("SolidPodDeviceSynchronizer"))).toBe(false);
+    expect(doc.body.textContent ?? "").toContain("Solid.Sync");
+    expect(doc.body.textContent ?? "").not.toMatch(/Solid Pod Device Synchronizer/);
+  });
+
+  it("shows the logo in the hero and has no fork ribbon", () => {
+    const heroLogo = doc.querySelector(".hero .hero__logo")?.getAttribute("src") ?? "";
+    expect(heroLogo).toBe("assets/img/logo.png");
+    expect(existsSync(fromRoot(`gh-page/${heroLogo}`))).toBe(true);
+    expect(doc.querySelector(".fork-ribbon")).toBeNull();
+  });
+
+  it("provides a lightbox over the gallery images", () => {
+    expect(doc.querySelector("#lightbox")).toBeTruthy();
+    expect(doc.querySelector("#lightbox .lightbox__nav--prev")).toBeTruthy();
+    expect(doc.querySelector("#lightbox .lightbox__nav--next")).toBeTruthy();
+    expect(doc.querySelectorAll("img[data-lightbox]").length).toBeGreaterThanOrEqual(4);
   });
 
   it("credits Leipzig University of Applied Sciences with a UTM-tagged link", () => {

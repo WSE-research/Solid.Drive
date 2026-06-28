@@ -3,15 +3,17 @@
 A small, password-protected marketing page for Solid.Drive, styled after
 the live app
 (https://wse-research.org/solid-hello-world-frontend-react/[the demo]):
-light surface, DM Sans, the gradient ".DRIVE" wordmark, and the animated
-hero blob (issue #69).
+DM Sans and the gradient ".DRIVE" wordmark. Content flows in a single
+white column (no boxed cards), with the animated blue "blob" fixed to the
+right-hand edge of the screen (issue #69).
 
 It presents a short description of Solid.Drive and its digital-sovereignty
 intention (framed around Tim Berners-Lee's Solid vision), the provided
 features, an interactive theme × color-scheme screenshot switcher, a
-gallery of further views, and links to the live demo, the GitHub
+gallery of further views (click any screenshot for a lightbox with
+previous / next navigation), and links to the live demo, the GitHub
 repository, and the companion
-https://github.com/WSE-research/SolidPodDeviceSynchronizer[Solid Pod Device Synchronizer].
+https://github.com/WSE-research/Solid.Sync[Solid.Sync].
 
 == Contents
 
