@@ -176,7 +176,7 @@ section { padding: clamp(2.6rem, 6vw, 4.5rem) 0; }
 .hero__title { font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 800; letter-spacing: -1.4px; margin: 0; text-align: left; }
 .hero__logo {
   flex: 0 0 auto;
-  width: clamp(120px, 16vw, 190px); height: auto;
+  width: clamp(190px, 26vw, 320px); height: auto;
   filter: drop-shadow(0 24px 40px rgba(76, 29, 149, 0.28));
 }
 /* Full central-column width per design request. */
@@ -195,6 +195,27 @@ section { padding: clamp(2.6rem, 6vw, 4.5rem) 0; }
 .feature:hover { transform: translateY(-3px); box-shadow: 0 22px 48px rgba(76, 29, 149, 0.18); }
 .feature h3 { font-size: 1.08rem; font-weight: 700; margin: 0 0 8px; }
 .feature p { color: var(--text-secondary); margin: 0; font-size: 0.95rem; }
+
+/* ---- Get started: steps + code ----------------------------------- */
+.get-started__sub { text-align: center; margin: 2.8rem 0 1.4rem; font-size: 1.2rem; font-weight: 800; }
+.step { padding: 26px; }
+.step__num {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--brand-gradient); color: #fff;
+  font-weight: 800; font-size: 1.1rem; margin-bottom: 14px;
+}
+.step h3 { font-size: 1.08rem; font-weight: 700; margin: 0 0 8px; }
+.step p { color: var(--text-secondary); margin: 0; font-size: 0.96rem; }
+.code {
+  margin: 12px 0 0; padding: 12px 14px;
+  background: #0f1220; color: #e6e7ee;
+  border-radius: var(--radius-control);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem; line-height: 1.5;
+  overflow-x: auto;
+}
+.code code { font: inherit; color: inherit; background: none; padding: 0; }
 
 /* ---- Showcase: switcher + framed image --------------------------- */
 .switcher__controls { display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: center; margin-bottom: 1.4rem; }

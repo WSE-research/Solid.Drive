@@ -66,6 +66,23 @@ describe("gh-page/index.html", () => {
     expect(features.length).toBeGreaterThanOrEqual(4);
   });
 
+  it("has a usage & installation section", () => {
+    const section = doc.querySelector("#get-started");
+    expect(section).toBeTruthy();
+    const text = (section?.textContent ?? "").replace(/\s+/g, " ");
+    // Usage steps + installation options (PWA, Docker, source).
+    expect(section!.querySelectorAll(".step").length).toBeGreaterThanOrEqual(3);
+    expect(text).toMatch(/install/i);
+    expect(text).toMatch(/docker run/i);
+    expect(text).toMatch(/npm run dev/i);
+    // Linked from the primary nav.
+    expect(
+      Array.from(doc.querySelectorAll(".site-nav a")).some(
+        (a) => a.getAttribute("href") === "#get-started",
+      ),
+    ).toBe(true);
+  });
+
   it("links to the live demo, the repo and Solid.Sync", () => {
     const links = hrefs(doc);
     expect(links.some((h) => h.includes("wse-research.org/Solid.Drive"))).toBe(true);
@@ -79,7 +96,7 @@ describe("gh-page/index.html", () => {
 
   it("shows the logo beside the hero headline and has no fork ribbon", () => {
     const heroLogo = doc.querySelector(".hero .hero__head .hero__logo")?.getAttribute("src") ?? "";
-    expect(heroLogo).toBe("assets/img/logo.png");
+    expect(heroLogo).toBe("assets/img/hero-logo.png");
     expect(existsSync(fromRoot(`gh-page/${heroLogo}`))).toBe(true);
     expect(doc.querySelector(".fork-ribbon")).toBeNull();
   });

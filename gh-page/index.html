@@ -57,6 +57,7 @@
         <nav class="site-nav" aria-label="Primary">
           <a href="#features">Features</a>
           <a href="#showcase">Gallery</a>
+          <a href="#get-started">Get started</a>
           <a href="#related">Related</a>
           <a class="btn btn--ghost" href="https://github.com/WSE-research/Solid-Drive">GitHub</a>
           <a class="btn btn--solid" href="https://wse-research.org/Solid.Drive">Live demo</a>
@@ -82,7 +83,7 @@
             Solid Protocol</span>
           <div class="hero__head">
             <h1 class="hero__title">Your files.<br />Your Pod.<br />Your <span class="grad">power.</span></h1>
-            <img class="hero__logo" src="assets/img/logo.png" alt="Solid.Drive logo" width="180" height="254" />
+            <img class="hero__logo" src="assets/img/hero-logo.png" alt="Solid.Drive logo" width="300" height="200" />
           </div>
           <p class="lede">
             Solid.Drive is a desktop-class file manager for your
@@ -248,6 +249,72 @@
               <span class="thumb"><img data-lightbox data-title="My Files" src="assets/img/gallery/02-my-files.png" alt="My Files view" loading="lazy" /></span>
               <figcaption>My Files</figcaption>
             </figure>
+          </div>
+        </section>
+
+        <!-- Get started: using & installation ------------------------ -->
+        <section id="get-started" class="get-started">
+          <div class="section-head">
+            <h2>Get started</h2>
+            <p>Solid.Drive runs entirely in your browser — nothing to install to try it. Install it as a desktop app or host your own when you're ready.</p>
+          </div>
+          <div class="grid">
+            <article class="card step">
+              <div class="step__num">1</div>
+              <h3>Open Solid.Drive</h3>
+              <p>
+                Head to the <a href="https://wse-research.org/Solid.Drive">live demo</a>
+                — no sign-up, no download. It runs as a normal web app in any
+                modern browser.
+              </p>
+            </article>
+            <article class="card step">
+              <div class="step__num">2</div>
+              <h3>Sign in with your Pod</h3>
+              <p>
+                Log in through any Solid identity provider. Don't have a Pod yet?
+                Create one with a provider such as
+                <a href="https://solidcommunity.net/">solidcommunity.net</a> in a
+                couple of minutes, then come back.
+              </p>
+            </article>
+            <article class="card step">
+              <div class="step__num">3</div>
+              <h3>Browse, upload &amp; share</h3>
+              <p>
+                Your Pod opens as a familiar drive. Upload files, organise them
+                into folders, preview them in place, and share with your contacts
+                — all under your control.
+              </p>
+            </article>
+          </div>
+
+          <h3 class="get-started__sub">Install it your way</h3>
+          <div class="grid">
+            <article class="card feature">
+              <div class="icon">🖥️</div>
+              <h3>As a desktop app (PWA)</h3>
+              <p>
+                In Chrome or Edge, click the <strong>Install app</strong> control
+                in the top bar (or the install icon in the address bar) to launch
+                Solid.Drive in its own standalone window.
+              </p>
+            </article>
+            <article class="card feature">
+              <div class="icon">🐳</div>
+              <h3>Self-host with Docker</h3>
+              <p>Run the published image and open it on your own machine:</p>
+              <pre class="code"><code>docker run -p 40211:80 \
+  wseresearch/solid-hello-world-frontend-react</code></pre>
+            </article>
+            <article class="card feature">
+              <div class="icon">⚙️</div>
+              <h3>Build from source</h3>
+              <p>Clone the repository, then start the dev server or a production build:</p>
+              <pre class="code"><code>git clone https://github.com/WSE-research/Solid-Drive
+cd Solid-Drive &amp;&amp; npm install
+npm run dev      # http://localhost:5173</code></pre>
+            </article>
           </div>
         </section>
 
