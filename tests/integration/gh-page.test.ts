@@ -77,18 +77,31 @@ describe("gh-page/index.html", () => {
     expect(doc.body.textContent ?? "").not.toMatch(/Solid Pod Device Synchronizer/);
   });
 
-  it("shows the logo in the hero and has no fork ribbon", () => {
-    const heroLogo = doc.querySelector(".hero .hero__logo")?.getAttribute("src") ?? "";
+  it("shows the logo beside the hero headline and has no fork ribbon", () => {
+    const heroLogo = doc.querySelector(".hero .hero__art img")?.getAttribute("src") ?? "";
     expect(heroLogo).toBe("assets/img/logo.png");
     expect(existsSync(fromRoot(`gh-page/${heroLogo}`))).toBe(true);
     expect(doc.querySelector(".fork-ribbon")).toBeNull();
   });
 
-  it("provides a lightbox over the gallery images", () => {
+  it("provides a lightbox with prev/next and a caption", () => {
     expect(doc.querySelector("#lightbox")).toBeTruthy();
     expect(doc.querySelector("#lightbox .lightbox__nav--prev")).toBeTruthy();
     expect(doc.querySelector("#lightbox .lightbox__nav--next")).toBeTruthy();
-    expect(doc.querySelectorAll("img[data-lightbox]").length).toBeGreaterThanOrEqual(4);
+    expect(doc.querySelector("#lightbox .lightbox__caption")).toBeTruthy();
+    const lightboxImgs = Array.from(doc.querySelectorAll("img[data-lightbox]"));
+    expect(lightboxImgs.length).toBeGreaterThanOrEqual(4);
+    // Each lightbox image carries a title for the bottom caption.
+    for (const img of lightboxImgs) {
+      expect((img.getAttribute("data-title") ?? "").length).toBeGreaterThan(0);
+    }
+  });
+
+  it("has a fixed semi-transparent header", () => {
+    const header = doc.querySelector(".site-header");
+    expect(header).toBeTruthy();
+    const css = read("gh-page/assets/css/style.css");
+    expect(css).toMatch(/\.site-header\s*\{[^}]*position:\s*fixed/);
   });
 
   it("credits Leipzig University of Applied Sciences with a UTM-tagged link", () => {

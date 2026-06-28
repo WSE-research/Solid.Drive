@@ -1,17 +1,19 @@
 = Solid.Drive GitHub Pages site
 
-A small, password-protected marketing page for Solid.Drive, styled after
-the live app
-(https://wse-research.org/solid-hello-world-frontend-react/[the demo]):
-DM Sans and the gradient ".DRIVE" wordmark. Content flows in a single
-white column (no boxed cards), with the animated blue "blob" fixed to the
-right-hand edge of the screen (issue #69).
+A small, password-protected marketing page for Solid.Drive. The visual
+design follows the
+https://github.com/WSE-research/Solid.Sync[Solid.Sync] GitHub page: DM
+Sans, a soft lavender gradient background, white cards with gradient icon
+chips and soft shadows, and a fixed, semi-transparent header. The
+gradient ".DRIVE" wordmark and the animated blue "wave" (fixed to the
+right-hand edge of the screen) tie it back to Solid.Drive (issue #69).
 
 It presents a short description of Solid.Drive and its digital-sovereignty
-intention (framed around Tim Berners-Lee's Solid vision), the provided
-features, an interactive theme × color-scheme screenshot switcher, a
-gallery of further views (click any screenshot for a lightbox with
-previous / next navigation), and links to the live demo, the GitHub
+intention (framed around Tim Berners-Lee's Solid vision) with the logo
+beside the headline, the provided features, an interactive theme ×
+color-scheme screenshot switcher, a gallery of further views (click any
+screenshot for a lightbox with previous / next navigation and the image
+title shown at the bottom), and links to the live demo, the GitHub
 repository, and the companion
 https://github.com/WSE-research/Solid.Sync[Solid.Sync].
 
