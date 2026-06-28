@@ -1,0 +1,28 @@
+name: Register Docker Image
+
+# Registers the services declared in service_config/service_config.json
+# (the React app and the Solid.Drive webpage) with the WSE
+# docker-service-updater. Push to the service-registration branch to run
+# the one-time registration. Mirrors WSE-research/image-to-ascii-art.
+
+on:
+  push:
+    branches: [service-registration]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # required to access configuration
+      - uses: actions/checkout@v4
+
+      # init registration
+      - name: Init Registration
+        uses: WSE-research/docker-service-updater@v0.2.1
+        with:
+          mode: register
+          updater_host: ${{ secrets.UPDATER_HOST }}
+          api_key: ${{ secrets.API_KEY }}
+          config_file: "service_config/service_config.json"
+          setup_path: "service_config"

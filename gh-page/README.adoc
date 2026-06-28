@@ -70,11 +70,21 @@ Built and deployed by `.github/workflows/pages.yml` on every push to
   https://github.com/evanbaldonado/github-pages-jekyll-password-protection[evanbaldonado/github-pages-jekyll-password-protection].
 . `actions/deploy-pages` publishes `_site/` to GitHub Pages.
 
-In parallel, a `docker` job builds the same page as a Docker image from
-`gh-page/Dockerfile` (nginx serving the built, encrypted site) and pushes
-it to `wseresearch/solid.drive-webpage` on Docker Hub, using the
-`DOCKER_USER` / `DOCKER_PASSWORD` repository secrets. It is independent of
-the Pages deploy, so a registry hiccup never blocks the site going live.
+The same page is also shipped as a Docker image, following the WSE
+deployment pattern (see `WSE-research/image-to-ascii-art`):
+
+* `.github/workflows/webpage-docker-image.yml` builds `gh-page/Dockerfile`
+  on every push (to verify it), and on a *tag release* pushes
+  `wseresearch/solid.drive-webpage:latest` and `:<tag>` to Docker Hub, then
+  triggers `WSE-research/docker-service-updater` to redeploy it on the WSE
+  host.
+* `service_config/service_config.json` registers the webpage as a service
+  (`wseresearch/solid.drive-webpage`, port `40212:80`) alongside the app.
+* `.github/workflows/register_service.yml` performs the one-time service
+  registration when pushed to the `service-registration` branch.
+
+This reuses the existing `DOCKER_USER`, `DOCKER_PASSWORD`, `UPDATER_HOST`
+and `API_KEY` repository secrets.
 
 [NOTE]
 ====

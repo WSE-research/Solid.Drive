@@ -238,13 +238,39 @@ describe(".github/workflows/pages.yml", () => {
     expect(wf).toContain("id-token: write");
   });
 
-  it("also builds and pushes the page as a Docker image", () => {
-    expect(wf).toContain("docker/build-push-action");
-    expect(wf).toMatch(/file:\s*gh-page\/Dockerfile/);
-    expect(wf).toContain("wseresearch/solid.drive-webpage");
+});
+
+describe("webpage Docker deployment (WSE docker-service-updater)", () => {
+  const dockerWf = read(".github/workflows/webpage-docker-image.yml");
+  const registerWf = read(".github/workflows/register_service.yml");
+
+  it("ships a self-contained nginx Dockerfile that encrypts the page", () => {
     expect(existsSync(fromRoot("gh-page/Dockerfile"))).toBe(true);
     const dockerfile = read("gh-page/Dockerfile");
     expect(dockerfile).toMatch(/FROM nginx/i);
     expect(dockerfile).toContain("pagecrypt");
+  });
+
+  it("builds from gh-page/Dockerfile and pushes solid.drive-webpage on tags only", () => {
+    expect(dockerWf).toMatch(/--file gh-page\/Dockerfile/);
+    expect(dockerWf).toContain("wseresearch/solid.drive-webpage");
+    // Push/login steps are gated on tag releases.
+    expect(dockerWf).toMatch(/startsWith\(github\.ref, 'refs\/tags\/'\)/);
+    expect(dockerWf).toContain("docker push wseresearch/solid.drive-webpage:latest");
+  });
+
+  it("triggers the WSE docker-service-updater on release", () => {
+    expect(dockerWf).toContain("WSE-research/docker-service-updater");
+    expect(dockerWf).toContain("UPDATER_HOST");
+    expect(dockerWf).toContain("API_KEY");
+  });
+
+  it("registers the webpage service via service_config", () => {
+    expect(registerWf).toContain("WSE-research/docker-service-updater");
+    expect(registerWf).toMatch(/mode:\s*register/);
+    const config = JSON.parse(read("service_config/service_config.json")) as {
+      services: Array<{ image: string }>;
+    };
+    expect(config.services.some((s) => s.image === "wseresearch/solid.drive-webpage")).toBe(true);
   });
 });
