@@ -146,14 +146,27 @@ describe("gh-page/index.html", () => {
     expect(doc.querySelector("#scroll-top")).toBeTruthy();
   });
 
-  it("uses the brand logo as favicon and references existing assets", () => {
+  it("uses an aspect-preserved square favicon and references existing assets", () => {
     const icon = doc.querySelector('link[rel="icon"]')?.getAttribute("href") ?? "";
-    expect(icon).toBe("assets/img/logo.png");
+    expect(icon).toBe("assets/img/favicon.png");
     expect(existsSync(fromRoot(`gh-page/${icon}`))).toBe(true);
     const css = doc.querySelector('link[rel="stylesheet"][href$=".css"]')?.getAttribute("href") ?? "";
     expect(existsSync(fromRoot(`gh-page/${css}`))).toBe(true);
     const logo = doc.querySelector(".brand__logo")?.getAttribute("src") ?? "";
     expect(existsSync(fromRoot(`gh-page/${logo}`))).toBe(true);
+  });
+
+  it('shows the "Built on the Solid Protocol" pill above the headline with the Solid emblem', () => {
+    const hero = doc.querySelector(".hero");
+    const pill = hero?.querySelector(".pill") ?? null;
+    const head = hero?.querySelector(".hero__head") ?? null;
+    expect(pill).toBeTruthy();
+    expect(head).toBeTruthy();
+    // Pill must precede the headline row in document order (i.e. above it).
+    expect(pill!.compareDocumentPosition(head!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect((pill!.textContent ?? "").replace(/\s+/g, " ")).toMatch(/Built on the\s*Solid Protocol/);
+    // The Solid emblem is inlined inside the pill, between "the" and "Solid".
+    expect(pill!.querySelector("svg.pill__emblem")).toBeTruthy();
   });
 
   it("loads the DM Sans font used by the live app", () => {
