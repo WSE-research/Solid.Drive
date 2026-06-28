@@ -78,7 +78,7 @@ describe("gh-page/index.html", () => {
   });
 
   it("shows the logo beside the hero headline and has no fork ribbon", () => {
-    const heroLogo = doc.querySelector(".hero .hero__art img")?.getAttribute("src") ?? "";
+    const heroLogo = doc.querySelector(".hero .hero__head .hero__logo")?.getAttribute("src") ?? "";
     expect(heroLogo).toBe("assets/img/logo.png");
     expect(existsSync(fromRoot(`gh-page/${heroLogo}`))).toBe(true);
     expect(doc.querySelector(".fork-ribbon")).toBeNull();
