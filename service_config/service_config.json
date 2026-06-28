@@ -8,7 +8,7 @@
     },
     {
       "mode": "dockerfile",
-      "port": "40213:80",
+      "port": "40212:80",
       "image": "wseresearch/solid.drive-webpage",
       "tag": "latest"
     }
