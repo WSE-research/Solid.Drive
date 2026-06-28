@@ -45,6 +45,22 @@ describe("gh-page/index.html", () => {
     expect(desc.length).toBeGreaterThan(20);
   });
 
+  it('uses the "Your files. Your Pod. Your power." headline', () => {
+    const title = doc.querySelector(".hero__title")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    expect(title).toMatch(/Your files\.\s*Your Pod\.\s*Your power\./i);
+  });
+
+  it("integrates Tim Berners-Lee's Solid vision in the Why section", () => {
+    const why = doc.querySelector(".why")?.textContent ?? "";
+    expect(why).toMatch(/Berners-Lee/);
+    expect(why).toMatch(/vision/i);
+  });
+
+  it("states that Solid's complexity is kept in the background", () => {
+    const features = (doc.querySelector("#features")?.textContent ?? "").replace(/\s+/g, " ");
+    expect(features).toMatch(/complexity in the background/i);
+  });
+
   it("advertises the provided features", () => {
     const features = doc.querySelectorAll("#features .feature");
     expect(features.length).toBeGreaterThanOrEqual(4);
@@ -59,8 +75,22 @@ describe("gh-page/index.html", () => {
     ).toBe(true);
   });
 
+  it("credits Leipzig University of Applied Sciences with a UTM-tagged link", () => {
+    const link = Array.from(doc.querySelectorAll("a")).find((a) =>
+      (a.textContent ?? "").includes("Leipzig University of Applied Sciences"),
+    );
+    expect(link, "Leipzig University of Applied Sciences link").toBeTruthy();
+    const href = link!.getAttribute("href") ?? "";
+    expect(href).toContain("htwk-leipzig.de");
+    expect(href).toMatch(/utm_source=/);
+    expect(href).toMatch(/utm_medium=/);
+    expect(href).toMatch(/utm_campaign=/);
+    // No bare "HTWK Leipzig" wording remains on the page.
+    expect(doc.body.textContent ?? "").not.toMatch(/HTWK Leipzig/);
+  });
+
   it("shows a gallery of screenshots whose files all exist", () => {
-    const imgs = Array.from(doc.querySelectorAll("#gallery img"));
+    const imgs = Array.from(doc.querySelectorAll("#showcase .gallery-grid img"));
     expect(imgs.length).toBeGreaterThanOrEqual(4);
     for (const img of imgs) {
       const src = img.getAttribute("src") ?? "";
@@ -69,11 +99,39 @@ describe("gh-page/index.html", () => {
     }
   });
 
-  it("references a stylesheet and hero image that exist", () => {
-    const css = doc.querySelector('link[rel="stylesheet"]')?.getAttribute("href") ?? "";
+  it("ships every theme × color-scheme showcase image the switcher needs", () => {
+    const themes = ["dark", "light"];
+    const schemes = ["indigo", "emerald", "amber", "rose"];
+    for (const theme of themes) {
+      for (const scheme of schemes) {
+        const rel = `gh-page/assets/img/showcase/my-files-${theme}-${scheme}.png`;
+        expect(existsSync(fromRoot(rel)), `${rel} should exist`).toBe(true);
+      }
+    }
+    // The switcher controls expose both axes.
+    expect(doc.querySelector('.switcher__buttons[data-axis="theme"]')).toBeTruthy();
+    expect(doc.querySelector('.switcher__buttons[data-axis="scheme"]')).toBeTruthy();
+  });
+
+  it("has a scroll-to-top control", () => {
+    expect(doc.querySelector("#scroll-top")).toBeTruthy();
+  });
+
+  it("uses the brand logo as favicon and references existing assets", () => {
+    const icon = doc.querySelector('link[rel="icon"]')?.getAttribute("href") ?? "";
+    expect(icon).toBe("assets/img/logo.png");
+    expect(existsSync(fromRoot(`gh-page/${icon}`))).toBe(true);
+    const css = doc.querySelector('link[rel="stylesheet"][href$=".css"]')?.getAttribute("href") ?? "";
     expect(existsSync(fromRoot(`gh-page/${css}`))).toBe(true);
-    const hero = doc.querySelector(".hero__art img")?.getAttribute("src") ?? "";
-    expect(existsSync(fromRoot(`gh-page/${hero}`))).toBe(true);
+    const logo = doc.querySelector(".brand__logo")?.getAttribute("src") ?? "";
+    expect(existsSync(fromRoot(`gh-page/${logo}`))).toBe(true);
+  });
+
+  it("loads the DM Sans font used by the live app", () => {
+    const fontLink = Array.from(doc.querySelectorAll('link[rel="stylesheet"]')).some((l) =>
+      (l.getAttribute("href") ?? "").includes("family=DM+Sans"),
+    );
+    expect(fontLink).toBe(true);
   });
 });
 

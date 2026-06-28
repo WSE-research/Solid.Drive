@@ -5,23 +5,31 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Solid.Drive — your files, your Pod, your rules</title>
+    <title>Solid.Drive — your files, your Pod, your power</title>
     <meta
       name="description"
       content="Solid.Drive is a desktop-class file manager for your Solid Pod: browse, upload and share your data while keeping full digital sovereignty."
     />
-    <meta name="theme-color" content="#5854d6" />
+    <meta name="theme-color" content="#164fc9" />
+    <link rel="icon" type="image/png" href="assets/img/logo.png" />
+    <link rel="apple-touch-icon" href="assets/img/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="assets/css/style.css" />
   </head>
   <body>
     <header class="site-header">
       <a class="brand" href="#top" aria-label="Solid.Drive home">
-        <span class="brand__mark" aria-hidden="true">◆</span>
+        <img class="brand__logo" src="assets/img/logo.png" alt="" width="28" height="28" />
         <span class="brand__name">Solid<span class="brand__accent">.Drive</span></span>
       </a>
       <nav class="site-nav" aria-label="Primary">
         <a href="#features">Features</a>
-        <a href="#gallery">Gallery</a>
+        <a href="#showcase">Gallery</a>
         <a href="#related">Related</a>
         <a class="btn btn--ghost" href="https://github.com/WSE-research/Solid-Drive">GitHub</a>
         <a class="btn btn--solid" href="https://wse-research.org/Solid.Drive">Live demo</a>
@@ -29,68 +37,109 @@
     </header>
 
     <main id="top">
-      <!-- Hero ------------------------------------------------------- -->
-      <section class="hero">
-        <div class="hero__copy">
-          <p class="eyebrow">Built on the Solid Protocol</p>
-          <h1>Your files. Your&nbsp;Pod. <span class="grad">Your rules.</span></h1>
-          <p class="lede">
-            Solid.Drive is a desktop-class file manager for your
-            <strong>Solid Pod</strong>. Browse, upload and share your data
-            from a familiar, OneDrive-inspired interface — without ever
-            handing control of it to a platform. This is
-            <strong>digital sovereignty</strong>, by design: your data lives
-            in <em>your</em> Pod, and you decide who may read it.
-          </p>
-          <div class="hero__actions">
-            <a class="btn btn--solid btn--lg" href="https://wse-research.org/Solid.Drive">
-              Open the live demo
-            </a>
-            <a class="btn btn--ghost btn--lg" href="https://github.com/WSE-research/Solid-Drive">
-              View on GitHub
-            </a>
+      <!-- Hero: a shell card with copy left + animated blob right --------- -->
+      <section class="hero-shell">
+        <div class="hero">
+          <!-- Fork ribbon, clipped to the hero card corner as on the live app. -->
+          <a
+            class="fork-ribbon"
+            href="https://github.com/WSE-research/Solid-Drive"
+            aria-label="Fork Solid.Drive on GitHub"
+          >Fork me on GitHub</a>
+          <div class="hero__left">
+            <p class="eyebrow">Built on the Solid Protocol</p>
+            <h1 class="hero__title">Your files.<br />Your Pod.<br />Your <span class="grad">power.</span></h1>
+            <p class="lede">
+              Solid.Drive is a desktop-class file manager for your
+              <strong>Solid Pod</strong>. Browse, upload and share your data
+              from a familiar, OneDrive-inspired interface — without ever
+              handing control of it to a platform. This is
+              <strong>digital sovereignty</strong>, by design: your data lives
+              in <em>your</em> Pod, and you decide who may read it.
+            </p>
+            <div class="hero__actions">
+              <a class="btn btn--solid btn--lg" href="https://wse-research.org/Solid.Drive">
+                Open the live demo
+              </a>
+              <a class="btn btn--ghost btn--lg" href="https://github.com/WSE-research/Solid-Drive">
+                View on GitHub
+              </a>
+            </div>
+          </div>
+
+          <div class="hero__right" aria-hidden="true">
+            <hero-blob>
+              <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                  <filter id="landing-goo">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                    <feColorMatrix
+                      in="blur"
+                      mode="matrix"
+                      values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8"
+                      result="goo"
+                    />
+                    <feBlend in="SourceGraphic" in2="goo" />
+                  </filter>
+                </defs>
+              </svg>
+              <hero-blob-bubbles>
+                <hero-blob-bubble></hero-blob-bubble>
+                <hero-blob-bubble></hero-blob-bubble>
+                <hero-blob-bubble></hero-blob-bubble>
+                <hero-blob-bubble></hero-blob-bubble>
+                <hero-blob-bubble></hero-blob-bubble>
+              </hero-blob-bubbles>
+            </hero-blob>
           </div>
         </div>
-        <div class="hero__art">
-          <img
-            src="assets/img/hero-laptop.svg"
-            alt="Solid.Drive My Files view shown on a laptop"
-            loading="eager"
-            width="900"
-          />
-        </div>
       </section>
 
-      <!-- Why / sovereignty ----------------------------------------- -->
+      <!-- Why / Tim Berners-Lee's Solid vision -------------------------- -->
       <section class="why">
-        <div class="why__card">
+        <div class="card why__card">
           <h2>Why Solid.Drive?</h2>
           <p>
-            On today's web, your files usually live on someone else's
-            servers under someone else's terms. <a href="https://solidproject.org/">Solid</a>
-            flips that around: your data sits in a personal online
-            datastore — a <em>Pod</em> — that you own and host wherever you
-            like. Solid.Drive gives that Pod a friendly face, so managing
-            sovereign data feels as easy as any cloud drive, while
-            authentication, storage and access control stay entirely under
-            your command.
+            The web's inventor, <strong>Sir Tim Berners-Lee</strong>, created
+            <a href="https://solidproject.org/">Solid</a> to give people back
+            control of their data. His vision flips today's web around: instead
+            of your files living on companies' servers under their terms, your
+            data sits in a personal online datastore — a <em>Pod</em> — that
+            you own and host wherever you like. Apps come to your data with your
+            permission, rather than your data being locked inside apps. It is
+            the web "as it was meant to be" — decentralised, interoperable, and
+            owned by you.
+          </p>
+          <p>
+            Solid.Drive gives that Pod a friendly face. It turns Tim
+            Berners-Lee's vision of personal data sovereignty into something you
+            can actually use every day: a drive for your own data, where
+            authentication, storage and access control stay entirely under your
+            command.
           </p>
         </div>
       </section>
 
-      <!-- Features --------------------------------------------------- -->
+      <!-- Features ------------------------------------------------------ -->
       <section id="features" class="features">
         <h2 class="section-title">Everything you'd expect from a drive — on your own terms</h2>
+        <p class="section-lede">
+          Solid is a powerful but intricate stack — WebIDs, OIDC, RDF, ACLs,
+          SPARQL. Solid.Drive keeps all of that <strong>complexity in the
+          background</strong> and gives you a familiar, cloud-drive experience
+          on top, so you get every benefit of the Solid Protocol without having
+          to think about any of the plumbing.
+        </p>
         <div class="feature-grid">
-          <article class="feature">
+          <article class="card feature">
             <h3>Sign in with any Solid provider</h3>
             <p>
-              Log in through any OIDC-compliant Solid identity provider, or
-              your own self-hosted server. Switch the UI between English and
-              German at runtime.
+              Log in through any OIDC-compliant Solid identity provider, or your
+              own self-hosted server. Switch the UI between English and German
+              at runtime.
             </p>
           </article>
-          <article class="feature">
+          <article class="card feature">
             <h3>Two shells, one Pod</h3>
             <p>
               Choose at runtime between a classic two-pane explorer and a
@@ -98,7 +147,7 @@
               People views — your preference is remembered.
             </p>
           </article>
-          <article class="feature">
+          <article class="card feature">
             <h3>Upload anything</h3>
             <p>
               Drag &amp; drop or pick any file type. Each upload stores the
@@ -106,90 +155,126 @@
               per-file retry.
             </p>
           </article>
-          <article class="feature">
+          <article class="card feature">
             <h3>Browse &amp; preview in place</h3>
             <p>
-              Walk the full Pod directory tree with breadcrumbs and deep
-              links. Preview images, video, audio, PDFs and text without a
-              single byte leaving your browser.
+              Walk the full Pod directory tree with breadcrumbs and deep links.
+              Preview images, video, audio, PDFs and text without a single byte
+              leaving your browser.
             </p>
           </article>
-          <article class="feature">
+          <article class="card feature">
             <h3>Share &amp; revoke with control</h3>
             <p>
-              Share owned files with contacts from your Solid profile.
-              ACLs and per-contact shared catalogs stay in sync, and access
-              is revoked just as cleanly as it is granted.
+              Share owned files with contacts from your Solid profile. ACLs and
+              per-contact shared catalogs stay in sync, and access is revoked
+              just as cleanly as it is granted.
             </p>
           </article>
-          <article class="feature">
+          <article class="card feature">
             <h3>Linked-data native</h3>
             <p>
               MIME types map to schema.org classes, SHACL shapes validate
-              uploads, and the catalog is maintained with SPARQL PATCH — the
-              Pod stays clean and semantically rich.
+              uploads, and the catalog is maintained with SPARQL PATCH — the Pod
+              stays clean and semantically rich.
             </p>
           </article>
-          <article class="feature">
+          <article class="card feature">
             <h3>Install as a desktop app</h3>
             <p>
-              Solid.Drive is a Progressive Web App: install it from Chrome
-              or Edge and launch it in its own standalone window, separate
-              from your browser tabs.
+              Solid.Drive is a Progressive Web App: install it from Chrome or
+              Edge and launch it in its own standalone window, separate from
+              your browser tabs.
             </p>
           </article>
-          <article class="feature">
-            <h3>Adopts your existing files</h3>
+          <article class="card feature">
+            <h3>Make it yours</h3>
             <p>
-              Files that already lived on your Pod before you ever opened
-              Solid.Drive show up too, with download access — nothing is left
-              behind.
+              Light and dark themes plus four accent color schemes — Indigo,
+              Emerald, Amber and Rose — so your drive looks the way you like.
             </p>
           </article>
         </div>
       </section>
 
-      <!-- Gallery ---------------------------------------------------- -->
-      <section id="gallery" class="gallery">
+      <!-- See it in action: theme + color-scheme switcher --------------- -->
+      <section id="showcase" class="showcase">
         <h2 class="section-title">See it in action</h2>
+        <p class="section-lede">
+          The My Files view in every look. Switch the theme and accent color
+          scheme to see all the different versions.
+        </p>
+
+        <div class="switcher">
+          <div class="switcher__controls">
+            <div class="switcher__group" role="group" aria-label="Theme">
+              <span class="switcher__label">Theme</span>
+              <div class="switcher__buttons" data-axis="theme">
+                <button type="button" data-value="dark" class="is-active">Dark</button>
+                <button type="button" data-value="light">Light</button>
+              </div>
+            </div>
+            <div class="switcher__group" role="group" aria-label="Color scheme">
+              <span class="switcher__label">Color</span>
+              <div class="switcher__buttons" data-axis="scheme">
+                <button type="button" data-value="indigo" class="is-active">
+                  <span class="dot dot--indigo"></span>Indigo
+                </button>
+                <button type="button" data-value="emerald"><span class="dot dot--emerald"></span>Emerald</button>
+                <button type="button" data-value="amber"><span class="dot dot--amber"></span>Amber</button>
+                <button type="button" data-value="rose"><span class="dot dot--rose"></span>Rose</button>
+              </div>
+            </div>
+          </div>
+          <figure class="switcher__frame card">
+            <img
+              id="showcase-image"
+              src="assets/img/showcase/my-files-dark-indigo.png"
+              alt="Solid.Drive My Files view — dark theme, indigo color scheme"
+              loading="lazy"
+            />
+          </figure>
+        </div>
+
+        <h3 class="showcase__more">More views</h3>
         <div class="gallery-grid">
-          <figure>
+          <figure class="card">
             <img src="assets/img/gallery/01-home.png" alt="Home view" loading="lazy" />
             <figcaption>Home</figcaption>
           </figure>
-          <figure>
-            <img src="assets/img/gallery/02-my-files.png" alt="My Files view" loading="lazy" />
-            <figcaption>My Files</figcaption>
-          </figure>
-          <figure>
+          <figure class="card">
             <img src="assets/img/gallery/03-folder.png" alt="Inside a folder" loading="lazy" />
             <figcaption>Inside a folder</figcaption>
           </figure>
-          <figure>
+          <figure class="card">
             <img src="assets/img/gallery/04-file-details.png" alt="File details panel" loading="lazy" />
             <figcaption>File details</figcaption>
           </figure>
-          <figure>
+          <figure class="card">
             <img src="assets/img/gallery/05-shared.png" alt="Shared view" loading="lazy" />
             <figcaption>Shared with you</figcaption>
           </figure>
-          <figure>
+          <figure class="card">
             <img src="assets/img/gallery/06-people.png" alt="People and contacts view" loading="lazy" />
             <figcaption>People &amp; contacts</figcaption>
+          </figure>
+          <figure class="card">
+            <img src="assets/img/gallery/02-my-files.png" alt="My Files view" loading="lazy" />
+            <figcaption>My Files</figcaption>
           </figure>
         </div>
       </section>
 
-      <!-- Related project ------------------------------------------- -->
+      <!-- Related project ---------------------------------------------- -->
       <section id="related" class="related">
         <h2 class="section-title">Part of a bigger picture</h2>
-        <article class="related__card">
+        <article class="card related__card">
           <h3>Solid Pod Device Synchronizer</h3>
           <p>
             Solid.Drive pairs naturally with the
-            <strong>Solid Pod Device Synchronizer</strong> — a companion
-            project for keeping the files on your devices in sync with your
-            Pod, so your sovereign data follows you everywhere.
+            <strong>Solid Pod Device Synchronizer</strong> — a companion project
+            for keeping the files on your devices in sync with your Pod, so your
+            sovereign data follows you everywhere.
           </p>
           <a class="btn btn--ghost" href="https://github.com/WSE-research/SolidPodDeviceSynchronizer">
             Explore the Synchronizer →
@@ -210,8 +295,54 @@
         <a href="https://solidproject.org/">About Solid</a>
       </nav>
       <p class="footer__credit">
-        Built by <a href="https://wse-research.org/">WSE Research</a> · HTWK Leipzig
+        Built by <a href="https://wse-research.org/">WSE Research</a> ·
+        <a href="https://www.htwk-leipzig.de/?utm_source=solid.drive&amp;utm_medium=referral&amp;utm_campaign=github-page">Leipzig University of Applied Sciences</a>
       </p>
     </footer>
+
+    <button id="scroll-top" class="scroll-top" type="button" aria-label="Scroll to top" hidden>
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <path d="M12 5l-7 7 1.4 1.4L11 8.8V19h2V8.8l4.6 4.6L19 12z" fill="currentColor" />
+      </svg>
+    </button>
+
+    <script>
+      // Theme × color-scheme switcher: swap the showcase image.
+      (function () {
+        var state = { theme: 'dark', scheme: 'indigo' };
+        var img = document.getElementById('showcase-image');
+        function update() {
+          img.src = 'assets/img/showcase/my-files-' + state.theme + '-' + state.scheme + '.png';
+          img.alt =
+            'Solid.Drive My Files view — ' + state.theme + ' theme, ' + state.scheme + ' color scheme';
+        }
+        document.querySelectorAll('.switcher__buttons').forEach(function (group) {
+          var axis = group.getAttribute('data-axis');
+          group.addEventListener('click', function (event) {
+            var button = event.target.closest('button[data-value]');
+            if (!button) return;
+            state[axis] = button.getAttribute('data-value');
+            group.querySelectorAll('button').forEach(function (b) {
+              b.classList.toggle('is-active', b === button);
+            });
+            update();
+          });
+        });
+      })();
+
+      // Scroll-to-top button: shown only once the user has scrolled down.
+      (function () {
+        var button = document.getElementById('scroll-top');
+        function onScroll() {
+          if (window.scrollY > 400) button.removeAttribute('hidden');
+          else button.setAttribute('hidden', '');
+        }
+        button.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      })();
+    </script>
   </body>
 </html>
