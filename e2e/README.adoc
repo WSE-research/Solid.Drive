@@ -145,6 +145,15 @@ OneDrive click-through navigates to the Requests view and clears the
 badge, real-time arrival ticks the badge up and fires a toast,
 duplicate inbox messages collapse into one row, Classic click-through
 auto-opens the RequestsPanel with the row highlighted.
+
+2+| **Tests, PWA**
+
+| `e2e/tests/pwa.spec.ts`
+| PWA manifest assets and install behaviour: the three icon files
+(`pwa-192`, `pwa-512`, `maskable-512`) return HTTP 200, the
+`theme-color` meta tag matches the brand colour, and the
+`.install-app-button` appears after a synthetic `beforeinstallprompt`
+event then disappears after `appinstalled`.
 |===
 
 == Adding a test
