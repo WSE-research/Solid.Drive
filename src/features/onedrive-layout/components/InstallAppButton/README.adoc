@@ -1,0 +1,8 @@
+= InstallAppButton
+
+Brand pill that opens the native PWA install prompt. Renders only while the browser is offering installation and the app is not already installed, driven by `shared/hooks/usePwaInstall`. Mounted in the OneDrive TopBar, the classic Header, and the landing top bar.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]

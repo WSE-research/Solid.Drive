@@ -395,5 +395,8 @@
       "back": "Back to People",
       "catalog": "Catalog"
     }
+  },
+  "pwa": {
+    "install": "Install app"
   }
 }

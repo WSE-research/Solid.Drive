@@ -17,4 +17,8 @@ describe("ENV", () => {
   it("dev and prod are mutually exclusive", () => {
     expect(ENV.dev && ENV.prod).toBe(false);
   });
+
+  it("baseUrl matches the configured base path", () => {
+    expect(ENV.baseUrl).toBe("/solid-hello-world-frontend-react/");
+  });
 });

@@ -395,5 +395,8 @@
       "back": "Zurück zu Personen",
       "catalog": "Katalog"
     }
+  },
+  "pwa": {
+    "install": "App installieren"
   }
 }
