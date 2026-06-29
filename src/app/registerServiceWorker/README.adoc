@@ -1,0 +1,11 @@
+= registerServiceWorker
+
+Registers the vite-plugin-pwa service worker at startup via the
+`virtual:pwa-register` module. Called once from `main.tsx`. The worker
+URL and scope honour Vite's BASE_URL; updates auto-activate
+(`registerType: 'autoUpdate'` in `vite.config.ts`).
+
+== Navigation
+
+.Parent
+link:../[app]

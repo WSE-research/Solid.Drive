@@ -167,10 +167,14 @@ badge, real-time arrival ticks the badge up and fires a toast,
 duplicate inbox messages collapse into one row, Classic click-through
 auto-opens the RequestsPanel with the row highlighted.
 
-| `e2e/tests/theme-color-gallery.spec.ts`
-| Captures My Files in every dark/light theme × accent color-scheme
-combination into `e2e/screenshots/showcase/`, and asserts each scheme
-re-tints the accent. Feeds the GitHub Pages "See it in action" switcher.
+2+| **Tests, PWA**
+
+| `e2e/tests/pwa.spec.ts`
+| PWA manifest assets and install behaviour: the three icon files
+(`pwa-192`, `pwa-512`, `maskable-512`) return HTTP 200, the
+`theme-color` meta tag matches the brand colour, and the
+`.install-app-button` appears after a synthetic `beforeinstallprompt`
+event then disappears after `appinstalled`.
 |===
 
 == Adding a test

@@ -1,6 +1,6 @@
-:app-name: solid.drive
-:app-url: https://wse-research.org/solid-hello-world-frontend-react/
-:github-repository: https://github.com/WSE-research/Solid-Hello-World-Frontend-React
+:app-name: Solid.Drive
+:app-url: https://wse-research.org/Solid.Drive/
+:github-repository: https://github.com/WSE-research/Solid.Drive
 :toc:
 :toclevels: 3
 :toc-placement!:
@@ -15,18 +15,18 @@ endif::[]
 
 ++++
 <p>
-  <img src="docs/images/readme-header.svg" alt="solid.drive — A file manager built on the Solid Protocol" width="640"/>
+  <img src="docs/images/readme-header.svg" alt="Solid.Drive — A file manager built on the Solid Protocol" width="640"/>
 </p>
 
 <p>
-  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml">
-    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/test-coverage.yml/badge.svg" alt="Test Coverage"/>
+  <a href="https://github.com/WSE-research/Solid.Drive/actions/workflows/test-coverage.yml">
+    <img src="https://github.com/WSE-research/Solid.Drive/actions/workflows/test-coverage.yml/badge.svg" alt="Test Coverage"/>
   </a>
-  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml">
-    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/playwright.yml/badge.svg" alt="Playwright Tests"/>
+  <a href="https://github.com/WSE-research/Solid.Drive/actions/workflows/playwright.yml">
+    <img src="https://github.com/WSE-research/Solid.Drive/actions/workflows/playwright.yml/badge.svg" alt="Playwright Tests"/>
   </a>
-  <a href="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml">
-    <img src="https://github.com/WSE-research/Solid-Hello-World-Frontend-React/actions/workflows/docker-image.yaml/badge.svg" alt="Docker Image"/>
+  <a href="https://github.com/WSE-research/Solid.Drive/actions/workflows/docker-image.yaml">
+    <img src="https://github.com/WSE-research/Solid.Drive/actions/workflows/docker-image.yaml/badge.svg" alt="Docker Image"/>
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/>
@@ -34,7 +34,7 @@ endif::[]
 </p>
 
 <p>
-  <a href="https://wse-research.org/solid-hello-world-frontend-react/"><b>Live Demo</b></a>
+  <a href="https://wse-research.org/Solid.Drive/"><b>Live Demo</b></a>
   ·
   <a href="#screenshots">Screenshots</a>
   ·
@@ -72,8 +72,8 @@ toc::[]
 
 === Authentication and layout
 
-* *Authentication:* log in via any OIDC compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self hosted server)
-* *Layout choice:* switch at runtime between the classic two pane shell and the OneDrive style shell; the preference is persisted in `localStorage`
+* *Authentication:* log in via any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self-hosted server)
+* *Layout choice:* switch at runtime between the classic two-pane shell and the OneDrive style shell; the preference is persisted in `localStorage`
 * *Language switching:* switch between English and German at runtime
 
 === Navigation
@@ -84,7 +84,7 @@ toc::[]
 
 === Files
 
-* *File upload:* accepts any file type. Users can upload through the dialog form, by dragging files onto the panel or a folder row, or from the OneDrive Create menu. The binary and a metadata document `index.ttl` are stored inside a dedicated container on the Pod, and an upload tray surfaces progress and per file retry.
+* *File upload:* accepts any file type. Users can upload through the dialog form, by dragging files onto the panel or a folder row, or from the OneDrive Create menu. The binary and a metadata document `index.ttl` are stored inside a dedicated container on the Pod, and an upload tray surfaces progress and per-file retry.
 * *Folder creation:* the classic explorer uses an inline form, and the OneDrive shell opens a modal dialog. Both create LDP BasicContainers under the active folder.
 * *File adoption:* renders files that existed on the Pod before the app was used, showing folder name and download button for containers lacking `index.ttl`
 * *Inline preview:* images, videos, audio, PDFs, and text files preview directly in the browser, no request leaves the browser after the file is fetched
@@ -101,15 +101,22 @@ toc::[]
 
 === Sharing
 
-* *Share / revoke access:* each owned file can be shared with contacts from the user's Solid profile; ACLs and per contact shared catalogs are kept in sync
+* *Share / revoke access:* each owned file can be shared with contacts from the user's Solid profile; ACLs and per-contact shared catalogs are kept in sync
 * *Shared with Me:* reads per contact shared catalogs first, then falls back to the contact's main catalog
 * *Filtered system files:* internal catalog and ACL helper files (`.shared-*.ttl`) are hidden from the normal file browser
+
+=== Progressive Web App
+
+* *Desktop install:* a linked web app manifest, an icon set (192, 512, and a 512 maskable variant), and a registered service worker make Solid.drive installable from Chrome and Edge; the installed app launches in its own standalone window
+* *Install control:* the OneDrive topbar shows an *Install app* button only while the browser is offering an install prompt, and hides it again once the app is installed
+* *Base-path aware:* the manifest's `start_url` and `scope`, the service worker scope, and all asset links honour Vite's `BASE_URL`, so the app installs correctly both at the origin root and behind the reverse proxy
+* *Offline shell:* the service worker uses a network-first strategy, so online content is never stale while the app shell still boots offline
 
 == Tech Stack
 
 [cols="1,3", options="header"]
 |===
-| Layer | Libraries / tools
+| Layer | Libraries/tools
 
 | *Frontend* | React 19 · TypeScript · Vite
 | *Solid / Linked Data* | https://github.com/o-development/ldo[@ldo/solid] · @ldo/solid-react · ShEx · schema.org · DCAT · SHACL
@@ -222,12 +229,12 @@ pick file
               -> link catalog to WebID profile (first upload only)
 ----
 
-NOTE: If any step after the binary upload fails, the whole container is deleted, no half written resources are left on the Pod.
+NOTE: If any step after the binary upload fails, the whole container is deleted, and no half-written resources are left on the Pod.
 
 === Sharing
 
 Sharing happens at the file container level.
-Granting access updates the file's ACL and mirrors its catalog entry into a per contact shared catalog inside `my-solid-app/`.
+Granting access updates the file's ACL and mirrors its catalog entry into a per-contact shared catalog inside `my-solid-app/`.
 Revoking removes the recipient from the ACL and cleans up their shared catalog entry.
 
 === Semantic classification
@@ -247,7 +254,7 @@ Anything else:: `schema:DigitalDocument`
 solid.drive/
 |-- src/
 |   |-- .shapes/              # ShEx shapes (edit here)
-|   |-- .ldo/                 # LDO bindings (auto generated)
+|   |-- .ldo/                 # LDO bindings (auto-generated)
 |   |-- app/                  # Root component, ClassicLayout, bootstrap hooks, i18n, locales
 |   |-- config/               # Constants and env vars
 |   |-- features/
@@ -265,7 +272,7 @@ solid.drive/
 |   |-- types/
 |   `-- assets/
 |-- public/
-|   `-- tbox.ttl              # SHACL TBox (auto generated)
+|   `-- tbox.ttl              # SHACL TBox (auto-generated)
 |-- scripts/
 |-- e2e/                      # Playwright tests
 |-- .github/workflows/        # CI: test coverage, Playwright, Docker

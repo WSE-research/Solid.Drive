@@ -29,6 +29,7 @@ let currentLayout: 'classic' | 'onedrive' = 'classic';
 vi.mock('@/features/onedrive-layout', () => ({
   useLayoutPreference: () => [currentLayout, layoutSetter],
   isLayout: (value: unknown) => value === 'classic' || value === 'onedrive',
+  InstallAppButton: () => null,
 }));
 
 import { useSolidAuth } from '@ldo/solid-react';

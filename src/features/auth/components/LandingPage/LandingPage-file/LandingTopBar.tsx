@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import logoUrl from '@/assets/solid-drive-logo.png';
 import { APP_NAME } from '@/config';
 import { LanguageSwitcher } from '@/features/auth/components/LanguageSwitcher';
+import { InstallAppButton } from '@/features/onedrive-layout';
 
 const buildNavLinkClassName = ({ isActive }: { isActive: boolean }): string =>
   isActive
@@ -34,6 +35,7 @@ export const LandingTopBar: FunctionComponent = () => {
           {navVideo}
         </NavLink>
         <LanguageSwitcher />
+        <InstallAppButton />
       </nav>
     </landing-hero-topbar>
   );

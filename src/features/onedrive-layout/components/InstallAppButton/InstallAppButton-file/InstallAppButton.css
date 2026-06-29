@@ -1,0 +1,49 @@
+.install-app-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--odl-radius-input, 999px);
+  background: var(--odl-brand-gradient, linear-gradient(135deg, #3b82f6 0%, #5854d6 100%));
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--odl-transition-fast, 120ms ease), opacity 120ms ease;
+}
+
+.install-app-button:hover {
+  background: var(--odl-brand-gradient-hover, linear-gradient(135deg, #2563eb 0%, #4641c4 100%));
+}
+
+.install-app-button:focus-visible {
+  outline: 2px solid var(--odl-brand, #5854d6);
+  outline-offset: 2px;
+}
+
+.install-app-button svg {
+  font-size: 18px;
+}
+
+@media (max-width: 600px) {
+  .install-app-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .install-app-button {
+    padding: 0;
+    width: 36px;
+    justify-content: center;
+  }
+}

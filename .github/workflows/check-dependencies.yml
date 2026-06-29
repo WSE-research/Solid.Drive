@@ -23,4 +23,4 @@ jobs:
       # OneDrive-layout follow-up tickets (detail panel, settings popover,
       # shared tabs) — they will be wired up next milestone. Tree-shaking
       # excludes them from production until then.
-      - run: npx depcheck --ignores="@types/*,eslint-*,globals,vitest,@vitejs/*,typescript,typescript-eslint,vite,@ldo/solid,@ldo/connected-solid,buffer,shexj,@vitest/coverage-v8,@testing-library/user-event,uuid,tsx,@solid/community-server,@radix-ui/react-dialog,@radix-ui/react-popover,@radix-ui/react-tabs" --ignore-dirs="dist,node_modules"
+      - run: npx depcheck --ignores="@types/*,eslint-*,globals,vitest,@vitejs/*,typescript,typescript-eslint,vite,@ldo/solid,@ldo/connected-solid,buffer,shexj,@vitest/coverage-v8,@testing-library/user-event,uuid,tsx,@solid/community-server,@radix-ui/react-dialog,@radix-ui/react-popover,@radix-ui/react-tabs,virtual:pwa-register" --ignore-dirs="dist,node_modules"

@@ -1,0 +1,20 @@
+# Jekyll configuration for the Solid.Drive GitHub Pages site.
+#
+# The page is hand-written HTML/CSS styled after the Solid.Drive app, so
+# no Jekyll theme is applied — index.html carries its own full markup.
+# The site is built from this folder by .github/workflows/pages.yml and
+# the rendered HTML is then password-protected with PageCrypt.
+title: Solid.Drive
+description: >-
+  Browse, upload and share the files in your Solid Pod from a
+  desktop-class app — digital sovereignty, by design.
+lang: en
+
+# Plain static page: no theme, no plugins beyond GitHub Pages defaults.
+theme: null
+plugins: []
+
+# Never publish the password manifest or the folder's own readme.
+exclude:
+  - _protected_pages.txt
+  - README.adoc

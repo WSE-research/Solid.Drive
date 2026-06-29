@@ -1,8 +1,28 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
 const BASE_PATH = '/solid-hello-world-frontend-react/'
+
+// start_url and scope are derived from BASE_PATH so the installed app
+// launches at the same location the reverse proxy serves and the service
+// worker only claims pages under that prefix.
+const pwaManifest = {
+  name: 'Solid.drive',
+  short_name: 'Solid.drive',
+  description: 'A file manager for your Solid Pod.',
+  start_url: BASE_PATH,
+  scope: BASE_PATH,
+  display: 'standalone' as const,
+  theme_color: '#070738',
+  background_color: '#0e0e10',
+  icons: [
+    { src: 'icons/pwa-192x192-v2.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: 'icons/pwa-512x512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    { src: 'icons/maskable-512x512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+  ],
+}
 
 // React Router writes query-only navigations onto whatever pathname the
 // browser is currently at. When that pathname is the basename without a
@@ -40,7 +60,26 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
-  plugins: [react(), redirectBaseTrailingSlash()],
+  plugins: [
+    react(),
+    redirectBaseTrailingSlash(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: false,
+      includeAssets: ['icons/apple-touch-icon-180x180-v2.png'],
+      manifest: pwaManifest,
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 4_000_000,
+        navigateFallback: `${BASE_PATH}index.html`,
+      },
+      devOptions: {
+        enabled: false,
+        type: 'module',
+        suppressWarnings: true,
+      },
+    }),
+  ],
   // VS Code atomic saves (write temp + rename) confuse the default chokidar
   // watcher on Windows, so HMR appears to "miss" edits. Polling makes the
   // watcher reliable at the cost of a small CPU bump during `vite`. Setting

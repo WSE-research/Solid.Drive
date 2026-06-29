@@ -1,0 +1,54 @@
+name: Webpage Docker Image CI
+
+# Builds the Solid.Drive landing page (gh-page/Dockerfile) as a Docker
+# image. On a normal push it only builds, to verify the Dockerfile. On a
+# tag release it pushes wseresearch/solid.drive-webpage to Docker Hub and
+# triggers the WSE docker-service-updater to redeploy. Mirrors
+# WSE-research/image-to-ascii-art and this repo's app docker-image.yaml.
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the Docker image for temporary use only
+        if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
+        run: docker build . --file gh-page/Dockerfile --tag tmp-webpage:latest
+
+      - name: Build the Docker image for tag release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: docker build . --file gh-page/Dockerfile --tag solid.drive-webpage:latest
+
+      - name: Docker Login
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Tag latest docker image
+        if: startsWith(github.ref, 'refs/tags/')
+        run: docker tag solid.drive-webpage:latest wseresearch/solid.drive-webpage:latest
+
+      - name: Tag docker image version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: docker tag solid.drive-webpage:latest "wseresearch/solid.drive-webpage:${{ github.ref_name }}"
+
+      - name: Push latest docker image
+        if: startsWith(github.ref, 'refs/tags/')
+        run: docker push wseresearch/solid.drive-webpage:latest
+
+      - name: Push docker image version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: docker push "wseresearch/solid.drive-webpage:${{ github.ref_name }}"
+
+      - name: Init update
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: WSE-research/docker-service-updater@v0.2.1
+        with:
+          updater_host: ${{ secrets.UPDATER_HOST }}
+          api_key: ${{ secrets.API_KEY }}

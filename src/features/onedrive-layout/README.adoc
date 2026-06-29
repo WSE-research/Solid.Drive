@@ -25,6 +25,12 @@ link:components/views/RecentView/[RecentView]:: Home view; flat list of recently
 link:components/views/PeopleView/[PeopleView]:: List ↔ detail switch over the contact roster; detail view shows files shared by the selected person.
 link:components/views/RequestsView/[RequestsView]:: Pending inbox-based access requests with approve / deny.
 
+== Public exports
+
+`InstallAppButton` is re-exported from the barrel (`index.ts`) so that `auth/Header` (classic shell) can mount it alongside `LayoutToggle` and `NotificationBell` without importing from a deep path.
+The TopBar also mounts `InstallAppButton` directly in the OneDrive shell.
+`InstallIcon` (`DesktopArrowDownRegular`) is the icon used inside the button, exported from `icons`.
+
 == Cross-feature imports
 
 `onedrive-layout` may import from `file-explorer` and `profile` (it reuses their hooks and building blocks). It must not import from `auth`, `sharing`, or `validation` directly.

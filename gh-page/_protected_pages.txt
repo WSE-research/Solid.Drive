@@ -1,0 +1,5 @@
+# Pages to encrypt with PageCrypt, one per line: "<path-in-_site> <password>".
+# Read by .github/workflows/pages.yml after the Jekyll build. Lines starting
+# with "#" and blank lines are ignored. NOTE: this password is stored in
+# plaintext here, so it gate-keeps the page — it is not a strong secret.
+index.html Solid.Drive.2026
