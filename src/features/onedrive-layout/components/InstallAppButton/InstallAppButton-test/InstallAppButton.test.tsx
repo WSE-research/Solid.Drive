@@ -1,44 +1,62 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import type { PwaInstall } from '@/shared/hooks/usePwaInstall';
-import { InstallAppButton } from '../InstallAppButton-file/InstallAppButton';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+const mockUsePwaInstall = vi.fn();
+
+vi.mock('@/shared/hooks/usePwaInstall', () => ({
+  usePwaInstall: () => mockUsePwaInstall(),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string, fallback?: string) => fallback ?? key],
 }));
 
-const mockUsePwaInstall = vi.fn<() => PwaInstall>();
-vi.mock('@/shared/hooks/usePwaInstall', () => ({
-  usePwaInstall: () => mockUsePwaInstall(),
-}));
-
-const installState = (overrides: Partial<PwaInstall> = {}): PwaInstall => ({
-  canInstall: false,
-  isInstalled: false,
-  promptInstall: vi.fn().mockResolvedValue('accepted'),
-  ...overrides,
-});
+import { InstallAppButton } from '../InstallAppButton-file/InstallAppButton';
 
 describe('InstallAppButton', () => {
   beforeEach(() => mockUsePwaInstall.mockReset());
 
-  it('renders nothing when installation is not available', () => {
-    mockUsePwaInstall.mockReturnValue(installState({ canInstall: false }));
+  it('renders nothing when the app cannot be installed', () => {
+    mockUsePwaInstall.mockReturnValue({
+      canInstall: false,
+      isInstalled: false,
+      promptInstall: vi.fn(),
+    });
+
     const { container } = render(<InstallAppButton />);
+
     expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByTestId('install-app-button')).not.toBeInTheDocument();
   });
 
-  it('renders the install control when installation is available', () => {
-    mockUsePwaInstall.mockReturnValue(installState({ canInstall: true }));
+  it('renders an Install app button when installable', () => {
+    mockUsePwaInstall.mockReturnValue({
+      canInstall: true,
+      isInstalled: false,
+      promptInstall: vi.fn(),
+    });
+
     render(<InstallAppButton />);
-    expect(screen.getByRole('button', { name: /install app/i })).toBeInTheDocument();
+
+    const button = screen.getByRole('button', { name: /install app/i });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('data-testid', 'install-app-button');
+    expect(button).toHaveAttribute('title', 'Install app');
   });
 
-  it('opens the native prompt when clicked', () => {
+  it('replays the install prompt when clicked', async () => {
     const promptInstall = vi.fn().mockResolvedValue('accepted');
-    mockUsePwaInstall.mockReturnValue(installState({ canInstall: true, promptInstall }));
+    mockUsePwaInstall.mockReturnValue({
+      canInstall: true,
+      isInstalled: false,
+      promptInstall,
+    });
+    const user = userEvent.setup({ delay: null });
+
     render(<InstallAppButton />);
-    fireEvent.click(screen.getByRole('button', { name: /install app/i }));
-    expect(promptInstall).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole('button', { name: /install app/i }));
+
+    expect(promptInstall).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,0 +1,24 @@
+= registerServiceWorker
+
+Registers the app's service worker (`public/sw.js`) from the application entry point.
+
+Both the worker URL and its registration scope are derived from `ENV.baseUrl` (Vite's `BASE_URL`), so the worker is fetched from `${BASE_URL}sw.js` and controls exactly the pages under `${BASE_URL}` — matching the reverse-proxy path prefix in production and `/` in dev and tests.
+
+The call is safe everywhere: it returns `undefined` without throwing when `navigator.serviceWorker` is unavailable (older browsers, the jsdom test environment) or when registration fails, so app start-up is never blocked.
+
+The worker itself (`public/sw.js`) is BASE_URL-agnostic: it resolves its cache entries against its own location, so the same file works under any `base`.
+
+== Exports
+
+`registerServiceWorker()`:: Registers `${BASE_URL}sw.js` scoped to `${BASE_URL}`; resolves to the registration or `undefined`.
+
+== See also
+
+* link:../../hooks/usePwaInstall/[usePwaInstall] surfaces the install affordance once the worker + manifest make the app installable.
+* `public/sw.js` is the worker script this registers.
+* `public/manifest.webmanifest` is the linked manifest.
+
+== Navigation
+
+.Parent
+link:../[shared/utils]

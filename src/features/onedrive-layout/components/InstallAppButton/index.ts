@@ -1,1 +1,1 @@
-export * from './InstallAppButton-file/InstallAppButton';
+export { InstallAppButton } from './InstallAppButton-file/InstallAppButton';

@@ -1,17 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { StrictMode } from 'react';
 
 let mockProfileValue: Record<string, unknown> | null = {
   storage: { toArray: () => [{ '@id': 'https://pod.example/' }] },
 };
 let mockWebIdResource: Record<string, unknown> = { isLoading: () => false };
 const mockGetResource = vi.fn(() => ({}));
+const mockSolidFetch = vi.fn();
 
 vi.mock('@ldo/solid-react', () => ({
-  useSolidAuth: () => ({ session: { webId: 'https://pod.example/profile/card#me' } }),
+  useSolidAuth: () => ({
+    session: { webId: 'https://pod.example/profile/card#me' },
+    fetch: mockSolidFetch,
+  }),
   useLdo: () => ({ getResource: mockGetResource }),
   useSubject: () => mockProfileValue,
   useResource: () => mockWebIdResource,
+}));
+
+const mockDiscoverStorageRoot = vi.fn();
+vi.mock('@/infrastructure/solid/storageDiscovery', () => ({
+  discoverStorageRoot: (...args: unknown[]) => mockDiscoverStorageRoot(...args),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -42,6 +52,7 @@ describe('usePodDiscovery', () => {
     };
     mockWebIdResource = { isLoading: () => false };
     mockGetResource.mockReturnValue({});
+    mockDiscoverStorageRoot.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -82,10 +93,101 @@ describe('usePodDiscovery', () => {
     expect(mockCreate).toHaveBeenCalled();
   });
 
-  it('sets noStorageDetected during pod discovery when profile has no storage and resource done loading', () => {
+  it('falls back to storage-root walk when profile has no pim:storage', async () => {
     mockProfileValue = { storage: { toArray: () => [] } };
     mockWebIdResource = { isLoading: () => false };
+    mockDiscoverStorageRoot.mockResolvedValue('https://css.example/wse_pod/');
     const { result } = renderHook(() => usePodDiscovery(10000));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mockDiscoverStorageRoot).toHaveBeenCalledWith(
+      'https://pod.example/profile/card#me',
+      mockSolidFetch,
+    );
+    expect(result.current.storageRootUri).toBe('https://css.example/wse_pod/');
+    expect(result.current.appContainerUri).toBe('https://css.example/wse_pod/my-solid-app/');
+    expect(result.current.noStorageDetected).toBe(false);
+  });
+
+  it('applies the discovered storage even when the hook re-renders mid-walk', async () => {
+    mockProfileValue = { storage: { toArray: () => [] } };
+    mockWebIdResource = { isLoading: () => false };
+    let resolveWalk: (uri: string) => void = () => {};
+    mockDiscoverStorageRoot.mockReturnValue(
+      new Promise<string>((resolve) => {
+        resolveWalk = resolve;
+      }),
+    );
+
+    const { result, rerender } = renderHook(() => usePodDiscovery(10000));
+
+    mockProfileValue = { storage: { toArray: () => [] } };
+    rerender();
+
+    await act(async () => {
+      resolveWalk('https://css.example/wse_pod/');
+      await Promise.resolve();
+    });
+
+    expect(mockDiscoverStorageRoot).toHaveBeenCalledTimes(1);
+    expect(result.current.storageRootUri).toBe('https://css.example/wse_pod/');
+    expect(result.current.noStorageDetected).toBe(false);
+  });
+
+  it('applies the discovered storage under StrictMode double-invocation', async () => {
+    mockProfileValue = { storage: { toArray: () => [] } };
+    mockWebIdResource = { isLoading: () => false };
+    let resolveWalk: (uri: string) => void = () => {};
+    mockDiscoverStorageRoot.mockReturnValue(
+      new Promise<string>((resolve) => {
+        resolveWalk = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() => usePodDiscovery(10000), {
+      wrapper: StrictMode,
+    });
+
+    await act(async () => {
+      resolveWalk('https://css.example/wse_pod/');
+      await Promise.resolve();
+    });
+
+    expect(mockDiscoverStorageRoot).toHaveBeenCalledTimes(1);
+    expect(result.current.storageRootUri).toBe('https://css.example/wse_pod/');
+    expect(result.current.noStorageDetected).toBe(false);
+  });
+
+  it('ignores a walk that resolves after the hook unmounts', async () => {
+    mockProfileValue = { storage: { toArray: () => [] } };
+    mockWebIdResource = { isLoading: () => false };
+    let resolveWalk: (uri: string) => void = () => {};
+    mockDiscoverStorageRoot.mockReturnValue(
+      new Promise<string>((resolve) => {
+        resolveWalk = resolve;
+      }),
+    );
+
+    const { unmount } = renderHook(() => usePodDiscovery(10000));
+    unmount();
+
+    await act(async () => {
+      resolveWalk('https://css.example/wse_pod/');
+      await Promise.resolve();
+    });
+
+    expect(mockGetResource).not.toHaveBeenCalled();
+  });
+
+  it('sets noStorageDetected when profile has no storage and the walk finds none', async () => {
+    mockProfileValue = { storage: { toArray: () => [] } };
+    mockWebIdResource = { isLoading: () => false };
+    mockDiscoverStorageRoot.mockResolvedValue(undefined);
+    const { result } = renderHook(() => usePodDiscovery(10000));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(result.current.noStorageDetected).toBe(true);
   });
 
@@ -100,8 +202,12 @@ describe('usePodDiscovery', () => {
     const mockReload = vi.fn().mockResolvedValue(undefined);
     mockProfileValue = { storage: { toArray: () => [] } };
     mockWebIdResource = { isLoading: () => false, reload: mockReload };
+    mockDiscoverStorageRoot.mockResolvedValue(undefined);
     renderHook(() => usePodDiscovery(5000));
 
+    await act(async () => {
+      await Promise.resolve();
+    });
     await act(async () => {
       vi.advanceTimersByTime(5000);
     });
@@ -125,7 +231,7 @@ describe('usePodDiscovery', () => {
     await act(async () => {
       await result.current.handleRetryStorage();
     });
-    // No error — just a no-op
+    // No error should be thrown and no state change should occur
     expect(result.current.noStorageDetected).toBe(false);
   });
 });

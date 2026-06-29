@@ -1,8 +1,18 @@
 = InstallAppButton
 
-Brand pill that opens the native PWA install prompt. Renders only while the browser is offering installation and the app is not already installed, driven by `shared/hooks/usePwaInstall`. Mounted in the OneDrive TopBar, the classic Header, and the landing top bar.
+Topbar icon button that installs Solid.drive as a desktop Progressive Web App.
+
+Stateless wrapper around link:../../../../../shared/hooks/usePwaInstall/[usePwaInstall].
+It returns `null` while `canInstall` is `false`, so the icon is shown only when the browser has offered an install prompt and the app is not already installed, and disappears again once the app is installed.
+Clicking replays the captured native install prompt.
+
+Mounted in the link:../TopBar/[TopBar] actions cluster, next to the Settings and Account menus, and styled with the shared `topbar-icon` class.
 
 == Navigation
 
 .Parent
 link:../[onedrive-layout/components]
+
+.Uses
+* link:../../../../../shared/hooks/usePwaInstall/[usePwaInstall]
+* link:../../icons/[icons] (`InstallIcon`)

@@ -1,7 +1,10 @@
 /**
- * "Install app" control. Renders only while the browser is offering a
- * PWA install (and the app is not already installed), and opens the
- * native install prompt on click.
+ * Topbar control that installs Solid.drive as a desktop PWA.
+ *
+ * Renders nothing until the browser has offered an install prompt and
+ * the app is not already installed, so the icon only appears when
+ * clicking it can actually do something. Clicking replays the native
+ * install prompt captured by {@link usePwaInstall}.
  *
  * @packageDocumentation
  */
@@ -10,11 +13,9 @@ import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InstallIcon } from '@/features/onedrive-layout/icons';
 import { usePwaInstall } from '@/shared/hooks/usePwaInstall';
-import './InstallAppButton.css';
 
 /**
- * Renders the install pill when {@link usePwaInstall} reports the app
- * can be installed; otherwise renders nothing.
+ * Renders the "Install app" topbar icon button when installable.
  *
  * @public
  */
@@ -24,20 +25,20 @@ export const InstallAppButton: FunctionComponent = () => {
 
   if (!canInstall) return null;
 
-  const label = translate('pwa.install', 'Install app');
-  const handleClick = () => {
-    void promptInstall();
-  };
+  const label = translate('oneDriveLayout.installApp', 'Install app');
 
   return (
     <button
       type="button"
-      className="install-app-button"
-      onClick={handleClick}
+      className="topbar-icon"
       aria-label={label}
+      title={label}
+      data-testid="install-app-button"
+      onClick={() => {
+        void promptInstall();
+      }}
     >
       <InstallIcon aria-hidden focusable={false} />
-      <span className="install-app-button__label">{label}</span>
     </button>
   );
 };

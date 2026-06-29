@@ -1,0 +1,26 @@
+= pwa
+
+Documentation hub for the desktop Progressive Web App support.
+
+There is no runtime module here — the PWA is assembled from static assets in `public/`, a couple of small modules in `shared/`, and one topbar control. This folder holds `publicPwaAssets.test.ts`, which validates the static artifacts and the `index.html` wiring from disk.
+
+== Pieces
+
+`public/manifest.webmanifest`:: The web app manifest. `start_url`, `scope` and the icon `src` values are relative, so they resolve against the manifest URL — which is served under Vite's `base` — and therefore honour `BASE_URL` in dev and production with no build-time templating.
+`public/icons/`:: `icon-192.png`, `icon-512.png` and `icon-maskable-512.png`, referenced by the manifest.
+`public/sw.js`:: The service worker. BASE_URL-agnostic: it resolves its cache entries against its own location, `skipWaiting()`s on install and `clients.claim()`s on activate so it controls the page immediately, and uses a network-first strategy so it never serves stale content while online.
+`index.html`:: Links the manifest, declares `theme-color`, and an `apple-touch-icon`, all under `%BASE_URL%`.
+link:../../shared/utils/registerServiceWorker/[registerServiceWorker]:: Registers `public/sw.js` under `BASE_URL`; called once from `src/main.tsx`.
+link:../../shared/hooks/usePwaInstall/[usePwaInstall]:: Captures `beforeinstallprompt` / `appinstalled` and exposes the install affordance state.
+link:../../features/onedrive-layout/components/InstallAppButton/[InstallAppButton]:: The topbar "Install app" control, shown only while installable.
+
+== Tests
+
+* `publicPwaAssets.test.ts` (here) — manifest shape, icon files, service worker lifecycle, `index.html` links.
+* Unit tests next to each module above.
+* `e2e/tests/pwa.spec.ts` — manifest served under `BASE_URL`, icons reachable, service worker registers and controls the page, and the install button reacts to `beforeinstallprompt` / `appinstalled`.
+
+== Navigation
+
+.Parent
+link:../[app]

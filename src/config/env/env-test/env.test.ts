@@ -18,7 +18,8 @@ describe("ENV", () => {
     expect(ENV.dev && ENV.prod).toBe(false);
   });
 
-  it("baseUrl matches the configured base path", () => {
-    expect(ENV.baseUrl).toBe("/solid-hello-world-frontend-react/");
+  it("exposes baseUrl as a string ending in a trailing slash", () => {
+    expect(typeof ENV.baseUrl).toBe("string");
+    expect(ENV.baseUrl.endsWith("/")).toBe(true);
   });
 });

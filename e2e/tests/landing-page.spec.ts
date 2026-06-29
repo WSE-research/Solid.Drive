@@ -49,6 +49,20 @@ test("landing page renders the provider trigger, custom issuer input, layout pic
   await expect(page.getByRole("link", { name: /create a pod|pod erstellen/i })).toBeVisible();
 });
 
+test("the HTWK Leipzig demo server is the default-selected provider and listed", async ({ page }) => {
+  test.setTimeout(TEST_TIMEOUTS.short);
+  await gotoLanding(page);
+
+  await expect(
+    page.getByRole("button", { name: PROVIDERS_TRIGGER_NAME }),
+  ).toContainText(/htwk leipzig/i);
+
+  await openProviderListbox(page);
+  await expect(
+    page.locator(`#${PROVIDERS_LISTBOX_ID} [role="option"]`).filter({ hasText: /htwk leipzig/i }),
+  ).toBeVisible();
+});
+
 test("opening the provider listbox and picking an option updates the trigger", async ({ page }) => {
   test.setTimeout(TEST_TIMEOUTS.short);
   await gotoLanding(page);

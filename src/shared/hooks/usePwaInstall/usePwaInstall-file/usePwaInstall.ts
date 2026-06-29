@@ -1,8 +1,10 @@
 /**
- * Captures the browser's deferred PWA install prompt and exposes a
- * small surface for an "Install app" control: whether installation is
- * currently offered, whether the app already runs installed, and a
- * function that opens the native prompt and resolves with the outcome.
+ * Hook that wires up the desktop PWA install flow.
+ *
+ * Captures the browser's `beforeinstallprompt` event so the app can
+ * surface its own "Install app" affordance, replays the prompt on
+ * demand, and tracks whether the app is already running installed
+ * (standalone) so the affordance can hide itself.
  *
  * @packageDocumentation
  */
@@ -10,87 +12,91 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * The non-standard `beforeinstallprompt` event fired by Chromium
- * browsers. Typed locally because it is absent from the DOM lib.
+ * The non-standard event Chromium fires when an app meets the install
+ * criteria. Not in the DOM lib typings, so it is declared here.
  *
  * @public
  */
 export interface BeforeInstallPromptEvent extends Event {
+  /** Platforms the prompt can target (e.g. `"web"`). */
   readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  /** Shows the native install prompt. Usable once per captured event. */
   prompt: () => Promise<void>;
+  /** Resolves with the user's decision after {@link BeforeInstallPromptEvent.prompt}. */
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
 /**
- * Outcome of {@link PwaInstall.promptInstall}. `unavailable` means no
- * deferred prompt was held, so the native dialog never opened.
- *
- * @public
- */
-export type InstallOutcome = 'accepted' | 'dismissed' | 'unavailable';
-
-/**
- * Install surface returned by {@link usePwaInstall}.
+ * Return shape of {@link usePwaInstall}.
  *
  * @public
  */
 export interface PwaInstall {
+  /** True when a captured prompt is available and the app is not installed. */
   canInstall: boolean;
+  /** True when the app is already running as an installed/standalone app. */
   isInstalled: boolean;
-  promptInstall: () => Promise<InstallOutcome>;
+  /**
+   * Replays the captured install prompt. Resolves to the user's choice,
+   * or `null` when no prompt is available.
+   */
+  promptInstall: () => Promise<'accepted' | 'dismissed' | null>;
 }
 
-const isRunningStandalone = (): boolean => {
-  const matchesStandalone = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
+/**
+ * Reports whether the document is being displayed as an installed app.
+ * Covers both the standard `display-mode: standalone` media query and
+ * iOS Safari's legacy `navigator.standalone` flag.
+ *
+ * @public
+ */
+export const isStandaloneDisplayMode = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const standaloneMatch = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
   const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true;
-  return matchesStandalone || iosStandalone;
+  return standaloneMatch || iosStandalone;
 };
 
 /**
- * Tracks PWA installability via the `beforeinstallprompt` and
- * `appinstalled` window events. The control should render only when
- * {@link PwaInstall.canInstall} is true.
+ * Tracks PWA installability and exposes a way to trigger the native
+ * install prompt.
  *
  * @public
  */
 export const usePwaInstall = (): PwaInstall => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState<boolean>(isRunningStandalone);
+  const [isInstalled, setIsInstalled] = useState<boolean>(isStandaloneDisplayMode);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event) => {
+    const onBeforeInstallPrompt = (event: Event) => {
+      // Suppress Chromium's default mini-infobar; the app drives the prompt.
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
-
-    const handleAppInstalled = () => {
+    const onAppInstalled = () => {
       setDeferredPrompt(null);
       setIsInstalled(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
     };
   }, []);
 
-  const promptInstall = useCallback(async (): Promise<InstallOutcome> => {
-    if (!deferredPrompt) return 'unavailable';
-    try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-      if (outcome === 'accepted') setIsInstalled(true);
-      return outcome;
-    } catch {
-      return 'unavailable';
-    }
+  const promptInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | null> => {
+    if (!deferredPrompt) return null;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    // A captured prompt may only be replayed once.
+    setDeferredPrompt(null);
+    return outcome;
   }, [deferredPrompt]);
 
   return {
-    canInstall: deferredPrompt !== null,
+    canInstall: deferredPrompt !== null && !isInstalled,
     isInstalled,
     promptInstall,
   };

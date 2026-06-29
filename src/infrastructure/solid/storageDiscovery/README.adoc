@@ -1,0 +1,18 @@
+= storageDiscovery
+
+Finds a Pod's storage root over HTTP by walking up from the WebID and reading the `Link: rel="type"` header for `pim:Storage`.
+
+Needed for Community Solid Server pods, which (unlike NSS) don't expose `pim:storage` on the WebID profile. The walk climbs past intermediate containers that reject the request and returns the nearest ancestor typed as a storage. This ensures discovery of the user's Pod rather than the server root.
+
+== API
+
+`discoverStorageRoot(webId, fetch)`:: Resolves to the storage root URI (trailing slash) or `undefined` when none is found before the origin root. `fetch` must be the authenticated session fetch.
+
+== See also
+
+* link:../../../features/file-explorer/hooks/usePodDiscovery/[usePodDiscovery] uses this as a fallback when the profile carries no `pim:storage`.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]

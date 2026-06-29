@@ -78,6 +78,8 @@ DPoP-bound `fetch`.
 contacts, cleanup. `ensureProfileBasics` patches the triples the
 app's profile-driven UI needs (`pim:storage`, `foaf:name`,
 `ldp:inbox`, `dcat:catalog`, plus public `acl:Append` on the inbox).
+`removeProfileStorage` strips `pim:storage` back out to exercise the
+storage-discovery walk.
 
 | `e2e/helpers/ui-actions.ts`
 | UI helpers: add contact, request access, approve or deny, revoke
@@ -90,9 +92,16 @@ between rail views, jump to My Files and wait for the table.
 2+| **Tests, landing and auth bootstrap**
 
 | `e2e/tests/landing-page.spec.ts`
-| The logged-out LandingPage: brand, provider picker, layout picker,
-custom-issuer validation, the No-Pod and Video sub-routes, and that
-clicking Login actually redirects to the chosen issuer.
+| The logged-out LandingPage: brand, provider picker (incl. HTWK Leipzig
+as the default-selected provider), layout picker, custom-issuer
+validation, the No-Pod and Video sub-routes, and that clicking Login
+actually redirects to the chosen issuer.
+
+| `e2e/tests/pod-discovery.spec.ts`
+| Storage discovery fallback: with `pim:storage` stripped from the
+profile (the real CSS case), the app walks `Link: rel="type"` headers up
+to the pod root and still resolves the user's storage, not the server
+root. Uses `removeProfileStorage` to force the fallback.
 
 | `e2e/tests/auth-callback-skeleton.spec.ts`
 | The skeleton shown while we are coming back from the issuer: it
