@@ -7,6 +7,7 @@ export default mergeConfig(viteConfig, defineConfig({
     environment: 'jsdom',
     setupFiles: "./src/test-setup.ts",
     testTimeout: 15000,
+    pool: 'forks',
     include: [
       "src/**/*.test.ts", 
       "src/**/*.test.tsx", 
@@ -24,6 +25,7 @@ export default mergeConfig(viteConfig, defineConfig({
       exclude: [
         "scripts/**",
         "dist/**",
+        "dev-dist/**",
         "src/main.tsx",
         "src/types/**",
         "**/tboxTypes-file/tboxTypes.ts",
@@ -40,6 +42,7 @@ export default mergeConfig(viteConfig, defineConfig({
         "playwright-report/**",
         "test-results/**",
         "coverage/**",
+        "public/sw.js",
       ],
     },
   },

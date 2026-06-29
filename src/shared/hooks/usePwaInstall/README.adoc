@@ -1,0 +1,29 @@
+= usePwaInstall
+
+Wires up the desktop Progressive Web App install flow.
+
+The browser fires `beforeinstallprompt` when the app meets the install criteria (served over a secure context, a valid linked manifest, a registered service worker, the required icon sizes).
+This hook captures that event, calls `preventDefault()` so Chromium's default mini-infobar is suppressed, and stashes it so the app can offer its own affordance instead.
+
+`promptInstall()` replays the captured event's native prompt and resolves with the user's choice (`'accepted'` or `'dismissed'`), or `null` when no prompt is pending.
+A captured prompt can only be used once, so it is cleared afterwards.
+
+`isInstalled` starts from the current display mode (`display-mode: standalone`, or iOS Safari's `navigator.standalone`) and flips to `true` when the `appinstalled` event fires.
+`canInstall` is only `true` when a prompt has been captured and the app is not already installed, which is exactly when the link:../../../features/onedrive-layout/components/InstallAppButton/[InstallAppButton] should be shown.
+
+== Exports
+
+`usePwaInstall()`:: Returns `{ canInstall, isInstalled, promptInstall }`.
+`isStandaloneDisplayMode()`:: Reports whether the document is rendered as an installed/standalone app.
+`BeforeInstallPromptEvent`:: Type for the non-standard Chromium event (absent from the DOM lib typings).
+`PwaInstall`:: Return type of the hook.
+
+== See also
+
+* link:../../../features/onedrive-layout/components/InstallAppButton/[InstallAppButton] is the topbar control driven by this hook.
+* link:../../utils/registerServiceWorker/[registerServiceWorker] registers the worker that, together with the manifest, makes the app installable.
+
+== Navigation
+
+.Parent
+link:../[shared/hooks]

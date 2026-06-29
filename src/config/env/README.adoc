@@ -1,7 +1,7 @@
 = env
 
 Typed access to Vite environment variables.
-Exports a single `ENV` object with `mode`, `dev`, and `prod` fields.
+Exports a single `ENV` object with `mode`, `dev`, `prod`, and `baseUrl` fields.
 
 == Usage
 

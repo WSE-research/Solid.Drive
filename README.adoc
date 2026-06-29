@@ -105,6 +105,13 @@ toc::[]
 * *Shared with Me:* reads per contact shared catalogs first, then falls back to the contact's main catalog
 * *Filtered system files:* internal catalog and ACL helper files (`.shared-*.ttl`) are hidden from the normal file browser
 
+=== Progressive Web App
+
+* *Desktop install:* a linked web app manifest, an icon set (192, 512, and a 512 maskable variant), and a registered service worker make Solid.drive installable from Chrome and Edge; the installed app launches in its own standalone window
+* *Install control:* the OneDrive topbar shows an *Install app* button only while the browser is offering an install prompt, and hides it again once the app is installed
+* *Base-path aware:* the manifest's `start_url` and `scope`, the service worker scope, and all asset links honour Vite's `BASE_URL`, so the app installs correctly both at the origin root and behind the reverse proxy
+* *Offline shell:* the service worker uses a network-first strategy, so online content is never stale while the app shell still boots offline
+
 == Tech Stack
 
 [cols="1,3", options="header"]

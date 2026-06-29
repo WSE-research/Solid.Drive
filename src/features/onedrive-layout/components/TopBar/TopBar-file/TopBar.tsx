@@ -19,6 +19,7 @@ import { SearchIcon, CloseIcon } from '@/features/onedrive-layout/icons';
 import { SettingsMenu } from '@/features/onedrive-layout/components/SettingsMenu';
 import { AccountMenu } from '@/features/onedrive-layout/components/AccountMenu';
 import { NotificationBell } from '@/features/onedrive-layout/components/NotificationBell';
+import { InstallAppButton } from '@/features/onedrive-layout/components/InstallAppButton';
 import { useViewParam } from '@/features/onedrive-layout/hooks/useViewParam';
 import logoUrl from '@/assets/solid-drive-logo.png';
 
@@ -94,6 +95,7 @@ export const TopBar: FunctionComponent<TopBarProps> = ({
         >
           <SearchIcon aria-hidden focusable={false} />
         </button>
+        <InstallAppButton />
         <NotificationBell onNavigateToRequests={navigateToRequests} />
         <SettingsMenu />
         <AccountMenu webId={webId} profileName={profileName} avatarSrc={avatarSrc} />

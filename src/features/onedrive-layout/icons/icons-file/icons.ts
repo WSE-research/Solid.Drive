@@ -1,14 +1,13 @@
 /**
  * Semantic re-exports of Fluent UI icons for the OneDrive-inspired layout.
- * This is the only file in the codebase allowed to import from
- * `@fluentui/react-icons` directly — all other modules must import from here.
+ * This is the only file allowed to import from `@fluentui/react-icons` directly;
+ * all other modules must import from here.
  *
  * @packageDocumentation
  */
 
-// NOTE: keep this list lean. When a new icon is needed, add a single line
-// here rather than scattering @fluentui/react-icons imports across the app
-// — the ESLint rule restricts that import to this file.
+// Keep this list lean. Add a single line here when a new icon is needed;
+// the ESLint rule restricts @fluentui/react-icons imports to this file.
 
 export {
   HomeRegular         as HomeIcon,
@@ -40,6 +39,7 @@ export {
   PanelLeftContractRegular  as NavRailCollapseIcon,
   PanelLeftExpandRegular    as NavRailExpandIcon,
   AlertRegular              as BellIcon,
+  DesktopArrowDownRegular   as InstallIcon,
 } from '@fluentui/react-icons';
 
 export {

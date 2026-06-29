@@ -17,4 +17,9 @@ describe("ENV", () => {
   it("dev and prod are mutually exclusive", () => {
     expect(ENV.dev && ENV.prod).toBe(false);
   });
+
+  it("exposes baseUrl as a string ending in a trailing slash", () => {
+    expect(typeof ENV.baseUrl).toBe("string");
+    expect(ENV.baseUrl.endsWith("/")).toBe(true);
+  });
 });

@@ -13,6 +13,7 @@
 export { OneDriveLayout } from './components/OneDriveLayout';
 export { LayoutToggle } from './components/LayoutToggle';
 export { NotificationBell } from './components/NotificationBell';
+export { InstallAppButton } from './components/InstallAppButton';
 export {
   useLayoutPreference,
   isLayout,

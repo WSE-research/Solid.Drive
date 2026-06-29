@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "@/infrastructure/solid/resourceGuards";
 import { LanguageSwitcher } from "@/features/auth/components/LanguageSwitcher";
-import { LayoutToggle, NotificationBell } from "@/features/onedrive-layout";
+import { LayoutToggle, NotificationBell, InstallAppButton } from "@/features/onedrive-layout";
 import { getProfileDisplayName } from "@/shared/utils/getProfileDisplayName";
 import { APP_NAME, SOLID_PROVIDERS, CUSTOM_PROVIDER_VALUE, EXTERNAL_LINKS } from "@/config";
 
@@ -58,6 +58,7 @@ export const Header: FunctionComponent = () => {
           <p className="auth-webid">
             {translate("header.loggedInAs")} <span className="auth-webid__name">{displayName}</span>
           </p>
+          <InstallAppButton />
           <NotificationBell onNavigateToRequests={() => {}} />
           <LayoutToggle />
           <LanguageSwitcher />
@@ -68,6 +69,7 @@ export const Header: FunctionComponent = () => {
       ) : (
         <auth-logged-out>
           <auth-input-row>
+            <InstallAppButton />
             <LayoutToggle />
             <auth-field>
               <label className="auth-provider-label">{translate("header.provider")}</label>
