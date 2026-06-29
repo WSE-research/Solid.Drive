@@ -24,6 +24,7 @@ export default mergeConfig(viteConfig, defineConfig({
       exclude: [
         "scripts/**",
         "dist/**",
+        "dev-dist/**",
         "src/main.tsx",
         "src/types/**",
         "**/tboxTypes-file/tboxTypes.ts",
