@@ -1,0 +1,10 @@
+= usePwaInstall
+
+Listens for the browser's `beforeinstallprompt` event and tracks whether the app can be installed or already is. Returns `canInstall`, `isInstalled`, and `promptInstall()`.
+
+Used by `InstallAppButton` in `features/onedrive-layout`. No Solid dependencies.
+
+== Navigation
+
+.Parent
+link:../[shared/hooks]
