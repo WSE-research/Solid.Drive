@@ -11,7 +11,7 @@ describe('LayoutToggle', () => {
 
   it('renders both pills inside a labeled group', () => {
     render(<LayoutToggle />);
-    expect(screen.getByRole('group', { name: /layout/i })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: /layout/i })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /classic/i })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /onedrive/i })).toBeInTheDocument();
   });
