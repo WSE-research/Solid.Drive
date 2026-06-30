@@ -75,7 +75,7 @@ const AppShell: FunctionComponent = () => {
 
   return (
     <RequestNotificationsGate>
-      {renderShell(session.isLoggedIn, assumeLoggedIn, isAuthenticating, layout)}
+      {renderShell(session.isActive, assumeLoggedIn, isAuthenticating, layout)}
     </RequestNotificationsGate>
   );
 };

@@ -18,7 +18,7 @@ beforeEach(() => {
 describe('useAuth — logged out', () => {
   beforeEach(() => {
     (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
-      session: { isLoggedIn: false, webId: undefined },
+      session: { isActive: false, webId: undefined },
       login: mockLogin,
       logout: mockLogout,
     });
@@ -46,13 +46,13 @@ describe('useAuth — logged out', () => {
 
   it('exposes the raw session object reflecting logged-out state', () => {
     const { result } = renderHook(() => useAuth());
-    expect(result.current.session).toEqual({ isLoggedIn: false, webId: undefined });
+    expect(result.current.session).toEqual({ isActive: false, webId: undefined });
   });
 
   it('calls login with the issuer URL', async () => {
     const { result } = renderHook(() => useAuth());
-    await result.current.login('https://solidcommunity.net');
-    expect(mockLogin).toHaveBeenCalledWith('https://solidcommunity.net');
+    await result.current.login('https://solidcommunity.net', 'https://app.example/');
+    expect(mockLogin).toHaveBeenCalledWith('https://solidcommunity.net', 'https://app.example/');
   });
 
   it('calls logout on the underlying session and completes once', async () => {
@@ -65,7 +65,7 @@ describe('useAuth — logged out', () => {
 describe('useAuth — logged in', () => {
   beforeEach(() => {
     (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
-      session: { isLoggedIn: true, webId: 'https://user.solidcommunity.net/profile/card#me' },
+      session: { isActive: true, webId: 'https://user.solidcommunity.net/profile/card#me' },
       login: mockLogin,
       logout: mockLogout,
     });
@@ -84,7 +84,7 @@ describe('useAuth — logged in', () => {
   it('exposes the raw session object with webId', () => {
     const { result } = renderHook(() => useAuth());
     expect(result.current.session).toEqual({
-      isLoggedIn: true,
+      isActive: true,
       webId: 'https://user.solidcommunity.net/profile/card#me',
     });
   });

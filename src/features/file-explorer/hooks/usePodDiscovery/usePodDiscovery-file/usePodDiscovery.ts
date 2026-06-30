@@ -80,7 +80,7 @@ export function usePodDiscovery(storageRetryDelayMs: number): UsePodDiscoveryRet
     // Only start discovery once we know the WebID is valid and won't change.
     discoveryStarted.current = true;
     void (async () => {
-      const discoveredUri = await discoverStorageRoot(session.webId, solidFetch);
+      const discoveredUri = await discoverStorageRoot(session.webId as string, solidFetch);
       if (!mounted.current) return;
       if (discoveredUri) {
         applyStorageRoot(discoveredUri as SolidContainerUri);

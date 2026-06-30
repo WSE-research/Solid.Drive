@@ -9,7 +9,7 @@ export interface UseAuthReturn {
   session: ReturnType<typeof useSolidAuth>["session"];
   webId: string | undefined;
   isLoggedIn: boolean;
-  login: (issuerUrl: string) => Promise<void>;
+  login: (issuerUrl: string, redirectUri: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -38,7 +38,7 @@ export function useAuth(): UseAuthReturn {
   return {
     session,
     webId: session.webId,
-    isLoggedIn: session.isLoggedIn,
+    isLoggedIn: session.isActive,
     login,
     logout,
   };

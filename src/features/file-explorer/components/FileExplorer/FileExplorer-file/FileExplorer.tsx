@@ -233,7 +233,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     setShowAddMenu(false);
   }, [currentUri]);
 
-  if (!session.isLoggedIn) {
+  if (!session.isActive) {
     return (
       <drive-gate>
         <drive-gate-icon>✦</drive-gate-icon>

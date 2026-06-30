@@ -98,7 +98,6 @@ const baseFileMeta = {
   encodingFormat: 'application/pdf',
   contentSize: '12345',
   publisher: { '@id': 'https://publisher.example/card#me' },
-  image: undefined as { '@id': string } | undefined,
   isPartOf: undefined,
 };
 
@@ -111,11 +110,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   vi.mocked(useSolidAuth).mockReturnValue({
-    session: { isLoggedIn: true, webId: 'https://me.example/card#me' },
+    session: { isActive: true, webId: 'https://me.example/card#me' },
     fetch: vi.fn(),
-  });
+  } as unknown as ReturnType<typeof useSolidAuth>);
   vi.mocked(useResource).mockReturnValue(makeResource());
-  vi.mocked(useSubject).mockReturnValue(null);
+  vi.mocked(useSubject).mockReturnValue(undefined);
 
   vi.mocked(isLoadable).mockReturnValue(false);
   vi.mocked(isReadable).mockReturnValue(false);
@@ -151,10 +150,11 @@ const ownerProfileMock = {
 };
 
 function withFileMeta(overrides: Partial<typeof baseFileMeta> = {}) {
-  vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
-    if (uri === METADATA_URI) return { ...baseFileMeta, ...overrides };
-    if (uri === OWNER_WEB_ID) return ownerProfileMock;
-    return null;
+  vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string | { value?: string } | undefined) => {
+    const uriStr = typeof uri === 'string' ? uri : uri?.value;
+    if (uriStr === METADATA_URI) return { ...baseFileMeta, ...overrides };
+    if (uriStr === OWNER_WEB_ID) return ownerProfileMock;
+    return undefined;
   });
 }
 
@@ -222,7 +222,7 @@ describe('FileCard — no fileMeta (folder fallback)', () => {
       ...makeResource(),
       children: () => [mockChild],
     };
-    vi.mocked(useResource).mockImplementation((uri: string) =>
+    vi.mocked(useResource).mockImplementation((uri?: string) =>
       uri === CONTAINER_URI ? containerResource : makeResource(),
     );
     vi.mocked(isSolidContainer).mockImplementation(
@@ -297,13 +297,13 @@ describe('FileCard — full card render', () => {
     // not the binary's filename. Guessing `${containerUri}${name}` produced
     // 404s for any titled file. With no container listing and no schema:image,
     // we'd rather render no download link than a broken one.
-    withFileMeta({ name: 'Holiday Photo', image: undefined });
+    withFileMeta({ name: 'Holiday Photo' });
     renderCard();
     expect(screen.queryByRole('link', { name: 'fileCard.download' })).not.toBeInTheDocument();
   });
 
   it('hides download link when neither previewUrl nor binaryUri is available', () => {
-    withFileMeta({ name: undefined, image: undefined });
+    withFileMeta({ name: undefined });
     renderCard();
     expect(screen.queryByRole('link', { name: 'fileCard.download' })).not.toBeInTheDocument();
   });
@@ -431,7 +431,6 @@ describe('FileCard — SharePanel props fallback branches', () => {
       uploadDate: undefined,
       encodingFormat: undefined,
       contentSize: undefined,
-      image: { '@id': 'https://user.example/files/doc1/img.png' },
     });
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.share' }));
@@ -439,8 +438,8 @@ describe('FileCard — SharePanel props fallback branches', () => {
     expect(screen.getByTestId('share-panel')).toBeInTheDocument();
   });
 
-  it('falls back binaryUri to metadataUri when both name and image are missing', () => {
-    // binaryUri = undefined (no name, no image, no container children)
+  it('falls back binaryUri to metadataUri when name is missing', () => {
+    // binaryUri = undefined (no name, no container children)
     // → binaryUri ?? metadataUri (line 207)
     // Also name is undefined → metadataUri.split("/").pop() (line 211)
     withFileMeta({
@@ -450,7 +449,6 @@ describe('FileCard — SharePanel props fallback branches', () => {
       uploadDate: undefined,
       encodingFormat: undefined,
       contentSize: undefined,
-      image: undefined,
     });
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.share' }));
@@ -491,13 +489,6 @@ describe('FileCard — date branch coverage', () => {
     expect(dateEl!.textContent).not.toBe('');
   });
 
-  it('uses fileMeta.image as binaryUri fallback when name is undefined', () => {
-    withFileMeta({ name: undefined, image: { '@id': 'https://user.example/files/doc1/image.png' } });
-    renderCard();
-    const link = screen.getByRole('link', { name: 'fileCard.download' });
-    expect(link).toHaveAttribute('href', 'https://user.example/files/doc1/image.png');
-  });
-
   it('uses binaryUri from container children when container is a SolidContainer', () => {
     const childLeaf = { uri: `${CONTAINER_URI}report.pdf` };
     const indexLeaf = { uri: `${CONTAINER_URI}index.ttl` };
@@ -505,7 +496,7 @@ describe('FileCard — date branch coverage', () => {
       ...makeResource(),
       children: () => [indexLeaf, childLeaf],
     };
-    vi.mocked(useResource).mockImplementation((uri: string) =>
+    vi.mocked(useResource).mockImplementation((uri?: string) =>
       uri === CONTAINER_URI ? containerRes : makeResource(),
     );
     vi.mocked(isSolidContainer).mockImplementation(
@@ -521,10 +512,11 @@ describe('FileCard — date branch coverage', () => {
 describe('FileCard — publisher name branch coverage', () => {
   it('uses publisherProfile.fn as publisher name when fn is set', () => {
     withFileMeta();
-    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
-      if (uri === METADATA_URI) return { ...baseFileMeta };
-      if (uri === 'https://publisher.example/card#me') return { fn: 'Alice FN', name: null };
-      return null;
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string | { value?: string } | undefined) => {
+      const uriStr = typeof uri === 'string' ? uri : uri?.value;
+      if (uriStr === METADATA_URI) return { ...baseFileMeta };
+      if (uriStr === 'https://publisher.example/card#me') return { fn: 'Alice FN', name: null };
+      return undefined;
     });
     renderCard();
     expect(document.querySelector('file-card')).toBeInTheDocument();
@@ -532,10 +524,11 @@ describe('FileCard — publisher name branch coverage', () => {
 
   it('uses publisherProfile.name when fn is null', () => {
     withFileMeta();
-    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
-      if (uri === METADATA_URI) return { ...baseFileMeta };
-      if (uri === 'https://publisher.example/card#me') return { fn: null, name: 'Alice Name' };
-      return null;
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string | { value?: string } | undefined) => {
+      const uriStr = typeof uri === 'string' ? uri : uri?.value;
+      if (uriStr === METADATA_URI) return { ...baseFileMeta };
+      if (uriStr === 'https://publisher.example/card#me') return { fn: null, name: 'Alice Name' };
+      return undefined;
     });
     renderCard();
     expect(document.querySelector('file-card')).toBeInTheDocument();
@@ -543,16 +536,17 @@ describe('FileCard — publisher name branch coverage', () => {
 
   it('populates contacts from ownerProfile.knows entries', () => {
     withFileMeta();
-    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string) => {
-      if (uri === METADATA_URI) return { ...baseFileMeta };
-      if (uri === 'https://me.example/card#me') {
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri: string | { value?: string } | undefined) => {
+      const uriStr = typeof uri === 'string' ? uri : uri?.value;
+      if (uriStr === METADATA_URI) return { ...baseFileMeta };
+      if (uriStr === 'https://me.example/card#me') {
         return {
           knows: {
             toArray: () => [{ '@id': 'https://alice.example/card#me' }, { '@id': 'https://bob.example/card#me' }],
           },
         };
       }
-      return null;
+      return undefined;
     });
     renderCard();
     expect(document.querySelector('file-card')).toBeInTheDocument();

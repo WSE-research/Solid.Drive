@@ -10,6 +10,7 @@ import { useCallback, useState } from 'react';
 import type { ChangeEvent, FunctionComponent, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLdo } from '@ldo/solid-react';
+import type { SolidLeaf, SolidContainer } from '@ldo/connected-solid';
 import { CatalogEntryShShapeType } from '@/.ldo/catalogEntry.shapeTypes';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
 
@@ -59,7 +60,7 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
     if (value === initialValue) return;
     setIsSaving(true);
     try {
-      const indexResource = getResource(metadataUri);
+      const indexResource = getResource(metadataUri) as SolidLeaf | SolidContainer;
       const draft = createData(
         CatalogEntryShShapeType,
         metadataUri,

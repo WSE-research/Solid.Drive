@@ -4,8 +4,8 @@ import { Header } from '../Header-file/Header';
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: vi.fn(),
-  useResource: vi.fn(() => null),
-  useSubject: vi.fn(() => null),
+  useResource: vi.fn(() => undefined),
+  useSubject: vi.fn(() => undefined),
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
@@ -34,17 +34,17 @@ const mockLogout = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(isLoadable).mockReturnValue(false);
-  vi.mocked(useResource).mockReturnValue(null);
-  vi.mocked(useSubject).mockReturnValue(null);
+  vi.mocked(useResource).mockReturnValue(undefined);
+  vi.mocked(useSubject).mockReturnValue(undefined);
 });
 
 describe('Header — logged out', () => {
   beforeEach(() => {
     vi.mocked(useSolidAuth).mockReturnValue({
-      session: { isLoggedIn: false, webId: undefined },
+      session: { isActive: false, webId: undefined },
       login: mockLogin,
       logout: mockLogout,
-    });
+    } as unknown as ReturnType<typeof useSolidAuth>);
   });
 
   it('renders the brand name', () => {
@@ -125,10 +125,10 @@ describe('Header — logged out', () => {
 describe('Header — logged in', () => {
   beforeEach(() => {
     vi.mocked(useSolidAuth).mockReturnValue({
-      session: { isLoggedIn: true, webId: 'https://user.solidcommunity.net/profile/card#me' },
+      session: { isActive: true, webId: 'https://user.solidcommunity.net/profile/card#me' },
       login: mockLogin,
       logout: mockLogout,
-    });
+    } as unknown as ReturnType<typeof useSolidAuth>);
   });
 
   it('renders the logout button', () => {
@@ -192,10 +192,10 @@ describe('Header — logged in', () => {
 describe('Header — layout toggle visible logged out', () => {
   beforeEach(() => {
     vi.mocked(useSolidAuth).mockReturnValue({
-      session: { isLoggedIn: false, webId: undefined },
+      session: { isActive: false, webId: undefined },
       login: mockLogin,
       logout: mockLogout,
-    });
+    } as unknown as ReturnType<typeof useSolidAuth>);
   });
 
   it('renders the layout toggle when logged out', () => {

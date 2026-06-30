@@ -41,7 +41,7 @@ export const Header: FunctionComponent = () => {
   const podRegistrationUrl = registerUrl ?? EXTERNAL_LINKS.defaultGetPod;
   const isLoginDisabled = !issuerUrl;
 
-  const handleLogin = () => login(issuerUrl);
+  const handleLogin = () => login(issuerUrl, window.location.href);
   const handleProviderChange = (event: React.ChangeEvent<HTMLSelectElement>) =>
     setSelectedProvider(event.target.value);
   const handleCustomUrlChange = (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -53,7 +53,7 @@ export const Header: FunctionComponent = () => {
         {APP_NAME}
       </site-header-brand>
 
-      {session.isLoggedIn ? (
+      {session.isActive ? (
         <auth-logged-in>
           <p className="auth-webid">
             {translate("header.loggedInAs")} <span className="auth-webid__name">{displayName}</span>
