@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { APP_EVENTS, STORAGE_KEYS, UI_TIMEOUTS } from "../config";
+import { shot } from "./screenshots";
 
 /** One of the five OneDriveLayout views. Mirrors `ViewId` in useViewParam. */
 export type ViewId = "recent" | "my-files" | "shared" | "requests" | "people";
@@ -28,6 +29,7 @@ export async function enterOneDriveLayout(page: Page, view?: ViewId): Promise<vo
     { layoutKey: STORAGE_KEYS.layout, layoutChanged: APP_EVENTS.layoutChanged },
   );
   await expect(page.getByTestId("onedrive-layout-root")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  await shot(page, "onedrive layout");
 
   if (view) {
     await page.evaluate(
@@ -39,6 +41,7 @@ export async function enterOneDriveLayout(page: Page, view?: ViewId): Promise<vo
       },
       { nextView: view, viewChanged: APP_EVENTS.viewChanged },
     );
+    await shot(page, `view ${view}`);
   }
 }
 
@@ -50,6 +53,7 @@ export async function enterOneDriveLayout(page: Page, view?: ViewId): Promise<vo
  */
 export async function navigateToView(page: Page, label: string): Promise<void> {
   await page.locator("nav-rail").getByRole("button", { name: label, exact: true }).click();
+  await shot(page, `view ${label}`);
 }
 
 /**
@@ -62,6 +66,7 @@ export async function navigateToView(page: Page, label: string): Promise<void> {
 export async function openMyFiles(page: Page): Promise<void> {
   await enterOneDriveLayout(page, "my-files");
   await expect(page.locator(".odl-files-table")).toBeVisible({ timeout: UI_TIMEOUTS.long });
+  await shot(page, "my files table");
 }
 
 /**
@@ -81,4 +86,5 @@ export async function toggleNavRail(page: Page): Promise<void> {
   const expanded = await getNavRailExpanded(page);
   const label = expanded === "true" ? "Collapse" : "Expand";
   await page.locator("nav-rail").getByRole("button", { name: label, exact: true }).click();
+  await shot(page, `nav rail ${expanded === "true" ? "collapsed" : "expanded"}`);
 }

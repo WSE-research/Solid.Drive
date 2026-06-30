@@ -1,0 +1,33 @@
+= useColorScheme
+
+Reads and persists the user's accent *color scheme* for the OneDrive
+layout: `indigo` (default), `emerald`, `amber`, or `rose`.
+
+Orthogonal to link:../useThemePreference/[useThemePreference] (dark/light):
+the scheme only re-tints the accent and brand design tokens, so it
+combines with either theme. The value is stored in `localStorage` under
+`solid-drive.color-scheme` and mirrored onto `document.documentElement`
+as `data-scheme="…"`, which the `OneDriveLayout.schemes.css` token
+overrides key off.
+
+Call `applyStoredColorScheme()` once before React mounts (from
+`src/main.tsx`) to avoid a flash of the wrong accent. Live instances stay
+in sync via a custom event and the cross-tab `storage` event.
+
+== Exports
+
+`useColorScheme()`:: Returns `[scheme, setScheme]`.
+`applyStoredColorScheme()`:: Applies the stored scheme synchronously.
+`isColorScheme(value)`:: Type guard for the `ColorScheme` union.
+`COLOR_SCHEMES`:: All schemes in display order.
+`ColorScheme`:: The `'indigo' | 'emerald' | 'amber' | 'rose'` union.
+
+== See also
+
+* link:../../components/ColorSchemeToggle/[ColorSchemeToggle] is the Settings-menu picker bound to this hook.
+* `src/features/onedrive-layout/OneDriveLayout.schemes.css` defines the per-scheme accent/brand tokens.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

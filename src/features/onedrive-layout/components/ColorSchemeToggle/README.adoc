@@ -1,0 +1,20 @@
+= ColorSchemeToggle
+
+Settings-menu select for the OneDrive accent *color scheme* — Indigo
+(default), Emerald, Amber, or Rose — rendered next to the Theme row as a
+"Color [Indigo v]" control.
+
+Stateless wrapper around link:../../hooks/useColorScheme/[useColorScheme].
+Each option shows a small colour swatch plus its label, and selecting one
+persists the choice and re-tints the layout's accent/brand tokens via
+`data-scheme` on `document.documentElement`. Reuses the `theme-toggle__*`
+select styles for a consistent look with link:../ThemeToggle/[ThemeToggle].
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useColorScheme/[useColorScheme]
+* link:../../icons/[icons] (`CheckmarkIcon`, `ChevronDownIcon`)

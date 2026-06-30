@@ -10,6 +10,9 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    # Needed for the screenshot commit-back step on push to main.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +28,11 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
+        # Capture step-by-step screenshots into e2e/screenshots/<test>/.
+        # CI=true already enables them; set it explicitly so a local act/
+        # rerun behaves the same.
+        env:
+          E2E_SCREENSHOTS: "1"
         run: npm run test:e2e
 
       - uses: actions/upload-artifact@v4
@@ -35,8 +43,34 @@ jobs:
           retention-days: 30
 
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: e2e-screenshots
+          path: e2e/screenshots/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: test-results
           path: test-results/
           retention-days: 30
+
+      - name: Commit refreshed e2e screenshots
+        # Only on a successful push to the default branch: keep the
+        # documentation screenshots in the repo in sync with the UI.
+        # [skip ci] on the commit avoids re-triggering this workflow.
+        if: ${{ success() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # -f: the per-test folders are gitignored for clean local trees,
+          # but the documentation copy on main is committed deliberately.
+          git add -f e2e/screenshots
+          if git diff --staged --quiet; then
+            echo "No screenshot changes to commit."
+          else
+            git commit -m "docs(e2e): refresh workflow screenshots [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+          fi

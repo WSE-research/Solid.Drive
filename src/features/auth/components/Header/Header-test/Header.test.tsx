@@ -185,7 +185,7 @@ describe('Header — logged in', () => {
 
   it('renders the layout toggle in the logged-in branch', () => {
     render(<Header />);
-    expect(screen.getByRole('group', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
   });
 });
 
@@ -200,6 +200,6 @@ describe('Header — layout toggle visible logged out', () => {
 
   it('renders the layout toggle when logged out', () => {
     render(<Header />);
-    expect(screen.getByRole('group', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
   });
 });

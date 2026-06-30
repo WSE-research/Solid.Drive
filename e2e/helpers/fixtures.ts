@@ -18,6 +18,7 @@ import { test as base, type Browser, type Page } from "@playwright/test";
 import { getAuthenticatedFetch } from "./css-auth";
 import { cleanPod, ensureProfileBasics, podOf, type PodIdentity } from "./seed";
 import { loginAsViaUI } from "./login-ui";
+import { beginTestScreenshots, endTestScreenshots } from "./screenshots";
 
 /** CSS account credentials for the seeded pod owner, matching `e2e/fixtures/seed.json`. */
 export const PEACH_CREDENTIALS = { email: "peach@e2e.test", password: "peachy" } as const;
@@ -41,6 +42,13 @@ type TestFixtures = {
   peach: UserFixture;
   /** File requester. Adds Peach as contact and asks for access. */
   parni: UserFixture;
+  /**
+   * Auto fixture that prepares a fresh `e2e/screenshots/<test-name>/`
+   * folder before each test, so the instrumented UI helpers can drop
+   * numbered step screenshots into it. Pure side effect; nothing to
+   * pull from the destructured fixture argument.
+   */
+  documentationScreenshots: void;
 };
 
 // Playwright's fixture callback is conventionally named `use`. We rename
@@ -70,6 +78,17 @@ export const test = base.extend<TestFixtures>({
     await cleanPod(authedFetch, pod);
     await provide({ pod, ...PARNI_CREDENTIALS, authedFetch });
   },
+
+  documentationScreenshots: [
+    async ({}, provide) => {
+      // `test.info()` is valid inside fixtures and yields the running
+      // test, so the folder name tracks the spec file and test title.
+      beginTestScreenshots(base.info().titlePath);
+      await provide();
+      endTestScreenshots();
+    },
+    { auto: true },
+  ],
 });
 
 export { expect } from "@playwright/test";

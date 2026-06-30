@@ -1,0 +1,59 @@
+= e2e step screenshots
+
+Picture-by-picture documentation of the typical user workflows, captured
+straight from the end-to-end suite (issue #57 → #68).
+
+Each end-to-end test writes its screenshots into its own folder here:
+
+----
+e2e/screenshots/<test-name>/01-landing-page.png
+e2e/screenshots/<test-name>/02-identity-provider-login.png
+e2e/screenshots/<test-name>/03-app-loaded.png
+...
+----
+
+`<test-name>` is the spec file plus the test title, slugified. Files are
+numbered in the order the steps run.
+
+== How they are produced
+
+Capture is opt-in, driven by the shared helpers in `e2e/helpers/`:
+
+* `e2e/helpers/screenshots.ts` owns the capture: `shot(page, label)`
+  drops a numbered screenshot into the active test's folder, and the
+  `documentationScreenshots` auto fixture in `e2e/helpers/fixtures.ts`
+  opens a fresh folder before each test.
+* The UI helpers (`login-ui.ts`, `onedrive.ts`, `ui-actions.ts`) call
+  `shot()` after each meaningful action, so most tests are documented
+  with no per-test wiring.
+
+Screenshots are captured only when enabled, so a normal local
+`npm run test:e2e` stays fast and writes nothing:
+
+[cols="1,3", options="header"]
+|===
+| Condition | Capture
+
+| `CI=true` (GitHub Actions sets this) | on
+| `E2E_SCREENSHOTS=1` | on (force on locally)
+| `E2E_SCREENSHOTS=0` | off (force off, even in CI)
+| otherwise | off
+|===
+
+To regenerate them locally:
+
+[source,bash]
+----
+E2E_SCREENSHOTS=1 npm run test:e2e
+----
+
+The per-test folders are gitignored (`e2e/screenshots/*/`) so a local
+run never dirties your working tree; only this README is tracked by
+hand. CI force-adds the folders when it commits them back to `main`.
+
+== In CI
+
+The `Playwright Tests` workflow runs the suite with capture on, uploads
+this folder as the `e2e-screenshots` artifact on every run, and — on a
+successful push to `main` — commits the refreshed screenshots back here
+so the documentation in the repository always matches the current UI.

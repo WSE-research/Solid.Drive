@@ -1,5 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "../helpers/fixtures";
 import { STORAGE_KEYS, TEST_TIMEOUTS, UI_TIMEOUTS, URLS } from "../config";
+import { shot } from "../helpers/screenshots";
 
 const CUSTOM_ISSUER_PLACEHOLDER = /your-provider|ihr-pod-anbieter/i;
 const LOGIN_BUTTON_NAME = /sign in with the selected|mit dem ausgewählten/i;
@@ -12,10 +14,12 @@ const gotoLanding = async (page: Page): Promise<void> => {
     try { window.localStorage.removeItem(key); } catch { /* noop */ }
   }, STORAGE_KEYS.layout);
   await page.locator("main.landing").waitFor({ timeout: UI_TIMEOUTS.medium });
+  await shot(page, "landing page");
 };
 
 const openProviderListbox = async (page: Page): Promise<void> => {
   await page.getByRole("button", { name: PROVIDERS_TRIGGER_NAME }).click();
+  await shot(page, "provider listbox open");
 };
 
 const isListboxOpen = (page: Page) =>

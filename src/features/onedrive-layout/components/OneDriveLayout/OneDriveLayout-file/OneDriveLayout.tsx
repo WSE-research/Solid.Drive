@@ -49,6 +49,8 @@ import { INDEX_FILE } from '@/config';
 import type { CatalogEntry, SharedEntry } from '@/types';
 import '@/features/onedrive-layout/OneDriveLayout.css';
 import '@/features/onedrive-layout/OneDriveLayout.light.css';
+// Loaded last so the accent color-scheme overrides win the cascade.
+import '@/features/onedrive-layout/OneDriveLayout.schemes.css';
 
 const NOOP = (): void => {};
 
