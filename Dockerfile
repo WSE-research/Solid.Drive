@@ -1,8 +1,8 @@
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci && npm rebuild
+RUN apk add --no-cache python3 make g++ vips-dev && npm ci && npm rebuild
 
 COPY . .
 RUN npm run build
