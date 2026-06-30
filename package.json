@@ -43,7 +43,7 @@
     "@eslint/js": "^9.39.1",
     "@inrupt/solid-client-authn-node": "4.0.0",
     "@ldo/cli": "^1.0.0-alpha.36",
-    "@ldo/connected-solid": "1.0.0-alpha.51",
+    "@ldo/connected-solid": "1.0.0-alpha.46",
     "@playwright/test": "1.61.1",
     "@rdfjs/types": "^2.0.1",
     "@solid/community-server": "8.0.0-alpha.3",
