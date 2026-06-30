@@ -40,7 +40,7 @@
     "uuid": "^14.0.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^10.0.1",
     "@inrupt/solid-client-authn-node": "4.0.0",
     "@ldo/cli": "^1.0.0-alpha.36",
     "@ldo/connected-solid": "1.0.0-alpha.46",
