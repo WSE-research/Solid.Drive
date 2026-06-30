@@ -52,7 +52,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jsonld": "^1.5.15",
     "@types/n3": "^1.26.1",
-    "@types/node": "^24.12.2",
+    "@types/node": "^26.0.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/shexj": "^2.1.7",
