@@ -32,6 +32,12 @@ npx playwright install chromium
 
 On failure, screenshots, video, and trace land under `test-results/`.
 
+Step-by-step screenshots that document each workflow land under
+`e2e/screenshots/<test-name>/`. They are off by default locally; run
+`E2E_SCREENSHOTS=1 npm run test:e2e` to produce them, or see
+`e2e/screenshots/README.adoc` for the full story (CI always captures
+them and commits them back on `main`).
+
 == What runs
 
 `playwright.config.ts` boots Vite on `:5173` and Community Solid
@@ -88,6 +94,12 @@ through the share panel, expand a type folder.
 | `e2e/helpers/onedrive.ts`
 | OneDrive-layout helpers: switch the layout preference, navigate
 between rail views, jump to My Files and wait for the table.
+
+| `e2e/helpers/screenshots.ts`
+| Step-by-step screenshot capture (`shot`, `step`) and the per-test
+folder setup behind the `documentationScreenshots` auto fixture. The
+UI helpers above call `shot()` after each action, so tests are
+documented with no per-test wiring. See `e2e/screenshots/`.
 
 2+| **Tests, landing and auth bootstrap**
 

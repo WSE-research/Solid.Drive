@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { GearIcon, CheckmarkIcon } from '@/features/onedrive-layout/icons';
 import { LayoutToggle } from '@/features/onedrive-layout/components/LayoutToggle';
 import { ThemeToggle } from '@/features/onedrive-layout/components/ThemeToggle';
+import { ColorSchemeToggle } from '@/features/onedrive-layout/components/ColorSchemeToggle';
 import { SUPPORTED_LANGUAGES } from '@/config';
 
 /**
@@ -68,6 +69,15 @@ export const SettingsMenu: FunctionComponent = () => {
           </DropdownMenu.Label>
           <topbar-menu-row>
             <ThemeToggle />
+          </topbar-menu-row>
+
+          <DropdownMenu.Separator className="topbar-menu__separator" />
+
+          <DropdownMenu.Label className="topbar-menu__label">
+            {translate('oneDriveLayout.colorScheme', 'Color')}
+          </DropdownMenu.Label>
+          <topbar-menu-row>
+            <ColorSchemeToggle />
           </topbar-menu-row>
 
           <DropdownMenu.Separator className="topbar-menu__separator" />

@@ -244,6 +244,13 @@
       "light": "Hell",
       "dark": "Dunkel"
     },
+    "colorScheme": "Farbe",
+    "colorSchemeOption": {
+      "indigo": "Indigo",
+      "emerald": "Smaragd",
+      "amber": "Bernstein",
+      "rose": "Rosé"
+    },
     "navRail": "Navigation",
     "navRailCollapse": "Einklappen",
     "navRailExpand": "Ausklappen",
