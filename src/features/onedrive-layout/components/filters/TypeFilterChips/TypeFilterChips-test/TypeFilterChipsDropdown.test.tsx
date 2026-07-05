@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -44,12 +44,12 @@ const chips = [
 ];
 
 describe('TypeFilterChipsDropdown', () => {
-  let onToggle: ReturnType<typeof vi.fn>;
-  let onReset: ReturnType<typeof vi.fn>;
+  let onToggle: Mock<(chipId: string) => void>;
+  let onReset: Mock<() => void>;
 
   beforeEach(() => {
-    onToggle = vi.fn();
-    onReset = vi.fn();
+    onToggle = vi.fn<(chipId: string) => void>();
+    onReset = vi.fn<() => void>();
   });
 
   it('renders an "All" trigger button', () => {

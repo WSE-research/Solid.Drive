@@ -435,6 +435,135 @@ describe('RequestNotificationsContext', () => {
     expect(loadRequests).toHaveBeenCalledTimes(1);
   });
 
+  it('does not attempt to open a subscription when ownerWebId is empty', async () => {
+    setupAccessReturn([]);
+    render(
+      <RequestNotificationsProvider
+        ownerWebId=""
+        storageRoot="https://owner.example/"
+        catalogUri="https://owner.example/catalog.ttl"
+      >
+        <span />
+      </RequestNotificationsProvider>,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mockDiscoverInboxUri).not.toHaveBeenCalled();
+  });
+
+  it('does not open a subscription if the component unmounts before inbox discovery resolves', async () => {
+    let resolveDiscover!: (uri: string) => void;
+    mockDiscoverInboxUri.mockImplementation(
+      () => new Promise((resolve) => { resolveDiscover = resolve; }),
+    );
+    setupAccessReturn([]);
+    const { unmount } = render(
+      <RequestNotificationsProvider
+        ownerWebId="https://owner.example/profile/card#me"
+        storageRoot="https://owner.example/"
+        catalogUri="https://owner.example/catalog.ttl"
+      >
+        <span />
+      </RequestNotificationsProvider>,
+    );
+    unmount();
+    resolveDiscover('https://owner.example/inbox/');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(mockSubscribeToInbox).not.toHaveBeenCalled();
+  });
+
+  it('closes the subscription handle if the component unmounts before it opens', async () => {
+    const close = vi.fn();
+    let resolveSubscribe!: (handle: { close: () => void }) => void;
+    mockSubscribeToInbox.mockImplementation(
+      () => new Promise((resolve) => { resolveSubscribe = resolve; }),
+    );
+    setupAccessReturn([]);
+    const { unmount } = render(
+      <RequestNotificationsProvider
+        ownerWebId="https://owner.example/profile/card#me"
+        storageRoot="https://owner.example/"
+        catalogUri="https://owner.example/catalog.ttl"
+      >
+        <span />
+      </RequestNotificationsProvider>,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    unmount();
+    resolveSubscribe({ close });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(close).toHaveBeenCalled();
+  });
+
+  it('treats a request with no timestamp as arrived at time zero (never toasts it)', () => {
+    renderProvider([makeRequest({ timestamp: undefined as unknown as string })]);
+    expect(mockShowInfo).not.toHaveBeenCalled();
+  });
+
+  it('does not re-toast a request that already fired a toast on a previous render', () => {
+    const req = makeRequest({ timestamp: futureTimestamp() });
+    setupAccessReturn([req]);
+    const { rerender } = render(
+      <RequestNotificationsProvider
+        ownerWebId="https://owner.example/profile/card#me"
+        storageRoot="https://owner.example/"
+        catalogUri="https://owner.example/catalog.ttl"
+      >
+        <span />
+      </RequestNotificationsProvider>,
+    );
+    expect(mockShowInfo).toHaveBeenCalledTimes(1);
+
+    setupAccessReturn([req]);
+    rerender(
+      <RequestNotificationsProvider
+        ownerWebId="https://owner.example/profile/card#me"
+        storageRoot="https://owner.example/"
+        catalogUri="https://owner.example/catalog.ttl"
+      >
+        <span />
+      </RequestNotificationsProvider>,
+    );
+    expect(mockShowInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh on visibilitychange while the document is hidden', () => {
+    const loadRequests = vi.fn().mockResolvedValue(undefined);
+    mockUseAccessRequests.mockReturnValue({
+      requests: [],
+      loading: false,
+      error: null,
+      busyMessageUri: null,
+      loadRequests,
+      approve: vi.fn(),
+      deny: vi.fn(),
+    });
+    const visibilitySpy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    render(
+      <RequestNotificationsProvider
+        ownerWebId="https://owner.example/profile/card#me"
+        storageRoot="https://owner.example/"
+        catalogUri="https://owner.example/catalog.ttl"
+      >
+        <span />
+      </RequestNotificationsProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(loadRequests).not.toHaveBeenCalled();
+    visibilitySpy.mockRestore();
+  });
+
   it('refreshes when the document becomes visible', () => {
     const loadRequests = vi.fn().mockResolvedValue(undefined);
     mockUseAccessRequests.mockReturnValue({

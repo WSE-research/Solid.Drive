@@ -1,11 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import { ColorSchemeToggle } from '../ColorSchemeToggle-file/ColorSchemeToggle';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string, fallback?: string) => fallback ?? key],
 }));
+
+let capturedOnValueChange: ((value: string) => void) | undefined;
+
+vi.mock('@radix-ui/react-select', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@radix-ui/react-select')>();
+  return {
+    ...actual,
+    Root: (props: ComponentProps<typeof actual.Root>) => {
+      capturedOnValueChange = props.onValueChange;
+      return <actual.Root {...props} />;
+    },
+  };
+});
 
 describe('ColorSchemeToggle', () => {
   beforeEach(() => {
@@ -54,4 +68,11 @@ describe('ColorSchemeToggle', () => {
     },
     15000,
   );
+
+  it('ignores a value from onValueChange that is not a known color scheme', () => {
+    render(<ColorSchemeToggle />);
+    capturedOnValueChange?.('not-a-real-scheme');
+    expect(localStorage.getItem('solid-drive.color-scheme')).toBeNull();
+    expect(screen.getByRole('combobox', { name: /color/i })).toHaveTextContent(/indigo/i);
+  });
 });
