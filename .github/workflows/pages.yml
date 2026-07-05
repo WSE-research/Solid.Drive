@@ -46,6 +46,9 @@ jobs:
         with:
           source: ./gh-page
           destination: ./_site
+          
+      - name: Fix _site ownership
+        run: sudo chown -R "$(id -u):$(id -g)" _site
 
       - name: Encrypt protected pages with PageCrypt
         run: |
@@ -66,7 +69,7 @@ jobs:
               exit 1
             fi
             echo "Encrypting $target"
-            npx --yes pagecrypt "$target" "$target" "$password"
+            npx --yes pagecrypt@7.1.0 "$target" "$target" "$password"
           done < "$manifest"
 
       - name: Upload Pages artifact
