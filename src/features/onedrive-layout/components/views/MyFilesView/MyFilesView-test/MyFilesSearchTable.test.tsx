@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { CatalogEntry } from '@/types';
+import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
 import { MyFilesSearchTable } from '../MyFilesView-file/MyFilesSearchTable';
 
 vi.mock('react-i18next', () => ({
@@ -38,10 +39,10 @@ const baseEntry: CatalogEntry = {
 };
 
 describe('MyFilesSearchTable', () => {
-  let onSelect: ReturnType<typeof vi.fn>;
+  let onSelect: Mock<(resource: NonNullable<SelectedResource>) => void>;
 
   beforeEach(() => {
-    onSelect = vi.fn();
+    onSelect = vi.fn<(resource: NonNullable<SelectedResource>) => void>();
   });
 
   it('renders a no-results placeholder when results is empty', () => {

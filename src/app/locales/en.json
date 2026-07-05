@@ -244,6 +244,13 @@
       "light": "Light",
       "dark": "Dark"
     },
+    "colorScheme": "Color",
+    "colorSchemeOption": {
+      "indigo": "Indigo",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose"
+    },
     "navRail": "Navigation",
     "navRailCollapse": "Collapse",
     "navRailExpand": "Expand",

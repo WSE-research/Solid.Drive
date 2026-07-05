@@ -123,4 +123,38 @@ describe("useFileTypes", () => {
 
     expect(result.current.error).toBe("Failed to load file types");
   });
+
+  it("skips state updates when unmounted before a successful fetch resolves", async () => {
+    let resolveLoad!: (types: typeof MOCK_TYPES) => void;
+    mockLoadFileTypes.mockImplementation(
+      () => new Promise((resolve) => { resolveLoad = resolve; }),
+    );
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useFileTypes());
+    unmount();
+    resolveLoad(MOCK_TYPES);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("skips state updates when unmounted before a failed fetch rejects", async () => {
+    let rejectLoad!: (error: Error) => void;
+    mockLoadFileTypes.mockImplementation(
+      () => new Promise((_resolve, reject) => { rejectLoad = reject; }),
+    );
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useFileTypes());
+    unmount();
+    rejectLoad(new Error("Network error"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
 });

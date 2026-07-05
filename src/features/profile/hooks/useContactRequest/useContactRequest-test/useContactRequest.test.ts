@@ -87,6 +87,19 @@ describe('useContactRequest', () => {
     expect(mockPostRequest).toHaveBeenCalled();
   });
 
+  it('requestAgain skips the delete call when there is no prior outcome notice', async () => {
+    const onClearOutcome = vi.fn();
+    const { result } = renderHook(() =>
+      useContactRequest({ ...baseArgs, outcomeMessageUri: undefined, onClearOutcome }),
+    );
+    await act(async () => {
+      await result.current.requestAgain();
+    });
+    expect(mockDeleteRequest).not.toHaveBeenCalled();
+    expect(onClearOutcome).toHaveBeenCalled();
+    expect(mockPostRequest).toHaveBeenCalled();
+  });
+
   it('requestAgain swallows delete errors and still re-posts', async () => {
     mockDeleteRequest.mockRejectedValueOnce(new Error('cleanup failed'));
     const onClearOutcome = vi.fn();

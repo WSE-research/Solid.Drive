@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type MockInstance } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ErrorBoundary } from '../ErrorBoundary-file/ErrorBoundary';
 
@@ -12,7 +12,7 @@ function ThrowingChild({ shouldThrow = true }: { shouldThrow?: boolean }) {
 
 describe('ErrorBoundary', () => {
   // Suppress React error boundary console.error noise
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

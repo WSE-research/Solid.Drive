@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+import { createElement } from 'react';
+import { hydrateRoot } from 'react-dom/client';
 import {
   __resetCatalogVersionsForTests,
   notifyCatalogChanged,
@@ -48,6 +50,23 @@ describe('useCatalogVersion', () => {
     const { unmount } = renderHook(() => useCatalogVersion('https://pod/c.ttl'));
     unmount();
     expect(() => notifyCatalogChanged('https://pod/c.ttl')).not.toThrow();
+  });
+
+  it('falls back to the server snapshot (0) while hydrating', () => {
+    function Probe() {
+      const version = useCatalogVersion('https://pod/hydrate-catalog.ttl');
+      return createElement('span', null, String(version));
+    }
+    const container = document.createElement('div');
+    container.innerHTML = '<span>0</span>';
+    document.body.appendChild(container);
+
+    act(() => {
+      hydrateRoot(container, createElement(Probe));
+    });
+
+    expect(container.textContent).toBe('0');
+    document.body.removeChild(container);
   });
 
   it('__resetCatalogVersionsForTests clears every URI counter', () => {

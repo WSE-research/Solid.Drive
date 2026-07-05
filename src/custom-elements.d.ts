@@ -146,6 +146,7 @@ declare module "react" {
       // OneDriveLayout — TopBar dropdown internals
       "topbar-menu-row": El;
       "theme-toggle-row": El;
+      "color-scheme-toggle-row": El;
       "topbar-menu-profile": El;
       "topbar-menu-profile-info": El;
       "topbar-menu-profile-name": El;
