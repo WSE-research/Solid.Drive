@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
@@ -35,12 +35,12 @@ import {
 } from '../TypeFilterChips-file/chipCatalog';
 
 describe('TypeFilterChips', () => {
-  let onToggle: ReturnType<typeof vi.fn>;
-  let onReset: ReturnType<typeof vi.fn>;
+  let onToggle: Mock<(chipId: string) => void>;
+  let onReset: Mock<() => void>;
 
   beforeEach(() => {
-    onToggle = vi.fn();
-    onReset = vi.fn();
+    onToggle = vi.fn<(chipId: string) => void>();
+    onReset = vi.fn<() => void>();
   });
 
   const chips = [

@@ -76,6 +76,92 @@ describe("useFileValidation", () => {
     await waitFor(() => expect(result.current.tboxError).toBe("TBox fetch failed"));
   });
 
+  it("skips state updates when unmounted before TBox loading resolves", async () => {
+    let resolveLoad!: (types: { shapes: typeof mockShapes; parents: typeof mockParents }) => void;
+    vi.mocked(tboxValidator.loadTBox).mockImplementation(
+      () => new Promise((resolve) => { resolveLoad = resolve; }),
+    );
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useFileValidation(undefined, "", "", undefined));
+    unmount();
+    resolveLoad({ shapes: mockShapes, parents: mockParents });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("skips state updates when unmounted before TBox loading rejects", async () => {
+    let rejectLoad!: (error: Error) => void;
+    vi.mocked(tboxValidator.loadTBox).mockImplementation(
+      () => new Promise((_resolve, reject) => { rejectLoad = reject; }),
+    );
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useFileValidation(undefined, "", "", undefined));
+    unmount();
+    rejectLoad(new Error("TBox fetch failed"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("skips state updates when unmounted before a validation pass resolves", async () => {
+    let loadCount = 0;
+    let resolveSecondLoad!: (types: { shapes: typeof mockShapes; parents: typeof mockParents }) => void;
+    vi.mocked(tboxValidator.loadTBox).mockImplementation(() => {
+      loadCount += 1;
+      if (loadCount === 1) return Promise.resolve({ shapes: mockShapes, parents: mockParents });
+      return new Promise((resolve) => { resolveSecondLoad = resolve; });
+    });
+    vi.mocked(tboxValidator.validateMetadata).mockReturnValue({ valid: true, violations: [], shape: null });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const file = new File(["content"], "test.txt", { type: "text/plain" });
+
+    const { result, unmount } = renderHook(() =>
+      useFileValidation(file, "Title", "", "https://user.example/profile/card#me"),
+    );
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+
+    unmount();
+    resolveSecondLoad({ shapes: mockShapes, parents: mockParents });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("skips state updates when unmounted before a validation pass throws", async () => {
+    let loadCount = 0;
+    let rejectSecondLoad!: (error: Error) => void;
+    vi.mocked(tboxValidator.loadTBox).mockImplementation(() => {
+      loadCount += 1;
+      if (loadCount === 1) return Promise.resolve({ shapes: mockShapes, parents: mockParents });
+      return new Promise((_resolve, reject) => { rejectSecondLoad = reject; });
+    });
+    vi.mocked(tboxValidator.validateMetadata).mockReturnValue({ valid: true, violations: [], shape: null });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const file = new File(["content"], "test.txt", { type: "text/plain" });
+
+    const { result, unmount } = renderHook(() =>
+      useFileValidation(file, "Title", "", "https://user.example/profile/card#me"),
+    );
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+
+    unmount();
+    rejectSecondLoad(new Error("validation crashed"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
   it("reports violations when required fields are missing", async () => {
     const mockResult = {
       valid: false,
@@ -163,6 +249,21 @@ describe("useFileValidation", () => {
     const snapshot = vi.mocked(tboxValidator.validateMetadata).mock.calls[0][0] as Record<string, unknown>;
     const typeArr = snapshot.type as { "@id": string }[];
     expect(typeArr[0]["@id"]).toBe("ImageObject");
+  });
+
+  it("sets validation to null when validateFile rejects", async () => {
+    vi.mocked(tboxValidator.validateMetadata).mockImplementation(() => {
+      throw new Error("Validation crashed");
+    });
+    const file = new File(["content"], "test.txt", { type: "text/plain" });
+
+    const { result } = renderHook(() =>
+      useFileValidation(file, "Title", "", "https://user.example/profile/card#me")
+    );
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    await waitFor(() => expect(tboxValidator.validateMetadata).toHaveBeenCalled());
+    expect(result.current.validation).toBeNull();
   });
 
   it("passes webId as empty string when undefined", async () => {

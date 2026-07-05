@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { AccessRequest } from '@/infrastructure/inbox/inboxAccess';
 
@@ -59,12 +59,12 @@ const baseRequest: AccessRequest = {
 };
 
 describe('RequestCard', () => {
-  let onApprove: ReturnType<typeof vi.fn>;
-  let onDeny: ReturnType<typeof vi.fn>;
+  let onApprove: Mock<(request: AccessRequest) => void | Promise<void>>;
+  let onDeny: Mock<(request: AccessRequest) => void | Promise<void>>;
 
   beforeEach(() => {
-    onApprove = vi.fn();
-    onDeny = vi.fn();
+    onApprove = vi.fn<(request: AccessRequest) => void | Promise<void>>();
+    onDeny = vi.fn<(request: AccessRequest) => void | Promise<void>>();
   });
 
   it('renders the requester name + Approve / Deny buttons', () => {
