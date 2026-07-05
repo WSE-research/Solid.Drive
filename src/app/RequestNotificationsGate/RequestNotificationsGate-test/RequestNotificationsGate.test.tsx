@@ -42,7 +42,7 @@ describe('RequestNotificationsGate', () => {
   });
 
   it('passes children through when the user is logged out', () => {
-    mockUseSolidAuth.mockReturnValue({ session: { isLoggedIn: false, webId: undefined } });
+    mockUseSolidAuth.mockReturnValue({ session: { isActive: false, webId: undefined } });
     render(
       <RequestNotificationsGate>
         <div data-testid="child" />
@@ -54,7 +54,7 @@ describe('RequestNotificationsGate', () => {
 
   it('mounts the provider once the user has a known WebID', () => {
     mockUseSolidAuth.mockReturnValue({
-      session: { isLoggedIn: true, webId: 'https://alice.example/profile/card#me' },
+      session: { isActive: true, webId: 'https://alice.example/profile/card#me' },
     });
     mockUseDriveInitialization.mockReturnValue({ storageRootUri: 'https://alice.example/' });
     mockResolveCatalogUri.mockReturnValue('https://alice.example/catalog.ttl');
@@ -75,7 +75,7 @@ describe('RequestNotificationsGate', () => {
 
   it('mounts the provider with empty strings while storage and catalog are still loading', () => {
     mockUseSolidAuth.mockReturnValue({
-      session: { isLoggedIn: true, webId: 'https://alice.example/profile/card#me' },
+      session: { isActive: true, webId: 'https://alice.example/profile/card#me' },
     });
     render(
       <RequestNotificationsGate>

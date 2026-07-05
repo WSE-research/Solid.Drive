@@ -4,7 +4,7 @@ import type { SolidContainerUri } from '@ldo/connected-solid';
 import { FileExplorer } from '../FileExplorer-file/FileExplorer';
 
 /* ---- Mocks ---- */
-const mockSession: { isLoggedIn: boolean; webId: string | undefined } = { isLoggedIn: true, webId: 'https://pod.example/profile/card#me' };
+const mockSession: { isActive: boolean; webId: string | undefined } = { isActive: true, webId: 'https://pod.example/profile/card#me' };
 const mockFetch = vi.fn();
 const mockShowError = vi.fn();
 
@@ -177,7 +177,7 @@ const makeContainer = (childList: unknown[] = []) => ({
 describe('FileExplorer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.isLoggedIn = true;
+    mockSession.isActive = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockFetch.mockResolvedValue({ ok: false });
     mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
@@ -193,7 +193,7 @@ describe('FileExplorer', () => {
   });
 
   it('renders login prompt when not logged in', () => {
-    mockSession.isLoggedIn = false;
+    mockSession.isActive = false;
     render(<FileExplorer />);
     expect(screen.getByText('fileExplorer.loginPrompt')).toBeInTheDocument();
   });
@@ -473,7 +473,7 @@ describe('FileExplorer', () => {
 describe('FileExplorer search toggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSession.isLoggedIn = true;
+    mockSession.isActive = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockFetch.mockResolvedValue({ ok: false });
     mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
@@ -545,7 +545,7 @@ describe('FileExplorer drag-and-drop', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockQueueItems = [];
-    mockSession.isLoggedIn = true;
+    mockSession.isActive = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
     mockUseDriveInit.noStorageDetected = false;

@@ -53,7 +53,7 @@ export const LandingPage: FunctionComponent = () => {
 
   const handleLogin = () => {
     if (loginDisabled) return;
-    void login(selection.activeIssuerUrl);
+    void login(selection.activeIssuerUrl, window.location.href);
   };
 
   const heroSignIn = (

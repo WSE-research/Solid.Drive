@@ -38,8 +38,8 @@ export function useAuth(): UseAuthReturn {
   return {
     session,
     webId: session.webId,
-    isLoggedIn: session.isLoggedIn,
-    login,
+    isLoggedIn: session.isActive,
+    login: (issuerUrl: string) => login(issuerUrl, window.location.href),
     logout,
   };
 }

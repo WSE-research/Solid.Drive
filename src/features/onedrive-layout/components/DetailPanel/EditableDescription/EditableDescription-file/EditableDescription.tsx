@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useLdo } from '@ldo/solid-react';
 import { CatalogEntryShShapeType } from '@/.ldo/catalogEntry.shapeTypes';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
+import { isSolidLeaf, isSolidContainer } from '@/infrastructure/solid/resourceGuards';
 
 interface EditableDescriptionProps {
   metadataUri: string;
@@ -60,6 +61,11 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
     setIsSaving(true);
     try {
       const indexResource = getResource(metadataUri);
+      if (!isSolidLeaf(indexResource) && !isSolidContainer(indexResource)) {
+        showError(errorLabel);
+        setValue(initialValue);
+        return;
+      }
       const draft = createData(
         CatalogEntryShShapeType,
         metadataUri,

@@ -32,7 +32,7 @@ export const RequestNotificationsGate: FunctionComponent<RequestNotificationsGat
   const { storageRootUri } = useDriveInitialization();
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
 
-  if (!session.isLoggedIn || !session.webId) {
+  if (!session.isActive || !session.webId) {
     return <>{children}</>;
   }
 

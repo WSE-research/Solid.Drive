@@ -98,7 +98,7 @@ const mockUseResource = vi.fn<
 vi.mock('@ldo/solid-react', () => ({
   useResource: (uri: string | undefined) => mockUseResource(uri),
   useSolidAuth: () => ({
-    session: { isLoggedIn: true, webId: 'https://owner/me' },
+    session: { isActive: true, webId: 'https://owner/me' },
     fetch: vi.fn(),
   }),
   useSubject: () => ({ catalog: { '@id': 'https://pod/catalog' } }),

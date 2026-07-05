@@ -82,10 +82,11 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       );
       if (leaf) return leaf.uri;
     }
-    // schema:image is a real URL when present; schema:name is a human title
-    // and produced 404s when used as a path segment. Don't guess from name.
-    return fileMeta?.image?.["@id"];
-  }, [containerResource, fileMeta]);
+    // CatalogEntrySh has no field carrying the binary resource URL, so
+    // there is no way to resolve it when containerResource isn't (yet) a
+    // recognized SolidContainer.
+    return undefined;
+  }, [containerResource]);
 
   const { previewUrl } = useFilePreview(binaryUri);
 

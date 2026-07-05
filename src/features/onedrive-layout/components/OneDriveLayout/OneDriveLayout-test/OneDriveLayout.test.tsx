@@ -172,8 +172,8 @@ vi.mock('react-i18next', () => ({
 
 const mockProfileSubject: { current: Record<string, unknown> | null } = { current: null };
 const mockSession: {
-  current: { webId: string | undefined; isLoggedIn: boolean };
-} = { current: { webId: 'https://owner/me', isLoggedIn: true } };
+  current: { webId: string | undefined; isActive: boolean };
+} = { current: { webId: 'https://owner/me', isActive: true } };
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ session: mockSession.current, fetch: vi.fn() }),
   useSubject: () => mockProfileSubject.current,
@@ -829,12 +829,12 @@ describe('OneDriveLayout — extra branch coverage', () => {
   });
 
   it('falls back to an empty webId when the session has none yet', () => {
-    mockSession.current = { webId: undefined, isLoggedIn: false };
+    mockSession.current = { webId: undefined, isActive: false };
     mockSelected.current = null;
     render(<OneDriveLayout />);
     // Render does not throw and the shell still mounts with no signed-in user.
     expect(screen.getByTestId('onedrive-layout-root')).toBeInTheDocument();
-    mockSession.current = { webId: 'https://owner/me', isLoggedIn: true };
+    mockSession.current = { webId: 'https://owner/me', isActive: true };
   });
 });
 
