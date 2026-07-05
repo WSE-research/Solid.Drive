@@ -142,8 +142,9 @@ describe('useFileUpload', () => {
     ).rejects.toThrow('Container error');
   });
 
-  it('cleans up and throws when file upload fails', async () => {
+  it('cleans up and throws when file upload fails, swallowing a failed cleanup DELETE', async () => {
     mockFileContainer.uploadChildAndOverwrite.mockResolvedValue({ isError: true, message: 'Upload failed' });
+    mockFetch.mockRejectedValue(new Error('DELETE failed'));
     const { result } = renderHook(() => useFileUpload());
 
     await expect(
@@ -158,12 +159,12 @@ describe('useFileUpload', () => {
         });
       })
     ).rejects.toThrow('Upload failed');
-    // Cleanup DELETE calls are made with solidFetch (mockFetch)
-    // The call may use .catch(() => {}) so verify the error was thrown
+    expect(mockFetch).toHaveBeenCalled();
   });
 
-  it('cleans up and throws when index resource is not a SolidLeaf', async () => {
+  it('cleans up and throws when index resource is not a SolidLeaf, swallowing failed cleanup DELETEs', async () => {
     mockFileContainer.child.mockReturnValue({ _isSolidLeaf: false });
+    mockFetch.mockRejectedValue(new Error('DELETE failed'));
     const { result } = renderHook(() => useFileUpload());
 
     await expect(
@@ -178,6 +179,7 @@ describe('useFileUpload', () => {
         });
       })
     ).rejects.toThrow('Could not create metadata resource.');
+    expect(mockFetch).toHaveBeenCalled();
   });
 
   it('throws when metadata commit fails', async () => {
@@ -198,8 +200,9 @@ describe('useFileUpload', () => {
     ).rejects.toThrow('File metadata is invalid');
   });
 
-  it('cleans up and throws when catalog append fails', async () => {
+  it('cleans up and throws when catalog append fails, swallowing failed cleanup DELETEs', async () => {
     mockAppendToCatalog.mockRejectedValue(new Error('Catalog error'));
+    mockFetch.mockRejectedValue(new Error('DELETE failed'));
     const { result } = renderHook(() => useFileUpload());
 
     await expect(
@@ -214,6 +217,7 @@ describe('useFileUpload', () => {
         });
       })
     ).rejects.toThrow('Catalog could not be updated');
+    expect(mockFetch).toHaveBeenCalled();
   });
 
   it('links catalog to profile when profileHasCatalog is false', async () => {
@@ -231,6 +235,25 @@ describe('useFileUpload', () => {
     });
 
     expect(mockLinkCatalogToProfile).toHaveBeenCalled();
+  });
+
+  it('swallows a failure when linking catalog to profile fails', async () => {
+    mockLinkCatalogToProfile.mockRejectedValue(new Error('Link failed'));
+    const { result } = renderHook(() => useFileUpload());
+
+    await act(async () => {
+      await result.current.upload({
+        file: mockFile,
+        title: 'Photo',
+        description: '',
+        mainContainer: mockMainContainer as unknown as SolidContainer,
+        catalogUri: 'https://pod.example/catalog.ttl',
+        profileHasCatalog: false,
+      });
+    });
+
+    expect(mockLinkCatalogToProfile).toHaveBeenCalled();
+    expect(result.current.isUploading).toBe(false);
   });
 
   it('does not link catalog when profileHasCatalog is true', async () => {

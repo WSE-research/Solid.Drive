@@ -170,6 +170,19 @@ describe('NotificationContext', () => {
     expect(screen.getByText('Are you sure?')).toBeInTheDocument();
   });
 
+  it('a second dismiss for the same toast is a no-op (timer already cleared)', () => {
+    renderWithProvider();
+    act(() => {
+      fireEvent.click(screen.getByText('showToast'));
+    });
+    const dismissBtn = screen.getByLabelText('Dismiss');
+    act(() => {
+      fireEvent.click(dismissBtn);
+      fireEvent.click(dismissBtn);
+    });
+    expect(screen.queryByText('toast msg')).not.toBeInTheDocument();
+  });
+
   it('multiple toasts can be shown simultaneously', () => {
     renderWithProvider();
     act(() => {

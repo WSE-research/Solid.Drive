@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+import { createElement } from 'react';
+import { hydrateRoot } from 'react-dom/client';
 import {
   __resetAclVersionsForTests,
   notifyAclChanged,
@@ -48,6 +50,23 @@ describe('useAclVersion', () => {
     const { unmount } = renderHook(() => useAclVersion('https://pod/y/'));
     unmount();
     expect(() => notifyAclChanged('https://pod/y/')).not.toThrow();
+  });
+
+  it('falls back to the server snapshot (0) while hydrating', () => {
+    function Probe() {
+      const version = useAclVersion('https://pod/hydrate/');
+      return createElement('span', null, String(version));
+    }
+    const container = document.createElement('div');
+    container.innerHTML = '<span>0</span>';
+    document.body.appendChild(container);
+
+    act(() => {
+      hydrateRoot(container, createElement(Probe));
+    });
+
+    expect(container.textContent).toBe('0');
+    document.body.removeChild(container);
   });
 
   it('__resetAclVersionsForTests clears every URI counter', () => {
