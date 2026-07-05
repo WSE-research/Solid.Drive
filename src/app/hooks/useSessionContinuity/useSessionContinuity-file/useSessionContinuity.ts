@@ -3,7 +3,7 @@
  * within the current browser tab. The Solid auth provider needs about
  * a second after page load to restore a saved session or to finish an
  * OIDC redirect, and during that window
- * `useSolidAuth().session.isLoggedIn` is `false`.
+ * `useSolidAuth().session.isActive` is `false`.
  *
  * Two flags are exposed so AppShell can pick the right placeholder:
  *
@@ -72,7 +72,7 @@ export const useSessionContinuity = (): SessionContinuity => {
   const [maxHoldElapsed, setMaxHoldElapsed] = useState(!hadCallbackOnMount);
 
   useEffect(() => {
-    if (session.isLoggedIn) {
+    if (session.isActive) {
       wasLoggedInRef.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- observing external auth state
       setAuthObserved(true);
@@ -83,7 +83,7 @@ export const useSessionContinuity = (): SessionContinuity => {
       setAuthObserved(true);
       try { sessionStorage.removeItem(SESSION_FLAG_KEY); } catch { /* storage unavailable */ }
     }
-  }, [session.isLoggedIn]);
+  }, [session.isActive]);
 
   useEffect(() => {
     if (!hadCallbackOnMount) return undefined;
@@ -95,7 +95,7 @@ export const useSessionContinuity = (): SessionContinuity => {
     };
   }, [hadCallbackOnMount]);
 
-  const assumeLoggedIn = session.isLoggedIn || (!authObserved && wasActiveOnMount);
+  const assumeLoggedIn = session.isActive || (!authObserved && wasActiveOnMount);
   const isAuthenticating =
     hadCallbackOnMount && !maxHoldElapsed && (!authObserved || !minHoldElapsed);
 

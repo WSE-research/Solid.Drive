@@ -7,7 +7,7 @@ const mockLogout = vi.fn();
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({
-    session: { isLoggedIn: true, webId: 'https://alice.example/profile/card#me' },
+    session: { isActive: true, webId: 'https://alice.example/profile/card#me' },
     logout: mockLogout,
   }),
 }));

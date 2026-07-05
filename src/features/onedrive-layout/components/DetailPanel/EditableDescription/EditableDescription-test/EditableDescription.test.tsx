@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { EditableDescription } from '../EditableDescription-file/EditableDescription';
 
 const mockCommitData = vi.fn().mockResolvedValue({ isError: false });
-const mockGetResource = vi.fn(() => ({}));
+const mockGetResource = vi.fn(() => ({ type: 'SolidLeaf' }));
 const mockCreateData = vi.fn<() => { description: string | undefined }>(() => ({
   description: '',
 }));

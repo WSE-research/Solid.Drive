@@ -26,7 +26,8 @@ export function useFilePreview(binaryUri: string | undefined): UseFilePreviewRet
 
   const previewUrl = useMemo(() => {
     if (!isBinary(binaryResource) || !binaryResource.isBinary()) return undefined;
-    return URL.createObjectURL(binaryResource.getBlob());
+    const blob = binaryResource.getBlob();
+    return blob ? URL.createObjectURL(blob) : undefined;
   }, [binaryResource]);
 
   useEffect(() => {

@@ -55,7 +55,7 @@ beforeEach(() => {
   currentLayout = 'classic';
   observedWidth = 0;
   (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
-    session: { isLoggedIn: false, webId: undefined },
+    session: { isActive: false, webId: undefined },
     login: loginMock,
     logout: vi.fn(),
   });
@@ -141,7 +141,7 @@ describe('LandingPage — login action', () => {
   it('calls login with the selected provider value', () => {
     renderWithRouter(<LandingPage />);
     fireEvent.click(screen.getByRole('button', { name: 'landing.actions.loginAria' }));
-    expect(loginMock).toHaveBeenCalledWith(recommendedProvider.value);
+    expect(loginMock).toHaveBeenCalledWith(recommendedProvider.value, window.location.href);
   });
 
   it('calls login with a valid custom URL', () => {
@@ -150,7 +150,7 @@ describe('LandingPage — login action', () => {
       target: { value: 'https://typed.example' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'landing.actions.loginAria' }));
-    expect(loginMock).toHaveBeenCalledWith('https://typed.example');
+    expect(loginMock).toHaveBeenCalledWith('https://typed.example', window.location.href);
   });
 
   it('does not call login when nothing is selected and no valid URL is typed', () => {

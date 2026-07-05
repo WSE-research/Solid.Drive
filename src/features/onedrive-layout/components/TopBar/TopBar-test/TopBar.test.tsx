@@ -8,7 +8,7 @@ const mockChangeLanguage = vi.fn();
 
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: vi.fn(() => ({
-    session: { isLoggedIn: true, webId: 'https://alice.example/profile/card#me' },
+    session: { isActive: true, webId: 'https://alice.example/profile/card#me' },
     logout: mockLogout,
   })),
 }));
@@ -52,9 +52,9 @@ beforeEach(() => {
   mockChangeLanguage.mockClear();
   localStorage.clear();
   vi.mocked(useSolidAuth).mockReturnValue({
-    session: { isLoggedIn: true, webId: 'https://alice.example/profile/card#me' },
+    session: { isActive: true, webId: 'https://alice.example/profile/card#me' },
     logout: mockLogout,
-  } as ReturnType<typeof useSolidAuth>);
+  } as unknown as ReturnType<typeof useSolidAuth>);
 });
 
 describe('TopBar — brand', () => {

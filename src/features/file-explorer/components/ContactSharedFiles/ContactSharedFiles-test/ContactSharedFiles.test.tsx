@@ -78,7 +78,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockFileCardProps.length = 0;
   mockBrowserProps = null;
-  vi.mocked(useSubject).mockReturnValue(null);
+  vi.mocked(useSubject).mockReturnValue(undefined);
   vi.mocked(getProfileDisplayName).mockReturnValue('Alice');
   vi.mocked(useSharedCatalog).mockReturnValue(makeSharedCatalogResult());
 });
