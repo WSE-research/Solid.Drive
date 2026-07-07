@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@fluentui/react-icons": "^2.0.331",
-    "@ldo/ldo": "1.0.0-alpha.46",
+    "@ldo/ldo": "1.0.0-alpha.51",
     "@ldo/solid": "^1.0.0-alpha.1",
     "@ldo/solid-react": "1.0.0-alpha.51",
     "@radix-ui/react-dialog": "^1.1.17",
