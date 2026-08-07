@@ -1,0 +1,21 @@
+= transferPool
+
+Bounded-concurrency task runner used by the bulk upload pipeline.
+
+`createTransferPool(size)` returns a `run(task)` that admits at most `size` tasks at once and queues the rest FIFO, so a large batch cannot starve a task queued behind it.
+Rejections propagate to the caller unchanged and always free the slot.
+
+`createMutex()` is `createTransferPool(1)` — the same structure, used to serialise writes that several concurrent transfers share rather than to bound them.
+
+== Why bound in the application
+
+Browsers already cap concurrent connections per origin, but that cap queues requests invisibly at the network layer — after the application has committed memory for every in-flight `File` body and after the Solid client has minted a DPoP proof for each one.
+Bounding here keeps the queue observable, keeps memory proportional to the pool size rather than the batch size, and gives one knob to tune per deployment and to vary in performance experiments.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Used by
+* link:../../hooks/useUploadQueue/[useUploadQueue]
