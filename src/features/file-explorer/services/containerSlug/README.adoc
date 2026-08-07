@@ -1,0 +1,17 @@
+= containerSlug
+
+`containerSlugFor(fileName)` maps a file name to the per-file container slug an upload creates for it: lower-cased, with every run of characters outside `[a-z0-9.]` collapsed to a single `-`.
+
+The mapping is lossy, so distinct names can share a slug (`a b.txt` and `a-b.txt` both give `a-b.txt`), and the container is created with `createChildAndOverwrite` — so two files that collide here overwrite each other.
+The slug, not the file name, is therefore the correct collision key for anything de-duplicating a batch before upload.
+
+It lives in its own module rather than beside `useFileUpload` so that the writer and the de-duplicator can share one rule without either importing the other — and so mocking the upload hook in a test does not drag the rule along with it.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Used by
+* link:../../hooks/useFileUpload/[useFileUpload] — creates the container
+* link:../../hooks/useUploadQueue/[useUploadQueue] — de-duplicates a batch

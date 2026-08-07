@@ -1,0 +1,157 @@
+= Bulk upload: race conditions and transfer concurrency
+:toc: macro
+:toclevels: 3
+
+Analysis and measurements behind making the bulk upload queue concurrent.
+
+toc::[]
+
+== Summary
+
+The bulk upload tray processed one file at a time. The serialisation was deliberate — the comment read _"processing items one at a time so the catalog SPARQL PATCH never races on the same container"_ — but it was far broader than the hazard it was protecting against, and it was hiding three further races of its own.
+
+Per file, an upload makes four network round trips:
+
+[cols="1,4,2"]
+|===
+| # | Step | Shared state?
+
+| 1 | `PUT <dest>/<slug>/` — create the per-file container | no
+| 2 | `PUT <dest>/<slug>/<name>` — the binary | no
+| 3 | `PUT <dest>/<slug>/index.ttl` — the metadata | no
+| 4 | `PATCH <catalog>` — append the DCAT entry | *yes*
+|===
+
+Only step 4 touches state shared with other uploads. Steps 1–3 are scoped to the file's own subtree and parallelise cleanly. So the fix is to bound-and-parallelise the transfer and serialise *only* the catalog write, rather than serialising everything because one part needs it.
+
+Measured against a real Community Solid Server: *2.86× faster* at the new default of four concurrent transfers, under a realistic 40 ms round-trip.
+
+== Race conditions found
+
+=== R1 — Concurrent catalog bootstrap loses entries (would have been introduced by naive concurrency)
+
+`appendToCatalog` bootstraps a missing catalog:
+
+[source]
+----
+PATCH <catalog>  ->  404
+PUT   <catalog>  <-  empty catalog
+PATCH <catalog>  ->  retry
+----
+
+Run two of those at once against a fresh Pod and both see the 404, both `PUT` the empty catalog, and *the later `PUT` erases the entry the earlier `PATCH` just wrote*. The entry is gone but the file is on the Pod, so it is invisible in the UI and never cleaned up.
+
+This is the hazard the original serialisation was protecting against, and it is real. It is preserved: `upload` now takes a `withCatalogLock` wrapper, and the queue passes a mutex. The critical section covers the append, the rollback and the profile link — releasing early would let the next upload observe a half-written catalog.
+
+Note the append itself is `INSERT DATA`, which is commutative at the RDF level; it is the bootstrap that is not.
+
+=== R2 — In-batch duplicate detection was blind, and the collision key was wrong
+
+The duplicate check compared against `catalogEntries`, a prop that only refreshes after a server round trip. Within one batch it is therefore *always at least one upload stale*: drop two files with the same name in one drag and the second passes the check.
+
+Worse, the check compared *file names* while the actual collision is on the *container slug*. `containerSlugFor` lower-cases and collapses every run of `[^a-z0-9.]` to a single `-`, so `"a b.txt"` and `"a-b.txt"` both become `a-b.txt` — and the container is created with `createChildAndOverwrite`. Two such files silently overwrite each other, with two catalog entries pointing at one binary.
+
+This bug predates the concurrency work; serialising did not help, because the staleness is in the data, not the timing.
+
+Fixed by tracking claimed slugs in the tray for the lifetime of the batch, keyed by destination so the same name in two folders is still fine. A failed item releases its slug so a retry can proceed. `containerSlugFor` moved into its own module so the writer and the de-duplicator share one rule and cannot drift.
+
+=== R3 — Items enqueued or retried during a drain could be stranded forever
+
+The drain kept a `handledIds` set for its lifetime and found work with `itemsRef.current.find(...)`, where `itemsRef` is assigned during render. Between items it did:
+
+[source,typescript]
+----
+// Allow setItems to flush so itemsRef.current reflects latest snapshot.
+await Promise.resolve();
+----
+
+A microtask yield does not guarantee React has committed, so the snapshot could be stale. And `retry` only flipped an item's status back to `queued`; if its id was already in `handledIds`, the running drain skipped it. The drain then ended without re-checking, and the restart came from a `useEffect` on `items` — which does not re-fire, because `items` did not change after the drain exited. The row sat in `queued` indefinitely.
+
+Same for files enqueued mid-drain: the effect fired, `processQueue` returned early on `isProcessingRef`, and nothing rescheduled them.
+
+Fixed structurally rather than patched: the authoritative model is a `Map` in a ref, mirrored into React state purely for rendering, and scheduling is a `pump()` that anything can call. An item is claimed synchronously, before any `await`, so two pumps in one tick cannot double-start it. This removes the class of bug rather than the instance.
+
+=== R4 — State updates after unmount
+
+`updateItem` was called on several paths without checking `cancelledRef`. Now every publish goes through one function that checks it once.
+
+== The concurrency model
+
+[source]
+----
+                       ┌─ transfer pool (ENV.uploadConcurrency, default 4) ─┐
+enqueue ──> pump() ──> │  container PUT ─> binary PUT ─> index.ttl PUT      │
+                       │                                        │           │
+                       └────────────────────────────────────────┼───────────┘
+                                                                v
+                                                      ┌─ mutex (size 1) ─┐
+                                                      │  catalog PATCH   │
+                                                      └──────────────────┘
+----
+
+Both are the same primitive: `createMutex()` is `createTransferPool(1)`.
+
+The pool bound matters even though browsers already cap connections per origin. That cap queues invisibly at the network layer — after the app has committed memory for every in-flight `File` body and after the Solid client has minted a DPoP proof for each one. Bounding in the application keeps the queue observable, keeps memory proportional to the pool rather than the batch, and gives one knob to tune.
+
+That knob is `VITE_UPLOAD_CONCURRENCY`, which is what `SolidPodServerPerformanceAnalysis` varies as the "number of Solid.Drive threads".
+
+== Measurements
+
+`scripts/benchmark-upload-concurrency.mjs`. It reproduces the four-step upload shape against a live Community Solid Server over real Solid-OIDC/DPoP, and sweeps the pool size. It does not drive the React hook: shape validation and LDO bookkeeping are CPU-bound and identical at every concurrency, so including them would only dilute the effect being measured.
+
+Workload: 24 files × 64 KiB, 3 repeats per level, median reported. Server: Community Solid Server 7.1.0 in Docker, file backend, WebACL, on the same host.
+
+=== Loopback (RTT ≈ 0)
+
+[cols="1,1,1,1,1,1"]
+|===
+| concurrency | median (ms) | min | max | speed-up | files/s
+
+| 1  | 1287 | 1225 | 1352 | 1.00× | 18.7
+| 2  |  940 |  910 | 1012 | 1.37× | 25.5
+| 4  |  808 |  770 |  841 | *1.59×* | 29.7
+| 8  |  773 |  772 |  784 | 1.66× | 31.0
+| 16 |  749 |  731 |  779 | 1.72× | 32.1
+|===
+
+=== With 40 ms synthetic round-trip cost
+
+[cols="1,1,1,1,1,1"]
+|===
+| concurrency | median (ms) | min | max | speed-up | files/s
+
+| 1  | 5341 | 5332 | 5414 | 1.00× | 4.5
+| 2  | 2890 | 2827 | 3019 | 1.85× | 8.3
+| 4  | 1865 | 1837 | 1912 | *2.86×* | 12.9
+| 8  | 1894 | 1823 | 1923 | 2.82× | 12.7
+| 16 | 1987 | 1986 | 1992 | 2.69× | 12.1
+|===
+
+=== Reading the numbers
+
+*Loopback understates the win, and that is expected.* The Solid performance literature is emphatic that removing per-request latency is precisely what makes request count stop predicting wall-clock time — several studies find no correlation, and all of them ran on localhost or a simulated network. The real quantity is `requests × (RTT + TLS + DPoP + authorization)`. A Pod reached over the internet sits at the far end of that spectrum from loopback, so the 40 ms column is the more representative one for a deployed app, and even it is conservative for mobile.
+
+*Four is the sweet spot, and the reason is the mutex.* Under latency, 4 is the optimum and 8 and 16 are slightly *worse*. Once the transfers overlap enough, the serialised catalog `PATCH` becomes the bottleneck, and adding pool slots only adds contention in front of it. This is a real ceiling, not measurement noise — the 16-way samples are the tightest in the table (1986–1992 ms).
+
+*Consequence for future work:* the next meaningful gain is not a bigger pool, it is making the catalog write cheaper — batching one `INSERT DATA` per drain instead of per file would move the serialisation point from N round trips to one. That is a larger change to `appendToCatalog`'s contract and is deliberately not in this commit.
+
+=== Reproducing
+
+[source,bash]
+----
+docker run -d --name css -p 3000:3000 solidproject/community-server:7.1.0 \
+  -c /config/default.json -p 3000 -f /data \
+  --baseUrl http://localhost:3000/
+
+node scripts/benchmark-upload-concurrency.mjs \
+  --base-url http://localhost:3000/ \
+  --files 24 --size-kb 64 --levels 1,2,4,8,16 --repeats 3 [--latency-ms 40]
+----
+
+The published port must equal the internal port and the base URL must use it: CSS validates a DPoP-bound token by dereferencing the WebID *from inside the container*, so a mismatched port makes every authenticated request fail with a bare 401.
+
+== Not done
+
+* *Downloads are still serial.* The task named uploads and downloads; `downloadResource` is invoked per user action, one at a time, and has no batch path to parallelise yet. Adding one is a UI change, not a scheduling change.
+* *Batched catalog writes* — see above; the measured ceiling makes this the highest-value next step.
+* *Per-file progress* — the pool reports queued/active counts, but `uploadChildAndOverwrite` gives no byte progress, so rows remain binary (uploading → done).

@@ -7,7 +7,12 @@ describe("config/env/index exports", () => {
     expect(typeof EnvModule.ENV).toBe("object");
   });
 
-  it("exports exactly 1 item", () => {
-    expect(Object.keys(EnvModule)).toHaveLength(1);
+  it("exports the upload concurrency default as a positive integer", () => {
+    expect(Number.isInteger(EnvModule.UPLOAD_CONCURRENCY_DEFAULT)).toBe(true);
+    expect(EnvModule.UPLOAD_CONCURRENCY_DEFAULT).toBeGreaterThan(0);
+  });
+
+  it("exports exactly these items", () => {
+    expect(Object.keys(EnvModule).sort()).toEqual(["ENV", "UPLOAD_CONCURRENCY_DEFAULT"]);
   });
 });
