@@ -1,6 +1,6 @@
 import { useRef, type FunctionComponent } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { useSolidAuth } from '@ldo/solid-react';
+import { useLoginWithFeedback } from '@/features/auth/hooks/useLoginWithFeedback';
 import { useTranslation } from 'react-i18next';
 import { EXTERNAL_LINKS } from '@/config';
 import { useIssuerSelection } from '@/features/auth/hooks/useIssuerSelection';
@@ -29,7 +29,7 @@ const ONBOARDING_ROUTE = 'no-pod';
 const VIDEO_ROUTE = 'video';
 
 export const LandingPage: FunctionComponent = () => {
-  const { login } = useSolidAuth();
+  const login = useLoginWithFeedback();
   const [translate] = useTranslation();
   const [layout, setLayout] = useLayoutPreference();
   const selection = useIssuerSelection();
@@ -53,7 +53,7 @@ export const LandingPage: FunctionComponent = () => {
 
   const handleLogin = () => {
     if (loginDisabled) return;
-    void login(selection.activeIssuerUrl, window.location.href);
+    void login(selection.activeIssuerUrl);
   };
 
   const heroSignIn = (

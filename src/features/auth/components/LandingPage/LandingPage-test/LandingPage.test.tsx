@@ -36,6 +36,20 @@ import { useSolidAuth } from '@ldo/solid-react';
 import { CUSTOM_PROVIDER_VALUE, SOLID_PROVIDERS } from '@/config';
 import { LandingPage } from '../LandingPage-file/LandingPage';
 
+// The login button now reports failures through the notification toast, so the
+// components under test consume NotificationContext. Mocked rather than wrapped
+// in a real provider: these tests assert on login wiring, not on toasts.
+vi.mock('@/shared/contexts/NotificationContext', () => ({
+  useNotifications: () => ({
+    showError: vi.fn(),
+    showToast: vi.fn(),
+    showSuccess: vi.fn(),
+    showInfo: vi.fn(),
+    confirm: vi.fn(),
+  }),
+}));
+
+
 const loginMock = vi.fn();
 
 const realProviders = SOLID_PROVIDERS.filter(
