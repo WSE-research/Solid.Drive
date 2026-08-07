@@ -242,7 +242,8 @@
     "theme": "Theme",
     "themeOption": {
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "dropbox": "Dropbox"
     },
     "colorScheme": "Color",
     "colorSchemeOption": {

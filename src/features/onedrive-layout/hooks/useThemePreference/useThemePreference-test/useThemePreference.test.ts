@@ -3,17 +3,30 @@ import { renderHook, act } from '@testing-library/react';
 import {
   applyStoredTheme,
   isTheme,
+  THEMES,
   useThemePreference,
 } from '../useThemePreference-file/useThemePreference';
 
 describe('isTheme', () => {
-  it('accepts only "dark" and "light"', () => {
+  it('accepts every shipped theme', () => {
     expect(isTheme('dark')).toBe(true);
     expect(isTheme('light')).toBe(true);
+    expect(isTheme('dropbox')).toBe(true);
+  });
+
+  it('rejects anything else', () => {
     expect(isTheme('system')).toBe(false);
     expect(isTheme(undefined)).toBe(false);
     expect(isTheme(null)).toBe(false);
     expect(isTheme(0)).toBe(false);
+  });
+
+  it('stays in step with THEMES', () => {
+    // isTheme is defined as THEMES.includes(...), so iterating THEMES and
+    // asserting the guard accepts each one would be true by construction.
+    // Pin THEMES against an independently written literal instead: that is the
+    // only assertion here that a change to the union can actually break.
+    expect([...THEMES]).toEqual(['light', 'dark', 'dropbox']);
   });
 });
 
@@ -46,6 +59,22 @@ describe('useThemePreference', () => {
     expect(result.current[0]).toBe('light');
     expect(localStorage.getItem('solid-drive.theme')).toBe('light');
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('reads "dropbox" from localStorage on init', () => {
+    localStorage.setItem('solid-drive.theme', 'dropbox');
+    const { result } = renderHook(() => useThemePreference());
+    expect(result.current[0]).toBe('dropbox');
+  });
+
+  it('setter mirrors "dropbox" onto documentElement', () => {
+    // The whole Dropbox theme hangs off this attribute value; if it is not
+    // written verbatim, every selector in DropboxTheme.css silently misses.
+    const { result } = renderHook(() => useThemePreference());
+    act(() => result.current[1]('dropbox'));
+    expect(result.current[0]).toBe('dropbox');
+    expect(localStorage.getItem('solid-drive.theme')).toBe('dropbox');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dropbox');
   });
 
   it('setter can switch back to dark', () => {
