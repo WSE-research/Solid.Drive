@@ -83,11 +83,11 @@
   },
   "fileExplorer": {
     "loginPrompt": "Bitte melden Sie sich an, um auf Ihr Laufwerk zuzugreifen.",
-    "connecting": "Verbindung mit Ihrem Pod\u2026",
+    "connecting": "Verbindung mit Ihrem Pod…",
     "myPod": "Mein Pod",
     "yourFiles": "Ihre Dateien",
     "podContents": "Pod-Inhalt",
-    "reloading": "Wird neu geladen\u2026",
+    "reloading": "Wird neu geladen…",
     "refresh": "Aktualisieren",
     "noFilesYet": "Ihr Pod ist derzeit leer. Laden Sie oben Ihre erste Datei hoch.",
     "emptyFolder": "Dieser Ordner ist leer.",
@@ -119,7 +119,7 @@
     "uploadDuplicate": "Eine Datei mit dem Namen \"{{name}}\" existiert bereits in \"{{folder}}\"."
   },
   "fileCard": {
-    "loading": "Wird geladen\u2026",
+    "loading": "Wird geladen…",
     "deleteConfirm": "Möchten Sie diese Datei wirklich löschen?",
     "deleteFail": "Löschen fehlgeschlagen",
     "download": "Herunterladen",
@@ -142,14 +142,14 @@
   "fileUpload": {
     "chooseFile": "Datei auswählen",
     "title": "Titel",
-    "titlePlaceholder": "Titel hinzufügen\u2026",
+    "titlePlaceholder": "Titel hinzufügen…",
     "descriptionPlaceholder": "Beschreibung hinzufügen (optional)",
     "unknownType": "Unbekannter Dateityp",
-    "uploading": "Wird hochgeladen\u2026",
+    "uploading": "Wird hochgeladen…",
     "upload": "Hochladen",
     "fillRequired": "Pflichtfelder ausfüllen",
     "missingRequired": "Fehlende Pflichtfelder:",
-    "fieldRequired": "\u2014 {label} ist erforderlich",
+    "fieldRequired": "— {label} ist erforderlich",
     "tboxError": "TBox konnte nicht geladen werden:",
     "uploadSuccess": "Datei erfolgreich hochgeladen",
     "uploadError": "Upload fehlgeschlagen: {{message}}",
@@ -402,6 +402,15 @@
       "filesByHeading": "Dateien geteilt von {{name}}",
       "back": "Zurück zu Personen",
       "catalog": "Katalog"
+    }
+  },
+  "auth": {
+    "loginError": {
+      "notAProvider": "Unter {{issuer}} wurde kein Solid-Identitätsanbieter gefunden. Bitte die Adresse prüfen oder einen anderen Anbieter wählen.",
+      "issuerMismatch": "{{issuer}} hat eine andere Identität gemeldet als erwartet. Die Anmeldung wurde zur Sicherheit abgebrochen. ({{detail}})",
+      "providerUnavailable": "{{issuer}} ist derzeit nicht erreichbar. Bitte später erneut versuchen.",
+      "unreachable": "{{issuer}} konnte nicht erreicht werden. Bitte Adresse und Netzwerkverbindung prüfen.",
+      "generic": "Die Anmeldung bei {{issuer}} ist fehlgeschlagen. ({{detail}})"
     }
   }
 }
