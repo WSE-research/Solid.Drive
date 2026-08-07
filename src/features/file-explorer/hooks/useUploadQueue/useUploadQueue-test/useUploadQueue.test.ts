@@ -411,3 +411,100 @@ describe('useUploadQueue concurrency', () => {
     expect(mockUpload).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Failures of the concurrent implementation found in review. Each of these
+ * fails against the first version of the pool-based queue.
+ */
+describe('useUploadQueue robustness', () => {
+  function deferred() {
+    let resolve!: () => void;
+    const promise = new Promise<void>((res) => {
+      resolve = res;
+    });
+    return { promise, resolve };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetResource.mockReturnValue({ uri: DESTINATION_URI, children: () => [] });
+    mockValidateFile.mockResolvedValue({ valid: true, violations: [], shape: null });
+    mockUpload.mockResolvedValue(undefined);
+  });
+
+  it('records an error on the row when resolving the destination throws', async () => {
+    // getResource sits outside the upload try/catch in the naive version, so an
+    // exception escapes as an unhandled rejection and the row sticks on
+    // "uploading" forever -- hasActive stays true and the tray never closes.
+    mockGetResource.mockImplementation(() => {
+      throw new Error('resource graph unavailable');
+    });
+
+    const { result } = renderHook(() => useUploadQueue(CATALOG_URI, true, []));
+    act(() => {
+      result.current.enqueueInstant([makeFile('boom.txt')], DESTINATION_URI, 'My Drive');
+    });
+
+    await waitFor(() => expect(result.current.items[0].status).toBe('error'));
+    expect(result.current.items[0].error).toContain('resource graph unavailable');
+    await waitFor(() => expect(result.current.hasActive).toBe(false));
+  });
+
+  it('does not upload a file that was dismissed while it waited for a pool slot', async () => {
+    // With a pool of 4, the fifth file is admitted but not started. Dismissing
+    // it has to cancel it: otherwise it lands on the Pod with a catalog entry
+    // and no row in the tray to show for it.
+    const gate = deferred();
+    mockUpload.mockImplementation(async () => {
+      await gate.promise;
+    });
+
+    const { result } = renderHook(() => useUploadQueue(CATALOG_URI, true, []));
+    act(() => {
+      result.current.enqueueInstant(
+        Array.from({ length: 5 }, (_, index) => makeFile(`slot-${index}.txt`)),
+        DESTINATION_URI,
+        'My Drive',
+      );
+    });
+    await waitFor(() => expect(mockUpload).toHaveBeenCalledTimes(4));
+
+    const waiting = result.current.items[4];
+    expect(waiting.status).toBe('queued');
+    act(() => {
+      result.current.dismiss(waiting.id);
+    });
+
+    await act(async () => {
+      gate.resolve();
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(4));
+
+    expect(mockUpload).toHaveBeenCalledTimes(4);
+    const uploaded = mockUpload.mock.calls.map((call) => call[0].file.name);
+    expect(uploaded).not.toContain('slot-4.txt');
+  });
+
+  it('keeps a slug reserved after a successful upload whose row was dismissed', async () => {
+    // Dismissing a finished row removes it from the model, which makes
+    // "dismissed" indistinguishable from "failed" if the slug release consults
+    // the model. Releasing it would let the next upload of the same name
+    // overwrite the container that already exists on the Pod.
+    const { result } = renderHook(() => useUploadQueue(CATALOG_URI, true, []));
+    act(() => {
+      result.current.enqueueInstant([makeFile('keeper.txt')], DESTINATION_URI, 'My Drive');
+    });
+    await waitFor(() => expect(result.current.items[0].status).toBe('success'));
+
+    act(() => {
+      result.current.dismiss(result.current.items[0].id);
+    });
+    expect(result.current.items).toHaveLength(0);
+
+    act(() => {
+      result.current.enqueueInstant([makeFile('keeper.txt')], DESTINATION_URI, 'My Drive');
+    });
+    await waitFor(() => expect(result.current.items[0].status).toBe('error'));
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+  });
+});

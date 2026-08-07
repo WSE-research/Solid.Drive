@@ -16,11 +16,18 @@ Per file, an upload makes four network round trips:
 |===
 | # | Step | Shared state?
 
-| 1 | `PUT <dest>/<slug>/` — create the per-file container | no
-| 2 | `PUT <dest>/<slug>/<name>` — the binary | no
-| 3 | `PUT <dest>/<slug>/index.ttl` — the metadata | no
+| 1 | create the per-file container | *partly* — LDO implements `createChildAndOverwrite` as `DELETE` on the target plus `POST` to the **parent** container, so this writes the shared destination
+| 2 | upload the binary | no — same `DELETE` + `POST` shape, but against the per-file container
+| 3 | write `index.ttl` | no
 | 4 | `PATCH <catalog>` — append the DCAT entry | *yes*
 |===
+
+NOTE: The real request shape is at least six round trips, not four: LDO's
+`createChildAndOverwrite` and `uploadChildAndOverwrite` each issue a `DELETE`
+followed by a `POST` to the parent, rather than a single `PUT` to the child.
+The benchmark below models the simplified four-`PUT` shape, which understates
+both the absolute cost and the benefit of concurrency — see _Threats to
+validity_.
 
 Only step 4 touches state shared with other uploads. Steps 1–3 are scoped to the file's own subtree and parallelise cleanly. So the fix is to bound-and-parallelise the transfer and serialise *only* the catalog write, rather than serialising everything because one part needs it.
 
@@ -135,12 +142,30 @@ Workload: 24 files × 64 KiB, 3 repeats per level, median reported. Server: Comm
 
 *Consequence for future work:* the next meaningful gain is not a bigger pool, it is making the catalog write cheaper — batching one `INSERT DATA` per drain instead of per file would move the serialisation point from N round trips to one. That is a larger change to `appendToCatalog`'s contract and is deliberately not in this commit.
 
+=== Threats to validity
+
+* *The modelled request shape is simpler than the real one.* The script issues
+  four `PUT`s per file; LDO issues at least six requests, two of them `POST`s to
+  the shared parent container. Re-running with the real shape gives a *larger*
+  speed-up (c=1 8230 ms, c=4 2256 ms = 3.65x, c=16 2113 ms = 3.89x) and moves
+  the optimum to 16. The numbers below are therefore a lower bound on the
+  benefit, and the default of 4 is conservative rather than optimal.
+* *`notifyCatalogChanged` is not modelled.* It triggers a catalog refetch per
+  file, which is shared network work, not the CPU-bound bookkeeping this
+  document previously claimed.
+* *The synthetic latency is applied once per request.* On a server that demands
+  a DPoP nonce the retry would not be charged a second sleep, so RTT would be
+  under-modelled. The CSS used here issues no nonce, so every request is exactly
+  one round trip.
+* *n=3, fixed sweep order.* Enough to separate the 1-vs-4 effect, not enough to
+  separate 4 from 8.
+
 === Reproducing
 
 [source,bash]
 ----
 docker run -d --name css -p 3000:3000 solidproject/community-server:7.1.0 \
-  -c /config/default.json -p 3000 -f /data \
+  -c @css:config/default.json -p 3000 -f /data \
   --baseUrl http://localhost:3000/
 
 node scripts/benchmark-upload-concurrency.mjs \
