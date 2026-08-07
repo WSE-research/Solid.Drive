@@ -69,8 +69,8 @@ export const applyStoredTheme = (): void => {
 
 /**
  * Reads and writes the active theme, persisting to localStorage and
- * mirroring the value onto `document.documentElement` as
- * `data-theme="dark"` or `data-theme="light"`. Defaults to `dark`.
+ * mirroring the value onto `document.documentElement` as `data-theme`
+ * (`dark`, `light` or `dropbox`). Defaults to `dark`.
  *
  * Live instances stay in sync via a custom event plus the cross-tab
  * `storage` event.

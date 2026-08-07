@@ -22,11 +22,11 @@ describe('isTheme', () => {
   });
 
   it('stays in step with THEMES', () => {
-    // The guard is derived from THEMES, so this pins the two together: adding
-    // a theme to the union without listing it here would be caught by the
-    // count, and listing one the guard rejects would be caught by the loop.
-    expect(THEMES).toHaveLength(3);
-    for (const theme of THEMES) expect(isTheme(theme)).toBe(true);
+    // isTheme is defined as THEMES.includes(...), so iterating THEMES and
+    // asserting the guard accepts each one would be true by construction.
+    // Pin THEMES against an independently written literal instead: that is the
+    // only assertion here that a change to the union can actually break.
+    expect([...THEMES]).toEqual(['light', 'dark', 'dropbox']);
   });
 });
 

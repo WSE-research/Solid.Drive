@@ -144,6 +144,42 @@ test("the settings menu switches to the Dropbox theme and actually restyles the 
   // And that the tokens reach the rendered chrome rather than only :root.
   await expect(page.locator("top-bar")).toHaveCSS("background-color", "rgb(255, 255, 255)");
 
+  // --odl-detail-width has to be declared on `onedrive-layout`, because the
+  // base stylesheet declares it there on a responsive ladder and `detail-panel`
+  // inherits from the nearer ancestor -- a `:root` declaration is simply never
+  // seen, however specific. Read it off the element that actually consumes it.
+  const detailWidth = await page.evaluate(() => {
+    const layout = document.querySelector("onedrive-layout");
+    return layout ? getComputedStyle(layout).getPropertyValue("--odl-detail-width").trim() : null;
+  });
+  expect(detailWidth).toBe("320px");
+
+  // The theme must not pin the rail open. Pinning --odl-rail-width on
+  // `onedrive-layout` outranks both `[data-rail-expanded="false"]` and the
+  // max-width:960px collapse, which leaves a dead gutter when the user
+  // collapses the rail and costs a tablet the width permanently.
+  //
+  // This drives the attribute rather than the toggle button because what is
+  // under test is the cascade, not the toggle's wiring (covered in
+  // onedrive-nav-rail.spec.ts). The grid track is transitioned over 320ms, so
+  // the assertion has to retry -- reading it synchronously catches an
+  // intermediate value.
+  const railColumn = () =>
+    page.evaluate(() => {
+      const layout = document.querySelector("onedrive-layout");
+      return layout ? getComputedStyle(layout).gridTemplateColumns.split(" ")[0] : null;
+    });
+
+  await page.evaluate(() =>
+    document.querySelector("onedrive-layout")?.setAttribute("data-rail-expanded", "false"),
+  );
+  await expect.poll(railColumn, { timeout: UI_TIMEOUTS.short }).toBe("68px");
+
+  await page.evaluate(() =>
+    document.querySelector("onedrive-layout")?.setAttribute("data-rail-expanded", "true"),
+  );
+  await expect.poll(railColumn, { timeout: UI_TIMEOUTS.short }).toBe("232px");
+
   await shot(page, "dropbox-theme-shell");
 
   await page.reload();

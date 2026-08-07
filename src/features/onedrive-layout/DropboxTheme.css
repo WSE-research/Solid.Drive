@@ -57,8 +57,13 @@
      Near-black body text; secondary text shifts cool, which is what gives
      Dropbox's lists their slightly blue-grey cast. */
   --odl-text:          #1e1919;
-  --odl-text-muted:    #637282;
-  --odl-text-faint:    #8c97a3;
+  /* The two greys below are darker than a literal Dropbox sample, for
+     contrast: #637282 lands at 4.25:1 on --odl-bg-hover (row hover swaps the
+     background without touching the cell text) and #8c97a3 at 2.97:1 on white
+     -- both below WCAG AA, and these tokens back every ::placeholder in the
+     layout. These keep the cool cast and clear 4.5:1 on all three surfaces. */
+  --odl-text-muted:    #606e7d;
+  --odl-text-faint:    #69717a;
 
   /* ── radii ─────────────────────────────────────────────────────────────
      Squared off. The input token in particular goes from a pill to a small
@@ -74,7 +79,6 @@
      rather than scanned by icon, and a roomier detail pane. */
   --odl-rail-width-collapsed: 68px;
   --odl-rail-width-expanded:  232px;
-  --odl-detail-width:         320px;
   --odl-topbar-height:        64px;
   --odl-row-height:           48px;
 
@@ -85,10 +89,20 @@
   --odl-font-size-lg:  15px;
 }
 
-/* The navigation is meant to be read, so it starts expanded. The base
-   stylesheet's max-width:960px rule still collapses it on small screens. */
+/* The detail pane token has to be declared on `onedrive-layout`, not on
+   `:root`. The base stylesheet declares it there too, on a responsive ladder
+   (300px from 1100px, 360px from 1400px, 400px from 1700px), and `detail-panel`
+   is a child of `onedrive-layout` -- so it *inherits* from the nearer ancestor
+   and a `:root` declaration never reaches it, however specific. Declared here,
+   the Dropbox value applies at every width.
+
+   The navigation is not pinned open. It defaults to expanded already
+   (useNavRailExpanded), and pinning `--odl-rail-width` here would outrank both
+   `onedrive-layout[data-rail-expanded="false"]` and the `max-width: 960px`
+   collapse -- leaving a dead page-coloured gutter when the user collapses the
+   rail, and costing a tablet 232px it could not reclaim. */
 :root[data-theme="dropbox"] onedrive-layout {
-  --odl-rail-width: var(--odl-rail-width-expanded);
+  --odl-detail-width: 320px;
 }
 
 /* ── accent ─────────────────────────────────────────────────────────────────
@@ -141,6 +155,15 @@
   border-bottom: 1px solid var(--odl-border);
 }
 
+/* The brand mark is a hard-coded 80x80 in the base stylesheet, sized for the
+   88px bar. At 64px it spills 16px past the bar and gets clipped by
+   `onedrive-layout { overflow: hidden }`. */
+:root[data-theme="dropbox"] .topbar-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
 :root[data-theme="dropbox"] nav-rail {
   background: var(--odl-bg-panel);
   border-right: 1px solid var(--odl-border);
@@ -162,8 +185,13 @@
    plane running to the edges of the window, not a rounded card floating on a
    tinted page -- including on the landing/Recent and People views, which the
    base stylesheet deliberately makes transparent so the page colour shows
-   through. */
-:root[data-theme="dropbox"] .odl-main {
+   through.
+
+   The Shared view does not use `.odl-main` -- `shared-body` takes over the
+   `main` grid area with its own margin and radius -- so it needs naming
+   separately or it stays the one floating card among five destinations. */
+:root[data-theme="dropbox"] .odl-main,
+:root[data-theme="dropbox"] shared-body {
   margin: 0;
   border-radius: 0;
 }
@@ -189,17 +217,31 @@
 }
 
 :root[data-theme="dropbox"] .odl-files-row {
-  border-bottom: 1px solid var(--odl-divider);
+  /* --odl-border, not --odl-divider: the divider is 1.16:1 against white and
+     the rule would be invisible, which defeats the point of a ruled grid. */
+  border-bottom: 1px solid var(--odl-border);
 }
 
 /* ── navigation items ───────────────────────────────────────────────────────
    The base theme marks the active item with an accent bar and accent text on a
-   transparent background. Dropbox additionally tints the whole row, which is
-   what makes the expanded rail read as a list of destinations. */
+   transparent background. Dropbox tints the whole row instead, which is what
+   makes the expanded rail read as a list of destinations.
+
+   The label stays --odl-text rather than becoming accent-coloured. Accent on
+   accent-soft is only 4.37:1 (worse on the amber scheme, 3.41:1), below AA for
+   a 14px label, and the tint plus the weight already carry the state. */
 
 :root[data-theme="dropbox"] .rail-item--active {
   background: var(--odl-accent-soft);
-  color: var(--odl-accent);
+  color: var(--odl-text);
+  font-weight: 600;
+}
+
+/* Same reasoning for the selected file row, where the base sets the name cell
+   to the accent colour on the same tinted background. */
+:root[data-theme="dropbox"] .odl-files-row--active .odl-files-cell--name,
+:root[data-theme="dropbox"] .odl-files-row[aria-selected="true"] .odl-files-cell--name {
+  color: var(--odl-text);
   font-weight: 600;
 }
 
@@ -227,14 +269,23 @@
   box-shadow: none;
 }
 
-:root[data-theme="dropbox"] .btn--primary,
+/* `.btn--primary` and `.btn--ghost` are shared with the classic layout, and
+   data-theme lives on documentElement regardless of which shell is mounted --
+   a user can switch to the classic layout while the Dropbox theme is active.
+   Restyling them unscoped would leak this theme into a shell it is not a theme
+   for, which neither the dark nor the light theme does. `body:has(...)` keeps
+   the rules to pages actually rendering the OneDrive shell; the base
+   stylesheet's light theme scopes its shared-class rules the same way. */
+:root[data-theme="dropbox"] body:has(onedrive-layout) .btn--primary,
+:root[data-theme="dropbox"] .odl-dialog-content .btn--primary,
 :root[data-theme="dropbox"] .odl-dialog__btn--primary {
   border-radius: 4px;
   font-weight: 600;
   box-shadow: none;
 }
 
-:root[data-theme="dropbox"] .btn--ghost,
+:root[data-theme="dropbox"] body:has(onedrive-layout) .btn--ghost,
+:root[data-theme="dropbox"] .odl-dialog-content .btn--ghost,
 :root[data-theme="dropbox"] .odl-toolbar-button {
   border-radius: 4px;
 }
@@ -253,10 +304,6 @@
   background: var(--odl-bg-panel);
   border-color: var(--odl-accent);
   box-shadow: 0 0 0 1px var(--odl-accent);
-}
-
-:root[data-theme="dropbox"] .topbar-search-overlay__input {
-  border-radius: var(--odl-radius-input);
 }
 
 /* ── menus and dialogs ──────────────────────────────────────────────────────
