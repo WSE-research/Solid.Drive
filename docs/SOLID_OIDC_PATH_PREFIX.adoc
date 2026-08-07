@@ -1,0 +1,109 @@
+= Path-hosted Solid identity providers
+:toc: macro
+
+Why signing in to `https://wse-research.org/solid-community-server/` failed with
+`HTTP error! Status: 404`, and what was done about it.
+
+toc::[]
+
+== Symptom
+
+Clicking *Login* with the HTWK provider selected did nothing visible. The console showed:
+
+----
+GET https://wse-research.org/.well-known/openid-configuration 404 (Not Found)
+Uncaught (in promise) Error: HTTP error! Status: 404
+    at ao (index-*.js)
+    at async go.login (index-*.js)
+----
+
+Note the URL: the *origin root*, not the provider's own path.
+
+== Cause
+
+`@uvdsl/solid-oidc-client-browser@0.2.3` (reached through `@ldo/solid-react`) resolves the OpenID
+configuration against the origin and throws the path away:
+
+[source,javascript]
+----
+const idp_origin = new URL(idp).origin;                        // <1>
+const openid_configuration =
+  await fetch(`${idp_origin}/.well-known/openid-configuration`) // <2>
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    });
+
+// RFC 9207 iss check
+const issuer = openid_configuration["issuer"];
+if (trim_trailing_slash(idp) !== trim_trailing_slash(issuer)) { // <3>
+  throw new Error("RFC 9207 - iss !== idp - " + issuer + " !== " + idp);
+}
+----
+<1> the provider's path is discarded
+<2> discovery is fetched from the origin root
+<3> …but the issuer is then compared against the *full* provider URL, path included
+
+Those two rules contradict each other. Discovery is looked up as though the provider owned the whole
+origin, while the identity check demands the exact URL the caller passed. A provider hosted under a
+path can therefore never satisfy both: the lookup 404s first.
+
+This does not match OpenID Connect Discovery 1.0 either, which appends
+`/.well-known/openid-configuration` to the issuer *including its path* — which is exactly where the
+Community Solid Server publishes it:
+
+[cols="1,3"]
+|===
+| Spec (OIDC Discovery 1.0) | `https://wse-research.org/solid-community-server/.well-known/openid-configuration` → *200*
+| What the library requests  | `https://wse-research.org/.well-known/openid-configuration` → *404*
+|===
+
+`0.2.3` is the latest published version; there is no upstream fix to take.
+
+=== Why this only surfaced now
+
+The provider list previously pointed at `https://demos.swe.htwk-leipzig.de/solid-community-server/`,
+and `https://demos.swe.htwk-leipzig.de/.well-known/openid-configuration` returns *200* — because the
+demos root serves a single-page app that answers every unmatched path with its `index.html`.
+
+So the library's origin-root request succeeded, and the failure moved one line down, to
+`response.json()` choking on HTML. **Login was already broken; only the error message changed.** The
+canonical-origin move made a latent bug visible, it did not introduce it.
+
+== Fix
+
+The reverse proxy publishes the Community Solid Server's own discovery document at the origin root
+of `wse-research.org`:
+
+[source,nginx]
+----
+location = /.well-known/openid-configuration {
+    proxy_pass http://demos.swe.htwk-leipzig.de:40143/solid-community-server/.well-known/openid-configuration;
+}
+----
+
+It proxies rather than duplicates, so the document can never drift from the server's real
+configuration. The `issuer` it carries is `https://wse-research.org/solid-community-server/`, which
+is what the app passes as the provider — so the library's RFC 9207 check passes, and every endpoint
+it then reads (`authorization_endpoint`, `token_endpoint`, `jwks_uri`, `registration_endpoint`)
+already carries the correct path prefix.
+
+Spec-conformant clients are unaffected: they use path-based discovery, which was always correct and
+keeps working.
+
+== Known limitation
+
+An origin-root discovery document whose `issuer` names a sub-path is a compromise. A strict client
+that derives the issuer from where it fetched discovery would see
+`https://wse-research.org` vs `https://wse-research.org/solid-community-server/` and reject the
+mismatch — but such a client gets a 404 without this rule, so nothing regresses.
+
+**The clean fix is to give the Solid server its own origin** — `solid.wse-research.org` or similar.
+Then `issuer` equals the origin, every client agrees, and the proxy rule disappears. That needs a DNS
+record and a certificate, so it is left as follow-up work.
+
+== User-visible behaviour
+
+Independently of the fix, a failed sign-in now reaches the user instead of only the console — see
+`src/features/auth/hooks/useLoginWithFeedback/`. A 404 on discovery is reported as
+_"No Solid identity provider was found at …"_ rather than silently doing nothing.

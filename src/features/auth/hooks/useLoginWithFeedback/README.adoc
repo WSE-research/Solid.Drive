@@ -1,0 +1,29 @@
+= useLoginWithFeedback
+
+Wraps `useSolidAuth().login` so a failed sign-in is shown to the user instead of only appearing in the developer console.
+
+On success `login` redirects the browser, so callers naturally write `void login(...)` and never handle the promise.
+When it rejects the button simply looks dead — the reason reaches nothing but an unhandled rejection.
+This hook catches that, maps the underlying client's terse errors onto actionable messages, and surfaces them through the standard error toast.
+
+`describeLoginError` is exported separately and is pure, so the mapping can be tested without React.
+
+.Failure modes mapped
+[cols="1,3"]
+|===
+| `HTTP error! Status: 404` | No identity provider at that address — the common case, and the one a user can fix.
+| `RFC 9207 - iss !== idp` | The provider announced a different identity than the one requested.
+| `Status: 5xx` | The provider is reachable but failing.
+| `TypeError` / `Failed to fetch` | DNS failure, refused connection or CORS denial; the browser withholds which.
+| anything else | Generic message that still names the provider and includes the raw detail.
+|===
+
+NOTE: A path-hosted identity provider (for example `https://host/solid-community-server/`) produces the 404 case, because `@uvdsl/solid-oidc-client-browser` looks the OpenID configuration up at the *origin* root and discards the path. See `docs/SOLID_OIDC_PATH_PREFIX.adoc`.
+
+== Navigation
+
+.Parent
+link:../[auth/hooks]
+
+.Uses
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]
