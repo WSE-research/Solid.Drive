@@ -404,5 +404,14 @@
       "back": "Back to People",
       "catalog": "Catalog"
     }
+  },
+  "auth": {
+    "loginError": {
+      "notAProvider": "No Solid identity provider was found at {{issuer}}. Check the address, or pick a different provider.",
+      "issuerMismatch": "{{issuer}} reported a different identity than expected, so sign-in was stopped for your safety. ({{detail}})",
+      "providerUnavailable": "{{issuer}} is currently unavailable. Please try again later.",
+      "unreachable": "Could not reach {{issuer}}. Check the address and your network connection.",
+      "generic": "Sign-in with {{issuer}} failed. ({{detail}})"
+    }
   }
 }

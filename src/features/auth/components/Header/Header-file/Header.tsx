@@ -7,6 +7,7 @@
 import { useState } from "react";
 import type { FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
+import { useLoginWithFeedback } from "@/features/auth/hooks/useLoginWithFeedback";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "@/infrastructure/solid/resourceGuards";
@@ -23,7 +24,8 @@ import { APP_NAME, SOLID_PROVIDERS, CUSTOM_PROVIDER_VALUE, EXTERNAL_LINKS } from
  */
 export const Header: FunctionComponent = () => {
   const [translate] = useTranslation();
-  const { session, login, logout } = useSolidAuth();
+  const { session, logout } = useSolidAuth();
+  const login = useLoginWithFeedback();
   const [selectedProvider, setSelectedProvider] = useState("");
   const [customIssuerUrl, setCustomIssuerUrl] = useState("");
 
@@ -41,7 +43,7 @@ export const Header: FunctionComponent = () => {
   const podRegistrationUrl = registerUrl ?? EXTERNAL_LINKS.defaultGetPod;
   const isLoginDisabled = !issuerUrl;
 
-  const handleLogin = () => login(issuerUrl, window.location.href);
+  const handleLogin = () => void login(issuerUrl);
   const handleProviderChange = (event: React.ChangeEvent<HTMLSelectElement>) =>
     setSelectedProvider(event.target.value);
   const handleCustomUrlChange = (event: React.ChangeEvent<HTMLInputElement>) =>

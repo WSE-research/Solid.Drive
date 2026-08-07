@@ -404,5 +404,14 @@
       "back": "Zurück zu Personen",
       "catalog": "Katalog"
     }
+  },
+  "auth": {
+    "loginError": {
+      "notAProvider": "Unter {{issuer}} wurde kein Solid-Identitätsanbieter gefunden. Bitte die Adresse prüfen oder einen anderen Anbieter wählen.",
+      "issuerMismatch": "{{issuer}} hat eine andere Identität gemeldet als erwartet. Die Anmeldung wurde zur Sicherheit abgebrochen. ({{detail}})",
+      "providerUnavailable": "{{issuer}} ist derzeit nicht erreichbar. Bitte später erneut versuchen.",
+      "unreachable": "{{issuer}} konnte nicht erreicht werden. Bitte Adresse und Netzwerkverbindung prüfen.",
+      "generic": "Die Anmeldung bei {{issuer}} ist fehlgeschlagen. ({{detail}})"
+    }
   }
 }
