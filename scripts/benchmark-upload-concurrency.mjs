@@ -311,7 +311,10 @@ async function runOnce(authFetch, { podUrl, concurrency, files, payload, label }
 
 /* -------------------------------------------------------------------------- */
 
-const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+// Cryptographically random: the suffix also seeds the throwaway account's
+// password, so a predictable value would let anyone else on the test server
+// derive it.
+const suffix = `${Date.now().toString(36)}${webcrypto.randomUUID().replaceAll("-", "")}`;
 console.log(`base URL     ${BASE}`);
 console.log(`workload     ${ARGS.files} files x ${ARGS.sizeKb} KiB, ${ARGS.repeats} repeats per level`);
 console.log(`added latency ${ARGS.latencyMs} ms per request`);
