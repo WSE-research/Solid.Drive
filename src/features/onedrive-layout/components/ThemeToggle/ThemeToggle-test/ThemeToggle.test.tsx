@@ -43,7 +43,7 @@ describe('ThemeToggle', () => {
   });
 
   it(
-    'opens the listbox with both options when clicked',
+    'opens the listbox with every shipped theme when clicked',
     async () => {
       const user = userEvent.setup({ delay: null });
       render(<ThemeToggle />);
@@ -52,6 +52,8 @@ describe('ThemeToggle', () => {
       expect(listbox).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /dark/i })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /dropbox/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     },
     15000,
   );
@@ -85,6 +87,31 @@ describe('ThemeToggle', () => {
     },
     15000,
   );
+
+  it(
+    'selecting Dropbox persists the value and mirrors it onto documentElement',
+    async () => {
+      const user = userEvent.setup({ delay: null });
+      render(<ThemeToggle />);
+      await user.click(screen.getByRole('combobox', { name: /theme/i }));
+      await user.click(await screen.findByRole('option', { name: /dropbox/i }));
+      expect(localStorage.getItem('solid-drive.theme')).toBe('dropbox');
+      // DropboxTheme.css is keyed entirely off this attribute value.
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dropbox');
+      expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(
+        /dropbox/i,
+      );
+    },
+    15000,
+  );
+
+  it('reflects a persisted Dropbox preference on the trigger', () => {
+    localStorage.setItem('solid-drive.theme', 'dropbox');
+    render(<ThemeToggle />);
+    expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(
+      /dropbox/i,
+    );
+  });
 
   it('ignores a value from onValueChange that is not a known theme', () => {
     render(<ThemeToggle />);

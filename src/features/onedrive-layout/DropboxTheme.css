@@ -1,0 +1,278 @@
+/*
+ * Dropbox-inspired theme: overrides keyed off data-theme="dropbox".
+ *
+ * Load order matters, and this file must load LAST:
+ *
+ *   OneDriveLayout.css          base tokens and rules
+ *   OneDriveLayout.light.css    the direct rules every light-on-white theme
+ *                               needs -- destructive accents, scrims and
+ *                               dialog shadows that a token map alone cannot
+ *                               retheme. Those selectors name this theme
+ *                               explicitly alongside "light".
+ *   OneDriveLayout.schemes.css  the orthogonal data-scheme accent palettes
+ *   DropboxTheme.css            this file
+ *
+ * Loading after schemes.css is what lets the surface and geometry tokens below
+ * win unconditionally while the accent block stays scoped to the default
+ * scheme (see the accent section).
+ *
+ * Scope. This is a restyle, not a second layout: the markup, the component
+ * tree and the interaction model stay the OneDrive layout's. What changes is
+ * the palette, the geometry and the density, which is what carries most of the
+ * visual identity:
+ *
+ *   - Dropbox is white-on-warm-grey, not grey-on-grey. Content surfaces are
+ *     white, the page behind them is a warm off-white, and separation comes
+ *     from hairline borders rather than from elevation and rounded cards.
+ *   - Corners are small. The base theme's 16px panels and pill-shaped inputs
+ *     and buttons read as a different product; Dropbox's surfaces are
+ *     near-rectangular at 4-8px.
+ *   - Chrome is shorter and rows are denser, so more of the file list fits.
+ *   - The left navigation is permanently expanded and labelled.
+ *   - One saturated blue does all the primary-action work, flat, no gradient.
+ *
+ * Deliberately NOT done:
+ *
+ *   - No Dropbox logo, wordmark, glyph or proprietary typeface is used or
+ *     imitated. The Solid.Drive brand mark is untouched and the type stack
+ *     stays the inherited system stack.
+ *   - Solid-specific surfaces with no Dropbox counterpart -- the access
+ *     Requests view, WebID and Pod fields, the notification bell -- inherit the
+ *     palette and nothing more. They are not restructured to resemble a
+ *     Dropbox feature they are not.
+ */
+
+:root[data-theme="dropbox"] {
+  /* ── surfaces ──────────────────────────────────────────────────────────
+     A warm neutral behind pure-white content, rather than the base theme's
+     cool grey-on-grey. */
+  --odl-bg-page:       #f7f5f2;
+  --odl-bg-panel:      #ffffff;
+  --odl-bg-elevated:   #ffffff;
+  --odl-bg-hover:      #f0eeea;
+  --odl-border:        #e6e4e0;
+  --odl-divider:       #f0eeea;
+
+  /* ── text ──────────────────────────────────────────────────────────────
+     Near-black body text; secondary text shifts cool, which is what gives
+     Dropbox's lists their slightly blue-grey cast. */
+  --odl-text:          #1e1919;
+  --odl-text-muted:    #637282;
+  --odl-text-faint:    #8c97a3;
+
+  /* ── radii ─────────────────────────────────────────────────────────────
+     Squared off. The input token in particular goes from a pill to a small
+     rectangle, which re-reads the search field and every chip. */
+  --odl-radius-panel:  8px;
+  --odl-radius-input:  8px;
+  --odl-radius-chip:   4px;
+  --odl-radius-card:   6px;
+  --odl-radius-pill:   4px;
+
+  /* ── layout dimensions ─────────────────────────────────────────────────
+     Shorter chrome, denser rows, a left navigation wide enough to be read
+     rather than scanned by icon, and a roomier detail pane. */
+  --odl-rail-width-collapsed: 68px;
+  --odl-rail-width-expanded:  232px;
+  --odl-detail-width:         320px;
+  --odl-topbar-height:        64px;
+  --odl-row-height:           48px;
+
+  /* ── type ──────────────────────────────────────────────────────────────
+     Sizes only. Dropbox's own faces are proprietary and are not imitated. */
+  --odl-font-size-sm:  13px;
+  --odl-font-size-md:  14px;
+  --odl-font-size-lg:  15px;
+}
+
+/* The navigation is meant to be read, so it starts expanded. The base
+   stylesheet's max-width:960px rule still collapses it on small screens. */
+:root[data-theme="dropbox"] onedrive-layout {
+  --odl-rail-width: var(--odl-rail-width-expanded);
+}
+
+/* ── accent ─────────────────────────────────────────────────────────────────
+   A single saturated blue carries every primary action, and the Create button
+   loses the purple gradient it inherits from the Solid.drive mark -- the
+   gradient tokens collapse to one stop so rules still reading them render flat
+   without each needing its own override.
+
+   Scoped to the default accent scheme on purpose. `data-scheme` is an
+   orthogonal, user-chosen axis; someone who has explicitly picked emerald,
+   amber or rose keeps it, and only the untouched default gives way to Dropbox
+   blue. The attribute is absent until useColorScheme mounts, so `:not(
+   [data-scheme])` covers first paint. */
+:root[data-theme="dropbox"]:not([data-scheme]),
+:root[data-theme="dropbox"][data-scheme="indigo"] {
+  --odl-accent:        #0061ff;
+  --odl-accent-strong: #0050d6;
+  --odl-accent-soft:   rgba(0, 97, 255, 0.10);
+
+  --odl-brand:                #0061ff;
+  --odl-brand-strong:         #0050d6;
+  --odl-brand-soft:           rgba(0, 97, 255, 0.18);
+  --odl-brand-gradient:       linear-gradient(#0061ff, #0061ff);
+  --odl-brand-gradient-hover: linear-gradient(#0050d6, #0050d6);
+}
+
+/* The other schemes keep their hue but need the lighter "soft" alphas, exactly
+   as OneDriveLayout.light.css does for the light theme -- the 0.16/0.30 values
+   from the base scheme rules are tuned for a dark background. */
+:root[data-theme="dropbox"][data-scheme="emerald"] {
+  --odl-accent-soft: rgba(16, 138, 95, 0.10);
+  --odl-brand-soft:  rgba(16, 185, 129, 0.18);
+}
+:root[data-theme="dropbox"][data-scheme="amber"] {
+  --odl-accent-soft: rgba(184, 115, 15, 0.10);
+  --odl-brand-soft:  rgba(245, 158, 11, 0.18);
+}
+:root[data-theme="dropbox"][data-scheme="rose"] {
+  --odl-accent-soft: rgba(190, 18, 60, 0.10);
+  --odl-brand-soft:  rgba(244, 63, 94, 0.18);
+}
+
+/* ── flat chrome ────────────────────────────────────────────────────────────
+   The base theme floats its regions on the page colour. Dropbox builds
+   hierarchy from hairlines: white regions, flush against each other, divided
+   by 1px borders. */
+
+:root[data-theme="dropbox"] top-bar {
+  background: var(--odl-bg-panel);
+  border-bottom: 1px solid var(--odl-border);
+}
+
+:root[data-theme="dropbox"] nav-rail {
+  background: var(--odl-bg-panel);
+  border-right: 1px solid var(--odl-border);
+}
+
+:root[data-theme="dropbox"] nav-rail[data-expanded="true"] {
+  box-shadow: none;
+}
+
+/* Un-float the detail pane: flush to the edge, square, hairline instead of
+   a margin and a radius. */
+:root[data-theme="dropbox"] detail-panel {
+  margin: 0;
+  border-radius: 0;
+  border-left: 1px solid var(--odl-border);
+}
+
+/* Same for the work area. Dropbox's content region is one continuous white
+   plane running to the edges of the window, not a rounded card floating on a
+   tinted page -- including on the landing/Recent and People views, which the
+   base stylesheet deliberately makes transparent so the page colour shows
+   through. */
+:root[data-theme="dropbox"] .odl-main {
+  margin: 0;
+  border-radius: 0;
+}
+
+:root[data-theme="dropbox"] .odl-main:has(> onedrive-view[data-view-id="recent"]),
+:root[data-theme="dropbox"] .odl-main:has(> onedrive-view[data-view-id="people"]),
+:root[data-theme="dropbox"] .odl-main:has(> onedrive-view[data-view-id="people-detail"]),
+:root[data-theme="dropbox"] .odl-main:has(> onedrive-view[data-view-id="people-catalog"]) {
+  background: var(--odl-bg-panel);
+}
+
+/* ── file list ──────────────────────────────────────────────────────────────
+   A hairline under every row and a squared-off table body: Dropbox's list is a
+   continuous ruled grid rather than a stack of cards. */
+
+:root[data-theme="dropbox"] .odl-files-table {
+  border-radius: 0;
+}
+
+:root[data-theme="dropbox"] .odl-files-table__head {
+  font-size: 11px;
+  border-bottom: 1px solid var(--odl-border);
+}
+
+:root[data-theme="dropbox"] .odl-files-row {
+  border-bottom: 1px solid var(--odl-divider);
+}
+
+/* ── navigation items ───────────────────────────────────────────────────────
+   The base theme marks the active item with an accent bar and accent text on a
+   transparent background. Dropbox additionally tints the whole row, which is
+   what makes the expanded rail read as a list of destinations. */
+
+:root[data-theme="dropbox"] .rail-item--active {
+  background: var(--odl-accent-soft);
+  color: var(--odl-accent);
+  font-weight: 600;
+}
+
+/* Drop the base theme's rail-edge marker. It sits at left:-14px, exactly
+   cancelling the rail's padding, so it renders as a bar hard against the
+   window edge -- which reads as a stray artefact once the whole row is
+   tinted, and Dropbox has no such marker. */
+:root[data-theme="dropbox"] .rail-item--active::before {
+  content: none;
+}
+
+/* ── primary action ─────────────────────────────────────────────────────────
+   The Create control is a round 35px gradient bubble in the base theme. Here it
+   is a flat blue rectangle -- the same shape language as every other button. */
+
+:root[data-theme="dropbox"] .rail-create {
+  border-radius: 4px;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+:root[data-theme="dropbox"] .rail-create:hover {
+  /* No lift: Dropbox's buttons darken in place. */
+  transform: none;
+  box-shadow: none;
+}
+
+:root[data-theme="dropbox"] .btn--primary,
+:root[data-theme="dropbox"] .odl-dialog__btn--primary {
+  border-radius: 4px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+:root[data-theme="dropbox"] .btn--ghost,
+:root[data-theme="dropbox"] .odl-toolbar-button {
+  border-radius: 4px;
+}
+
+/* ── search ─────────────────────────────────────────────────────────────────
+   The base field is white on the page colour with a transparent border, which
+   would vanish against the now-white top bar. Invert it: a tinted field with a
+   visible hairline, which is also how Dropbox draws it. */
+
+:root[data-theme="dropbox"] .topbar-search {
+  background: var(--odl-bg-page);
+  border-color: var(--odl-border);
+}
+
+:root[data-theme="dropbox"] .topbar-search:focus {
+  background: var(--odl-bg-panel);
+  border-color: var(--odl-accent);
+  box-shadow: 0 0 0 1px var(--odl-accent);
+}
+
+:root[data-theme="dropbox"] .topbar-search-overlay__input {
+  border-radius: var(--odl-radius-input);
+}
+
+/* ── menus and dialogs ──────────────────────────────────────────────────────
+   Tight radii and a low, soft shadow: Dropbox's overlays sit close to the
+   surface rather than floating well above it. */
+
+:root[data-theme="dropbox"] .topbar-menu,
+:root[data-theme="dropbox"] .theme-toggle__content,
+:root[data-theme="dropbox"] .odl-dialog,
+:root[data-theme="dropbox"] .odl-dialog-content {
+  border-radius: 8px;
+  border: 1px solid var(--odl-border);
+  box-shadow: 0 4px 16px rgba(30, 25, 25, 0.12);
+}
+
+:root[data-theme="dropbox"] .rail-tooltip {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(30, 25, 25, 0.16);
+}

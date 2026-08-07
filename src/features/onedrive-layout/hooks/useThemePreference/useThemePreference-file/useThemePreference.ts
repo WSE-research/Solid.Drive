@@ -1,13 +1,25 @@
 /**
- * Hook for reading and persisting the user's choice between the dark
- * and light OneDrive themes.
+ * Hook for reading and persisting the user's theme choice.
+ *
+ * Three themes ship today: the dark and light OneDrive themes, and a
+ * Dropbox-inspired light theme. All three restyle the same layout — each is a
+ * `--odl-*` token map plus a small set of direct rules, keyed off the
+ * `data-theme` attribute on the document element.
  *
  * @packageDocumentation
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'dropbox';
+
+/**
+ * Every valid {@link Theme}, in the order the picker offers them. Exported so
+ * the picker and the type guard cannot drift apart when a theme is added.
+ *
+ * @public
+ */
+export const THEMES = ['light', 'dark', 'dropbox'] as const satisfies readonly Theme[];
 
 const STORAGE_KEY = 'solid-drive.theme';
 const CHANGE_EVENT = 'solid-drive:theme-changed';
@@ -20,7 +32,7 @@ const THEME_ATTRIBUTE = 'data-theme';
  * @public
  */
 export const isTheme = (value: unknown): value is Theme =>
-  value === 'dark' || value === 'light';
+  (THEMES as readonly string[]).includes(value as string);
 
 const readFromStorage = (): Theme => {
   try {
