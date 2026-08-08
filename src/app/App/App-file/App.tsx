@@ -89,10 +89,7 @@ const AppShell: FunctionComponent = () => {
  */
 const App: FunctionComponent = () => (
   <app-root>
-    <BrowserRouter
-      basename={ROUTER_BASENAME}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-    >
+    <BrowserRouter basename={ROUTER_BASENAME}>
       <BrowserSolidLdoProvider>
         <NotificationProvider>
           <AppShell />
