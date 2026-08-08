@@ -87,6 +87,7 @@ jobs:
                 exit 0
               fi
               echo "push rejected (attempt $attempt); rebasing onto ${{ github.ref }}"
+              [[ $attempt == 3 ]] && break
               git fetch origin ${{ github.ref }}
               git rebase --strategy-option=theirs FETCH_HEAD || {
                 git rebase --abort || true
