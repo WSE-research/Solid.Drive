@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "tbox:extract": "node scripts/extract-tbox.mjs",
     "dev": "node scripts/extract-tbox.mjs && vite",
