@@ -136,13 +136,24 @@ test("the settings menu switches to the Dropbox theme and actually restyles the 
       rowHeight: styles.getPropertyValue("--odl-row-height").trim(),
     };
   });
-  expect(tokens.page).toBe("#f7f5f2");
+  // The 2025/2026 Dropbox design is white-on-white with hairline separation;
+  // blue survives as the selection/focus accent only (primary buttons are
+  // near-black via --odl-brand, asserted through the rendered chrome below).
+  expect(tokens.page).toBe("#ffffff");
   expect(tokens.accent).toBe("#0061ff");
-  expect(tokens.text).toBe("#1e1919");
+  expect(tokens.text).toBe("#1a1918");
   expect(tokens.rowHeight).toBe("48px");
 
   // And that the tokens reach the rendered chrome rather than only :root.
   await expect(page.locator("top-bar")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+
+  // Primary actions are near-black in the 2025/2026 design. The Create button
+  // renders through --odl-brand-gradient, so the flat colour shows up as a
+  // one-stop gradient in the computed background-image.
+  await expect(page.locator(".rail-create")).toHaveCSS(
+    "background-image",
+    "linear-gradient(rgb(26, 25, 24), rgb(26, 25, 24))",
+  );
 
   // --odl-detail-width has to be declared on `onedrive-layout`, because the
   // base stylesheet declares it there on a responsive ladder and `detail-panel`
