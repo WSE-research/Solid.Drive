@@ -54,6 +54,9 @@
       },
       "onedrive": {
         "label": "OneDrive inspired"
+      },
+      "dropbox": {
+        "label": "Dropbox inspired"
       }
     },
     "actions": {

@@ -38,7 +38,7 @@ export const STORAGE_KEYS = {
   layout: "solid-drive.layout",
   /** OneDrive nav rail state: `"true"` (expanded pane) or `"false"` (icon rail). */
   navRailExpanded: "solid-drive.navRailExpanded",
-  /** OneDrive theme preference: `"dark"` (default) or `"light"`. */
+  /** OneDrive theme preference: `"dark"` (default), `"light"` or `"dropbox"`. */
   theme: "solid-drive.theme",
 } as const;
 

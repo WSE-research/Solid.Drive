@@ -5,7 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { EXTERNAL_LINKS } from '@/config';
 import { useIssuerSelection } from '@/features/auth/hooks/useIssuerSelection';
 import { useResizeObserver } from '@/features/auth/hooks/useResizeObserver';
-import { useLayoutPreference } from '@/features/onedrive-layout';
+import {
+  useLayoutPreference,
+  useThemePreference,
+  DEFAULT_THEME,
+  type Theme,
+} from '@/features/onedrive-layout';
 import { HeroBlob } from './HeroBlob';
 import { LandingHero } from './LandingHero';
 import { LandingTopBar } from './LandingTopBar';
@@ -13,7 +18,7 @@ import { OnboardingPage } from './OnboardingPage';
 import { VideoPage } from './VideoPage';
 import { ProviderPicker } from './ProviderPicker';
 import { CustomIssuerField } from './CustomIssuerField';
-import { LayoutPicker } from './LayoutPicker';
+import { LayoutPicker, type Experience } from './LayoutPicker';
 import { LandingFooter } from './LandingFooter';
 import '@/app/App/App-file/github-fork-ribbon.css';
 import './LandingPage.css';
@@ -32,9 +37,36 @@ export const LandingPage: FunctionComponent = () => {
   const login = useLoginWithFeedback();
   const [translate] = useTranslation();
   const [layout, setLayout] = useLayoutPreference();
+  const [theme, setTheme] = useThemePreference();
   const selection = useIssuerSelection();
   const landingRef = useRef<HTMLElement>(null);
   const { width: landingWidth } = useResizeObserver(landingRef);
+
+  // The Dropbox-inspired experience is the OneDrive layout wearing the
+  // dropbox theme, so the active card is derived from both preferences.
+  const experience: Experience =
+    layout === 'onedrive' ? (theme === 'dropbox' ? 'dropbox' : 'onedrive') : 'classic';
+
+  // Remembers the theme that was active before the user tried the Dropbox
+  // card, so stepping back to the OneDrive card restores it instead of
+  // clobbering a light/dark choice made in an earlier session.
+  const themeBeforeDropbox = useRef<Theme>(theme === 'dropbox' ? DEFAULT_THEME : theme);
+
+  const handleExperienceChange = (next: Experience) => {
+    if (next === 'classic') {
+      // The theme axis is left alone: it only styles the OneDrive shell,
+      // and the user's last choice should survive a later layout switch.
+      setLayout('classic');
+      return;
+    }
+    setLayout('onedrive');
+    if (next === 'dropbox') {
+      if (theme !== 'dropbox') themeBeforeDropbox.current = theme;
+      setTheme('dropbox');
+    } else if (theme === 'dropbox') {
+      setTheme(themeBeforeDropbox.current);
+    }
+  };
 
   const hasMeasured = landingWidth > 0;
   const isNarrowScreen = hasMeasured && landingWidth <= NARROW_BREAKPOINT_PX;
@@ -79,8 +111,8 @@ export const LandingPage: FunctionComponent = () => {
 
         <LayoutPicker
           headingId={LAYOUT_HEADING_ID}
-          value={layout}
-          onChange={setLayout}
+          value={experience}
+          onChange={handleExperienceChange}
         />
       </landing-hero-form>
 

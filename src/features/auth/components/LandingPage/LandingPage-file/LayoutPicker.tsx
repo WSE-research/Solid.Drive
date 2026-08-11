@@ -2,18 +2,26 @@ import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Layout } from '@/features/onedrive-layout';
 
-interface LayoutOption {
-  readonly value: Layout;
+/**
+ * What the landing page lets the user pick. An experience is a layout
+ * plus, for `dropbox`, the theme that restyles the OneDrive shell — the
+ * Dropbox-inspired look is not a third layout, so offering it here as a
+ * peer card is the only way to make it visible before login.
+ */
+export type Experience = Layout | 'dropbox';
+
+interface ExperienceOption {
+  readonly value: Experience;
   readonly labelKey: string;
 }
 
 interface LayoutPickerProps {
   readonly headingId: string;
-  readonly value: Layout;
-  readonly onChange: (value: Layout) => void;
+  readonly value: Experience;
+  readonly onChange: (value: Experience) => void;
 }
 
-const LAYOUT_OPTIONS: readonly LayoutOption[] = [
+const EXPERIENCE_OPTIONS: readonly ExperienceOption[] = [
   {
     value: 'classic',
     labelKey: 'landing.layoutPicker.classic.label',
@@ -22,6 +30,11 @@ const LAYOUT_OPTIONS: readonly LayoutOption[] = [
   {
     value: 'onedrive',
     labelKey: 'landing.layoutPicker.onedrive.label',
+  },
+
+  {
+    value: 'dropbox',
+    labelKey: 'landing.layoutPicker.dropbox.label',
   },
 ];
 
@@ -48,7 +61,7 @@ export const LayoutPicker: FunctionComponent<LayoutPickerProps> = ({
         <p className="landing__card-lead">{hint}</p>
       </landing-card-header>
       <landing-layout-grid role="radiogroup" aria-labelledby={headingId}>
-        {LAYOUT_OPTIONS.map((option) => {
+        {EXPERIENCE_OPTIONS.map((option) => {
           const isActive = option.value === value;
           const cardClassName = buildCardClassName(isActive);
           const handleClick = () => onChange(option.value);

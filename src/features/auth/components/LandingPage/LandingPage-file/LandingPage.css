@@ -485,7 +485,10 @@ landing-hero-form .landing__custom-input:focus {
 }
 
 landing-hero-form landing-layout-grid {
-  grid-template-columns: 1fr 1fr;
+  /* Three experience cards since the Dropbox-inspired one joined; auto-fit
+     keeps them on one row where the form is wide enough and wraps them
+     instead of squeezing the labels when it is not. */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
@@ -879,7 +882,7 @@ landing-provider-info {
 
 landing-layout-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
