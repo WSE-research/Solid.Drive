@@ -52,8 +52,14 @@
       "classic": {
         "label": "Solid.drive Klassisch"
       },
-      "onedrive": {
-        "label": "OneDrive inspiriert"
+      "onedriveLight": {
+        "label": "OneDrive inspiriert (Hell)"
+      },
+      "onedriveDark": {
+        "label": "OneDrive inspiriert (Dunkel)"
+      },
+      "dropbox": {
+        "label": "Dropbox inspiriert"
       }
     },
     "actions": {

@@ -23,8 +23,10 @@ export const THEMES = ['light', 'dark', 'dropbox'] as const satisfies readonly T
 
 const STORAGE_KEY = 'solid-drive.theme';
 const CHANGE_EVENT = 'solid-drive:theme-changed';
-const DEFAULT_THEME: Theme = 'dark';
 const THEME_ATTRIBUTE = 'data-theme';
+
+/** The theme applied when nothing is stored. */
+const DEFAULT_THEME: Theme = 'dark';
 
 /**
  * Type guard for the {@link Theme} union.

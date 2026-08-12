@@ -19,3 +19,9 @@ export {
   isLayout,
   type Layout,
 } from './hooks/useLayoutPreference';
+export {
+  useThemePreference,
+  isTheme,
+  THEMES,
+  type Theme,
+} from './hooks/useThemePreference';

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { EXTERNAL_LINKS } from '@/config';
 import { useIssuerSelection } from '@/features/auth/hooks/useIssuerSelection';
 import { useResizeObserver } from '@/features/auth/hooks/useResizeObserver';
-import { useLayoutPreference } from '@/features/onedrive-layout';
+import { useLayoutPreference, useThemePreference } from '@/features/onedrive-layout';
 import { HeroBlob } from './HeroBlob';
 import { LandingHero } from './LandingHero';
 import { LandingTopBar } from './LandingTopBar';
@@ -13,7 +13,7 @@ import { OnboardingPage } from './OnboardingPage';
 import { VideoPage } from './VideoPage';
 import { ProviderPicker } from './ProviderPicker';
 import { CustomIssuerField } from './CustomIssuerField';
-import { LayoutPicker } from './LayoutPicker';
+import { LayoutPicker, type Experience } from './LayoutPicker';
 import { LandingFooter } from './LandingFooter';
 import '@/app/App/App-file/github-fork-ribbon.css';
 import './LandingPage.css';
@@ -32,9 +32,25 @@ export const LandingPage: FunctionComponent = () => {
   const login = useLoginWithFeedback();
   const [translate] = useTranslation();
   const [layout, setLayout] = useLayoutPreference();
+  const [theme, setTheme] = useThemePreference();
   const selection = useIssuerSelection();
   const landingRef = useRef<HTMLElement>(null);
   const { width: landingWidth } = useResizeObserver(landingRef);
+
+  // Every theme is its own experience card, so the active card is the
+  // classic layout or, on the OneDrive layout, the active theme itself.
+  const experience: Experience = layout === 'onedrive' ? theme : 'classic';
+
+  const handleExperienceChange = (next: Experience) => {
+    if (next === 'classic') {
+      // The theme axis is left alone: it only styles the OneDrive shell,
+      // and the user's last choice should survive a later layout switch.
+      setLayout('classic');
+      return;
+    }
+    setLayout('onedrive');
+    if (next !== theme) setTheme(next);
+  };
 
   const hasMeasured = landingWidth > 0;
   const isNarrowScreen = hasMeasured && landingWidth <= NARROW_BREAKPOINT_PX;
@@ -79,8 +95,8 @@ export const LandingPage: FunctionComponent = () => {
 
         <LayoutPicker
           headingId={LAYOUT_HEADING_ID}
-          value={layout}
-          onChange={setLayout}
+          value={experience}
+          onChange={handleExperienceChange}
         />
       </landing-hero-form>
 
