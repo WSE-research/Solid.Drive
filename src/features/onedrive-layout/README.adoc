@@ -25,6 +25,30 @@ link:components/views/RecentView/[RecentView]:: Home view; flat list of recently
 link:components/views/PeopleView/[PeopleView]:: List ↔ detail switch over the contact roster; detail view shows files shared by the selected person.
 link:components/views/RequestsView/[RequestsView]:: Pending inbox-based access requests with approve / deny.
 
+== Themes
+
+Two independent axes, both mirrored onto `document.documentElement` and both persisted in `localStorage`:
+
+`data-theme`:: `dark` (default) | `light` | `dropbox` — owned by link:hooks/useThemePreference/[useThemePreference], picked in link:components/ThemeToggle/[ThemeToggle].
+`data-scheme`:: `indigo` (default) | `emerald` | `amber` | `rose` — owned by link:hooks/useColorScheme/[useColorScheme]; re-tints the accent and brand tokens only.
+
+Every theme is a `--odl-*` token map plus a short list of direct rules. None of them forks the markup or the component tree.
+
+.Stylesheet load order — load-bearing, and `OneDriveLayout.tsx` imports them in exactly this sequence
+[cols="1,3"]
+|===
+| `OneDriveLayout.css` | Base tokens on `:root` and every structural rule. The dark theme *is* the base.
+| `OneDriveLayout.light.css` | Light token overrides, plus the direct rules any light-on-white theme needs (destructive accents, scrims). Those direct rules are shared with the Dropbox theme; the token block and the shadows are not.
+| `OneDriveLayout.schemes.css` | The `data-scheme` accent palettes. `indigo` has no block — it falls through to the base tokens.
+| `DropboxTheme.css` | Loads last. Load order only settles ties, so tokens the base declares on `onedrive-layout` (such as `--odl-detail-width`) must be re-declared there, not on `:root` — `detail-panel` inherits from the nearer ancestor and no amount of specificity on `:root` reaches it.
+|===
+
+`DropboxTheme.css` imitates Dropbox's palette, geometry and density: white surfaces on a warm off-white page, hairline borders instead of elevation, small radii, denser rows, shorter chrome, a wider left navigation, and one flat blue for every primary action. The rail is *not* pinned open: it already defaults to expanded, and pinning `--odl-rail-width` would outrank both the collapse toggle and the `max-width: 960px` rule.
+
+Its accent block is deliberately scoped to `:not([data-scheme])` and `[data-scheme="indigo"]`, so a user who has explicitly chosen emerald, amber or rose keeps that hue — only the untouched default gives way to Dropbox blue.
+
+No Dropbox logo, wordmark or proprietary typeface is used or imitated, and Solid-specific surfaces with no Dropbox counterpart (the Requests view, WebID and Pod fields, the notification bell) inherit the palette but are not restructured.
+
 == Public exports
 
 `InstallAppButton` is re-exported from the barrel (`index.ts`) so that `auth/Header` (classic shell) can mount it alongside `LayoutToggle` and `NotificationBell` without importing from a deep path.

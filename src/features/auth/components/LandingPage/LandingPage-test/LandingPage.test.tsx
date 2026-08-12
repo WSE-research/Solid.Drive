@@ -25,16 +25,34 @@ vi.mock('@/features/auth/components/LanguageSwitcher', () => ({
 
 const layoutSetter = vi.fn();
 let currentLayout: 'classic' | 'onedrive' = 'classic';
+const themeSetter = vi.fn();
+let currentTheme: 'dark' | 'light' | 'dropbox' = 'dark';
 
 vi.mock('@/features/onedrive-layout', () => ({
   useLayoutPreference: () => [currentLayout, layoutSetter],
   isLayout: (value: unknown) => value === 'classic' || value === 'onedrive',
+  useThemePreference: () => [currentTheme, themeSetter],
+  THEMES: ['light', 'dark', 'dropbox', 'gdrive'],
   InstallAppButton: () => null,
 }));
 
 import { useSolidAuth } from '@ldo/solid-react';
 import { CUSTOM_PROVIDER_VALUE, SOLID_PROVIDERS } from '@/config';
 import { LandingPage } from '../LandingPage-file/LandingPage';
+
+// The login button now reports failures through the notification toast, so the
+// components under test consume NotificationContext. Mocked rather than wrapped
+// in a real provider: these tests assert on login wiring, not on toasts.
+vi.mock('@/shared/contexts/NotificationContext', () => ({
+  useNotifications: () => ({
+    showError: vi.fn(),
+    showToast: vi.fn(),
+    showSuccess: vi.fn(),
+    showInfo: vi.fn(),
+    confirm: vi.fn(),
+  }),
+}));
+
 
 const loginMock = vi.fn();
 
@@ -53,6 +71,7 @@ const getProviderOption = (label: string): HTMLElement =>
 beforeEach(() => {
   vi.clearAllMocks();
   currentLayout = 'classic';
+  currentTheme = 'dark';
   observedWidth = 0;
   (useSolidAuth as ReturnType<typeof vi.fn>).mockReturnValue({
     session: { isActive: false, webId: undefined },
@@ -84,10 +103,13 @@ describe('LandingPage — structure', () => {
     expect(listbox.querySelectorAll('[role="option"]')).toHaveLength(realProviders.length);
   });
 
-  it('renders both layout choices', () => {
+  it('renders the classic choice plus one card per available theme', () => {
     renderWithRouter(<LandingPage />);
     expect(screen.getByText('landing.layoutPicker.classic.label')).toBeInTheDocument();
-    expect(screen.getByText('landing.layoutPicker.onedrive.label')).toBeInTheDocument();
+    expect(screen.getByText('landing.layoutPicker.onedriveLight.label')).toBeInTheDocument();
+    expect(screen.getByText('landing.layoutPicker.onedriveDark.label')).toBeInTheDocument();
+    expect(screen.getByText('landing.layoutPicker.dropbox.label')).toBeInTheDocument();
+    expect(screen.getByText('landing.layoutPicker.gdrive.label')).toBeInTheDocument();
   });
 });
 
@@ -163,22 +185,62 @@ describe('LandingPage — login action', () => {
   });
 });
 
-describe('LandingPage — layout picker', () => {
-  it('marks the active layout as checked', () => {
-    renderWithRouter(<LandingPage />);
-    const classicCard = screen.getByRole('radio', {
-      name: /landing\.layoutPicker\.classic\.label/i,
+describe('LandingPage — experience picker', () => {
+  const getCard = (
+    key: 'classic' | 'onedriveLight' | 'onedriveDark' | 'dropbox',
+  ): HTMLElement =>
+    screen.getByRole('radio', {
+      name: new RegExp(`landing\\.layoutPicker\\.${key}\\.label`, 'i'),
     });
-    expect(classicCard).toHaveAttribute('aria-checked', 'true');
+
+  it('marks the classic card as checked on the classic layout', () => {
+    renderWithRouter(<LandingPage />);
+    expect(getCard('classic')).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('persists a new layout choice via useLayoutPreference', () => {
+  it('marks the card of the active theme as checked on the OneDrive layout', () => {
+    currentLayout = 'onedrive';
+    currentTheme = 'dropbox';
     renderWithRouter(<LandingPage />);
-    const oneDriveCard = screen.getByRole('radio', {
-      name: /landing\.layoutPicker\.onedrive\.label/i,
-    });
-    fireEvent.click(oneDriveCard);
+    expect(getCard('dropbox')).toHaveAttribute('aria-checked', 'true');
+    expect(getCard('onedriveLight')).toHaveAttribute('aria-checked', 'false');
+    expect(getCard('onedriveDark')).toHaveAttribute('aria-checked', 'false');
+    expect(getCard('classic')).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('marks the light card as checked when the OneDrive layout wears the light theme', () => {
+    currentLayout = 'onedrive';
+    currentTheme = 'light';
+    renderWithRouter(<LandingPage />);
+    expect(getCard('onedriveLight')).toHaveAttribute('aria-checked', 'true');
+    expect(getCard('dropbox')).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('selecting a theme card sets the OneDrive layout and that theme', () => {
+    renderWithRouter(<LandingPage />);
+    fireEvent.click(getCard('dropbox'));
     expect(layoutSetter).toHaveBeenCalledWith('onedrive');
+    expect(themeSetter).toHaveBeenCalledWith('dropbox');
+
+    fireEvent.click(getCard('onedriveLight'));
+    expect(themeSetter).toHaveBeenCalledWith('light');
+  });
+
+  it('selecting the card of the already-active theme only moves the layout axis', () => {
+    currentTheme = 'dark';
+    renderWithRouter(<LandingPage />);
+    fireEvent.click(getCard('onedriveDark'));
+    expect(layoutSetter).toHaveBeenCalledWith('onedrive');
+    expect(themeSetter).not.toHaveBeenCalled();
+  });
+
+  it('selecting Classic never touches the theme axis', () => {
+    currentLayout = 'onedrive';
+    currentTheme = 'dropbox';
+    renderWithRouter(<LandingPage />);
+    fireEvent.click(getCard('classic'));
+    expect(layoutSetter).toHaveBeenCalledWith('classic');
+    expect(themeSetter).not.toHaveBeenCalled();
   });
 });
 

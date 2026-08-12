@@ -52,8 +52,17 @@
       "classic": {
         "label": "Solid.drive Classic"
       },
-      "onedrive": {
-        "label": "OneDrive inspired"
+      "onedriveLight": {
+        "label": "OneDrive inspired (Light)"
+      },
+      "onedriveDark": {
+        "label": "OneDrive inspired (Dark)"
+      },
+      "dropbox": {
+        "label": "Dropbox inspired"
+      },
+      "gdrive": {
+        "label": "Google Drive inspired"
       }
     },
     "actions": {
@@ -83,11 +92,11 @@
   },
   "fileExplorer": {
     "loginPrompt": "Please log in to access your drive.",
-    "connecting": "Connecting to your Pod\u2026",
+    "connecting": "Connecting to your Pod…",
     "myPod": "My Pod",
     "yourFiles": "Your Files",
     "podContents": "Pod Contents",
-    "reloading": "Reloading\u2026",
+    "reloading": "Reloading…",
     "refresh": "Refresh",
     "noFilesYet": "Your pod is currently empty. Please upload your first one above.",
     "emptyFolder": "This folder is empty.",
@@ -144,14 +153,14 @@
   "fileUpload": {
     "chooseFile": "Choose file",
     "title": "Title",
-    "titlePlaceholder": "Add a title\u2026",
+    "titlePlaceholder": "Add a title…",
     "descriptionPlaceholder": "Add a description (optional)",
     "unknownType": "unknown datatype",
-    "uploading": "Uploading\u2026",
+    "uploading": "Uploading…",
     "upload": "Upload",
     "fillRequired": "Fill required fields",
     "missingRequired": "Missing required fields:",
-    "fieldRequired": "\u2014 {label} is required",
+    "fieldRequired": "— {label} is required",
     "tboxError": "TBox could not be loaded:",
     "uploadSuccess": "File uploaded successfully",
     "uploadError": "Upload failed: {{message}}",
@@ -244,7 +253,9 @@
     "theme": "Theme",
     "themeOption": {
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "dropbox": "Dropbox",
+      "gdrive": "Google Drive"
     },
     "colorScheme": "Color",
     "colorSchemeOption": {
@@ -446,6 +457,15 @@
       "expiresTomorrow": "Expires tomorrow",
       "expiresIn_one": "Expires in {{count}} day",
       "expiresIn_other": "Expires in {{count}} days"
+    }
+  },
+  "auth": {
+    "loginError": {
+      "notAProvider": "No Solid identity provider was found at {{issuer}}. Check the address, or pick a different provider.",
+      "issuerMismatch": "{{issuer}} reported a different identity than expected, so sign-in was stopped for your safety. ({{detail}})",
+      "providerUnavailable": "{{issuer}} is currently unavailable. Please try again later.",
+      "unreachable": "Could not reach {{issuer}}. Check the address and your network connection.",
+      "generic": "Sign-in with {{issuer}} failed. ({{detail}})"
     }
   }
 }

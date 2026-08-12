@@ -1,18 +1,33 @@
 /**
- * Hook for reading and persisting the user's choice between the dark
- * and light OneDrive themes.
+ * Hook for reading and persisting the user's theme choice.
+ *
+ * Four themes ship today: the dark and light OneDrive themes, a
+ * Dropbox-inspired light theme, and a Google-Drive-inspired light theme.
+ * All of them restyle the same layout — each is a `--odl-*` token map plus a
+ * small set of direct rules, keyed off the `data-theme` attribute on the
+ * document element.
  *
  * @packageDocumentation
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'dropbox' | 'gdrive';
+
+/**
+ * Every valid {@link Theme}, in the order the picker offers them. Exported so
+ * the picker and the type guard cannot drift apart when a theme is added.
+ *
+ * @public
+ */
+export const THEMES = ['light', 'dark', 'dropbox', 'gdrive'] as const satisfies readonly Theme[];
 
 const STORAGE_KEY = 'solid-drive.theme';
 const CHANGE_EVENT = 'solid-drive:theme-changed';
-const DEFAULT_THEME: Theme = 'dark';
 const THEME_ATTRIBUTE = 'data-theme';
+
+/** The theme applied when nothing is stored. */
+const DEFAULT_THEME: Theme = 'dark';
 
 /**
  * Type guard for the {@link Theme} union.
@@ -20,7 +35,7 @@ const THEME_ATTRIBUTE = 'data-theme';
  * @public
  */
 export const isTheme = (value: unknown): value is Theme =>
-  value === 'dark' || value === 'light';
+  (THEMES as readonly string[]).includes(value as string);
 
 const readFromStorage = (): Theme => {
   try {
@@ -57,8 +72,8 @@ export const applyStoredTheme = (): void => {
 
 /**
  * Reads and writes the active theme, persisting to localStorage and
- * mirroring the value onto `document.documentElement` as
- * `data-theme="dark"` or `data-theme="light"`. Defaults to `dark`.
+ * mirroring the value onto `document.documentElement` as `data-theme`
+ * (`dark`, `light` or `dropbox`). Defaults to `dark`.
  *
  * Live instances stay in sync via a custom event plus the cross-tab
  * `storage` event.

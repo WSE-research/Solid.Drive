@@ -52,8 +52,17 @@
       "classic": {
         "label": "Solid.drive Klassisch"
       },
-      "onedrive": {
-        "label": "OneDrive inspiriert"
+      "onedriveLight": {
+        "label": "OneDrive inspiriert (Hell)"
+      },
+      "onedriveDark": {
+        "label": "OneDrive inspiriert (Dunkel)"
+      },
+      "dropbox": {
+        "label": "Dropbox inspiriert"
+      },
+      "gdrive": {
+        "label": "Google Drive inspiriert"
       }
     },
     "actions": {
@@ -83,11 +92,11 @@
   },
   "fileExplorer": {
     "loginPrompt": "Bitte melden Sie sich an, um auf Ihr Laufwerk zuzugreifen.",
-    "connecting": "Verbindung mit Ihrem Pod\u2026",
+    "connecting": "Verbindung mit Ihrem Pod…",
     "myPod": "Mein Pod",
     "yourFiles": "Ihre Dateien",
     "podContents": "Pod-Inhalt",
-    "reloading": "Wird neu geladen\u2026",
+    "reloading": "Wird neu geladen…",
     "refresh": "Aktualisieren",
     "noFilesYet": "Ihr Pod ist derzeit leer. Laden Sie oben Ihre erste Datei hoch.",
     "emptyFolder": "Dieser Ordner ist leer.",
@@ -144,14 +153,14 @@
   "fileUpload": {
     "chooseFile": "Datei auswählen",
     "title": "Titel",
-    "titlePlaceholder": "Titel hinzufügen\u2026",
+    "titlePlaceholder": "Titel hinzufügen…",
     "descriptionPlaceholder": "Beschreibung hinzufügen (optional)",
     "unknownType": "Unbekannter Dateityp",
-    "uploading": "Wird hochgeladen\u2026",
+    "uploading": "Wird hochgeladen…",
     "upload": "Hochladen",
     "fillRequired": "Pflichtfelder ausfüllen",
     "missingRequired": "Fehlende Pflichtfelder:",
-    "fieldRequired": "\u2014 {label} ist erforderlich",
+    "fieldRequired": "— {label} ist erforderlich",
     "tboxError": "TBox konnte nicht geladen werden:",
     "uploadSuccess": "Datei erfolgreich hochgeladen",
     "uploadError": "Upload fehlgeschlagen: {{message}}",
@@ -244,7 +253,9 @@
     "theme": "Design",
     "themeOption": {
       "light": "Hell",
-      "dark": "Dunkel"
+      "dark": "Dunkel",
+      "dropbox": "Dropbox",
+      "gdrive": "Google Drive"
     },
     "colorScheme": "Farbe",
     "colorSchemeOption": {
@@ -446,6 +457,15 @@
       "expiresTomorrow": "Läuft morgen ab",
       "expiresIn_one": "Läuft in {{count}} Tag ab",
       "expiresIn_other": "Läuft in {{count}} Tagen ab"
+    }
+  },
+  "auth": {
+    "loginError": {
+      "notAProvider": "Unter {{issuer}} wurde kein Solid-Identitätsanbieter gefunden. Bitte die Adresse prüfen oder einen anderen Anbieter wählen.",
+      "issuerMismatch": "{{issuer}} hat eine andere Identität gemeldet als erwartet. Die Anmeldung wurde zur Sicherheit abgebrochen. ({{detail}})",
+      "providerUnavailable": "{{issuer}} ist derzeit nicht erreichbar. Bitte später erneut versuchen.",
+      "unreachable": "{{issuer}} konnte nicht erreicht werden. Bitte Adresse und Netzwerkverbindung prüfen.",
+      "generic": "Die Anmeldung bei {{issuer}} ist fehlgeschlagen. ({{detail}})"
     }
   }
 }

@@ -52,6 +52,11 @@ import '@/features/onedrive-layout/OneDriveLayout.css';
 import '@/features/onedrive-layout/OneDriveLayout.light.css';
 // Loaded last so the accent color-scheme overrides win the cascade.
 import '@/features/onedrive-layout/OneDriveLayout.schemes.css';
+// After the schemes: each theme's surfaces and geometry win unconditionally,
+// while its accent stays scoped to the default scheme. Order between the
+// theme files is irrelevant — they key off different data-theme values.
+import '@/features/onedrive-layout/DropboxTheme.css';
+import '@/features/onedrive-layout/GoogleDriveTheme.css';
 
 const NOOP = (): void => {};
 

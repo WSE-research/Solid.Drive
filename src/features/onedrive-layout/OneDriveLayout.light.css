@@ -3,6 +3,14 @@
  * Must load after OneDriveLayout.css so the cascade picks up these values.
  * Direct-rule overrides below handle destructive accents and shadows that
  * the token map alone cannot retheme.
+ *
+ * The destructive-accent and scrim rules are shared with data-theme="dropbox"
+ * and data-theme="gdrive", which are also light-on-white themes and need
+ * exactly the same treatment. All selectors are listed together rather than
+ * duplicating the rules, so a fix to one cannot silently miss the others.
+ * The token block and the shadows stay light-only: the Dropbox and Google
+ * Drive themes bring their own palettes and shadows in DropboxTheme.css and
+ * GoogleDriveTheme.css.
  */
 
 :root[data-theme="light"] {
@@ -26,6 +34,8 @@
   --odl-brand-soft:    rgba(88, 84, 214, 0.18);
 }
 
+/* Shadows stay light-only: the Dropbox theme sets its own, tighter values
+   (and removes the rail shadow entirely) in DropboxTheme.css. */
 :root[data-theme="light"] .topbar-menu,
 :root[data-theme="light"] .theme-toggle__content,
 :root[data-theme="light"] .odl-dialog,
@@ -40,34 +50,56 @@
 }
 
 :root[data-theme="light"] .odl-dialog__overlay,
-:root[data-theme="light"] .odl-dialog-overlay {
+:root[data-theme="light"] .odl-dialog-overlay,
+:root[data-theme="dropbox"] .odl-dialog__overlay,
+:root[data-theme="gdrive"] .odl-dialog__overlay,
+:root[data-theme="dropbox"] .odl-dialog-overlay,
+:root[data-theme="gdrive"] .odl-dialog-overlay {
   background: rgba(15, 23, 42, 0.40);
 }
 
-:root[data-theme="light"] .topbar-menu__item--destructive {
+:root[data-theme="light"] .topbar-menu__item--destructive,
+:root[data-theme="dropbox"] .topbar-menu__item--destructive,
+:root[data-theme="gdrive"] .topbar-menu__item--destructive {
   color: #a4262c;
 }
-:root[data-theme="light"] .topbar-menu__item--destructive[data-highlighted] {
+:root[data-theme="light"] .topbar-menu__item--destructive[data-highlighted],
+:root[data-theme="dropbox"] .topbar-menu__item--destructive[data-highlighted],
+:root[data-theme="gdrive"] .topbar-menu__item--destructive[data-highlighted] {
   background: rgba(164, 38, 44, 0.10);
 }
 :root[data-theme="light"] .new-folder-input__error,
 :root[data-theme="light"] .odl-dialog__error,
-:root[data-theme="light"] .odl-requests-list__error {
+:root[data-theme="light"] .odl-requests-list__error,
+:root[data-theme="dropbox"] .new-folder-input__error,
+:root[data-theme="gdrive"] .new-folder-input__error,
+:root[data-theme="dropbox"] .odl-dialog__error,
+:root[data-theme="gdrive"] .odl-dialog__error,
+:root[data-theme="dropbox"] .odl-requests-list__error,
+:root[data-theme="gdrive"] .odl-requests-list__error {
   color: #a4262c;
 }
-:root[data-theme="light"] .odl-people-row__action--remove:hover:not(:disabled) {
+:root[data-theme="light"] .odl-people-row__action--remove:hover:not(:disabled),
+:root[data-theme="dropbox"] .odl-people-row__action--remove:hover:not(:disabled),
+:root[data-theme="gdrive"] .odl-people-row__action--remove:hover:not(:disabled) {
   background: rgba(164, 38, 44, 0.10);
   color: #a4262c;
 }
-:root[data-theme="light"] .odl-dialog-content share-panel-row .btn--delete {
+:root[data-theme="light"] .odl-dialog-content share-panel-row .btn--delete,
+:root[data-theme="dropbox"] .odl-dialog-content share-panel-row .btn--delete,
+:root[data-theme="gdrive"] .odl-dialog-content share-panel-row .btn--delete {
   color: #a4262c;
   border-color: rgba(164, 38, 44, 0.45);
 }
-:root[data-theme="light"] .odl-dialog-content share-panel-row .btn--delete:hover:not(:disabled) {
+:root[data-theme="light"] .odl-dialog-content share-panel-row .btn--delete:hover:not(:disabled),
+:root[data-theme="dropbox"] .odl-dialog-content share-panel-row .btn--delete:hover:not(:disabled),
+:root[data-theme="gdrive"] .odl-dialog-content share-panel-row .btn--delete:hover:not(:disabled) {
   background: rgba(164, 38, 44, 0.10);
   border-color: #a4262c;
 }
-:root[data-theme="light"] .odl-request-card__action--deny:hover:not(:disabled) {
+:root[data-theme="light"] .odl-request-card__action--deny:hover:not(:disabled),
+:root[data-theme="dropbox"] .odl-request-card__action--deny:hover:not(:disabled),
+:root[data-theme="gdrive"] .odl-request-card__action--deny:hover:not(:disabled) {
   background: rgba(164, 38, 44, 0.10);
   border-color: rgba(164, 38, 44, 0.45);
   color: #a4262c;
@@ -75,6 +107,8 @@
 
 /* Confirm-dialog scrim only: surface/text colors already flow through
    the --odl-* tokens via App.css's body:has(onedrive-layout) rules. */
-:root[data-theme="light"] body:has(onedrive-layout) confirm-overlay {
+:root[data-theme="light"] body:has(onedrive-layout) confirm-overlay,
+:root[data-theme="dropbox"] body:has(onedrive-layout) confirm-overlay,
+:root[data-theme="gdrive"] body:has(onedrive-layout) confirm-overlay {
   background: rgba(15, 23, 42, 0.40);
 }

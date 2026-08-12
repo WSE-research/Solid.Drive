@@ -47,7 +47,11 @@ export type SolidProvider = {
  * @public
  */
 export const SOLID_PROVIDERS: SolidProvider[] = [
-  { label: "HTWK Leipzig Solid Community Server", value: "https://demos.swe.htwk-leipzig.de/solid-community-server/", registerUrl: "https://demos.swe.htwk-leipzig.de/solid-community-server/.account/" },
+  // Must name the canonical origin. The server derives its OIDC issuer from a
+  // single configured baseUrl and rejects any request outside that identifier
+  // space, so the demos host cannot serve discovery -- it only redirects, and
+  // an issuer that disagrees with the URL it was fetched from fails Solid-OIDC.
+  { label: "HTWK Leipzig Solid Community Server", value: "https://wse-research.org/solid-community-server/", registerUrl: "https://wse-research.org/solid-community-server/.account/" },
   { label: "solidcommunity.net", value: "https://solidcommunity.net", registerUrl: "https://solidcommunity.net/register" },
   { label: "inrupt.net", value: "https://inrupt.com", registerUrl: "https://start.inrupt.com/profile" },
   { label: "solidweb.org", value: "https://solidweb.org", registerUrl: "https://solidweb.org/register" },

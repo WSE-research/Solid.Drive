@@ -48,7 +48,11 @@ test("landing page renders the provider trigger, custom issuer input, layout pic
   await expect(page.getByRole("button", { name: PROVIDERS_TRIGGER_NAME })).toBeVisible();
   await expect(page.getByPlaceholder(CUSTOM_ISSUER_PLACEHOLDER)).toBeVisible();
   await expect(page.getByRole("radio", { name: /classic|klassisch/i })).toBeVisible();
-  await expect(page.getByRole("radio", { name: /onedrive/i })).toBeVisible();
+  // One card per available theme: the OneDrive shell's light and dark looks
+  // plus the Dropbox-inspired restyle.
+  await expect(page.getByRole("radio", { name: /onedrive.*(light|hell)/i })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /onedrive.*(dark|dunkel)/i })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /dropbox/i })).toBeVisible();
   await expect(page.getByRole("button", { name: LOGIN_BUTTON_NAME })).toBeVisible();
   await expect(page.getByRole("link", { name: /create a pod|pod erstellen/i })).toBeVisible();
 });
@@ -129,7 +133,7 @@ test("picking a layout writes the preference to localStorage", async ({ page }) 
   test.setTimeout(TEST_TIMEOUTS.short);
   await gotoLanding(page);
 
-  await page.getByRole("radio", { name: /onedrive/i }).click();
+  await page.getByRole("radio", { name: /onedrive.*(dark|dunkel)/i }).click();
   const stored = await page.evaluate(
     (key) => window.localStorage.getItem(key),
     STORAGE_KEYS.layout,

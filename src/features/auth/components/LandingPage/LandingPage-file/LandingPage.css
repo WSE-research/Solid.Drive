@@ -485,7 +485,11 @@ landing-hero-form .landing__custom-input:focus {
 }
 
 landing-hero-form landing-layout-grid {
-  grid-template-columns: 1fr 1fr;
+  /* One card per theme plus the classic card, so the count grows with the
+     theme list. auto-fit with a 200px floor keeps the labels on one line
+     and settles into a balanced two-column grid at the form's width,
+     wrapping gracefully however many themes ship. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 8px;
 }
 
@@ -879,7 +883,7 @@ landing-provider-info {
 
 landing-layout-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 8px;
 }
 

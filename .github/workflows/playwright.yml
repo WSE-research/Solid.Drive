@@ -16,9 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -72,5 +72,29 @@ jobs:
             echo "No screenshot changes to commit."
           else
             git commit -m "docs(e2e): refresh workflow screenshots [skip ci]"
-            git push origin HEAD:${{ github.ref }}
+            # This job takes ~30 minutes, so main has usually moved on by the
+            # time it pushes. Merge two PRs in one sitting and the second run
+            # loses the race: "! [rejected] HEAD -> main (fetch first)", which
+            # marks an otherwise-green commit red for a reason that has nothing
+            # to do with the tests. Rebase and retry instead.
+            #
+            # --strategy-option=theirs is the right resolution here and only
+            # here: screenshots are regenerated wholesale from the UI on every
+            # run, never merged, so this run's binaries are simply the newer
+            # truth. The commit touches nothing but e2e/screenshots.
+            for attempt in 1 2 3; do
+              if git push origin HEAD:${{ github.ref }}; then
+                exit 0
+              fi
+              echo "push rejected (attempt $attempt); rebasing onto ${{ github.ref }}"
+              [[ $attempt == 3 ]] && break
+              git fetch origin ${{ github.ref }}
+              git rebase --strategy-option=theirs FETCH_HEAD || {
+                git rebase --abort || true
+                echo "could not rebase the screenshot commit onto ${{ github.ref }}"
+                exit 1
+              }
+            done
+            echo "still could not push refreshed screenshots after 3 attempts"
+            exit 1
           fi

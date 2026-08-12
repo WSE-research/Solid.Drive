@@ -1,7 +1,7 @@
 /**
- * Labeled dropdown letting the user pick the dark or light OneDrive theme.
- * Rendered inside the gear (Settings) menu as a "Theme [Light v]" row,
- * matching the OneDrive reference UI.
+ * Labeled dropdown letting the user pick a theme. Rendered inside the gear
+ * (Settings) menu as a "Theme [Light v]" row, matching the OneDrive
+ * reference UI.
  *
  * @packageDocumentation
  */
@@ -11,6 +11,7 @@ import * as Select from '@radix-ui/react-select';
 import { useTranslation } from 'react-i18next';
 import {
   isTheme,
+  THEMES,
   useThemePreference,
   type Theme,
 } from '@/features/onedrive-layout/hooks/useThemePreference';
@@ -44,10 +45,18 @@ export const ThemeToggle: FunctionComponent = () => {
   };
 
   const triggerLabel = translate('oneDriveLayout.theme', 'Theme');
-  const options: ThemeOptionProps[] = [
-    { value: 'light', label: translate('oneDriveLayout.themeOption.light', 'Light') },
-    { value: 'dark', label: translate('oneDriveLayout.themeOption.dark', 'Dark') },
-  ];
+  // Derived from THEMES so adding a theme cannot leave the picker behind; the
+  // labels map is keyed by Theme, so TypeScript flags a missing entry.
+  const labels: Record<Theme, string> = {
+    light: translate('oneDriveLayout.themeOption.light', 'Light'),
+    dark: translate('oneDriveLayout.themeOption.dark', 'Dark'),
+    dropbox: translate('oneDriveLayout.themeOption.dropbox', 'Dropbox'),
+    gdrive: translate('oneDriveLayout.themeOption.gdrive', 'Google Drive'),
+  };
+  const options: ThemeOptionProps[] = THEMES.map((value) => ({
+    value,
+    label: labels[value],
+  }));
 
   return (
     <theme-toggle-row>
