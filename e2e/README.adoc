@@ -146,7 +146,7 @@ requester side.
 | Opting into the OneDrive shell and switching back.
 
 | `e2e/tests/onedrive-navigation.spec.ts`
-| The nav rail switches between all five views.
+| The nav rail switches between all six views (including the Recycle bin).
 
 | `e2e/tests/onedrive-topbar.spec.ts`
 | Avatar menu, settings menu language switch, log out.
@@ -157,8 +157,17 @@ selecting fills the detail panel, create menu makes a folder, search
 filters the list.
 
 | `e2e/tests/onedrive-selection.spec.ts`
-| Selection action strip, copy link with toast and clipboard, delete
-with confirm and background re-read, share dialog.
+| Selection action strip, copy link with toast and clipboard, "Move to
+bin" (soft delete) with confirm and background re-read, "Delete
+permanently" bypassing the Recycle bin, share dialog.
+
+| `e2e/tests/trash.spec.ts`
+| The Recycle bin, picking up from a file already moved to `trash/`:
+restore returns it to its exact original location with its original
+ACL (a Control-mode grant `readAclAgents` would not round-trip),
+permanently deleting from the bin removes the trash catalog row and
+container, and an item past its retention window is purged the moment
+the Recycle bin is opened.
 
 | `e2e/tests/notification-bell.spec.ts`
 | Inbox-driven NotificationBell: badge appears on unseen requests,

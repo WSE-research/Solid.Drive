@@ -1,6 +1,6 @@
 import { test, expect, freshLogin } from "../helpers/fixtures";
 import { seedFile } from "../helpers/seed";
-import { openMyFiles } from "../helpers/onedrive";
+import { openMyFiles, navigateToView } from "../helpers/onedrive";
 import { TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 
 /**
@@ -47,7 +47,10 @@ test("selecting a file reveals the contextual action strip", async ({ browser, p
   const strip = page.locator("selection-actions");
   await expect(strip).toBeVisible();
   await expect(page.locator(".odl-page-title")).toHaveCount(0);
-  for (const action of ["Share", "Copy link", "Delete", "Download"]) {
+  // Delete is "Move to bin" for a file selection — soft delete. Folders
+  // would show "Delete" instead, which hard-deletes directly since
+  // folders aren't catalog-backed and can't be tombstoned.
+  for (const action of ["Share", "Copy link", "Move to bin", "Download"]) {
     await expect(strip.getByRole("button", { name: action, exact: true })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: "Clear selection" })).toBeVisible();
@@ -94,7 +97,7 @@ test("Copy link writes the resource URI to the clipboard and confirms with a toa
   await close();
 });
 
-test("Delete asks for confirmation and removes the row on confirm", async ({ browser, peach }) => {
+test("Move to bin asks for confirmation, removes the row, and the file lands in the Recycle bin", async ({ browser, peach }) => {
   test.setTimeout(TEST_TIMEOUTS.medium);
 
   await seedFile({
@@ -113,8 +116,8 @@ test("Delete asks for confirmation and removes the row on confirm", async ({ bro
   await expect(fileRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
   await fileRow.click();
 
-  // Delete opens the confirmation dialog. Cancelling leaves the row.
-  await page.locator("selection-actions").getByRole("button", { name: "Delete", exact: true }).click();
+  // Move to bin opens the confirmation dialog. Cancelling leaves the row.
+  await page.locator("selection-actions").getByRole("button", { name: "Move to bin", exact: true }).click();
   const dialog = page.locator("confirm-dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.locator(".confirm-dialog__message")).toContainText("Holiday Snapshot");
@@ -122,14 +125,27 @@ test("Delete asks for confirmation and removes the row on confirm", async ({ bro
   await expect(dialog).toHaveCount(0);
   await expect(fileRow).toBeVisible();
 
-  // Confirming deletes the per-file container. The row disappears, the
-  // selection clears, and the header drops back to the title.
-  await page.locator("selection-actions").getByRole("button", { name: "Delete", exact: true }).click();
+  // Confirming soft-deletes: the file moves to trash/ and the original is
+  // removed. The row disappears, the selection clears, and the header
+  // drops back to the title.
+  await page.locator("selection-actions").getByRole("button", { name: "Move to bin", exact: true }).click();
   await page.locator("confirm-dialog").getByRole("button", { name: "Confirm" }).click();
 
   await expect(fileRow).toHaveCount(0, { timeout: UI_TIMEOUTS.medium });
   await expect(page.locator("selection-actions")).toHaveCount(0);
   await expect(page.locator(".odl-page-title")).toHaveText("My Files");
+
+  // The trash container is a real, plainly-named folder on the Pod, but it
+  // does not clutter the regular My Files listing — it's reachable only
+  // through the Recycle bin nav item.
+  await expect(page.locator(".odl-files-row--folder").filter({ hasText: /^trash$/ })).toHaveCount(0);
+
+  // The file now shows up in the Recycle bin — see trash.spec.ts for the
+  // full restore/purge/expiry coverage.
+  await navigateToView(page, "Recycle bin");
+  await expect(page.locator("trash-row").filter({ hasText: "Holiday Snapshot" })).toBeVisible({
+    timeout: UI_TIMEOUTS.medium,
+  });
 
   await close();
 });
