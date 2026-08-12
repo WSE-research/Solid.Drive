@@ -60,6 +60,9 @@
       },
       "dropbox": {
         "label": "Dropbox inspiriert"
+      },
+      "gdrive": {
+        "label": "Google Drive inspiriert"
       }
     },
     "actions": {
@@ -249,7 +252,8 @@
     "themeOption": {
       "light": "Hell",
       "dark": "Dunkel",
-      "dropbox": "Dropbox"
+      "dropbox": "Dropbox",
+      "gdrive": "Google Drive"
     },
     "colorScheme": "Farbe",
     "colorSchemeOption": {

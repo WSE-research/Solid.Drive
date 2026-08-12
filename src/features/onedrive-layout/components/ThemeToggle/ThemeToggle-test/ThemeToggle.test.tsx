@@ -53,7 +53,8 @@ describe('ThemeToggle', () => {
       expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /dark/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /dropbox/i })).toBeInTheDocument();
-      expect(screen.getAllByRole('option')).toHaveLength(3);
+      expect(screen.getByRole('option', { name: /google drive/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(4);
     },
     15000,
   );

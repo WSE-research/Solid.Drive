@@ -21,6 +21,7 @@ const CARD_NAMES = {
   light: /onedrive.*(light|hell)/i,
   dark: /onedrive.*(dark|dunkel)/i,
   dropbox: /dropbox/i,
+  gdrive: /google drive/i,
 } as const;
 
 const gotoLanding = async (page: Page): Promise<void> => {
@@ -49,6 +50,7 @@ test("the landing page offers every available theme and applies a pick on click"
   await expect(page.getByRole("radio", { name: CARD_NAMES.light })).toBeVisible();
   await expect(page.getByRole("radio", { name: CARD_NAMES.dark })).toBeVisible();
   await expect(page.getByRole("radio", { name: CARD_NAMES.dropbox })).toBeVisible();
+  await expect(page.getByRole("radio", { name: CARD_NAMES.gdrive })).toBeVisible();
 
   await page.getByRole("radio", { name: CARD_NAMES.dropbox }).click();
 
@@ -71,6 +73,12 @@ test("the landing page offers every available theme and applies a pick on click"
     timeout: UI_TIMEOUTS.short,
   });
   expect(await storedPreferences(page)).toEqual({ layout: "onedrive", theme: "light" });
+
+  await page.getByRole("radio", { name: CARD_NAMES.gdrive }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "gdrive", {
+    timeout: UI_TIMEOUTS.short,
+  });
+  expect(await storedPreferences(page)).toEqual({ layout: "onedrive", theme: "gdrive" });
 
   await page.getByRole("radio", { name: CARD_NAMES.dark }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark", {

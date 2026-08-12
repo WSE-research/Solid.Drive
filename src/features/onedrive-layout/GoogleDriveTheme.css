@@ -1,0 +1,222 @@
+/*
+ * Google-Drive-inspired theme: overrides keyed off data-theme="gdrive".
+ *
+ * Load order matters, and this file must load after OneDriveLayout.css,
+ * OneDriveLayout.light.css and OneDriveLayout.schemes.css, for the same
+ * reason DropboxTheme.css does: the surface and geometry tokens below win
+ * unconditionally while the accent block stays scoped to the default
+ * scheme. Order relative to DropboxTheme.css is irrelevant — the two are
+ * keyed off different data-theme values.
+ *
+ * Aligned with the current (2026) Google Drive web app. The values are not
+ * guessed: they were sampled from the computed styles of the live app
+ * (drive.google.com, 2026-08, logged in, read-only). What that design does,
+ * distilled:
+ *
+ *   - White content cards floating on a barely-tinted near-white chrome
+ *     (#f8fafd) — which is exactly the base layout's own float pattern, so
+ *     unlike the Dropbox theme this one KEEPS the base geometry: 16px
+ *     panels, pill-shaped inputs, floating main card. Most of this file is
+ *     palette, not shape.
+ *   - One light-blue tonal surface (#c2e7ff) does all the state work: the
+ *     active navigation pill and the selected row are the same colour, with
+ *     near-black text on it, not accent-coloured text.
+ *   - The accent is Google's link blue #0b57d0. The primary "New" button is
+ *     NOT accent-coloured: it is a white 16px-radius button with a Material
+ *     elevation shadow and a dark glyph.
+ *   - The search field is a borderless #e9eef6 pill that turns white and
+ *     gains elevation on focus.
+ *   - Navigation items are full pills; menus are square-ish (4px); rows are
+ *     48px with #c7c7c7 hairlines.
+ *
+ * Deliberately NOT done:
+ *
+ *   - No Google or Drive logo, glyph or proprietary typeface is used or
+ *     imitated (the measured app renders in Google Sans; this theme keeps
+ *     the inherited system stack). The Solid.drive brand mark is untouched.
+ *   - Solid-specific surfaces with no Drive counterpart — the access
+ *     Requests view, WebID and Pod fields, the notification bell — inherit
+ *     the palette and nothing more.
+ */
+
+:root[data-theme="gdrive"] {
+  /* ── surfaces ──────────────────────────────────────────────────────────
+     The page is Drive's near-white chrome tint; panels are pure white.
+     The base layout already floats white panels on the page colour, which
+     is precisely Drive's structure — no un-floating needed. The hover wash
+     is the light blue-grey Drive uses on rows and buttons. */
+  --odl-bg-page:       #f8fafd;
+  --odl-bg-panel:      #ffffff;
+  --odl-bg-elevated:   #ffffff;
+  --odl-bg-hover:      #f0f4f9;
+  --odl-border:        #dadce0;
+  --odl-divider:       #eef1f4;
+
+  /* ── text ──────────────────────────────────────────────────────────────
+     #1f1f1f body and #444746 secondary are the measured values (8.7:1 on
+     white — Drive's secondary grey is already comfortably AA, unlike
+     Dropbox's). #5f6368 is the faint tier, 5.0:1 on white and 4.5:1 on the
+     hover wash, which every ::placeholder in the layout inherits. */
+  --odl-text:          #1f1f1f;
+  --odl-text-muted:    #444746;
+  --odl-text-faint:    #5f6368;
+
+  /* ── layout dimensions ─────────────────────────────────────────────────
+     Shorter chrome and 48px rows (measured). Radii are NOT overridden:
+     the base 16px panels, pill inputs and 8px chips already are the
+     Material shapes Drive uses. */
+  --odl-topbar-height: 64px;
+  --odl-row-height:    48px;
+}
+
+/* ── accent ─────────────────────────────────────────────────────────────────
+   Google link blue for interactive accents, and the tonal light blue as the
+   soft tint — Drive uses opaque #c2e7ff, not an alpha wash, for both the
+   active nav pill and the selected row, so the token is opaque here too.
+
+   The brand gradient collapses to white: Drive's primary "New" button is a
+   white elevated button, not an accent-coloured one. --odl-brand itself
+   stays the accent blue for anything reading the solid token.
+
+   Scoped to the default accent scheme on purpose, exactly like the other
+   themes: an explicitly chosen emerald/amber/rose keeps its hue, and only
+   the untouched default renders the Drive pairing. `:not([data-scheme])`
+   covers first paint before useColorScheme mounts. */
+:root[data-theme="gdrive"]:not([data-scheme]),
+:root[data-theme="gdrive"][data-scheme="indigo"] {
+  --odl-accent:        #0b57d0;
+  --odl-accent-strong: #0842a0;
+  --odl-accent-soft:   #c2e7ff;
+
+  --odl-brand:                #0b57d0;
+  --odl-brand-strong:         #0842a0;
+  /* Backs the Create button's shadow in the base rules; the theme replaces
+     that shadow below, so this is belt-and-braces for anything else. */
+  --odl-brand-soft:           rgba(60, 64, 67, 0.15);
+  --odl-brand-gradient:       linear-gradient(#ffffff, #ffffff);
+  --odl-brand-gradient-hover: linear-gradient(#f0f4f9, #f0f4f9);
+}
+
+/* The other schemes keep their hue but need light-surface "soft" alphas,
+   as in the light and dropbox themes. */
+:root[data-theme="gdrive"][data-scheme="emerald"] {
+  --odl-accent-soft: rgba(16, 138, 95, 0.12);
+  --odl-brand-soft:  rgba(16, 185, 129, 0.18);
+}
+:root[data-theme="gdrive"][data-scheme="amber"] {
+  --odl-accent-soft: rgba(184, 115, 15, 0.12);
+  --odl-brand-soft:  rgba(245, 158, 11, 0.18);
+}
+:root[data-theme="gdrive"][data-scheme="rose"] {
+  --odl-accent-soft: rgba(190, 18, 60, 0.12);
+  --odl-brand-soft:  rgba(244, 63, 94, 0.18);
+}
+
+/* ── navigation ─────────────────────────────────────────────────────────────
+   Drive's navigation items are full pills, and the active pill carries
+   near-black text on the tonal blue — not accent-on-tint. The weight is
+   500, Google's medium. */
+
+:root[data-theme="gdrive"] .rail-item {
+  border-radius: 999px;
+}
+
+:root[data-theme="gdrive"] .rail-item--active {
+  /* The tonal pill is a direct rule, not base behaviour: the base marks the
+     active item with an accent bar and accent text on a transparent
+     background, and each light theme that tints the row does it itself. */
+  background: var(--odl-accent-soft);
+  color: var(--odl-text);
+  font-weight: 500;
+}
+
+/* Drop the base theme's rail-edge marker, as the Dropbox theme does: once
+   the whole pill is tinted it reads as a stray artefact, and Drive has no
+   such marker. */
+:root[data-theme="gdrive"] .rail-item--active::before {
+  content: none;
+}
+
+/* Same dark-text treatment for the selected file row: the base sets the name
+   cell to the accent colour on the tinted background, Drive keeps it dark. */
+:root[data-theme="gdrive"] .odl-files-row--active .odl-files-cell--name,
+:root[data-theme="gdrive"] .odl-files-row[aria-selected="true"] .odl-files-cell--name {
+  color: var(--odl-text);
+  font-weight: 500;
+}
+
+/* ── primary action ─────────────────────────────────────────────────────────
+   The measured "New" button: white, 16px corners, Material elevation, dark
+   glyph, hover deepens the shadow in place (no lift, no colour flip). The
+   white face comes from the brand gradient tokens above; the dark glyph is
+   scheme-scoped alongside them, because a scheme user keeps a coloured
+   button whose white glyph must stay white. */
+
+:root[data-theme="gdrive"] .rail-create {
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.30), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  font-weight: 500;
+}
+
+:root[data-theme="gdrive"] .rail-create:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.30), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+}
+
+:root[data-theme="gdrive"]:not([data-scheme]) .rail-create,
+:root[data-theme="gdrive"][data-scheme="indigo"] .rail-create {
+  color: var(--odl-text);
+}
+
+/* ── search ─────────────────────────────────────────────────────────────────
+   A borderless #e9eef6 pill (the base input radius is already a pill) that
+   turns white and gains elevation on focus — measured behaviour. */
+
+:root[data-theme="gdrive"] .topbar-search {
+  background: #e9eef6;
+  border-color: transparent;
+}
+
+:root[data-theme="gdrive"] .topbar-search:focus {
+  background: var(--odl-bg-panel);
+  border-color: transparent;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.20), 0 1px 3px 1px rgba(65, 69, 73, 0.15);
+}
+
+/* ── file list ──────────────────────────────────────────────────────────────
+   48px rows divided by hairlines. #c7c7c7 is the measured row rule — darker
+   than the general border token, and using the token here would make the
+   grid noticeably fainter than Drive's. */
+
+:root[data-theme="gdrive"] .odl-files-table__head {
+  border-bottom: 1px solid #c7c7c7;
+}
+
+:root[data-theme="gdrive"] .odl-files-row {
+  border-bottom: 1px solid #c7c7c7;
+}
+
+/* ── menus and dialogs ──────────────────────────────────────────────────────
+   Menus are square-ish at the measured 4px with a soft Material shadow.
+   Dialogs get the Material 3 28px shape — the one value here not sampled
+   (no dialog was opened read-only); it is the documented M3 dialog radius
+   Drive's own dialogs use. */
+
+:root[data-theme="gdrive"] .topbar-menu,
+:root[data-theme="gdrive"] .theme-toggle__content {
+  border-radius: 4px;
+  border: 0;
+  box-shadow: 0 2px 6px 2px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.30);
+}
+
+:root[data-theme="gdrive"] .odl-dialog,
+:root[data-theme="gdrive"] .odl-dialog-content {
+  border-radius: 28px;
+  border: 0;
+  box-shadow: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.30);
+}
+
+:root[data-theme="gdrive"] .rail-tooltip {
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.30), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+}

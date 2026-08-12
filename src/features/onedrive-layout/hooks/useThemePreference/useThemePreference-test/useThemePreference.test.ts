@@ -12,6 +12,7 @@ describe('isTheme', () => {
     expect(isTheme('dark')).toBe(true);
     expect(isTheme('light')).toBe(true);
     expect(isTheme('dropbox')).toBe(true);
+    expect(isTheme('gdrive')).toBe(true);
   });
 
   it('rejects anything else', () => {
@@ -26,7 +27,7 @@ describe('isTheme', () => {
     // asserting the guard accepts each one would be true by construction.
     // Pin THEMES against an independently written literal instead: that is the
     // only assertion here that a change to the union can actually break.
-    expect([...THEMES]).toEqual(['light', 'dark', 'dropbox']);
+    expect([...THEMES]).toEqual(['light', 'dark', 'dropbox', 'gdrive']);
   });
 });
 
