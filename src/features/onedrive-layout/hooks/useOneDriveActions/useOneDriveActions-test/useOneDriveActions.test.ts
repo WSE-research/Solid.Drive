@@ -122,14 +122,12 @@ describe('useOneDriveActions', () => {
     });
 
     it('downloads the binary resource, not the file container', async () => {
-      const { result } = renderHook(() =>
-        useOneDriveActions(buildArgs({ entry: sampleSharedEntry })),
-      );
+      const { result } = renderHook(() => useOneDriveActions(buildArgs()));
       await act(async () => {
         await result.current.handleDownload();
       });
       expect(mockDownloadResource).toHaveBeenCalledWith(
-        sampleSharedEntry.binaryUri,
+        sampleCatalogEntry.accessURL,
         'binary',
         expect.anything(),
       );
@@ -137,7 +135,7 @@ describe('useOneDriveActions', () => {
 
     it('falls back to the container uri when there is no catalog entry', async () => {
       const { result } = renderHook(() =>
-        useOneDriveActions(buildArgs({ entry: null })),
+        useOneDriveActions(buildArgs({ catalogByContainer: new Map() })),
       );
       await act(async () => {
         await result.current.handleDownload();
