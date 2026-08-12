@@ -1,14 +1,14 @@
 import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Layout } from '@/features/onedrive-layout';
+import { THEMES, type Theme } from '@/features/onedrive-layout';
 
 /**
- * What the landing page lets the user pick. An experience is a layout
- * plus, for `dropbox`, the theme that restyles the OneDrive shell — the
- * Dropbox-inspired look is not a third layout, so offering it here as a
- * peer card is the only way to make it visible before login.
+ * What the landing page lets the user pick. The classic layout is one
+ * experience; every theme of the OneDrive shell is its own experience
+ * card, so ALL available themes are visible before login — the theme
+ * axis is not a hidden second step behind an "OneDrive" card.
  */
-export type Experience = Layout | 'dropbox';
+export type Experience = 'classic' | Theme;
 
 interface ExperienceOption {
   readonly value: Experience;
@@ -21,21 +21,29 @@ interface LayoutPickerProps {
   readonly onChange: (value: Experience) => void;
 }
 
+/**
+ * Label key per theme. A `Record<Theme, string>` on purpose: when a
+ * fourth theme joins the union, this line stops compiling until the
+ * theme gets a landing card label — the picker cannot silently fall
+ * behind the theme list, mirroring the guard in ThemeToggle.
+ */
+const THEME_LABEL_KEYS: Record<Theme, string> = {
+  light: 'landing.layoutPicker.onedriveLight.label',
+  dark: 'landing.layoutPicker.onedriveDark.label',
+  dropbox: 'landing.layoutPicker.dropbox.label',
+};
+
+/* Derived from THEMES so a new theme appears here by construction, in
+   the same order the in-app theme select offers it. */
 const EXPERIENCE_OPTIONS: readonly ExperienceOption[] = [
   {
     value: 'classic',
     labelKey: 'landing.layoutPicker.classic.label',
   },
-
-  {
-    value: 'onedrive',
-    labelKey: 'landing.layoutPicker.onedrive.label',
-  },
-
-  {
-    value: 'dropbox',
-    labelKey: 'landing.layoutPicker.dropbox.label',
-  },
+  ...THEMES.map((theme) => ({
+    value: theme,
+    labelKey: THEME_LABEL_KEYS[theme],
+  })),
 ];
 
 const buildCardClassName = (active: boolean): string =>

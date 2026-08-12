@@ -5,17 +5,21 @@ import { STORAGE_KEYS, TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 import { shot } from "../helpers/screenshots";
 
 /**
- * The landing page's experience picker. Three radio cards: the classic
- * layout, the OneDrive-inspired layout, and the Dropbox-inspired experience
- * -- which is the OneDrive layout wearing `data-theme="dropbox"`, so picking
- * it must write BOTH preferences. The point of offering it before login is
- * that the user lands in the restyled shell without ever opening the
- * Settings menu, which the signed-in test at the bottom drives end to end.
+ * The landing page's experience picker. One card for the classic layout
+ * plus one card per available theme of the OneDrive shell — the cards are
+ * derived from the exported THEMES list, so every theme (currently light,
+ * dark and dropbox) is visible and pickable before login, and a future
+ * fourth theme joins the picker by construction. Picking a theme card
+ * writes BOTH preferences (layout `onedrive` + that theme). The point of
+ * offering the themes before login is that the user lands in the restyled
+ * shell without ever opening the Settings menu, which the signed-in test
+ * at the bottom drives end to end.
  */
 
 const CARD_NAMES = {
   classic: /classic|klassisch/i,
-  onedrive: /onedrive/i,
+  light: /onedrive.*(light|hell)/i,
+  dark: /onedrive.*(dark|dunkel)/i,
   dropbox: /dropbox/i,
 } as const;
 
@@ -33,15 +37,17 @@ const storedPreferences = (page: Page) =>
     { layout: STORAGE_KEYS.layout, theme: STORAGE_KEYS.theme },
   );
 
-test("the landing page offers the Dropbox-inspired experience and applies it on click", async ({
+test("the landing page offers every available theme and applies a pick on click", async ({
   page,
 }) => {
   test.setTimeout(TEST_TIMEOUTS.short);
   await gotoLanding(page);
 
-  // All three cards are visible before login.
+  // The classic card plus one card per available theme, all visible
+  // before login.
   await expect(page.getByRole("radio", { name: CARD_NAMES.classic })).toBeVisible();
-  await expect(page.getByRole("radio", { name: CARD_NAMES.onedrive })).toBeVisible();
+  await expect(page.getByRole("radio", { name: CARD_NAMES.light })).toBeVisible();
+  await expect(page.getByRole("radio", { name: CARD_NAMES.dark })).toBeVisible();
   await expect(page.getByRole("radio", { name: CARD_NAMES.dropbox })).toBeVisible();
 
   await page.getByRole("radio", { name: CARD_NAMES.dropbox }).click();
@@ -58,15 +64,22 @@ test("the landing page offers the Dropbox-inspired experience and applies it on 
   expect(await storedPreferences(page)).toEqual({ layout: "onedrive", theme: "dropbox" });
   await shot(page, "dropbox experience selected");
 
-  // Stepping back to the OneDrive card restores the default theme rather
-  // than leaving the Dropbox skin on a card that no longer claims it.
-  await page.getByRole("radio", { name: CARD_NAMES.onedrive }).click();
+  // Every other theme is equally pickable — no theme is a hidden second
+  // step behind a layout card.
+  await page.getByRole("radio", { name: CARD_NAMES.light }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light", {
+    timeout: UI_TIMEOUTS.short,
+  });
+  expect(await storedPreferences(page)).toEqual({ layout: "onedrive", theme: "light" });
+
+  await page.getByRole("radio", { name: CARD_NAMES.dark }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark", {
     timeout: UI_TIMEOUTS.short,
   });
   expect(await storedPreferences(page)).toEqual({ layout: "onedrive", theme: "dark" });
 
-  // The classic card only moves the layout axis.
+  // The classic card only moves the layout axis; the last theme choice
+  // survives for a later return to the OneDrive shell.
   await page.getByRole("radio", { name: CARD_NAMES.classic }).click();
   expect(await storedPreferences(page)).toEqual({ layout: "classic", theme: "dark" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

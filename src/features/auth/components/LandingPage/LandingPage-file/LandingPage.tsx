@@ -5,12 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { EXTERNAL_LINKS } from '@/config';
 import { useIssuerSelection } from '@/features/auth/hooks/useIssuerSelection';
 import { useResizeObserver } from '@/features/auth/hooks/useResizeObserver';
-import {
-  useLayoutPreference,
-  useThemePreference,
-  DEFAULT_THEME,
-  type Theme,
-} from '@/features/onedrive-layout';
+import { useLayoutPreference, useThemePreference } from '@/features/onedrive-layout';
 import { HeroBlob } from './HeroBlob';
 import { LandingHero } from './LandingHero';
 import { LandingTopBar } from './LandingTopBar';
@@ -42,15 +37,9 @@ export const LandingPage: FunctionComponent = () => {
   const landingRef = useRef<HTMLElement>(null);
   const { width: landingWidth } = useResizeObserver(landingRef);
 
-  // The Dropbox-inspired experience is the OneDrive layout wearing the
-  // dropbox theme, so the active card is derived from both preferences.
-  const experience: Experience =
-    layout === 'onedrive' ? (theme === 'dropbox' ? 'dropbox' : 'onedrive') : 'classic';
-
-  // Remembers the theme that was active before the user tried the Dropbox
-  // card, so stepping back to the OneDrive card restores it instead of
-  // clobbering a light/dark choice made in an earlier session.
-  const themeBeforeDropbox = useRef<Theme>(theme === 'dropbox' ? DEFAULT_THEME : theme);
+  // Every theme is its own experience card, so the active card is the
+  // classic layout or, on the OneDrive layout, the active theme itself.
+  const experience: Experience = layout === 'onedrive' ? theme : 'classic';
 
   const handleExperienceChange = (next: Experience) => {
     if (next === 'classic') {
@@ -60,12 +49,7 @@ export const LandingPage: FunctionComponent = () => {
       return;
     }
     setLayout('onedrive');
-    if (next === 'dropbox') {
-      if (theme !== 'dropbox') themeBeforeDropbox.current = theme;
-      setTheme('dropbox');
-    } else if (theme === 'dropbox') {
-      setTheme(themeBeforeDropbox.current);
-    }
+    if (next !== theme) setTheme(next);
   };
 
   const hasMeasured = landingWidth > 0;
