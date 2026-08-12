@@ -64,14 +64,15 @@ export function useOneDriveActions({
 
   const handleDownload = useCallback(async () => {
     if (!selected || selected.kind !== 'file') return;
-    const fileName = decodeUriTail(selected.uri) || selected.name;
-    const result = await downloadResource(selected.uri, fileName, solidFetch);
+    const binaryUri = entry?.binaryUri ?? selected.uri;
+    const fileName = decodeUriTail(binaryUri) || selected.name;
+    const result = await downloadResource(binaryUri, fileName, solidFetch);
     if (!result.ok) {
       showError(
         `${translate('oneDriveLayout.toast.downloadFail', 'Download failed')}: ${result.reason}`,
       );
     }
-  }, [selected, solidFetch, showError, translate]);
+  }, [selected, entry, solidFetch, showError, translate]);
 
   const handleDelete = useCallback(async () => {
     if (!selected) return;

@@ -121,6 +121,34 @@ describe('useOneDriveActions', () => {
       expect(mockDownloadResource).toHaveBeenCalled();
     });
 
+    it('downloads the binary resource, not the file container', async () => {
+      const { result } = renderHook(() =>
+        useOneDriveActions(buildArgs({ entry: sampleSharedEntry })),
+      );
+      await act(async () => {
+        await result.current.handleDownload();
+      });
+      expect(mockDownloadResource).toHaveBeenCalledWith(
+        sampleSharedEntry.binaryUri,
+        'binary',
+        expect.anything(),
+      );
+    });
+
+    it('falls back to the container uri when there is no catalog entry', async () => {
+      const { result } = renderHook(() =>
+        useOneDriveActions(buildArgs({ entry: null })),
+      );
+      await act(async () => {
+        await result.current.handleDownload();
+      });
+      expect(mockDownloadResource).toHaveBeenCalledWith(
+        fileSelection.uri,
+        'doc',
+        expect.anything(),
+      );
+    });
+
     it('shows an error toast when the download fails', async () => {
       mockDownloadResource.mockResolvedValueOnce({ ok: false, reason: 'network' });
       const { result } = renderHook(() => useOneDriveActions(buildArgs()));
