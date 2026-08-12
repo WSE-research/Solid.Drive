@@ -21,6 +21,7 @@ import {
   MoveToIcon,
   RenameIcon,
   MoreHorizontalIcon,
+  TrashIcon,
 } from '@/features/onedrive-layout/icons';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
 
@@ -28,6 +29,7 @@ interface SelectionActionsProps {
   selection: SelectedResource;
   onShare: () => void;
   onCopyLink: () => void;
+  // Moves a file to the Recycle Bin or hard-deletes a folder.
   onDelete: () => void;
   onDownload: () => void;
   onMoveTo: () => void;
@@ -41,9 +43,7 @@ interface ActionDef {
   stub?: boolean;
 }
 
-// Approximate rendered width of an inline action button including icon,
-// label, padding, and gap. Doesn't need to be exact, just an upper bound
-// that keeps the strip from overflowing.
+// Approximate width of a single action button, used to determine how many fit inline.
 const ACTION_BUTTON_WIDTH = 110;
 const KEBAB_WIDTH = 44;
 
@@ -74,8 +74,8 @@ export const SelectionActions: FunctionComponent<SelectionActionsProps> = ({
 }) => {
   const [translate] = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  // null until the ResizeObserver fires once; render everything inline
-  // in the meantime, then the first measurement re-renders with overflow.
+  // Render all items inline until the first width measurement is available,
+  // then re-render with overflow handling.
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
   useEffect(() => {
@@ -90,16 +90,27 @@ export const SelectionActions: FunctionComponent<SelectionActionsProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  // Files move to the Recycle Bin, while folders are permanently deleted
+  // because they are currently not catalog-backed and cannot be restored from trash.
+  // TODO: add a catalog vocabulary for containers, linked via a parent container,
+  // so folders become catalog-backed like files. That would make soft delete
+  // and restore possible for folders too, instead of always hard-deleting them.
+  const isFile = selection?.kind === 'file';
+  const deleteLabel = isFile
+    ? translate('oneDriveLayout.action.moveToTrash', 'Move to bin')
+    : translate('oneDriveLayout.action.delete', 'Delete');
+  const deleteIcon = isFile ? TrashIcon : DeleteIcon;
+
   const actions = useMemo<ActionDef[]>(
     () => [
       { Icon: ShareIcon,    label: translate('oneDriveLayout.action.share',    'Share'),     onClick: onShare },
       { Icon: LinkIcon,     label: translate('oneDriveLayout.action.link',     'Copy link'), onClick: onCopyLink },
-      { Icon: DeleteIcon,   label: translate('oneDriveLayout.action.delete',   'Delete'),    onClick: onDelete },
+      { Icon: deleteIcon,   label: deleteLabel,                                              onClick: onDelete },
       { Icon: DownloadIcon, label: translate('oneDriveLayout.action.download', 'Download'),  onClick: onDownload },
       { Icon: MoveToIcon,   label: translate('oneDriveLayout.action.moveTo',   'Move to'),   onClick: onMoveTo,   stub: true },
       { Icon: RenameIcon,   label: translate('oneDriveLayout.action.rename',   'Rename'),    onClick: onRename,   stub: true },
     ],
-    [translate, onShare, onCopyLink, onDelete, onDownload, onMoveTo, onRename],
+    [translate, onShare, onCopyLink, deleteIcon, deleteLabel, onDelete, onDownload, onMoveTo, onRename],
   );
 
   // Reserve KEBAB_WIDTH only when overflow is actually needed, so the

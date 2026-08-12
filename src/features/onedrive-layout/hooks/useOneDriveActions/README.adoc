@@ -1,7 +1,7 @@
 = useOneDriveActions
 
 Action handlers for the OneDrive shell that depend on the current selection.
-Owns the toast wiring and the delete confirmation prompt so `OneDriveLayout` is reduced to composition.
+Owns the toast wiring and the delete confirmation prompts so `OneDriveLayout` is reduced to composition.
 
 == Arguments
 
@@ -14,6 +14,9 @@ Owns the toast wiring and the delete confirmation prompt so `OneDriveLayout` is 
 | `catalogUri` | URI of the owner's DCAT catalog. Needed for catalog cleanup on delete.
 | `solidFetch` | Authenticated Solid fetch
 | `onAfterDelete` | Fired after a successful delete so the shell can clear the selection and close the panel
+| `storageRootUri` | Pod storage root. Required for soft delete — the trash lives here, not under the app container; folders always hard-delete regardless.
+| `entry` | The selection's catalog-row payload (`OneDriveLayout`'s `sharedEntry` memo), passed through to `softDeleteFile`.
+| `ownerWebId` | WebID used as the trash catalog entry's publisher.
 |===
 
 == Returns
@@ -24,12 +27,18 @@ Owns the toast wiring and the delete confirmation prompt so `OneDriveLayout` is 
 
 | `handleCopyLink` | Copies the selection URI to the clipboard and toasts the result
 | `handleDownload` | Downloads the file binary, toasts on failure
-| `handleDelete` | Confirms, deletes the resource, removes the catalog entry, then toasts
+| `handleDelete` | Moves a file to the Recycle bin when `storageRootUri`/`entry`/`catalogUri`/`ownerWebId` are all resolved; hard-deletes otherwise (always for folders, since they aren't catalog-backed and can't be tombstoned)
 |===
+
+`handleDelete` decides *what* to run, soft-delete or hard-delete, and hands it to link:../../../file-explorer/hooks/useGuardedSoftDelete/[useGuardedSoftDelete], which owns the re-entrancy lock, the confirm dialog, and the toast. `FileCard` uses the same shared hook for its own delete actions.
+
+Permanently deleting a file bypasses the Recycle bin only from inside it (the trash view's own purge action, see link:../../../file-explorer/hooks/useTrashEntries/[useTrashEntries]) — `SelectionActions` in My Files offers a single delete action, which always lands in the Recycle bin for files.
 
 == See also
 
-* link:../../../file-explorer/services/deleteResource/[deleteResource] is the delete service this hook calls.
+* link:../../../file-explorer/hooks/useGuardedSoftDelete/[useGuardedSoftDelete] runs `handleDelete`'s confirm-then-delete flow.
+* link:../../../file-explorer/services/deleteResource/[deleteResource] is the hard-delete service `handleDelete`'s fallback branch calls.
+* link:../../../file-explorer/services/softDeleteFile/[softDeleteFile] is the soft-delete service `handleDelete` prefers for files.
 * link:../../../file-explorer/services/downloadResource/[downloadResource] is the download service this hook calls.
 * link:../../../../shared/utils/copyToClipboard/[copyToClipboard] is the clipboard helper this hook calls.
 
@@ -41,7 +50,9 @@ link:../[onedrive-layout/hooks]
 .Uses
 * link:../useSelectedResource/[useSelectedResource]
 * link:../../formatting/[formatting]
+* link:../../../file-explorer/hooks/useGuardedSoftDelete/[useGuardedSoftDelete]
 * link:../../../file-explorer/services/deleteResource/[deleteResource]
+* link:../../../file-explorer/services/softDeleteFile/[softDeleteFile]
 * link:../../../file-explorer/services/downloadResource/[downloadResource]
 * link:../../../../shared/utils/copyToClipboard/[copyToClipboard]
 * link:../../../../shared/contexts/NotificationContext/[NotificationContext]

@@ -230,6 +230,15 @@ declare module "react" {
       "recent-files-row": El;
       "recent-files-cell": El;
       "recent-files-name": El;
+      // OneDriveLayout — TrashView (Recycle bin)
+      "trash-header": El;
+      "trash-table": El;
+      "trash-table-head": El;
+      "trash-table-body": El;
+      "trash-row": El;
+      "trash-cell": El;
+      "trash-row-actions": El;
+      "trash-empty": El;
     }
   }
 }

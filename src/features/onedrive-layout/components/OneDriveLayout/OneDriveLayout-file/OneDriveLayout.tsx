@@ -39,6 +39,7 @@ import { MyFilesView } from '@/features/onedrive-layout/components/views/MyFiles
 import { SharedView } from '@/features/onedrive-layout/components/views/SharedView';
 import { RequestsView } from '@/features/onedrive-layout/components/views/RequestsView';
 import { PeopleView } from '@/features/onedrive-layout/components/views/PeopleView';
+import { TrashView } from '@/features/onedrive-layout/components/views/TrashView';
 import { containerUriFromCatalogUri } from '@/features/onedrive-layout/formatting';
 import { useViewParam, type ViewId } from '@/features/onedrive-layout/hooks/useViewParam';
 import { useMyFilesSort } from '@/features/onedrive-layout/hooks/useMyFilesSort';
@@ -60,6 +61,7 @@ const VIEW_TITLE_KEYS: Record<ViewId, string> = {
   shared: 'oneDriveLayout.viewTitle.shared',
   requests: 'oneDriveLayout.viewTitle.requests',
   people: 'oneDriveLayout.viewTitle.people',
+  trash: 'oneDriveLayout.viewTitle.trash',
 };
 
 /**
@@ -130,6 +132,11 @@ export const OneDriveLayout: FunctionComponent = () => {
     return map;
   }, [catalogEntries]);
 
+  const appContainerUri = useMemo(
+    () => (storageRootUri ? getAppContainerUri(storageRootUri) : undefined),
+    [storageRootUri],
+  );
+
   const details = useResourceDetails({
     selection: selected,
     catalogByContainer,
@@ -152,6 +159,9 @@ export const OneDriveLayout: FunctionComponent = () => {
     catalogUri,
     solidFetch,
     onAfterDelete: handleAfterDelete,
+    storageRootUri,
+    entry: sharedEntry,
+    ownerWebId: webId,
   });
 
   const requestNewFolder = useCallback(() => {
@@ -286,6 +296,7 @@ export const OneDriveLayout: FunctionComponent = () => {
             {view === 'recent' && <RecentView />}
             {view === 'requests' && <RequestsView />}
             {view === 'people' && <PeopleView />}
+            {view === 'trash' && <TrashView />}
           </main>
         </>
       )}
@@ -297,13 +308,13 @@ export const OneDriveLayout: FunctionComponent = () => {
           onClose={handleDetailsClose}
         />
       )}
-      {selected && catalogUri && storageRootUri && sharedEntry && (
+      {selected && catalogUri && appContainerUri && sharedEntry && (
         <ShareDialog
           open={shareOpen}
           onOpenChange={setShareOpen}
           containerUri={selected.uri}
           catalogUri={catalogUri}
-          appContainerUri={getAppContainerUri(storageRootUri)}
+          appContainerUri={appContainerUri}
           contacts={contacts}
           sharedEntry={sharedEntry}
         />
