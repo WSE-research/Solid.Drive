@@ -55,11 +55,11 @@ describe('validateFile', () => {
   });
 
   it('passes the resolved class URI through to validateMetadata', async () => {
-    mockResolveClass.mockReturnValue('https://w3id.org/solid-drive#TextDocument');
+    mockResolveClass.mockReturnValue('http://schema.org/TextDigitalDocument');
     const file = new File(['x'], 'a.txt', { type: 'text/plain' });
     await validateFile(file, 'A', '', 'https://pod.example/profile/card#me');
     expect(mockValidateMetadata).toHaveBeenCalledOnce();
     const classUri = mockValidateMetadata.mock.calls[0][1] as string;
-    expect(classUri).toBe('https://w3id.org/solid-drive#TextDocument');
+    expect(classUri).toBe('http://schema.org/TextDigitalDocument');
   });
 });
