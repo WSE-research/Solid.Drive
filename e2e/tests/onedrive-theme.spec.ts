@@ -200,3 +200,82 @@ test("the settings menu switches to the Dropbox theme and actually restyles the 
 
   await close();
 });
+
+test("the settings menu switches to the Google Drive theme and actually restyles the shell", async ({
+  browser,
+  parni,
+}) => {
+  test.setTimeout(TEST_TIMEOUTS.short);
+
+  const { page, close } = await freshLogin(browser, parni);
+  await enterOneDriveLayout(page);
+
+  await openThemeSelect(page);
+  await page.getByRole("option", { name: "Google Drive" }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "gdrive", {
+    timeout: UI_TIMEOUTS.short,
+  });
+  const stored = await page.evaluate(
+    (storageKey) => localStorage.getItem(storageKey),
+    STORAGE_KEYS.theme,
+  );
+  expect(stored).toBe("gdrive");
+
+  // Dismiss the still-open Settings dropdown so the screenshot shows the shell.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("combobox", { name: "Theme" })).toHaveCount(0, {
+    timeout: UI_TIMEOUTS.short,
+  });
+
+  // The tokens GoogleDriveTheme.css installs, all sampled from the live
+  // drive.google.com (2026-08): near-white chrome, Google link blue, the
+  // opaque tonal selection blue, and 48px rows. An attribute alone would
+  // still pass if the stylesheet were never loaded.
+  const tokens = await page.evaluate(() => {
+    const styles = getComputedStyle(document.documentElement);
+    return {
+      page: styles.getPropertyValue("--odl-bg-page").trim(),
+      accent: styles.getPropertyValue("--odl-accent").trim(),
+      accentSoft: styles.getPropertyValue("--odl-accent-soft").trim(),
+      text: styles.getPropertyValue("--odl-text").trim(),
+      rowHeight: styles.getPropertyValue("--odl-row-height").trim(),
+    };
+  });
+  expect(tokens.page).toBe("#f8fafd");
+  expect(tokens.accent).toBe("#0b57d0");
+  expect(tokens.accentSoft).toBe("#c2e7ff");
+  expect(tokens.text).toBe("#1f1f1f");
+  expect(tokens.rowHeight).toBe("48px");
+
+  // And that the tokens reach the rendered chrome: the top bar sits on the
+  // page tint (the base rule reads --odl-bg-page), and the Create button is
+  // Drive's white elevated button with a dark glyph — rendered through the
+  // one-stop brand gradient, so a palette regression fails here.
+  await expect(page.locator("top-bar")).toHaveCSS("background-color", "rgb(248, 250, 253)");
+  await expect(page.locator(".rail-create")).toHaveCSS(
+    "background-image",
+    "linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255))",
+  );
+  await expect(page.locator(".rail-create")).toHaveCSS("color", "rgb(31, 31, 31)");
+
+  // Drive's signature state: the active navigation item is a tonal-blue pill
+  // (#c2e7ff) with dark text, fully rounded.
+  await expect(page.locator(".rail-item--active").first()).toHaveCSS(
+    "background-color",
+    "rgb(194, 231, 255)",
+  );
+  await expect(page.locator(".rail-item--active").first()).toHaveCSS(
+    "border-radius",
+    "999px",
+  );
+
+  await shot(page, "gdrive-theme-shell");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "gdrive", {
+    timeout: UI_TIMEOUTS.short,
+  });
+
+  await close();
+});

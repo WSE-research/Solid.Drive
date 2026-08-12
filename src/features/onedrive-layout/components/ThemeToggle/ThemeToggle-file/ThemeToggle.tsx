@@ -51,6 +51,7 @@ export const ThemeToggle: FunctionComponent = () => {
     light: translate('oneDriveLayout.themeOption.light', 'Light'),
     dark: translate('oneDriveLayout.themeOption.dark', 'Dark'),
     dropbox: translate('oneDriveLayout.themeOption.dropbox', 'Dropbox'),
+    gdrive: translate('oneDriveLayout.themeOption.gdrive', 'Google Drive'),
   };
   const options: ThemeOptionProps[] = THEMES.map((value) => ({
     value,

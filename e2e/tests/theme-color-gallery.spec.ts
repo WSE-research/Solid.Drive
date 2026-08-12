@@ -16,7 +16,7 @@ import type { Page } from "@playwright/test";
  * re-tints the accent, so it doubles as coverage for the new feature.
  */
 
-const THEMES = ["dark", "light"] as const;
+const THEMES = ["dark", "light", "dropbox", "gdrive"] as const;
 const SCHEMES = ["indigo", "emerald", "amber", "rose"] as const;
 
 const SHOWCASE_DIR = resolve(process.cwd(), "e2e", "screenshots", "showcase");

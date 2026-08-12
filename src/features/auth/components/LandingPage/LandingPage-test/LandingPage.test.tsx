@@ -32,7 +32,7 @@ vi.mock('@/features/onedrive-layout', () => ({
   useLayoutPreference: () => [currentLayout, layoutSetter],
   isLayout: (value: unknown) => value === 'classic' || value === 'onedrive',
   useThemePreference: () => [currentTheme, themeSetter],
-  THEMES: ['light', 'dark', 'dropbox'],
+  THEMES: ['light', 'dark', 'dropbox', 'gdrive'],
   InstallAppButton: () => null,
 }));
 
@@ -109,6 +109,7 @@ describe('LandingPage — structure', () => {
     expect(screen.getByText('landing.layoutPicker.onedriveLight.label')).toBeInTheDocument();
     expect(screen.getByText('landing.layoutPicker.onedriveDark.label')).toBeInTheDocument();
     expect(screen.getByText('landing.layoutPicker.dropbox.label')).toBeInTheDocument();
+    expect(screen.getByText('landing.layoutPicker.gdrive.label')).toBeInTheDocument();
   });
 });
 

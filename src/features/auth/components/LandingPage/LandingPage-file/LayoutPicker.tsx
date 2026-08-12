@@ -31,6 +31,7 @@ const THEME_LABEL_KEYS: Record<Theme, string> = {
   light: 'landing.layoutPicker.onedriveLight.label',
   dark: 'landing.layoutPicker.onedriveDark.label',
   dropbox: 'landing.layoutPicker.dropbox.label',
+  gdrive: 'landing.layoutPicker.gdrive.label',
 };
 
 /* Derived from THEMES so a new theme appears here by construction, in
