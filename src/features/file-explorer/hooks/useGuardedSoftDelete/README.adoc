@@ -1,0 +1,15 @@
+= useGuardedSoftDelete
+
+Shared confirm-then-delete flow for anything that soft-deletes a file with a hard-delete fallback. Extracted after `FileCard` and `useOneDriveActions` both ended up with almost the same re-entrancy guard, confirm prompt, and toast reporting around their own soft/hard delete branching.
+
+Returns a single `runGuardedDelete(args)`. The caller still decides *what* to run, soft-delete, hard-delete, whichever fits its own eligibility check, and passes it in as `run`. The hook owns the parts that were actually duplicated: locking against a second click while a delete is in flight, showing the confirm prompt, and turning the result (or a thrown error) into a toast.
+
+`successMessage` is optional. `FileCard` never showed one, since the card disappearing from the list is feedback enough; `useOneDriveActions` does, since the layout doesn't remove anything from the DOM on its own.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]
+
+.Uses
+* link:../../../../shared/contexts/NotificationContext/[NotificationContext]

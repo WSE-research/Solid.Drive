@@ -1,0 +1,39 @@
+= useTrashEntries
+
+Lists soft-deleted files from the trash catalog and exposes `restore` and `purge` to act on them.
+
+== Behaviour
+
+The hook resolves the trash catalog URI from `storageRootUri`, the pod's storage root rather than the app container, since the trash is pod-wide. It hands that URI to `useCatalog` unmodified, so the trash catalog shares the same module cache and `useCatalogVersion` invalidation as every other catalog read in the app instead of running its own fetcher.
+
+Each row gets its tombstone read alongside it. When a tombstone is missing or fails to parse, the row still shows up with `tombstone: null`. Restoring is disabled for it in the UI, but purging still works.
+
+Rows whose tombstone has passed `expiresAt` are purged before they're ever exposed to the caller. Expiry is lazy and client-triggered: there's no server-side scheduler in a client-only app, so a stale row only gets cleaned up the next time someone opens the Recycle bin. A whole batch of expired rows fires `notifyCatalogChanged` once, not once per row.
+
+`restore(item)` delegates to `restoreTrashedFile`. `purge(item)` skips a dedicated service and calls `deleteResource` directly: permanently deleting a trashed item is just `deleteResource({ containerUri: item.containerUri, catalogUri: <trash catalog>, metadataUri: item.entry.metadataUri, fetch })`, nothing more.
+
+== Returns
+
+[cols="1,1,3", options="header"]
+|===
+| Key | Type | Description
+
+| `entries` | `TrashEntry[]` | `{ entry, containerUri, tombstone }` per live (non-expired) row
+| `loading` | `boolean` | Passed through from `useCatalog`
+| `error` | `Error \| null` | Passed through from `useCatalog`
+| `restore` | `(item) => Promise<RestoreTrashedFileResult>` |
+| `purge` | `(item) => Promise<DeleteResourceResult>` |
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]
+
+.Uses
+* link:../useCatalog/[useCatalog]
+* link:../../../../infrastructure/solid/trashPaths/[trashPaths]
+* link:../../../../infrastructure/solid/tombstone/[tombstone]
+* link:../../services/restoreTrashedFile/[restoreTrashedFile]
+* link:../../services/deleteResource/[deleteResource]
+* link:../../../../shared/hooks/useCatalogVersion/[useCatalogVersion]
