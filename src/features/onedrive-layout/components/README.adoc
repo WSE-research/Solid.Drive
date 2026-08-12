@@ -16,6 +16,7 @@ link:NewFolderDialog/[NewFolderDialog]:: Modal create folder dialog used by My F
 link:ShareDialog/[ShareDialog]:: Modal wrapper around `file-explorer/SharePanel`.
 link:FilePreviewDialog/[FilePreviewDialog]:: Modal preview the SharedView opens from the selection toolbar.
 link:LayoutToggle/[LayoutToggle]:: Segmented Classic ↔ OneDrive control bound to the persisted layout preference.
+link:ExperienceSwitcher/[ExperienceSwitcher]:: The classic header's look switcher. One dropdown over both preferences: the classic shell, or the OneDrive shell in any of its themes.
 link:views/[views/]:: One component per nav rail destination: Recent, My Files, Shared, Requests, People.
 link:filters/[filters/]:: Shared filter widgets, the type chips and the person filter, used by Shared, Recent, and People.
 

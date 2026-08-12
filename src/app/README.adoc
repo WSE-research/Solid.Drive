@@ -17,7 +17,7 @@ Contains the root React component, the layout shells, i18n configuration, locale
 | *locales/* | Translation JSON files, `en.json` and `de.json`.
 |===
 
-The OneDrive alternate shell lives under link:../features/onedrive-layout/[features/onedrive-layout/] and is mounted by `App` when the user opts in via the layout toggle.
+The OneDrive alternate shell lives under link:../features/onedrive-layout/[features/onedrive-layout/] and is mounted by `App` when the user opts in via the classic header's experience switcher, the landing page's experience picker, or the layout toggle in its own Settings menu.
 
 `main.tsx` renders `<App />` into the DOM.
 Everything else flows from there.

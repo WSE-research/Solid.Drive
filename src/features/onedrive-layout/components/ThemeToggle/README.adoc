@@ -1,6 +1,6 @@
 = ThemeToggle
 
-Dropdown that switches the active theme: `Light`, `Dark` or `Dropbox`.
+Dropdown that switches the active theme: `Light`, `Dark`, `Dropbox` or `Google Drive`.
 The trigger shows the current value with a chevron; the `Theme` heading above it is rendered by the TopBar's Settings menu.
 Mounted inside that Settings dropdown above the LayoutToggle.
 

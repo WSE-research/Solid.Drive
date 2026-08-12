@@ -1,9 +1,11 @@
 /*
- * LayoutToggle — segmented Classic | OneDrive pill control rendered in two places:
- *   1. The classic Header (light theme) — uses the tokens defined here.
- *   2. The OneDrive TopBar's Settings dropdown (dark theme) — overridden in
- *      OneDriveLayout.css under the `.topbar-menu .layout-toggle*` selectors.
- * Light-theme styles below use the global tokens from src/app/App/App-file/App.css.
+ * LayoutToggle — segmented Classic | OneDrive pill control, rendered in the
+ * OneDrive TopBar's Settings dropdown (dark theme); those styles are
+ * overridden in OneDriveLayout.css under the `.topbar-menu .layout-toggle*`
+ * selectors. The light-theme base below uses the global tokens from
+ * src/app/App/App-file/App.css and is what the control falls back to outside
+ * that dropdown. (The classic header carries the ExperienceSwitcher instead,
+ * which moves both the layout and the theme axis in one control.)
  */
 
 .layout-toggle {

@@ -1,0 +1,19 @@
+= ExperienceSwitcher
+
+Dropdown in the classic header that switches the whole look: `Classic`, `OneDrive (Light)`, `OneDrive (Dark)`, `Dropbox` or `Google Drive`.
+Picking a theme entry moves both preferences at once, so the user reaches any theme from the classic shell in one interaction instead of switching layout first and then opening the OneDrive Settings menu.
+
+Rendered as a plain `<select>`: it sits beside the language switcher in the classic header and inherits the same global control styling, and it stays one control wide however many themes ship.
+The signed-in OneDrive shell keeps the two axes as separate controls in its Settings dropdown (link:../ThemeToggle/[ThemeToggle] and link:../LayoutToggle/[LayoutToggle]); this switcher is the classic header's single equivalent.
+
+The option list is derived from `EXPERIENCES` and the labels are a `Record<Experience, string>`, so adding a theme to the union makes TypeScript demand a label rather than silently leaving the switcher one option short.
+
+Stateless wrapper around link:../../hooks/useExperiencePreference/[useExperiencePreference], which owns the translation between the one experience value and the two stored preferences.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../hooks/useExperiencePreference/[useExperiencePreference]
