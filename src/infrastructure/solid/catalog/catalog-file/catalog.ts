@@ -1,46 +1,59 @@
 /**
  * DCAT catalog operations for Solid pods.
  *
- * @remarks
- * Provides CRUD operations for DCAT catalogs stored as Turtle files.
- * Uses SPARQL UPDATE for modifications and N3 for parsing.
- *
  * @packageDocumentation
+ * Provides CRUD operations for DCAT catalogs stored as Turtle documents.
+ *
+ * @remarks
+ * Catalog mutations use a GET/PUT round trip: the document is loaded into
+ * an N3 store, updated in memory, and written back in full. This avoids
+ * relying on SPARQL Update support, which varies across Solid servers.
+ * 
  */
 
-import { Parser as N3Parser, Store as N3Store } from "n3";
+import { Parser as N3Parser, Store as N3Store, DataFactory } from "n3";
 import type { FetchFn, CatalogEntry } from "@/types";
 import type { SolidProfile } from "@/.ldo/solidProfile.typings";
 import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
+import { serializeTurtle } from "@/infrastructure/solid/rdfUtils";
 import {
   DEFAULT_CATALOG_FILENAME,
   RDF_NAMESPACES,
+  RDF_TYPE_URI,
   CONTENT_TYPES,
   SYSTEM_FILES,
 } from "@/config";
 
-/**
- * Validates that a URI is safe for SPARQL/Turtle interpolation.
- *
- * @remarks
- * Rejects URIs containing `>` or whitespace which could break angle-bracket IRI tokens.
- *
- * @param uri - The URI to validate
- * @throws Error if the URI contains unsafe characters
- *
- * @internal
- */
-function assertSafeUri(uri: string): void {
-  if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
-}
+const { namedNode, literal, quad } = DataFactory;
 
 const DISTRIBUTION_FRAGMENT = "#dist";
 
-const CATALOG_SPARQL_PREFIXES = `
-PREFIX dcat: <${RDF_NAMESPACES.DCAT}>
-PREFIX dcterms: <${RDF_NAMESPACES.DCTERMS}>
-PREFIX xsd: <${RDF_NAMESPACES.XSD}>
-`.trim();
+const CATALOG_PREFIXES = {
+  dcat: RDF_NAMESPACES.DCAT,
+  dcterms: RDF_NAMESPACES.DCTERMS,
+  xsd: RDF_NAMESPACES.XSD,
+};
+
+const RDF_TYPE = namedNode(RDF_TYPE_URI);
+const DCAT_CATALOG_CLASS = namedNode(`${RDF_NAMESPACES.DCAT}Catalog`);
+const DCAT_DATASET = namedNode(`${RDF_NAMESPACES.DCAT}dataset`);
+const DCAT_DATASET_CLASS = namedNode(`${RDF_NAMESPACES.DCAT}Dataset`);
+const DCAT_DISTRIBUTION = namedNode(`${RDF_NAMESPACES.DCAT}distribution`);
+const DCAT_DISTRIBUTION_CLASS = namedNode(`${RDF_NAMESPACES.DCAT}Distribution`);
+const DCAT_ACCESS_URL = namedNode(`${RDF_NAMESPACES.DCAT}accessURL`);
+const DCAT_MEDIA_TYPE = namedNode(`${RDF_NAMESPACES.DCAT}mediaType`);
+const DCAT_BYTE_SIZE = namedNode(`${RDF_NAMESPACES.DCAT}byteSize`);
+const DCTERMS_CONFORMS_TO = namedNode(`${RDF_NAMESPACES.DCTERMS}conformsTo`);
+const DCTERMS_TITLE = namedNode(`${RDF_NAMESPACES.DCTERMS}title`);
+const DCTERMS_DESCRIPTION = namedNode(`${RDF_NAMESPACES.DCTERMS}description`);
+const DCTERMS_MODIFIED = namedNode(`${RDF_NAMESPACES.DCTERMS}modified`);
+const DCTERMS_PUBLISHER = namedNode(`${RDF_NAMESPACES.DCTERMS}publisher`);
+const XSD_DATE_TIME = namedNode(`${RDF_NAMESPACES.XSD}dateTime`);
+const XSD_INTEGER = namedNode(`${RDF_NAMESPACES.XSD}integer`);
+
+function assertSafeUri(uri: string): void {
+  if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
+}
 
 /**
  * Minimal Turtle template for an empty DCAT catalog.
@@ -76,10 +89,44 @@ export function resolveCatalogUri(
 }
 
 /**
- * Adds a dataset entry to the catalog via SPARQL PATCH.
+ * Reads a Turtle document into an N3 store, mutates it, and PUTs the whole
+ * document back. A 404 GET starts from an empty store, so this doubles as
+ * "create the catalog if it doesn't exist yet".
  *
- * @remarks
- * Creates the catalog on 404 and retries the operation.
+ * @internal
+ */
+async function withCatalogStore(
+  catalogUri: string,
+  fetch: FetchFn,
+  mutate: (store: N3Store) => void
+): Promise<void> {
+  const getResponse = await fetch(catalogUri);
+  if (!getResponse.ok && getResponse.status !== 404) {
+    throw new Error(`Failed to read ${catalogUri}: ${getResponse.status} ${getResponse.statusText}`);
+  }
+
+  const isNewCatalog = getResponse.status === 404;
+  const quads = isNewCatalog ? [] : new N3Parser({ baseIRI: catalogUri }).parse(await getResponse.text());
+  const store = new N3Store(quads);
+  if (isNewCatalog) {
+    store.addQuad(quad(namedNode(catalogUri), RDF_TYPE, DCAT_CATALOG_CLASS));
+  }
+
+  mutate(store);
+
+  const turtle = serializeTurtle(store.getQuads(null, null, null, null), CATALOG_PREFIXES);
+  const putResponse = await fetch(catalogUri, {
+    method: "PUT",
+    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
+    body: turtle,
+  });
+  if (!putResponse.ok) {
+    throw new Error(`Failed to write ${catalogUri}: ${putResponse.status} ${putResponse.statusText}`);
+  }
+}
+
+/**
+ * Adds a dataset entry to the catalog.
  *
  * @param catalogUri - URI of the catalog resource
  * @param instanceUri - URI identifying this dataset instance
@@ -87,7 +134,7 @@ export function resolveCatalogUri(
  * @param classUri - URI of the class this dataset conforms to
  * @param mediaType - MIME type of the distribution
  * @param byteSize - Size of the distribution in bytes
- * @param title - Human-readable title for the dataset
+ * @param title -  title for the dataset
  * @param description - Optional description of the dataset
  * @param modified - ISO 8601 datetime of last modification
  * @param publisherWebId - WebID of the publisher
@@ -108,72 +155,39 @@ export async function appendToCatalog(
   publisherWebId: string,
   fetch: FetchFn
 ): Promise<void> {
-  assertSafeUri(catalogUri);
-  assertSafeUri(instanceUri);
-  assertSafeUri(binaryUri);
-  assertSafeUri(classUri);
-  assertSafeUri(publisherWebId);
+  await withCatalogStore(catalogUri, fetch, (store) => {
+    const catalog = namedNode(catalogUri);
+    const instance = namedNode(instanceUri);
+    const distribution = namedNode(`${instanceUri}${DISTRIBUTION_FRAGMENT}`);
 
-  const escapeTurtleLiteral = (literal: string) =>
-    literal.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
-
-  const descriptionTriple = description.trim()
-    ? `\n    dcterms:description "${escapeTurtleLiteral(description)}" ;`
-    : "";
-
-  const sparqlUpdate = `${CATALOG_SPARQL_PREFIXES}
-
-  INSERT DATA {
-    <${catalogUri}> dcat:dataset <${instanceUri}> .
-    <${instanceUri}> a dcat:Dataset ;
-      dcterms:conformsTo <${classUri}> ;
-      dcterms:title "${escapeTurtleLiteral(title)}" ;${descriptionTriple}
-      dcterms:modified "${modified}"^^xsd:dateTime ;
-      dcterms:publisher <${publisherWebId}> ;
-      dcat:distribution <${instanceUri}${DISTRIBUTION_FRAGMENT}> .
-    <${instanceUri}${DISTRIBUTION_FRAGMENT}> a dcat:Distribution ;
-      dcat:accessURL <${binaryUri}> ;
-      dcat:mediaType "${escapeTurtleLiteral(mediaType)}" ;
-      dcat:byteSize ${byteSize} .
-  }
-`.trim();
-
-  let patchResponse = await fetch(catalogUri, {
-    method: "PATCH",
-    headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
-    body: sparqlUpdate,
-  });
-
-  if (!patchResponse.ok && patchResponse.status === 404) {
-    const putResponse = await fetch(catalogUri, {
-      method: "PUT",
-      headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-      body: EMPTY_CATALOG_TURTLE,
-    });
-    if (!putResponse.ok) {
-      throw new Error(`Failed to create catalog.ttl: ${putResponse.status} ${putResponse.statusText}`);
+    store.addQuad(quad(catalog, DCAT_DATASET, instance));
+    store.addQuad(quad(instance, RDF_TYPE, DCAT_DATASET_CLASS));
+    store.addQuad(quad(instance, DCTERMS_CONFORMS_TO, namedNode(classUri)));
+    store.addQuad(quad(instance, DCTERMS_TITLE, literal(title)));
+    if (description.trim()) {
+      store.addQuad(quad(instance, DCTERMS_DESCRIPTION, literal(description)));
     }
-    patchResponse = await fetch(catalogUri, {
-      method: "PATCH",
-      headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
-      body: sparqlUpdate,
-    });
-  }
-
-  if (!patchResponse.ok) {
-    throw new Error(`Failed to update catalog.ttl: ${patchResponse.status} ${patchResponse.statusText}`);
-  }
+    store.addQuad(quad(instance, DCTERMS_MODIFIED, literal(modified, XSD_DATE_TIME)));
+    store.addQuad(quad(instance, DCTERMS_PUBLISHER, namedNode(publisherWebId)));
+    store.addQuad(quad(instance, DCAT_DISTRIBUTION, distribution));
+    store.addQuad(quad(distribution, RDF_TYPE, DCAT_DISTRIBUTION_CLASS));
+    store.addQuad(quad(distribution, DCAT_ACCESS_URL, namedNode(binaryUri)));
+    store.addQuad(quad(distribution, DCAT_MEDIA_TYPE, literal(mediaType)));
+    store.addQuad(quad(distribution, DCAT_BYTE_SIZE, literal(String(byteSize), XSD_INTEGER)));
+  });
 }
 
 /**
- * Removes a dataset and its distribution from the catalog.
+ *  Removes a dataset and its distribution metadata from a DCAT catalog.
  *
  * @remarks
- * No-ops silently if the catalog isn't reachable.
+ * Returns without modification when the catalog is unavailable. The catalog
+ * is updated through a single GET/PUT cycle, so all related triples are
+ * removed together.
  *
- * @param catalogUri - URI of the catalog resource
- * @param instanceUri - URI of the dataset to remove
- * @param fetch - Authenticated fetch function
+ * @param catalogUri - URI of the catalog resource.
+ * @param instanceUri - URI of the dataset to remove.
+ * @param fetch - Authenticated Solid fetch function.
  *
  * @public
  */
@@ -182,34 +196,27 @@ export async function removeFromCatalog(
   instanceUri: string,
   fetch: FetchFn
 ): Promise<void> {
-  assertSafeUri(catalogUri);
-  assertSafeUri(instanceUri);
   const headResponse = await fetch(catalogUri, { method: "HEAD" });
   if (!headResponse.ok) return;
 
-  const sparqlUpdate = `${CATALOG_SPARQL_PREFIXES}
+  await withCatalogStore(catalogUri, fetch, (store) => {
+    const catalog = namedNode(catalogUri);
+    const instance = namedNode(instanceUri);
+    const distribution = namedNode(`${instanceUri}${DISTRIBUTION_FRAGMENT}`);
 
-  DELETE WHERE { <${catalogUri}> dcat:dataset <${instanceUri}> . <${instanceUri}> ?p ?v . } ;
-  DELETE WHERE { <${instanceUri}${DISTRIBUTION_FRAGMENT}> ?p ?v . }
-`.trim();
-
-  const patchResponse = await fetch(catalogUri, {
-    method: "PATCH",
-    headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
-    body: sparqlUpdate,
+    store.removeQuads(store.getQuads(catalog, DCAT_DATASET, instance, null));
+    store.removeQuads(store.getQuads(instance, null, null, null));
+    store.removeQuads(store.getQuads(distribution, null, null, null));
   });
-  if (!patchResponse.ok) {
-    throw new Error(`Failed to remove entry from catalog.ttl: ${patchResponse.status} ${patchResponse.statusText}`);
-  }
 }
 
 /**
  * Returns a URI's resource filename, decoding percent-escapes when the
  * tail is well-formed and falling back to the raw tail otherwise.
  *
- * @internal
+ * @public
  */
-function resourceFileName(uri: string): string {
+export function resourceFileName(uri: string): string {
   const tail = uri.split("/").pop() ?? "";
   try {
     return decodeURIComponent(tail);
@@ -300,6 +307,13 @@ export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry
 /**
  * Links a catalog to the user's profile via `dcat:catalog`.
  *
+ * @remarks
+ * A single-triple SPARQL PATCH rather than the GET/PUT round-trip used
+ * elsewhere in this module: the WebID profile document is a shared,
+ * ecosystem-wide resource that other apps also write to, so a surgical
+ * one-triple insert is safer than reading, rewriting, and putting back
+ * the whole document.
+ *
  * @param catalogUri - URI of the catalog to link
  * @param webId - User's WebID
  * @param fetch - Authenticated fetch function
@@ -311,8 +325,9 @@ export async function linkCatalogToProfile(
   webId: string,
   fetch: FetchFn
 ): Promise<void> {
-  assertSafeUri(catalogUri);
   const profileDocUri = webId.split("#")[0];
+  assertSafeUri(catalogUri);
+  assertSafeUri(profileDocUri);
 
   const sparqlUpdate = `PREFIX dcat: <${RDF_NAMESPACES.DCAT}>
 

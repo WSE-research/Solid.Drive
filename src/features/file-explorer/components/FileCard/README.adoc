@@ -13,8 +13,11 @@ Also resolves the publisher's WebID to a display name.
 | Info | Toggles a panel with type, size, upload date, modified date, publisher
 | Share | Opens `SharePanel` to grant / revoke access
 | Download | Links directly to the binary
-| Delete | Removes the DCAT entry from the catalog, then deletes the container
+| Delete ("Move to bin") | Moves the file to the Recycle bin via `softDeleteFile`, when the required owner information is available; otherwise falls back to a hard delete.
+| Delete permanently | Permanently removes the catalog entry and file container, bypassing the Recycle Bin. Requires confirmation that the action cannot be undone.
 |===
+
+Both delete actions use a shared ref-based lock to prevent duplicate or concurrent deletes while an operation is in progress.
 
 Pass `readOnly` to hide mutation controls (used by `SharedWithMeSection` for files you don't own).
 
@@ -46,6 +49,8 @@ link:../[file-explorer/components]
 * link:../../../../infrastructure/solid/catalog/[catalog]
 * link:../../../../infrastructure/solid/resourceGuards/[resourceGuards]
 * link:../../../../infrastructure/validation/fileTypeRegistry/[fileTypeRegistry]
+* link:../../services/deleteResource/[deleteResource]
+* link:../../services/softDeleteFile/[softDeleteFile]
 * link:../../../../shared/contexts/NotificationContext/[NotificationContext]
 * link:../../../../shared/utils/[utils]
 * link:../../../../shared/utils/formatBytes/[formatBytes]

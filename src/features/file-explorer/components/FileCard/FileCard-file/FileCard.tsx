@@ -14,20 +14,46 @@ import { isLoadable, isReadable, isSolidContainer } from "@/infrastructure/solid
 import { formatBytes } from "@/shared/utils/formatBytes";
 import type { SolidLeaf } from "@ldo/connected-solid";
 import { deleteResource } from "@/features/file-explorer/services/deleteResource";
+import { softDeleteFile } from "@/features/file-explorer/services/softDeleteFile";
 import { getFileTypeInfo, resolveClass } from "@/infrastructure/validation/fileTypeRegistry";
 import { SharePanel } from "@/features/file-explorer/components/SharePanel";
 import { getAppContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { useFileSharing } from "@/features/file-explorer/hooks/useFileSharing";
 import { useFilePreview } from "@/features/file-explorer/hooks/useFilePreview";
-import { useNotifications } from "@/shared/contexts/NotificationContext";
+import { useGuardedSoftDelete } from "@/features/file-explorer/hooks/useGuardedSoftDelete";
 import { DEFAULT_LOCALE, DATE_FORMAT_OPTIONS, DEFAULT_FILE_TYPE_URI, CONTENT_TYPES } from "@/config";
 import type { SharedEntry } from "@/types";
+import type { CatalogEntrySh } from "@/.ldo/catalogEntry.typings";
 import { FileMediaPreview } from "./FileMediaPreview";
 import { FileCardInfoPanel } from "./FileCardInfoPanel";
 
 function resolveFileClassUri(encodingFormat: string | null | undefined): string {
   const mimeType = encodingFormat ?? "";
   return mimeType ? resolveClass(mimeType) : DEFAULT_FILE_TYPE_URI;
+}
+
+/**
+ * Builds the {@link SharedEntry} catalog payload used by sharing and
+ * soft-delete flows to preserve a consistent snapshot of file metadata.
+ *
+ * @internal
+ */
+function buildCatalogRow(
+  metadataUri: string,
+  binaryUri: string | undefined,
+  classUri: string,
+  fileMeta: CatalogEntrySh,
+): SharedEntry {
+  return {
+    metadataUri,
+    binaryUri: binaryUri ?? metadataUri,
+    classUri,
+    mediaType: fileMeta.encodingFormat ?? CONTENT_TYPES.OCTET_STREAM,
+    byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
+    title: fileMeta.name ?? metadataUri.split("/").pop()!,
+    description: fileMeta.description ?? "",
+    modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
+  };
 }
 
 /**
@@ -53,7 +79,6 @@ type FileCardProps = {
 export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catalogUri, readOnly = false }) => {
   const [translate] = useTranslation();
   const metadataUri = `${containerUri}index.ttl`;
-  const { confirm, showError } = useNotifications();
 
   const metadataResource = useResource(metadataUri);
   const containerResource = useResource(containerUri);
@@ -82,27 +107,60 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
       );
       if (leaf) return leaf.uri;
     }
-    // CatalogEntrySh has no field carrying the binary resource URL, so
-    // there is no way to resolve it when containerResource isn't (yet) a
-    // recognized SolidContainer.
+
+    /**
+     * CatalogEntrySh does not expose the binary resource URL, so it cannot
+     * be resolved until containerResource is recognized as a SolidContainer.
+     */
     return undefined;
   }, [containerResource]);
 
   const { previewUrl } = useFilePreview(binaryUri);
 
-  const handleDelete = useCallback(async () => {
-    const confirmed = await confirm(translate("fileCard.deleteConfirm"));
-    if (!confirmed) return;
-    const result = await deleteResource({
-      containerUri,
-      metadataUri,
-      catalogUri,
-      fetch: solidFetch,
+  const { runGuardedDelete } = useGuardedSoftDelete();
+
+  const handleDelete = useCallback(() => {
+    // Soft delete requires file metadata, the owner's storage root and WebID.
+    // If any of these are missing, fall back to a hard delete.
+    const canSoftDelete = fileMeta && ownerStorageRoot && session.webId;
+    return runGuardedDelete({
+      confirmMessage: translate(canSoftDelete ? "fileCard.deleteConfirm" : "fileCard.deleteConfirmPermanent"),
+      failedMessage: translate("fileCard.deleteFail"),
+      run: () =>
+        canSoftDelete
+          ? softDeleteFile({
+              containerUri,
+              storageRootUri: ownerStorageRoot,
+              catalogUri,
+              entry: buildCatalogRow(metadataUri, binaryUri, resolveFileClassUri(fileMeta.encodingFormat), fileMeta),
+              ownerWebId: session.webId,
+              fetch: solidFetch,
+            })
+          : deleteResource({ containerUri, metadataUri, catalogUri, fetch: solidFetch }),
     });
-    if (!result.ok) {
-      showError(`${translate("fileCard.deleteFail")}: ${result.reason}`);
-    }
-  }, [containerUri, metadataUri, catalogUri, solidFetch, translate, confirm, showError]);
+  }, [
+    runGuardedDelete,
+    translate,
+    fileMeta,
+    ownerStorageRoot,
+    session.webId,
+    containerUri,
+    catalogUri,
+    metadataUri,
+    binaryUri,
+    solidFetch,
+  ]);
+
+  // Permanently deletes the resource, bypassing the soft-delete flow used by handleDelete.
+  const handleDeletePermanently = useCallback(
+    () =>
+      runGuardedDelete({
+        confirmMessage: translate("fileCard.deleteConfirmPermanent"),
+        failedMessage: translate("fileCard.deleteFail"),
+        run: () => deleteResource({ containerUri, metadataUri, catalogUri, fetch: solidFetch }),
+      }),
+    [runGuardedDelete, translate, containerUri, metadataUri, catalogUri, solidFetch],
+  );
 
   const isMetaLoading =
     (isLoadable(metadataResource) && (metadataResource.isLoading() || metadataResource.isUnfetched())) ||
@@ -158,17 +216,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const shareButtonLabel = showShare ? translate("fileCard.hideShare") : translate("fileCard.share");
   const sharedIconTitle = translate("fileCard.shared");
   const mimeType = fileMeta.encodingFormat ?? "";
-
-  const sharedEntry: SharedEntry = {
-    metadataUri,
-    binaryUri: binaryUri ?? metadataUri,
-    classUri,
-    mediaType: fileMeta.encodingFormat ?? CONTENT_TYPES.OCTET_STREAM,
-    byteSize: parseInt(fileMeta.contentSize ?? "0", 10),
-    title: fileMeta.name ?? metadataUri.split("/").pop()!,
-    description: fileMeta.description ?? "",
-    modified: fileMeta.dateModified ?? fileMeta.uploadDate ?? new Date().toISOString(),
-  };
+  const sharedEntry: SharedEntry = buildCatalogRow(metadataUri, binaryUri, classUri, fileMeta);
 
   return (
     <file-card>
@@ -221,7 +269,12 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
             </a>
           )}
           {!readOnly && (
-            <button className="btn btn--delete" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+            <button className="btn btn--ghost btn--small" onClick={handleDelete}>{translate("fileCard.delete")}</button>
+          )}
+          {!readOnly && (
+            <button className="btn btn--delete" onClick={handleDeletePermanently}>
+              {translate("fileCard.deletePermanently")}
+            </button>
           )}
         </file-card-actions>
       </file-card-meta>

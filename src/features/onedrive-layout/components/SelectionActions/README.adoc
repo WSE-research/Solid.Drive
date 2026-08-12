@@ -1,12 +1,10 @@
 = SelectionActions
 
-Action strip rendered in the page header when something is selected.
-Shows Share, Copy link, Delete, and Download, plus Move to and Rename stubs that are reserved for follow up work.
+Action strip rendered in the page header when something is selected. Shows Share, Copy link, Delete (relabeled "Move to bin" for files), and Download, plus Move to and Rename stubs reserved for follow-up work.
 
-A `ResizeObserver` watches the strip's width.
-Actions that no longer fit inline spill into a kebab dropdown on the right, so the row never wraps.
+A single `onDelete` action covers both kinds of selection: it moves a file to the Recycle bin, or hard-deletes a folder, since folders aren't catalog-backed and can't be tombstoned. Permanently deleting a file happens from the Recycle bin instead, once it's there. See link:../views/TrashView/[TrashView].
 
-Renders nothing when `selection` is `null`.
+A `ResizeObserver` watches the strip's width, and actions that no longer fit inline spill into a kebab dropdown on the right so the row never wraps. Renders nothing when `selection` is `null`.
 
 == Props
 
@@ -17,7 +15,7 @@ Renders nothing when `selection` is `null`.
 | `selection` | The current selected file or folder from link:../../hooks/useSelectedResource/[useSelectedResource]
 | `onShare` | Opens the ShareDialog
 | `onCopyLink` | Copies the resource URI to the clipboard
-| `onDelete` | Deletes the resource after a confirm prompt
+| `onDelete` | Moves a file to the Recycle bin, or hard-deletes a folder, after a confirm prompt
 | `onDownload` | Downloads the binary
 | `onMoveTo` | Stub, reserved for follow up work
 | `onRename` | Stub, reserved for follow up work

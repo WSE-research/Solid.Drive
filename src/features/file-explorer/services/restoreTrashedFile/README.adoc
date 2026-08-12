@@ -1,0 +1,34 @@
+= restoreTrashedFile
+
+Reverses a soft delete: reads the tombstone, copies the payload, `index.ttl`, and (best-effort) the ACL back to the exact original location, restores the catalog row, then removes the trash copy.
+
+== Sequence
+
+Reads the tombstone first. If it's missing, nothing is written and the result is `{ ok: false, reason: 'missing-tombstone' }`. Then checks the original location isn't already occupied, via a `HEAD` on `index.ttl` rather than the container (pods keep empty containers around, so a container `HEAD` would false-positive). If occupied, again nothing is written, and the result is `{ ok: false, reason: 'occupied' }`.
+
+Once both checks pass, it ensures the original container exists, copies the payload back under its original filename (from the tombstone) and a fresh `index.ttl`, and restores the ACL snapshot if the tombstone says one was captured. ACL restore is best-effort: a failure there still returns success, just with `aclRestored: false`.
+
+The catalog row is appended using the catalog and instance URIs stored on the tombstone, never recomputed, so it lands exactly where it was removed from. The trash copy is then removed via the same `deleteResource` used elsewhere; that's also best-effort, since a stale trash row is harmless once the restore itself has succeeded. Finally, `useCatalogVersion` and `useAclVersion` are notified for the original location.
+
+Any failure while writing to the original location rolls back what was written and returns `{ ok: false, reason: 'failed', detail }`, leaving the trash copy untouched so the user can retry.
+
+== Reuse
+
+No new delete, catalog, or ACL-restore logic here: `appendToCatalog`, `deleteResource`, and `restoreAclFromSnapshot` are all reused unmodified.
+
+Permanent delete from trash isn't a service of its own, on purpose: `useTrashEntries` and `TrashView` just call `deleteResource({ containerUri: trashItemContainerUri, catalogUri: trashCatalogUri, metadataUri, fetch })` directly.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]
+* link:../../../../infrastructure/solid/trashPaths/[trashPaths]
+* link:../../../../infrastructure/solid/tombstone/[tombstone]
+* link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]
+* link:../deleteResource/[deleteResource]
+* link:../softDeleteFile/[softDeleteFile]
+* link:../../../../types/[types]

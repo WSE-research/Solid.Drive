@@ -1,0 +1,14 @@
+= containerListing
+
+Reads a Solid container's `ldp:contains` triples and returns the absolute URIs of its immediate children. A non-2xx response is treated as an empty list rather than an error, so callers can still attempt to act on a parent that may itself already be gone.
+
+Extracted from link:../../../features/file-explorer/services/deleteResource/[deleteResource], which needs the same listing to walk a container's descendants before deleting them, and reused unmodified by link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] to locate a file's binary when its catalog entry doesn't carry one.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../../../config/[config]
+* link:../../../types/[types]

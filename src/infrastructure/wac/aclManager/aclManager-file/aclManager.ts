@@ -83,46 +83,92 @@ function agentReadQuads(authId: string, resourceUri: string, agentWebId: string,
 }
 
 /**
- * Discovers the ACL resource URI for a container via its Link header.
+ * Discovers a resource's ACL URI via its Link header.
  *
  * @remarks
  * Solid servers advertise the ACL via `rel="acl"` in the Link header.
+ * Works for containers and individual resources alike — the Link header
+ * mechanism doesn't distinguish between them.
  *
- * @param containerUri - URI of the container
+ * @param resourceUri - URI of the container or resource
  * @param fetch - Authenticated fetch function
  * @returns Resolved ACL URI
  * @throws Error if no ACL link header is found
  *
  * @public
  */
-export async function discoverAclUri(containerUri: string, fetch: FetchFn): Promise<string> {
-  let containerUrl: URL;
+export async function discoverAclUri(resourceUri: string, fetch: FetchFn): Promise<string> {
+  let resourceUrl: URL;
   try {
-    containerUrl = new URL(containerUri);
+    resourceUrl = new URL(resourceUri);
   } catch {
-    throw new Error(`ACL discovery requires an absolute container URI, received "${containerUri}"`);
+    throw new Error(`ACL discovery requires an absolute resource URI, received "${resourceUri}"`);
   }
 
-  const response = await fetch(containerUri, { method: "HEAD" });
+  const response = await fetch(resourceUri, { method: "HEAD" });
   if (!response.ok) {
-    throw new Error(`HEAD ${containerUri} returned ${response.status} ${response.statusText}`);
+    throw new Error(`HEAD ${resourceUri} returned ${response.status} ${response.statusText}`);
   }
   const linkHeader = response.headers.get("Link") ?? "";
   const aclLinkMatch = linkHeader.match(/<([^>]+)>;\s*rel="acl"/);
   if (!aclLinkMatch) {
-    throw new Error(`No ACL link header found for ${containerUri}`);
+    throw new Error(`No ACL link header found for ${resourceUri}`);
   }
   const aclUri = aclLinkMatch[1];
   if (isAbsoluteUri(aclUri)) return aclUri;
-  return new URL(aclUri, containerUrl).href;
+  return new URL(aclUri, resourceUrl).href;
+}
+
+/**
+ * Reads an ACL document's raw Turtle text.
+ *
+ * @remarks
+ * Returns `null` on a 404 rather than throwing: the resource has no ACL
+ * of its own and inherits from an ancestor container, which is a normal,
+ * expected state for most resources.
+ *
+ * @param aclUri - URI of the ACL document
+ * @param fetch - Authenticated fetch function
+ * @returns The raw Turtle text, or `null` if no ACL document exists
+ *
+ * @public
+ */
+export async function readAclDocument(aclUri: string, fetch: FetchFn): Promise<string | null> {
+  const response = await fetch(aclUri);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`GET ${aclUri} returned ${response.status} ${response.statusText}`);
+  }
+  return response.text();
+}
+
+/**
+ * Writes raw Turtle to an ACL document, replacing any existing content.
+ *
+ * @param aclUri - URI of the ACL document
+ * @param turtle - Turtle content to write
+ * @param fetch - Authenticated fetch function
+ * @throws Error if the PUT request fails
+ *
+ * @public
+ */
+export async function writeAclDocument(aclUri: string, turtle: string, fetch: FetchFn): Promise<void> {
+  const response = await fetch(aclUri, {
+    method: "PUT",
+    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
+    body: turtle,
+  });
+  if (!response.ok) {
+    throw new Error(`PUT ${aclUri} returned ${response.status} ${response.statusText}`);
+  }
 }
 
 /**
  * Reads WebIDs of agents with read-only access from an ACL document.
  *
  * @remarks
- * Returns only agents with `acl:Read` but not `acl:Write` — i.e., people
- * the file was shared with, not the owner or co-editors.
+ * Returns only agents with `acl:Read` but not `acl:Write`: people the
+ * file was shared with, not the owner or co-editors.
  *
  * @param aclUri - URI of the ACL document
  * @param fetch - Authenticated fetch function
@@ -131,12 +177,8 @@ export async function discoverAclUri(containerUri: string, fetch: FetchFn): Prom
  * @public
  */
 export async function readAclAgents(aclUri: string, fetch: FetchFn): Promise<string[]> {
-  const response = await fetch(aclUri);
-  if (response.status === 404) return [];
-  if (!response.ok) {
-    throw new Error(`GET ${aclUri} returned ${response.status} ${response.statusText}`);
-  }
-  const turtle = await response.text();
+  const turtle = await readAclDocument(aclUri, fetch);
+  if (turtle === null) return [];
 
   const parser = new Parser({ baseIRI: aclUri });
   const quads = parser.parse(turtle);
@@ -203,15 +245,7 @@ export async function writeListOnlyAcl(
   agentWebIds: string[],
   fetch: FetchFn
 ): Promise<void> {
-  const turtle = buildListOnlyAclTurtle(containerUri, ownerWebId, agentWebIds);
-  const response = await fetch(aclUri, {
-    method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-    body: turtle,
-  });
-  if (!response.ok) {
-    throw new Error(`PUT ${aclUri} returned ${response.status} ${response.statusText}`);
-  }
+  await writeAclDocument(aclUri, buildListOnlyAclTurtle(containerUri, ownerWebId, agentWebIds), fetch);
 }
 
 /**
@@ -273,15 +307,7 @@ export async function writeAcl(
   agentWebIds: string[],
   fetch: FetchFn
 ): Promise<void> {
-  const turtle = buildAclTurtle(containerUri, ownerWebId, agentWebIds);
-  const response = await fetch(aclUri, {
-    method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-    body: turtle,
-  });
-  if (!response.ok) {
-    throw new Error(`PUT ${aclUri} returned ${response.status} ${response.statusText}`);
-  }
+  await writeAclDocument(aclUri, buildAclTurtle(containerUri, ownerWebId, agentWebIds), fetch);
 }
 
 /**
@@ -306,15 +332,7 @@ export async function writeResourceAcl(
   agentWebIds: string[],
   fetch: FetchFn
 ): Promise<void> {
-  const turtle = buildResourceAclTurtle(resourceUri, ownerWebId, agentWebIds);
-  const response = await fetch(aclUri, {
-    method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-    body: turtle,
-  });
-  if (!response.ok) {
-    throw new Error(`PUT ${aclUri} returned ${response.status} ${response.statusText}`);
-  }
+  await writeAclDocument(aclUri, buildResourceAclTurtle(resourceUri, ownerWebId, agentWebIds), fetch);
 }
 
 /**

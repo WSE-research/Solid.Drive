@@ -50,6 +50,12 @@ describe("config/index exports", () => {
     "SOLID_STORAGE_DESCRIPTION_REL",
     "SOLID_NOTIFICATION_CONTEXT_URL",
     "ROUTER_BASENAME",
+    "TRASH_CONTAINER_NAME",
+    "TRASH_PAYLOAD_FILE",
+    "TRASH_TOMBSTONE_FILE",
+    "TRASH_ACL_SNAPSHOT_FILE",
+    "TRASH_RETENTION_DAYS",
+    "TRASH_TERMS",
   ] as const;
 
   it.each(expectedConstants)("exports %s", (name) => {
@@ -57,7 +63,7 @@ describe("config/index exports", () => {
   });
 
   it("exports exactly the expected number of runtime values", () => {
-    // 43 constants + ENV
-    expect(Object.keys(Config)).toHaveLength(43);
+    // 49 constants + ENV
+    expect(Object.keys(Config)).toHaveLength(49);
   });
 });

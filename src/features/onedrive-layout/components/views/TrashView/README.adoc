@@ -1,0 +1,26 @@
+= TrashView
+
+Recycle bin view for the OneDrive layout.
+
+Lists soft-deleted files through `useTrashEntries`, which already purges expired rows before returning them. TrashView owns the restore, purge, and empty-trash confirm prompts and toasts itself, mirroring how `useOneDriveActions` wires the delete confirm and toast for the main file table.
+
+"Empty recycle bin" purges every entry through the same per-item `purge` the table's own row actions use, just behind a single confirm that covers all of them. It only shows up once there's something to empty.
+
+== Internal pieces
+
+`TrashTable`:: Purely presentational: Name, Deleted, Expires, Size, and Actions columns, one `trash-row` per entry. Restore is disabled when a row's `tombstone` is `null` (missing or unparseable; the row can still be purged). Both actions are disabled for whichever row is mid-action, tracked via `busyContainerUri`.
+`formatExpiry`:: Buckets a tombstone's expiry date into `expiryPast`, `expiresToday`, `expiresTomorrow`, or `expiresIn` with a day count, so the table itself does no date arithmetic.
+
+Restore surfaces three outcomes: success, occupied (something's already back at the original location), and a generic failure. If the tombstone had an ACL snapshot but restoring it comes back false, there's one more warning toast on top of the success one: the file is back, but its sharing grants are not.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components/views]
+
+.Uses
+* link:../../../../file-explorer/hooks/useTrashEntries/[useTrashEntries]
+* link:../../../../file-explorer/hooks/useDriveInitialization/[useDriveInitialization]
+* link:../../../formatting/[formatting]
+* link:../../../icons/[icons]
+* link:../../../../../shared/contexts/NotificationContext/[NotificationContext]

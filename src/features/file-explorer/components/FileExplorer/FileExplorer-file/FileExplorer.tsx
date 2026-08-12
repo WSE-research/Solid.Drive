@@ -13,7 +13,7 @@ import { isSolidContainer, isReloadable } from "@/infrastructure/solid/resourceG
 import { resolveCatalogUri } from "@/infrastructure/solid/catalog";
 import { SharedWithMeSection } from "@/features/file-explorer/components/SharedWithMeSection";
 import { FileUpload } from "@/features/file-explorer/components/FileUpload";
-import { isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
+import { isVisibleContainer, isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
@@ -227,11 +227,15 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     };
   }, [showAddMenu]);
 
-  useEffect(() => {
+  // Close any open add-menu, folder, or upload panel when navigating to
+  // another folder. Reset during render to avoid an extra effect cycle.
+  const [previousUri, setPreviousUri] = useState(currentUri);
+  if (previousUri !== currentUri) {
+    setPreviousUri(currentUri);
     setShowNewFolder(false);
     setShowUpload(false);
     setShowAddMenu(false);
-  }, [currentUri]);
+  }
 
   if (!session.isActive) {
     return (
@@ -265,7 +269,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   const isInAppFolder = currentUri === appContainerUri;
   const entries = isSolidContainer(currentContainer) ? currentContainer.children() : [];
-  const folderEntries = entries.filter(isSolidContainer);
+  const folderEntries = entries
+    .filter(isSolidContainer)
+    .filter((entry) => isVisibleContainer(entry, storageRootUri ?? ""));
   const leafEntries = entries.filter((entry) => !isSolidContainer(entry)).filter(isVisibleLeaf) as SolidLeaf[];
 
   return (
