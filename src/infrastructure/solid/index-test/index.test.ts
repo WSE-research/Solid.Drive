@@ -10,13 +10,25 @@ describe("infrastructure/solid/index exports", () => {
     "saveProfileFields", "ensureProfileDocType", "addContact", "removeContact",
     // catalog
     "resolveCatalogUri", "appendToCatalog", "removeFromCatalog",
-    "parseCatalog", "linkCatalogToProfile",
+    "parseCatalog", "linkCatalogToProfile", "resourceFileName",
     // sharedCatalog
     "getAppContainerUri", "getSharedCatalogUri", "getSharedCatalogFileName",
     "getCandidateSharedCatalogUris", "isSharedCatalogFile",
     "normalizeShareCatalogId", "toContainerUri", "hasAccess",
     // displayName
     "resolveDisplayName",
+    // storageDiscovery
+    "discoverStorageRoot",
+    // trashPaths
+    "getTrashContainerUri", "getTrashCatalogUri",
+    "getTrashItemContainerUri", "getTrashPayloadUri", "getTombstoneUri", "getAclSnapshotUri",
+    // tombstone
+    "buildTombstoneTurtle", "parseTombstone", "writeTombstone", "readTombstone",
+    "computeExpiry", "isExpired",
+    // containerListing
+    "listContainerChildren",
+    // resourceCopy
+    "copyResource", "ensureContainer",
   ] as const;
 
   it.each(expectedFunctions)("exports %s as a function", (name) => {

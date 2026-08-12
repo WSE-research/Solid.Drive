@@ -2,7 +2,8 @@
 
 DCAT catalog operations for Solid Pods.
 All communication goes through raw `fetch`; LDO is not used.
-URIs passed to SPARQL operations are validated for unsafe characters before interpolation.
+
+`appendToCatalog` and `removeFromCatalog` mutate a catalog by reading the whole Turtle document, applying the change to an in-memory N3 store, and PUTting the whole document back — not SPARQL PATCH. A GET 404 starts from an empty store, so the same round-trip also creates the catalog on first write. This was deliberately switched from SPARQL PATCH: chaining multiple update operations in one request, and even single-operation PATCH forms, are inconsistently supported across Solid server implementations, and a plain GET/PUT is the most broadly compatible way to mutate a Turtle document. `linkCatalogToProfile` is the one exception — it stays a surgical single-triple SPARQL PATCH because the WebID profile document is a shared, ecosystem-wide resource other apps also write to, and a full read-rewrite-PUT of the whole profile is a bigger blast radius than this module should take for one triple.
 
 == Exports
 
@@ -11,17 +12,21 @@ URIs passed to SPARQL operations are validated for unsafe characters before inte
 | Name | Description
 
 | `resolveCatalogUri(profile, storageRoot)` | Returns `profile.catalog["@id"]` or falls back to `{storageRoot}catalog.ttl`
-| `appendToCatalog(...)` | Adds a dataset + distribution entry via SPARQL PATCH; auto-creates the catalog on 404
-| `removeFromCatalog(...)` | Removes a dataset entry via SPARQL DELETE WHERE; no-ops if the catalog is not reachable
+| `appendToCatalog(...)` | Adds a dataset + distribution entry via a GET/PUT round trip; creates the catalog on 404
+| `removeFromCatalog(...)` | Removes a dataset entry via a GET/PUT round trip; no-ops if the catalog is not reachable (`HEAD` check first)
 | `parseCatalog(turtleText, baseUri?)` | Parses a Turtle catalog into `CatalogEntry[]` objects
-| `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document
-| `EMPTY_CATALOG_TURTLE` | Minimal Turtle template for creating a new empty catalog
+| `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document via SPARQL PATCH
+| `resourceFileName(uri)` | Decodes a URI's resource filename, falling back to the raw tail on malformed percent-escapes
+| `EMPTY_CATALOG_TURTLE` | Minimal Turtle template for creating a new empty catalog (used directly by `useAccessRequests`, independent of `appendToCatalog`'s own 404 handling)
 |===
+
+`appendToCatalog`/`removeFromCatalog`/`parseCatalog` are parameterised entirely by `catalogUri`, so `softDeleteFile` and `useTrashEntries` reuse them unmodified against `trash/catalog.ttl` instead of the main catalog; see link:../trashPaths/[trashPaths].
 
 == See also
 
-* link:../../features/file-explorer/hooks/useFileUpload/[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
-* link:../../features/file-explorer/hooks/useSharedCatalog/[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
+* link:../../../features/file-explorer/hooks/useFileUpload/[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
+* link:../../../features/file-explorer/hooks/useSharedCatalog/[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] calls `resourceFileName` to derive a trashed file's original binary name for its tombstone.
 
 == Navigation
 
