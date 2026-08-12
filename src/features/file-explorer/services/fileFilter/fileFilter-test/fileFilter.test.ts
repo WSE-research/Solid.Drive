@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { SolidLeaf } from '@ldo/connected-solid';
-import { isVisibleLeaf, isVisibleResourceUri } from '../fileFilter-file/fileFilter';
+import type { SolidContainer, SolidLeaf } from '@ldo/connected-solid';
+import { isVisibleContainer, isVisibleContainerUri, isVisibleLeaf, isVisibleResourceUri } from '../fileFilter-file/fileFilter';
 
 // Mock dependencies
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -9,10 +9,17 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
 
 vi.mock('@/config/constants', () => ({
   SYSTEM_FILES: new Set(['catalog.ttl', 'robots.txt', 'README', '.acl', '.meta']),
+  TRASH_CONTAINER_NAME: 'trash/',
 }));
+
+const storageRootUri = 'https://pod.example/';
 
 function makeLeaf(uri: string) {
   return { uri } as SolidLeaf;
+}
+
+function makeContainer(uri: string) {
+  return { uri } as SolidContainer;
 }
 
 describe('isVisibleLeaf', () => {
@@ -57,7 +64,6 @@ describe('isVisibleLeaf', () => {
   });
 
   it('returns true when URI ends with trailing slash because the extracted filename is empty', () => {
-    // When URI ends with /, pop returns "", which is not a system file
     expect(isVisibleLeaf(makeLeaf('https://pod.example/files/'))).toBe(true);
   });
 
@@ -65,8 +71,7 @@ describe('isVisibleLeaf', () => {
     expect(isVisibleLeaf(makeLeaf(''))).toBe(true);
   });
 
-  it('falls back to empty string when split/pop yields undefined', () => {
-    // Force the ?? "" fallback by providing a uri whose split().pop() returns undefined
+  it('stays visible even if the file name genuinely cannot be extracted from the URI', () => {
     const leaf = { uri: '' } as unknown as SolidLeaf;
     const original = Array.prototype.pop;
     Array.prototype.pop = function () { return undefined; };
@@ -93,5 +98,41 @@ describe('isVisibleResourceUri', () => {
 
   it('returns false for a system file', () => {
     expect(isVisibleResourceUri('https://pod.example/my-solid-app/catalog.ttl')).toBe(false);
+  });
+});
+
+describe('isVisibleContainerUri', () => {
+  it('returns true for a normal folder', () => {
+    expect(isVisibleContainerUri('https://pod.example/my-solid-app/photo-2024/', storageRootUri)).toBe(true);
+  });
+
+  it('returns false for the storage-root trash container', () => {
+    expect(isVisibleContainerUri('https://pod.example/trash/', storageRootUri)).toBe(false);
+  });
+
+  it('returns false for the storage-root trash container even without a trailing slash', () => {
+    expect(isVisibleContainerUri('https://pod.example/trash', storageRootUri)).toBe(false);
+  });
+
+  it('does not hide a folder that merely contains "trash" as part of its name', () => {
+    expect(isVisibleContainerUri('https://pod.example/my-solid-app/trash-talk/', storageRootUri)).toBe(true);
+  });
+
+  it('does not hide a user folder literally named "trash" outside the storage root', () => {
+    expect(isVisibleContainerUri('https://pod.example/my-solid-app/trash/', storageRootUri)).toBe(true);
+  });
+});
+
+describe('isVisibleContainer', () => {
+  it('returns true for a normal folder entry', () => {
+    expect(isVisibleContainer(makeContainer('https://pod.example/my-solid-app/photo-2024/'), storageRootUri)).toBe(true);
+  });
+
+  it('returns false for the storage-root trash container entry', () => {
+    expect(isVisibleContainer(makeContainer('https://pod.example/trash/'), storageRootUri)).toBe(false);
+  });
+
+  it('returns true for a user folder named "trash" that is not the storage-root trash container', () => {
+    expect(isVisibleContainer(makeContainer('https://pod.example/my-solid-app/trash/'), storageRootUri)).toBe(true);
   });
 });
