@@ -620,12 +620,12 @@ describe('OneDriveLayout — handler outcomes', () => {
     expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 
-  it('downloads the selected file\'s URI when Download is clicked', async () => {
+  it('downloads the selected file\'s binary resource, not its container, when Download is clicked', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     await user.click(screen.getByRole('button', { name: /download/i }));
     expect(mockDownloadResource).toHaveBeenCalledWith(
-      'https://pod/app/doc/',
+      sampleCatalogEntry.accessURL,
       expect.any(String),
       expect.any(Function),
     );
