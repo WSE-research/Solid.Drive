@@ -12,9 +12,11 @@ import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable } from "@/infrastructure/solid/resourceGuards";
 import { LanguageSwitcher } from "@/features/auth/components/LanguageSwitcher";
-import { LayoutToggle, NotificationBell, InstallAppButton } from "@/features/onedrive-layout";
+import { ExperienceSwitcher, NotificationBell, InstallAppButton } from "@/features/onedrive-layout";
 import { getProfileDisplayName } from "@/shared/utils/getProfileDisplayName";
 import { APP_NAME, SOLID_PROVIDERS, CUSTOM_PROVIDER_VALUE, EXTERNAL_LINKS } from "@/config";
+
+const PROVIDER_SELECT_ID = "header-provider-select";
 
 /**
  * Renders the site header and handles Solid authentication state.
@@ -62,7 +64,7 @@ export const Header: FunctionComponent = () => {
           </p>
           <InstallAppButton />
           <NotificationBell onNavigateToRequests={() => {}} />
-          <LayoutToggle />
+          <ExperienceSwitcher />
           <LanguageSwitcher />
           <button className="btn btn--ghost" onClick={logout}>
             {translate("header.logOut")}
@@ -72,11 +74,17 @@ export const Header: FunctionComponent = () => {
         <auth-logged-out>
           <auth-input-row>
             <InstallAppButton />
-            <LayoutToggle />
+            <ExperienceSwitcher />
             <auth-field>
-              <label className="auth-provider-label">{translate("header.provider")}</label>
+              {/* Tied to the select with htmlFor: the header now holds three
+                  comboboxes (experience, provider, language), so each one
+                  needs its own accessible name. */}
+              <label className="auth-provider-label" htmlFor={PROVIDER_SELECT_ID}>
+                {translate("header.provider")}
+              </label>
               <auth-provider-row>
                 <select
+                  id={PROVIDER_SELECT_ID}
                   value={selectedProvider}
                   onChange={handleProviderChange}
                 >

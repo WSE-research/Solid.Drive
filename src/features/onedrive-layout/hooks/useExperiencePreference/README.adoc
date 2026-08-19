@@ -1,0 +1,26 @@
+= useExperiencePreference
+
+Presents the layout and theme preferences as one *experience* value: the classic shell, or the OneDrive shell wearing one of its themes.
+
+The two preferences underneath are orthogonal — link:../useLayoutPreference/[useLayoutPreference] picks the shell, link:../useThemePreference/[useThemePreference] restyles the OneDrive one — but users pick a look, not a pair of axes.
+This hook owns the translation between the two views of that state, so the landing page's experience picker and the classic header's switcher cannot drift apart.
+
+Picking a theme writes *both* halves (layout `onedrive` plus that theme), so a single interaction lands the user in the restyled shell.
+Picking `classic` moves only the layout axis: the theme styles the OneDrive shell alone, so the last theme choice survives a later return to it.
+
+== Exports
+
+`Experience`:: `'classic' | Theme`. Every theme is its own experience; the theme axis is not a hidden second step behind a single "OneDrive" entry.
+`EXPERIENCES`:: Every valid experience in picker order, derived from `THEMES` so a new theme joins every picker by construction.
+`isExperience(value)`:: Type guard for the union, for narrowing untyped DOM event values.
+`useExperiencePreference()`:: Returns `[experience, setExperience]`.
+
+== See also
+
+* link:../../components/ExperienceSwitcher/[ExperienceSwitcher] is the classic header's dropdown over this hook.
+* link:../../../auth/components/LandingPage/[LandingPage] offers the same list as cards before login.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/hooks]

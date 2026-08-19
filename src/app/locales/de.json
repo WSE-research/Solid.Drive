@@ -255,6 +255,14 @@
       "dropbox": "Dropbox",
       "gdrive": "Google Drive"
     },
+    "experience": "Ansicht",
+    "experienceOption": {
+      "classic": "Klassisch",
+      "light": "OneDrive (Hell)",
+      "dark": "OneDrive (Dunkel)",
+      "dropbox": "Dropbox",
+      "gdrive": "Google Drive"
+    },
     "colorScheme": "Farbe",
     "colorSchemeOption": {
       "indigo": "Indigo",

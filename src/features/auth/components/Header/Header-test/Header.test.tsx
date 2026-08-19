@@ -68,7 +68,7 @@ describe('Header — logged out', () => {
 
   it('renders the provider select dropdown', () => {
     render(<Header />);
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'header.provider' })).toBeInTheDocument();
   });
 
   it('renders the login button', () => {
@@ -83,7 +83,7 @@ describe('Header — logged out', () => {
 
   it('enables the login button after a provider is selected', () => {
     render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), {
+    fireEvent.change(screen.getByRole('combobox', { name: 'header.provider' }), {
       target: { value: 'https://solidcommunity.net' },
     });
     expect(screen.getByRole('button', { name: 'header.logIn' })).not.toBeDisabled();
@@ -91,7 +91,7 @@ describe('Header — logged out', () => {
 
   it('calls login with the selected provider URL when clicked', () => {
     render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), {
+    fireEvent.change(screen.getByRole('combobox', { name: 'header.provider' }), {
       target: { value: 'https://solidcommunity.net' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'header.logIn' }));
@@ -100,13 +100,13 @@ describe('Header — logged out', () => {
 
   it('shows a custom URL input when "Custom…" is selected', () => {
     render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'header.provider' }), { target: { value: 'custom' } });
     expect(screen.getByPlaceholderText('header.customProviderPlaceholder')).toBeInTheDocument();
   });
 
   it('calls login with the custom URL when entered and submitted', () => {
     render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'header.provider' }), { target: { value: 'custom' } });
     fireEvent.change(screen.getByPlaceholderText('header.customProviderPlaceholder'), {
       target: { value: 'https://my.custom.provider' },
     });
@@ -130,7 +130,7 @@ describe('Header — logged out', () => {
     const provider = SOLID_PROVIDERS.find((solidProvider) => solidProvider.registerUrl);
     if (!provider) return; // skip if no provider has a registerUrl
     render(<Header />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: provider.value } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'header.provider' }), { target: { value: provider.value } });
     const link = screen.getByText('header.createPod');
     expect(link).toHaveAttribute('href', provider.registerUrl);
   });
@@ -163,7 +163,7 @@ describe('Header — logged in', () => {
 
   it('does not render the provider dropdown when logged in', () => {
     render(<Header />);
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'header.provider' })).not.toBeInTheDocument();
   });
 
   it('falls back to a webId-derived identifier when no profile is loaded', () => {
@@ -197,13 +197,15 @@ describe('Header — logged in', () => {
     expect(screen.getByText('header.loading')).toBeInTheDocument();
   });
 
-  it('renders the layout toggle in the logged-in branch', () => {
+  it('renders the experience switcher in the logged-in branch', () => {
     render(<Header />);
-    expect(screen.getByRole('radiogroup', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: /oneDriveLayout\.experience|experience/i }),
+    ).toBeInTheDocument();
   });
 });
 
-describe('Header — layout toggle visible logged out', () => {
+describe('Header — experience switcher visible logged out', () => {
   beforeEach(() => {
     vi.mocked(useSolidAuth).mockReturnValue({
       session: { isActive: false, webId: undefined },
@@ -212,8 +214,10 @@ describe('Header — layout toggle visible logged out', () => {
     } as unknown as ReturnType<typeof useSolidAuth>);
   });
 
-  it('renders the layout toggle when logged out', () => {
+  it('renders the experience switcher when logged out', () => {
     render(<Header />);
-    expect(screen.getByRole('radiogroup', { name: /oneDriveLayout\.layout|layout/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: /oneDriveLayout\.experience|experience/i }),
+    ).toBeInTheDocument();
   });
 });
