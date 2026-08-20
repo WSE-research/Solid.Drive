@@ -10,10 +10,11 @@ import { resolve } from "node:path";
  * doubles as living, picture-by-picture documentation of the typical
  * user journeys.
  *
- * Capture is opt-in so a local `npm run test:e2e` stays fast and leaves
- * no files behind. GitHub Actions sets `CI=true`, which turns it on
- * automatically; set `E2E_SCREENSHOTS=1` to force it on locally or
- * `E2E_SCREENSHOTS=0` to force it off.
+ * Capture is opt-in so a plain `npm run test:e2e` stays fast and leaves
+ * no files behind — in CI as much as locally, where capturing them was
+ * costing a lot of GitHub Actions minutes. Set `E2E_SCREENSHOTS=1` to
+ * turn it on; the `e2e-screenshots` skill refreshes the committed
+ * documentation set before a commit.
  *
  * The shared helpers in this folder call {@link shot} after each
  * meaningful action, so most tests are documented with no per-test
@@ -25,15 +26,12 @@ import { resolve } from "node:path";
 export const SCREENSHOTS_ROOT = resolve(process.cwd(), "e2e", "screenshots");
 
 /**
- * Whether step screenshots should be captured for this run. On in CI
- * (or with `E2E_SCREENSHOTS=1`), off otherwise; `E2E_SCREENSHOTS=0`
- * wins over `CI`.
+ * Whether step screenshots should be captured for this run. Off unless
+ * `E2E_SCREENSHOTS=1` is set — CI deliberately has no say here, so no
+ * workflow can switch the (expensive) capture back on by accident.
  */
-export const screenshotsEnabled = (env: NodeJS.ProcessEnv = process.env): boolean => {
-  if (env.E2E_SCREENSHOTS === "1") return true;
-  if (env.E2E_SCREENSHOTS === "0") return false;
-  return env.CI != null && env.CI !== "" && env.CI !== "false";
-};
+export const screenshotsEnabled = (env: NodeJS.ProcessEnv = process.env): boolean =>
+  env.E2E_SCREENSHOTS === "1";
 
 /** Lower-cases and dashes a string into a filesystem-safe segment. */
 export const slugify = (value: string): string =>
