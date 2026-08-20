@@ -24,8 +24,9 @@ playwright-report
 playwright/.cache
 
 # e2e step screenshots: generated per-test folders are kept out of local
-# trees (run with E2E_SCREENSHOTS=1 to produce them). CI force-adds them
-# on main; only e2e/screenshots/README.adoc is tracked by hand.
+# trees (run with E2E_SCREENSHOTS=1 to produce them). CI never captures
+# them; the committed documentation set is refreshed locally before a
+# commit and force-added on purpose (see the e2e-screenshots skill).
 e2e/screenshots/*/
 
 # Editor directories and files

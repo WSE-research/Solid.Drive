@@ -33,10 +33,11 @@ npx playwright install chromium
 On failure, screenshots, video, and trace land under `test-results/`.
 
 Step-by-step screenshots that document each workflow land under
-`e2e/screenshots/<test-name>/`. They are off by default locally; run
-`E2E_SCREENSHOTS=1 npm run test:e2e` to produce them, or see
-`e2e/screenshots/README.adoc` for the full story (CI always captures
-them and commits them back on `main`).
+`e2e/screenshots/<test-name>/`. They are off unless `E2E_SCREENSHOTS=1`
+is set — in CI as well, which no longer captures or commits them. Run
+`E2E_SCREENSHOTS=1 npm run test:e2e` to refresh them before a commit
+that changes the UI; `e2e/screenshots/README.adoc` and the
+`e2e-screenshots` skill have the full procedure.
 
 == What runs
 

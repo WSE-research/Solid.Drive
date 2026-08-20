@@ -27,33 +27,41 @@ Capture is opt-in, driven by the shared helpers in `e2e/helpers/`:
   `shot()` after each meaningful action, so most tests are documented
   with no per-test wiring.
 
-Screenshots are captured only when enabled, so a normal local
-`npm run test:e2e` stays fast and writes nothing:
+Screenshots are captured only when `E2E_SCREENSHOTS=1` is set, so a
+normal `npm run test:e2e` stays fast and writes nothing. `CI` has no
+say: capture is off there too.
 
 [cols="1,3", options="header"]
 |===
 | Condition | Capture
 
-| `CI=true` (GitHub Actions sets this) | on
-| `E2E_SCREENSHOTS=1` | on (force on locally)
-| `E2E_SCREENSHOTS=0` | off (force off, even in CI)
-| otherwise | off
+| `E2E_SCREENSHOTS=1` | on
+| otherwise (including CI) | off
 |===
 
-To regenerate them locally:
+To regenerate them:
 
 [source,bash]
 ----
+# clear folders of renamed/deleted tests, then recapture
+rm -rf e2e/screenshots/*/
 E2E_SCREENSHOTS=1 npm run test:e2e
+
+# -f: the per-test folders are gitignored; -A: stage the deletions too
+git add -A -f e2e/screenshots
 ----
 
-The per-test folders are gitignored (`e2e/screenshots/*/`) so a local
-run never dirties your working tree; only this README is tracked by
-hand. CI force-adds the folders when it commits them back to `main`.
+The per-test folders are gitignored (`e2e/screenshots/*/`) so a plain
+local run never dirties your working tree; only this README is tracked
+by hand, and refreshed screenshots are force-added deliberately.
 
-== In CI
+== Not in CI
 
-The `Playwright Tests` workflow runs the suite with capture on, uploads
-this folder as the `e2e-screenshots` artifact on every run, and — on a
-successful push to `main` — commits the refreshed screenshots back here
-so the documentation in the repository always matches the current UI.
+Capturing screenshots roughly doubled the `Playwright Tests` job and
+cost a lot of GitHub Actions minutes for output that only changes when
+the UI does. The workflow therefore runs the suite with capture off and
+never touches this folder.
+
+Refreshing it is a local pre-commit step instead — see the
+`e2e-screenshots` skill in `.claude/skills/e2e-screenshots/SKILL.md`,
+which carries the full procedure and the gotchas.
