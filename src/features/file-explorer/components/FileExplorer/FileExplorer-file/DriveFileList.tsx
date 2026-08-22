@@ -22,6 +22,8 @@ type DriveFileListProps = {
   isInAppFolder: boolean;
   catalogUri: string;
   catalogContainerUris: Set<string>;
+  /** Folder container URI -> catalog title, for bare folder rows. */
+  folderTitles?: Map<string, string>;
   onNavigate: (uri: string) => void;
   onDownload: (entry: SolidLeaf, fileName: string) => void;
   onFolderDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
@@ -32,22 +34,22 @@ type FolderEntryRouterProps = {
   entry: SolidContainer;
   catalogUri: string;
   catalogContainerUris: Set<string>;
+  folderTitles: Map<string, string>;
   onNavigate: (uri: string) => void;
   onFolderDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
   onFolderDragOverChange?: (isOver: boolean) => void;
 };
 
 /**
- * Determines whether a folder entry is a file container (shows as FileCard)
- * or a bare folder (shows as FolderEntry).
- *
- * Uses the DCAT catalog as a fast path; falls back to structural detection
- * by checking for an index.ttl child inside the container.
+ * Chooses how to show a folder: as a FileCard when it's really a file
+ * (it has a catalog entry, or holds an index.ttl), otherwise as a plain
+ * FolderEntry.
  */
 const FolderEntryRouter: FunctionComponent<FolderEntryRouterProps> = ({
   entry,
   catalogUri,
   catalogContainerUris,
+  folderTitles,
   onNavigate,
   onFolderDrop,
   onFolderDragOverChange,
@@ -70,6 +72,7 @@ const FolderEntryRouter: FunctionComponent<FolderEntryRouterProps> = ({
   return (
     <FolderEntry
       uri={entry.uri}
+      title={folderTitles.get(entry.uri)}
       onNavigate={onNavigate}
       onDrop={onFolderDrop}
       onDragOverChange={onFolderDragOverChange}
@@ -110,6 +113,7 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
   isInAppFolder,
   catalogUri,
   catalogContainerUris,
+  folderTitles = new Map(),
   onNavigate,
   onDownload,
   onFolderDrop,
@@ -139,6 +143,7 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
           entry={entry}
           catalogUri={catalogUri}
           catalogContainerUris={catalogContainerUris}
+          folderTitles={folderTitles}
           onNavigate={onNavigate}
           onFolderDrop={onFolderDrop}
           onFolderDragOverChange={onFolderDragOverChange}

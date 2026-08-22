@@ -15,6 +15,8 @@ Commit errors are pushed through the notification context.
 
 | `open` | Controls dialog visibility
 | `parentContainer` | LDP container that the new folder is created under
+| `catalogUri` | Catalog the new folder is registered in
+| `profileHasCatalog` | Whether the profile already links to `catalogUri`
 | `onOpenChange` | Fired when the user closes the dialog, or after a successful create
 |===
 

@@ -63,6 +63,8 @@ interface MyFilesTableProps {
   leafEntries: SolidLeaf[];
   catalogEntries: CatalogEntry[];
   catalogContainerUris: Set<string>;
+  //Folder container URI.
+  folderTitles?: Map<string, string>;
   sort: SortState;
   selectedUri?: string;
   onNavigate: (uri: string, label: string) => void;
@@ -79,6 +81,7 @@ interface FolderRowProps {
   entry: SolidContainer;
   isCatalogContainer: boolean;
   catalogEntry: CatalogEntry | undefined;
+  folderTitle: string | undefined;
   selected: boolean;
   onNavigate: (uri: string, label: string) => void;
   onSelect: (resource: NonNullable<SelectedResource>) => void;
@@ -153,6 +156,7 @@ const FolderRow = memo<FolderRowProps>(({
   entry,
   isCatalogContainer,
   catalogEntry,
+  folderTitle,
   selected,
   onNavigate,
   onSelect,
@@ -190,7 +194,7 @@ const FolderRow = memo<FolderRowProps>(({
   }
 
   // Bare folder.
-  const name = decodeUriTail(entry.uri);
+  const name = folderTitle ?? decodeUriTail(entry.uri);
   const itemCount =
     resource && isSolidContainer(resource) ? resource.children().length : 0;
   const folderIcon = pickFolderIcon();
@@ -307,6 +311,7 @@ export const MyFilesTable: FunctionComponent<MyFilesTableProps> = ({
   leafEntries,
   catalogEntries,
   catalogContainerUris,
+  folderTitles = new Map(),
   sort,
   selectedUri,
   onNavigate,
@@ -322,13 +327,10 @@ export const MyFilesTable: FunctionComponent<MyFilesTableProps> = ({
     return map;
   }, [catalogEntries]);
 
-  // Sort SolidContainer entries. Catalog containers are treated as files
-  // because they appear under index.ttl; plain folders are treated as
-  // folders. Limitation: bare folders we cannot resolve here have no
-  // catalog metadata, so their size and modified values are missing and
-  // they fall to the end of their group when sorting by those keys. The
-  // Sharing column is async so the sort helper currently keeps input
-  // order for it.
+  // Catalog containers sort as files, bare folders sort as folders. A bare
+  // folder we can't resolve yet has no size or modified date, so it sorts
+  // to the end of its group on those columns. Sharing resolves async per
+  // row, so sorting doesn't wait for it and just keeps input order.
   const sortedFolderEntries = useMemo(() => {
     const sortable: SortableEntry[] = folderEntries.map((entry) => {
       const catalogEntry = catalogByContainer.get(entry.uri);
@@ -336,7 +338,7 @@ export const MyFilesTable: FunctionComponent<MyFilesTableProps> = ({
       const displayName =
         isCatalogFile && catalogEntry
           ? catalogEntry.title
-          : decodeUriTail(entry.uri);
+          : folderTitles.get(entry.uri) ?? decodeUriTail(entry.uri);
       return {
         kind: isCatalogFile ? 'file' : 'folder',
         uri: entry.uri,
@@ -351,7 +353,7 @@ export const MyFilesTable: FunctionComponent<MyFilesTableProps> = ({
     return sorted
       .map((item) => byUri.get(item.uri))
       .filter((entry): entry is SolidContainer => entry !== undefined);
-  }, [folderEntries, catalogByContainer, catalogContainerUris, sort]);
+  }, [folderEntries, catalogByContainer, catalogContainerUris, folderTitles, sort]);
 
   // Leaf files are always 'file' kind. We have no catalog metadata for
   // these so only the name sort produces a meaningful order; other keys
@@ -382,6 +384,7 @@ export const MyFilesTable: FunctionComponent<MyFilesTableProps> = ({
             entry={entry}
             isCatalogContainer={catalogContainerUris.has(entry.uri)}
             catalogEntry={catalogByContainer.get(entry.uri)}
+            folderTitle={folderTitles.get(entry.uri)}
             selected={selectedUri === entry.uri}
             onNavigate={onNavigate}
             onSelect={onSelect}

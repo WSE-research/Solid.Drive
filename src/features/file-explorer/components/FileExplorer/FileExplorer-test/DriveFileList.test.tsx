@@ -22,8 +22,8 @@ vi.mock('@/features/file-explorer/components/FileCard', () => ({
 }));
 
 vi.mock('@/features/file-explorer/components/FolderEntry', () => ({
-  FolderEntry: ({ uri, onNavigate }: { uri: string; onNavigate: (uri: string) => void }) => (
-    <div data-testid="folder-entry" data-uri={uri} onClick={() => onNavigate(uri)} />
+  FolderEntry: ({ uri, title, onNavigate }: { uri: string; title?: string; onNavigate: (uri: string) => void }) => (
+    <div data-testid="folder-entry" data-uri={uri} data-title={title ?? ''} onClick={() => onNavigate(uri)} />
   ),
 }));
 
@@ -133,6 +133,23 @@ describe('DriveFileList', () => {
     );
     const entries = screen.getAllByTestId('folder-entry');
     expect(entries).toHaveLength(2);
+  });
+
+  it('passes the matching catalog title to FolderEntry', () => {
+    const folders = makeFolders(['https://pod.example/public/']);
+    render(
+      <DriveFileList
+        folderEntries={folders}
+        leafEntries={[]}
+        isInAppFolder={false}
+        catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
+        folderTitles={new Map([['https://pod.example/public/', 'Public Docs']])}
+        onNavigate={mockOnNavigate}
+        onDownload={mockOnDownload}
+      />
+    );
+    expect(screen.getByTestId('folder-entry').getAttribute('data-title')).toBe('Public Docs');
   });
 
   it('FolderEntry triggers onNavigate when clicked', () => {

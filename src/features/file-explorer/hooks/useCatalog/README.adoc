@@ -1,14 +1,14 @@
 = useCatalog
 
-Fetches and parses the user's DCAT catalog into typed `CatalogEntry` objects.
+Loads the list of files and folders a user has stored, from a catalog file kept in their Pod.
 
 == Behaviour
 
-. When `catalogUri` is defined, fetches it with the authenticated `solidFetch`.
-. On a 2xx response, parses the body with `parseCatalog` into `CatalogEntry[]`.
-. Derives `containerUris` by mapping each entry URI through `toContainerUri`.
-. Refetches whenever `catalogUri` changes; cancels in-flight work on unmount.
-. Non-2xx responses or parse failures result in empty `entries` and `containerUris`. Thrown errors surface via `error`.
+. Fetches the catalog and reads it into a list of entries.
+. Splits that list into files and folders, so folders never get mistaken for files anywhere else in the app (search, upload duplicate checks, the Recent list, and so on).
+. Keeps a shared cache, so if another part of the app already loaded the same catalog a moment ago, this just reuses that result instead of fetching again.
+. Reloads automatically whenever the catalog address changes, and cleans up safely if the component using it disappears while a fetch is still running.
+. If loading fails, everything resets to empty and the failure is reported separately so the caller can show an error message.
 
 == Parameters
 
@@ -16,7 +16,7 @@ Fetches and parses the user's DCAT catalog into typed `CatalogEntry` objects.
 |===
 | Parameter | Type | Description
 
-| `catalogUri` | `string \| undefined` | The catalog to fetch. Undefined disables the effect.
+| `catalogUri` | `string \| undefined` | Address of the catalog to load. Leave it undefined to skip loading entirely.
 |===
 
 == Returns
@@ -25,16 +25,18 @@ Fetches and parses the user's DCAT catalog into typed `CatalogEntry` objects.
 |===
 | Key | Type | Description
 
-| `entries`       | `CatalogEntry[]` | Parsed catalog entries
-| `containerUris` | `Set<string>`    | Container URI for each entry, pre-computed for routing
-| `loading`       | `boolean`        | True while a fetch is in flight
-| `error`         | `Error \| null`  | Last thrown error, if any
+| `entries`       | `CatalogEntry[]`      | The files in the catalog
+| `containerUris` | `Set<string>`         | Each file's own folder address, used to tell a real folder apart from a file's storage folder
+| `folderTitles`  | `Map<string, string>` | Each folder's address mapped to the name the user gave it when creating it
+| `loading`       | `boolean`             | True while the catalog is being loaded
+| `error`         | `Error \| null`       | Set if loading failed, otherwise null
 |===
 
 == See also
 
-* link:../../../../infrastructure/solid/catalog/[catalog] for the fetch + parse primitives.
-* link:../useFileSearch/[useFileSearch] consumes `entries` to produce search hits.
+* link:../../../../infrastructure/solid/catalog/[catalog] does the actual reading and writing of the catalog file.
+* link:../useFileSearch/[useFileSearch] searches over the `entries` this hook returns.
+* link:../useCreateFolder/[useCreateFolder] creates the folder entries this hook returns as `folderTitles`.
 
 == Navigation
 

@@ -33,6 +33,12 @@ describe('FolderEntry', () => {
     expect(screen.getByText('folder')).toBeInTheDocument();
   });
 
+  it('shows the catalog title instead of the URI slug when provided', () => {
+    render(<FolderEntry uri="https://pod.example.com/my-app/q1-docs/" title="Q1 Docs" onNavigate={vi.fn()} />);
+    expect(screen.getByText('Q1 Docs')).toBeInTheDocument();
+    expect(screen.queryByText('q1-docs')).not.toBeInTheDocument();
+  });
+
   it('renders the folder icon and arrow as CSS icon spans', () => {
     const { container } = render(<FolderEntry uri="https://pod.example.com/test/" onNavigate={vi.fn()} />);
     expect(container.querySelector('.icon--folder')).toBeInTheDocument();

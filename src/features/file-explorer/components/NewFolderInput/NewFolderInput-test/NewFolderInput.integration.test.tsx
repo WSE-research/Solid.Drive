@@ -1,7 +1,7 @@
 /**
  * Integration test: NewFolderInput + useCreateFolder + validateFolderName together.
  *
- * Only the LDP network boundary (createChildAndOverwrite) is stubbed.
+ * Only the LDP/catalog network boundary is stubbed.
  * Validation, slug generation, and hook lifecycle run for real.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,7 +17,28 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => [(key: string) => key],
 }));
 
+const mockSolidFetch = vi.fn();
+vi.mock('@ldo/solid-react', () => ({
+  useSolidAuth: () => ({
+    session: { webId: 'https://pod.example/profile/card#me' },
+    fetch: mockSolidFetch,
+  }),
+}));
+
+const mockAppendFolderToCatalog = vi.fn();
+const mockLinkCatalogToProfile = vi.fn();
+vi.mock('@/infrastructure/solid/catalog', () => ({
+  appendFolderToCatalog: (...args: unknown[]) => mockAppendFolderToCatalog(...args),
+  linkCatalogToProfile: (...args: unknown[]) => mockLinkCatalogToProfile(...args),
+}));
+
+vi.mock('@/shared/hooks/useCatalogVersion', () => ({
+  notifyCatalogChanged: vi.fn(),
+}));
+
 import { NewFolderInput } from '../NewFolderInput-file/NewFolderInput';
+
+const catalogUri = 'https://pod.example/catalog.ttl';
 
 describe('NewFolderInput (integration)', () => {
   const mockCreateChildAndOverwrite = vi.fn();
@@ -28,12 +49,15 @@ describe('NewFolderInput (integration)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSolidFetch.mockResolvedValue({ ok: true });
+    mockAppendFolderToCatalog.mockResolvedValue(undefined);
+    mockLinkCatalogToProfile.mockResolvedValue(undefined);
   });
 
   it('calls createChildAndOverwrite with a slugified container URI for a valid name', async () => {
     mockCreateChildAndOverwrite.mockResolvedValue({ isError: false, message: '', resource: {} });
     const onDone = vi.fn();
-    render(<NewFolderInput parentContainer={mockContainer} onDone={onDone} />);
+    render(<NewFolderInput parentContainer={mockContainer} catalogUri={catalogUri} profileHasCatalog onDone={onDone} />);
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'My Project Docs' } });
     fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
@@ -44,10 +68,30 @@ describe('NewFolderInput (integration)', () => {
     expect(onDone).toHaveBeenCalledOnce();
   });
 
+  it('registers the typed name as the catalog title', async () => {
+    mockCreateChildAndOverwrite.mockResolvedValue({ isError: false, message: '', resource: {} });
+    const onDone = vi.fn();
+    render(<NewFolderInput parentContainer={mockContainer} catalogUri={catalogUri} profileHasCatalog onDone={onDone} />);
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'My Project Docs' } });
+    fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
+
+    await waitFor(() => {
+      expect(mockAppendFolderToCatalog).toHaveBeenCalledWith(
+        catalogUri,
+        'https://pod.example/files/my-project-docs/',
+        'My Project Docs',
+        expect.any(String),
+        'https://pod.example/profile/card#me',
+        mockSolidFetch,
+      );
+    });
+  });
+
   it('trims whitespace from the name before creating the container', async () => {
     mockCreateChildAndOverwrite.mockResolvedValue({ isError: false, message: '', resource: {} });
     const onDone = vi.fn();
-    render(<NewFolderInput parentContainer={mockContainer} onDone={onDone} />);
+    render(<NewFolderInput parentContainer={mockContainer} catalogUri={catalogUri} profileHasCatalog onDone={onDone} />);
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '  trimmed name  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
@@ -59,7 +103,7 @@ describe('NewFolderInput (integration)', () => {
 
   it('blocks submission and shows validation error for names with illegal characters', async () => {
     const onDone = vi.fn();
-    render(<NewFolderInput parentContainer={mockContainer} onDone={onDone} />);
+    render(<NewFolderInput parentContainer={mockContainer} catalogUri={catalogUri} profileHasCatalog onDone={onDone} />);
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'bad/name' } });
     fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
@@ -72,7 +116,7 @@ describe('NewFolderInput (integration)', () => {
   it('shows the notification error and stays open when the LDP call fails', async () => {
     mockCreateChildAndOverwrite.mockResolvedValue({ isError: true, message: 'Permission denied' });
     const onDone = vi.fn();
-    render(<NewFolderInput parentContainer={mockContainer} onDone={onDone} />);
+    render(<NewFolderInput parentContainer={mockContainer} catalogUri={catalogUri} profileHasCatalog onDone={onDone} />);
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'valid-name' } });
     fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
@@ -80,6 +124,22 @@ describe('NewFolderInput (integration)', () => {
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith('fileExplorer.newFolderError');
     });
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it('shows the notification error and removes the folder when the catalog write fails', async () => {
+    mockCreateChildAndOverwrite.mockResolvedValue({ isError: false, message: '', resource: {} });
+    mockAppendFolderToCatalog.mockRejectedValue(new Error('Catalog PATCH failed'));
+    const onDone = vi.fn();
+    render(<NewFolderInput parentContainer={mockContainer} catalogUri={catalogUri} profileHasCatalog onDone={onDone} />);
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'valid-name' } });
+    fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
+
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalledWith('fileExplorer.newFolderError');
+    });
+    expect(mockSolidFetch).toHaveBeenCalledWith('https://pod.example/files/valid-name/', { method: 'DELETE' });
     expect(onDone).not.toHaveBeenCalled();
   });
 });

@@ -19,7 +19,7 @@
  * @packageDocumentation
  */
 
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigationHistory } from '@/features/onedrive-layout/hooks/useNavigationHistory';
@@ -108,7 +108,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   });
 
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
-  const { entries: catalogEntries, containerUris: catalogContainerUris } =
+  const { entries: catalogEntries, containerUris: catalogContainerUris, folderTitles } =
     useCatalog(catalogUri);
   // Bumped whenever any catalog PATCH (upload, delete) fires
   // notifyCatalogChanged. Drives the container re-read below so bulk
@@ -178,9 +178,14 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     };
   }, [refreshNonce, catalogVersion]);
 
+  const displayBreadcrumbs = useMemo(
+    () => breadcrumbs.map((crumb) => ({ ...crumb, label: folderTitles.get(crumb.uri) ?? crumb.label })),
+    [breadcrumbs, folderTitles],
+  );
+
   const currentFolderLabel =
-    breadcrumbs.length > 0
-      ? breadcrumbs[breadcrumbs.length - 1].label
+    displayBreadcrumbs.length > 0
+      ? displayBreadcrumbs[displayBreadcrumbs.length - 1].label
       : translate('fileExplorer.myDrive');
 
   // Clear the prefilled file when the user navigates folders. The reset
@@ -267,9 +272,9 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
         showError(translate('fileExplorer.unsupportedFolderDrop'));
         return;
       }
-      dispatchDrop(files, targetUri, decodeUriTail(targetUri));
+      dispatchDrop(files, targetUri, folderTitles.get(targetUri) ?? decodeUriTail(targetUri));
     },
-    [dispatchDrop, showError, translate],
+    [dispatchDrop, showError, translate, folderTitles],
   );
 
   const handleUploadSuccess = useCallback(() => {
@@ -315,11 +320,11 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     .filter((entry) => !isSolidContainer(entry))
     .filter(isVisibleLeaf) as SolidLeaf[];
 
-  const showBreadcrumb = breadcrumbs.length > 1;
-  const lastCrumbIndex = breadcrumbs.length - 1;
+  const showBreadcrumb = displayBreadcrumbs.length > 1;
+  const lastCrumbIndex = displayBreadcrumbs.length - 1;
   const breadcrumbLabel = translate('oneDriveLayout.breadcrumb', 'Breadcrumb');
   const canShowUpload = showUpload && containerIsContainer && !!catalogUri;
-  const canShowNewFolderDialog = containerIsContainer;
+  const canShowNewFolderDialog = containerIsContainer && !!catalogUri;
 
   return (
     <onedrive-view
@@ -341,7 +346,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
         <>
           {showBreadcrumb && (
             <nav className="odl-breadcrumb" aria-label={breadcrumbLabel}>
-              {breadcrumbs.map((crumb, index) => {
+              {displayBreadcrumbs.map((crumb, index) => {
                 const isActive = index === lastCrumbIndex;
                 const itemClass = isActive
                   ? 'odl-breadcrumb__item odl-breadcrumb__item--active'
@@ -377,10 +382,12 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
               prefilledFile={prefilledFile}
             />
           )}
-          {canShowNewFolderDialog && (
+          {canShowNewFolderDialog && catalogUri && (
             <NewFolderDialog
               open={showNewFolder}
               parentContainer={currentContainer}
+              catalogUri={catalogUri}
+              profileHasCatalog={profileHasCatalog}
               onOpenChange={handleNewFolderOpenChange}
             />
           )}
@@ -389,6 +396,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
             leafEntries={leafEntries}
             catalogEntries={catalogEntries}
             catalogContainerUris={catalogContainerUris}
+            folderTitles={folderTitles}
             sort={sort}
             selectedUri={selectedUri}
             onNavigate={navigateToFolder}

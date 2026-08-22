@@ -65,6 +65,7 @@ vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
   useCatalog: () => ({
     entries: [fileEntry],
     containerUris: new Set(['https://pod/app/file1/']),
+    folderTitles: new Map<string, string>(),
     loading: false,
     error: null,
   }),

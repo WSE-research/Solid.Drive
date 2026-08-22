@@ -163,6 +163,7 @@ const defaultCatalogReturn = {
     },
   ],
   containerUris: new Set<string>(),
+  folderTitles: new Map<string, string>(),
   loading: false,
   error: null,
 } as ReturnType<typeof useCatalog>;
@@ -250,6 +251,20 @@ describe('FileExplorer', () => {
     render(<FileExplorer />);
     expect(screen.getByText('My Drive')).toBeInTheDocument();
     expect(screen.getByText('subfolder')).toBeInTheDocument();
+  });
+
+  it('shows the catalog title instead of the URI slug for a breadcrumb with a folder catalog entry', () => {
+    mockUseDriveInit.breadcrumbs = [
+      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+      { label: 'q1-docs', uri: 'https://pod.example/my-solid-app/q1-docs/' as SolidContainerUri },
+    ];
+    mockedUseCatalog.mockReturnValue({
+      ...defaultCatalogReturn,
+      folderTitles: new Map([['https://pod.example/my-solid-app/q1-docs/', 'Q1 Docs']]),
+    });
+    render(<FileExplorer />);
+    expect(screen.getByText('Q1 Docs')).toBeInTheDocument();
+    expect(screen.queryByText('q1-docs')).not.toBeInTheDocument();
   });
 
   it('last breadcrumb is disabled', () => {
@@ -430,6 +445,19 @@ describe('FileExplorer', () => {
     expect(screen.getByTestId('new-folder-input')).toBeInTheDocument();
     act(() => { capturedNewFolderDone?.(); });
     expect(screen.queryByTestId('new-folder-input')).not.toBeInTheDocument();
+  });
+
+  it('closes the add menu, new folder input, and upload form when currentUri changes', () => {
+    const { rerender } = render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    fireEvent.click(screen.getByText('fileExplorer.newFolder'));
+    expect(screen.getByTestId('new-folder-input')).toBeInTheDocument();
+
+    mockUseDriveInit.currentUri = 'https://pod.example/other/' as SolidContainerUri;
+    rerender(<FileExplorer />);
+
+    expect(screen.queryByTestId('new-folder-input')).not.toBeInTheDocument();
+    expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
   });
 
   it('hides FileUpload when onUploadSuccess fires', async () => {

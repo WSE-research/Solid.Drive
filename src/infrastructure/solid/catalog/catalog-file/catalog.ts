@@ -1,9 +1,6 @@
 /**
- * DCAT catalog operations for Solid pods.
- *
- * @remarks
- * Provides CRUD operations for DCAT catalogs stored as Turtle files.
- * Uses SPARQL UPDATE for modifications and N3 for parsing.
+ * Reads and writes DCAT catalogs stored as Turtle files: SPARQL UPDATE to
+ * change them, N3 to parse them.
  *
  * @packageDocumentation
  */
@@ -20,10 +17,8 @@ import {
 } from "@/config";
 
 /**
- * Validates that a URI is safe for SPARQL/Turtle interpolation.
- *
- * @remarks
- * Rejects URIs containing `>` or whitespace which could break angle-bracket IRI tokens.
+ * Throws if `uri` contains `>` or whitespace, either of which could break
+ * an angle-bracket IRI token in a SPARQL or Turtle string.
  *
  * @param uri - The URI to validate
  * @throws Error if the URI contains unsafe characters
@@ -32,6 +27,15 @@ import {
  */
 function assertSafeUri(uri: string): void {
   if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
+}
+
+/**
+ * Escapes a string for safe interpolation into a Turtle string literal.
+ *
+ * @internal
+ */
+function escapeTurtleLiteral(literal: string): string {
+  return literal.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
 const DISTRIBUTION_FRAGMENT = "#dist";
@@ -53,11 +57,49 @@ export const EMPTY_CATALOG_TURTLE = `@prefix dcat: <${RDF_NAMESPACES.DCAT}> .
 `;
 
 /**
- * Resolves the catalog URI for a user.
+ * Marks a catalog entry as a folder. Reuses LDP's existing terms.
  *
- * @remarks
- * Prefers the profile-linked catalog (`dcat:catalog`), falling back to
- * the default location under the storage root.
+ * @public
+ */
+export const FOLDER_CLASS_URI = `${RDF_NAMESPACES.LDP}Container`;
+
+/**
+ * Applies `sparqlUpdate` to the catalog. If the catalog doesn't exist
+ * yet, creates an empty one first and retries.
+ *
+ * @internal
+ */
+async function patchCatalog(catalogUri: string, sparqlUpdate: string, fetch: FetchFn): Promise<void> {
+  let patchResponse = await fetch(catalogUri, {
+    method: "PATCH",
+    headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
+    body: sparqlUpdate,
+  });
+
+  if (!patchResponse.ok && patchResponse.status === 404) {
+    const putResponse = await fetch(catalogUri, {
+      method: "PUT",
+      headers: { "Content-Type": CONTENT_TYPES.TURTLE },
+      body: EMPTY_CATALOG_TURTLE,
+    });
+    if (!putResponse.ok) {
+      throw new Error(`Failed to create catalog.ttl: ${putResponse.status} ${putResponse.statusText}`);
+    }
+    patchResponse = await fetch(catalogUri, {
+      method: "PATCH",
+      headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
+      body: sparqlUpdate,
+    });
+  }
+
+  if (!patchResponse.ok) {
+    throw new Error(`Failed to update catalog.ttl: ${patchResponse.status} ${patchResponse.statusText}`);
+  }
+}
+
+/**
+ * Returns a user's catalog URI: the profile-linked catalog (`dcat:catalog`)
+ * if there is one, otherwise the default location under the storage root.
  *
  * @param profile - The user's Solid profile
  * @param storageRoot - The user's pod storage root URI
@@ -76,10 +118,8 @@ export function resolveCatalogUri(
 }
 
 /**
- * Adds a dataset entry to the catalog via SPARQL PATCH.
- *
- * @remarks
- * Creates the catalog on 404 and retries the operation.
+ * Adds a dataset entry to the catalog via SPARQL PATCH, creating the
+ * catalog first if it doesn't exist yet.
  *
  * @param catalogUri - URI of the catalog resource
  * @param instanceUri - URI identifying this dataset instance
@@ -114,9 +154,6 @@ export async function appendToCatalog(
   assertSafeUri(classUri);
   assertSafeUri(publisherWebId);
 
-  const escapeTurtleLiteral = (literal: string) =>
-    literal.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
-
   const descriptionTriple = description.trim()
     ? `\n    dcterms:description "${escapeTurtleLiteral(description)}" ;`
     : "";
@@ -138,38 +175,57 @@ export async function appendToCatalog(
   }
 `.trim();
 
-  let patchResponse = await fetch(catalogUri, {
-    method: "PATCH",
-    headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
-    body: sparqlUpdate,
-  });
-
-  if (!patchResponse.ok && patchResponse.status === 404) {
-    const putResponse = await fetch(catalogUri, {
-      method: "PUT",
-      headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-      body: EMPTY_CATALOG_TURTLE,
-    });
-    if (!putResponse.ok) {
-      throw new Error(`Failed to create catalog.ttl: ${putResponse.status} ${putResponse.statusText}`);
-    }
-    patchResponse = await fetch(catalogUri, {
-      method: "PATCH",
-      headers: { "Content-Type": CONTENT_TYPES.SPARQL_UPDATE },
-      body: sparqlUpdate,
-    });
-  }
-
-  if (!patchResponse.ok) {
-    throw new Error(`Failed to update catalog.ttl: ${patchResponse.status} ${patchResponse.statusText}`);
-  }
+  await patchCatalog(catalogUri, sparqlUpdate, fetch);
 }
 
 /**
- * Removes a dataset and its distribution from the catalog.
+ * Adds a folder's dataset entry to the catalog via SPARQL PATCH, creating
+ * the catalog first if it doesn't exist yet.
  *
  * @remarks
- * No-ops silently if the catalog isn't reachable.
+ * Unlike {@link appendToCatalog}, a folder has no binary to point to, so
+ * no `dcat:Distribution` is written. The folder's own URI is used as the
+ * dataset URI.
+ *
+ * @param catalogUri - URI of the catalog resource
+ * @param folderUri - URI of the folder container this dataset describes
+ * @param title - Human-readable title for the folder (the name the user typed)
+ * @param modified - ISO 8601 datetime the folder was created
+ * @param publisherWebId - WebID of the folder's creator
+ * @param fetch - Authenticated fetch function
+ *
+ * @public
+ */
+export async function appendFolderToCatalog(
+  catalogUri: string,
+  folderUri: string,
+  title: string,
+  modified: string,
+  publisherWebId: string,
+  fetch: FetchFn
+): Promise<void> {
+  assertSafeUri(catalogUri);
+  assertSafeUri(folderUri);
+  assertSafeUri(publisherWebId);
+
+  const sparqlUpdate = `${CATALOG_SPARQL_PREFIXES}
+
+  INSERT DATA {
+    <${catalogUri}> dcat:dataset <${folderUri}> .
+    <${folderUri}> a dcat:Dataset ;
+      dcterms:conformsTo <${FOLDER_CLASS_URI}> ;
+      dcterms:title "${escapeTurtleLiteral(title)}" ;
+      dcterms:modified "${modified}"^^xsd:dateTime ;
+      dcterms:publisher <${publisherWebId}> .
+  }
+`.trim();
+
+  await patchCatalog(catalogUri, sparqlUpdate, fetch);
+}
+
+/**
+ * Removes a dataset and its distribution from the catalog. Does nothing
+ * if the catalog isn't reachable.
  *
  * @param catalogUri - URI of the catalog resource
  * @param instanceUri - URI of the dataset to remove
@@ -204,8 +260,8 @@ export async function removeFromCatalog(
 }
 
 /**
- * Returns a URI's resource filename, decoding percent-escapes when the
- * tail is well-formed and falling back to the raw tail otherwise.
+ * Returns the filename at the end of a URI, decoded if it's valid,
+ * otherwise as-is.
  *
  * @internal
  */
@@ -219,10 +275,10 @@ function resourceFileName(uri: string): string {
 }
 
 /**
- * True when a dataset URI points at a user file rather than an internal
- * bookkeeping resource (the catalog itself, ACL/meta files, or a
- * per-contact shared catalog). Keeps internal `.shared-*.ttl` and system
- * files from ever surfacing as catalog entries in any view.
+ * True when a dataset URI points at a user file, not an internal
+ * bookkeeping resource like the catalog itself, an ACL/meta file, or a
+ * per-contact shared catalog. Keeps those from ever showing up as
+ * catalog entries.
  *
  * @internal
  */
@@ -233,10 +289,9 @@ function isUserVisibleDatasetUri(uri: string): boolean {
 
 /**
  * Normalizes a `dcterms:conformsTo` value to a usable class URI. A real
- * type is a vocabulary term, never a pod resource, so a value that points
- * at a `.ttl` file (a stray catalog, ACL, or shared-catalog reference) is
- * not a type and is dropped to "" so the entry falls back to its default
- * type instead of producing a junk filter chip.
+ * type is a vocabulary term, not a pod resource, so a `.ttl` file
+ * reference (catalog, ACL, shared-catalog) gets dropped to an empty
+ * string instead of becoming a junk filter chip.
  *
  * @internal
  */
@@ -250,10 +305,7 @@ function sanitizeClassUri(uri: string): string {
 }
 
 /**
- * Parses DCAT catalog entries from Turtle text.
- *
- * @remarks
- * Uses N3 parser to extract dataset metadata and distribution details.
+ * Parses DCAT catalog entries out of Turtle text using the N3 parser.
  *
  * @param turtleText - Raw Turtle content of the catalog
  * @param baseUri - Optional base URI for resolving relative IRIs
