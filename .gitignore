@@ -23,6 +23,10 @@ test-results
 playwright-report
 playwright/.cache
 
+# Playwright MCP tool runtime debris (console logs, page snapshots) --
+# not test output, never worth committing.
+.playwright-mcp
+
 # e2e step screenshots: generated per-test folders are kept out of local
 # trees (run with E2E_SCREENSHOTS=1 to produce them). CI never captures
 # them; the committed documentation set is refreshed locally before a
