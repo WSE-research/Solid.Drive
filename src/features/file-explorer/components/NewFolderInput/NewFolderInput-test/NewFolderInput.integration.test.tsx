@@ -77,14 +77,15 @@ describe('NewFolderInput (integration)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'fileExplorer.createFolder' }));
 
     await waitFor(() => {
-      expect(mockAppendFolderToCatalog).toHaveBeenCalledWith(
+      expect(mockAppendFolderToCatalog).toHaveBeenCalledWith({
         catalogUri,
-        'https://pod.example/files/my-project-docs/',
-        'My Project Docs',
-        expect.any(String),
-        'https://pod.example/profile/card#me',
-        mockSolidFetch,
-      );
+        folderUri: 'https://pod.example/files/my-project-docs/',
+        parentUri: 'https://pod.example/files/',
+        title: 'My Project Docs',
+        modified: expect.any(String),
+        publisherWebId: 'https://pod.example/profile/card#me',
+        fetch: mockSolidFetch,
+      });
     });
   });
 

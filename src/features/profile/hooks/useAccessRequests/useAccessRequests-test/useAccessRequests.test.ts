@@ -39,7 +39,8 @@ vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
 
 const mockParseCatalog = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  EMPTY_CATALOG_TURTLE: '@prefix dcat: <http://www.w3.org/ns/dcat#>.',
+  buildEmptyCatalogTurtle: (catalogUri: string) =>
+    `@base <${catalogUri}> .\n@prefix dcat: <http://www.w3.org/ns/dcat#> .\n\n<> a dcat:Catalog .\n`,
   parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
   appendToCatalog: (...args: unknown[]) => mockAppendToCatalog(...args),
 }));
@@ -177,19 +178,20 @@ describe('useAccessRequests', () => {
 
     await act(async () => { await result.current.approve(request); });
 
-    expect(mockAppendToCatalog).toHaveBeenCalledWith(
-      `https://pod.example/my-solid-app/.shared-${encodeURIComponent(request.requesterWebId)}.ttl`,
-      entry.uri,
-      entry.accessURL,
-      entry.conformsTo,
-      entry.mediaType,
-      entry.byteSize,
-      entry.title,
-      entry.description,
-      entry.modified,
-      ownerWebId,
-      mockFetch,
-    );
+    expect(mockAppendToCatalog).toHaveBeenCalledWith({
+      catalogUri: `https://pod.example/my-solid-app/.shared-${encodeURIComponent(request.requesterWebId)}.ttl`,
+      instanceUri: entry.uri,
+      binaryUri: entry.accessURL,
+      classUri: entry.conformsTo,
+      parentUri: '',
+      mediaType: entry.mediaType,
+      byteSize: entry.byteSize,
+      title: entry.title,
+      description: entry.description,
+      modified: entry.modified,
+      publisherWebId: ownerWebId,
+      fetch: mockFetch,
+    });
   });
 
   it('approve(type) writes every matching entry to the per-viewer catalog', async () => {
@@ -222,7 +224,7 @@ describe('useAccessRequests', () => {
 
     await act(async () => { await result.current.approve(request); });
 
-    const appendedUris = mockAppendToCatalog.mock.calls.map((args) => args[1]);
+    const appendedUris = mockAppendToCatalog.mock.calls.map((args) => args[0].instanceUri);
     expect(appendedUris).toEqual([imageA.uri, imageB.uri]);
   });
 
