@@ -17,4 +17,5 @@ export interface SharedEntry {
   title: string;
   description: string;
   modified: string;
+  parentUri?: string;
 }

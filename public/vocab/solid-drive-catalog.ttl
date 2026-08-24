@@ -1,0 +1,43 @@
+# Solid.Drive catalog vocabulary. Hand-authored, edit directly (not generated).
+# See public/README.adoc for how this file relates to its PURL.
+
+@prefix : <https://purl.org/solid-drive/catalog#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ldp: <http://www.w3.org/ns/ldp#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://purl.org/solid-drive/catalog>
+  a owl:Ontology ;
+  rdfs:label "Solid.Drive catalog vocabulary" ;
+  rdfs:comment "Terms describing folder containment in a Solid.Drive catalog: which dataset entries represent folders, and which folder each entry lives in." ;
+  vann:preferredNamespacePrefix "sdcat" ;
+  vann:preferredNamespaceUri "https://purl.org/solid-drive/catalog#" ;
+  owl:versionInfo "1.0.0" ;
+  owl:versionIRI <https://purl.org/solid-drive/catalog/1.0.0> ;
+  dcterms:created "2026-08-23"^^xsd:date ;
+  dcterms:modified "2026-08-23"^^xsd:date ;
+  dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+  rdfs:seeAlso <https://github.com/WSE-research/Solid-Hello-World-Frontend-React> .
+
+:Folder
+  a rdfs:Class, owl:Class ;
+  rdfs:subClassOf dcat:Dataset, ldp:Container ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
+  rdfs:label "Folder" ;
+  rdfs:comment "A catalog entry that represents a folder. It is also the LDP container it describes, so it has no dcat:distribution. Typed with both dcterms:conformsTo, like files, and rdf:type, for real class membership." ;
+  rdfs:seeAlso <http://tracker.api.gnome.org/ontology/v3/nfo#Folder> .
+
+:hasParent
+  a rdf:Property, owl:ObjectProperty, owl:FunctionalProperty ;
+  rdfs:subPropertyOf dcterms:isPartOf ;
+  rdfs:domain dcat:Dataset ;
+  rdfs:range :Folder ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
+  rdfs:label "has parent" ;
+  rdfs:comment "Points to the folder a catalog entry lives in: the real parent container for a folder, or the folder shown to the user for a file, which may not be its literal immediate container. At most one value; the top storage container has none, marking the end of every path." ;
+  rdfs:seeAlso <http://www.w3.org/ns/ldp#contains>, <http://tracker.api.gnome.org/ontology/v3/nfo#belongsToContainer> .

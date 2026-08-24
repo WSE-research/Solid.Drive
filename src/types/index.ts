@@ -17,6 +17,6 @@ export type {
   SolidContainer,
   SolidLeaf,
 } from "./solid";
-export type { CatalogEntry } from "./catalog";
+export type { CatalogEntry, FolderNode, FolderIndex } from "./catalog";
 export type { AccessMode } from "./access";
 export type { SharedEntry } from "./sharing";

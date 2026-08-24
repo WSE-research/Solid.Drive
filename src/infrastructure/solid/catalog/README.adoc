@@ -11,14 +11,19 @@ characters before interpolation.
 | Name | Description
 
 | `resolveCatalogUri(profile, storageRoot)` | Returns the profile's catalog address if it has one, otherwise the default under the storage root
-| `appendToCatalog(...)` | Adds a file's dataset and distribution entry via SPARQL PATCH, creating the catalog first if it doesn't exist
-| `appendFolderToCatalog(...)` | Adds a folder's dataset entry (no distribution) via SPARQL PATCH, creating the catalog first if it doesn't exist
-| `FOLDER_CLASS_URI` | The `dcterms:conformsTo` value (`ldp:Container`) that marks a catalog entry as a folder instead of a file
+| `appendToCatalog(params)` | Adds a file's dataset and distribution entry via SPARQL PATCH, creating the catalog first if it doesn't exist. Writes `sd:hasParent` when `params.parentUri` is non-empty
+| `appendFolderToCatalog(params)` | Adds a folder's dataset entry (no distribution) via SPARQL PATCH, creating the catalog first if it doesn't exist. Always writes `sd:hasParent`, and types the entry as both `dcat:Dataset` and `sd:Folder`
+| `ensureCatalogRootEntry(params)` | Registers the pod's storage root as its own parentless catalog entry, the terminator every folder path walk reaches. Safe to call repeatedly: its triples never vary, so re-inserting them is a no-op
+| `isFolderEntry(entry)` | True when a `CatalogEntry` is a folder, whether marked with the current `sd:Folder` class or the legacy `ldp:Container` marker
+| `FOLDER_CLASS_URI` | The `dcterms:conformsTo` / `rdf:type` value (`sd:Folder`, from this project's own catalog vocabulary) that marks a catalog entry as a folder
+| `LEGACY_FOLDER_CLASS_URI` | The `ldp:Container` marker folders were written with before `sd:Folder` existed; `isFolderEntry` still recognizes it
 | `removeFromCatalog(...)` | Removes a dataset entry via SPARQL DELETE WHERE, doing nothing if the catalog isn't reachable
-| `parseCatalog(turtleText, baseUri?)` | Parses a Turtle catalog into a list of `CatalogEntry` objects
+| `parseCatalog(turtleText, baseUri?)` | Parses a Turtle catalog into a list of `CatalogEntry` objects, including each entry's `parentUri` from `sd:hasParent`
 | `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document
-| `EMPTY_CATALOG_TURTLE` | Minimal Turtle template for a new, empty catalog
+| `buildEmptyCatalogTurtle(catalogUri)` | Turtle template for a new, empty catalog, with an explicit `@base` so the document identifies itself outside its own retrieval context
 |===
+
+The folder vocabulary (`sd:Folder`, `sd:hasParent`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL.
 
 == See also
 
