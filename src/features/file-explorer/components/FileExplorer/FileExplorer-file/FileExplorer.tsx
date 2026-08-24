@@ -4,13 +4,12 @@
  * @packageDocumentation
  */
 
-import { useState, Fragment, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, Fragment, useCallback, useEffect, useRef } from "react";
 import type { DragEvent, FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "@/infrastructure/solid/resourceGuards";
-import { resolveCatalogUri } from "@/infrastructure/solid/catalog";
 import { SharedWithMeSection } from "@/features/file-explorer/components/SharedWithMeSection";
 import { FileUpload } from "@/features/file-explorer/components/FileUpload";
 import { isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
@@ -18,7 +17,7 @@ import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
 import { useContacts } from "@/features/file-explorer/hooks/useContacts";
-import { useCatalog } from "@/features/file-explorer/hooks/useCatalog";
+import { useCatalogBreadcrumbs } from "@/features/file-explorer/hooks/useCatalogBreadcrumbs";
 import { useFileSearch } from "@/features/file-explorer/hooks/useFileSearch";
 import { useUploadQueue } from "@/features/file-explorer/hooks/useUploadQueue";
 import { NewFolderInput } from "@/features/file-explorer/components/NewFolderInput";
@@ -63,7 +62,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     appContainerUri,
     storageRootUri,
     currentUri,
-    breadcrumbs,
+    rootLabel,
     noStorageDetected,
     handleRetryStorage,
     handleNavigate,
@@ -71,8 +70,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   } = useDriveInitialization(storageRetryDelayMs);
   const contacts = useContacts();
 
-  const catalogUri = resolveCatalogUri(profile, storageRootUri);
-  const { entries: catalogEntries, containerUris: catalogContainerUris, folderTitles } = useCatalog(catalogUri);
+  const {
+    catalogUri,
+    profileHasCatalog,
+    catalogEntries,
+    catalogContainerUris,
+    folderTitles,
+    breadcrumbs,
+  } = useCatalogBreadcrumbs({ profile, storageRootUri, currentUri, rootLabel });
   const [searchQuery, setSearchQuery] = useState("");
   const { debouncedQuery, results: searchResults } = useFileSearch(catalogEntries, searchQuery);
   const isSearching = debouncedQuery.length > 0;
@@ -85,7 +90,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [dragState, setDragState] = useState<"idle" | "over-panel" | "over-card">("idle");
   const dragCounterRef = useRef(0);
   const [prefilledFile, setPrefilledFile] = useState<File | undefined>();
-  const profileHasCatalog = !!profile?.catalog?.["@id"];
   const safeCatalogUri = catalogUri ?? "";
   const {
     items: uploadItems,
@@ -95,14 +99,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   } = useUploadQueue(safeCatalogUri, profileHasCatalog, catalogEntries);
   const isOverPanel = dragState === "over-panel";
 
-  const displayBreadcrumbs = useMemo(
-    () => breadcrumbs.map((crumb) => ({ ...crumb, label: folderTitles.get(crumb.uri) ?? crumb.label })),
-    [breadcrumbs, folderTitles]
-  );
-
   const currentFolderLabel =
-    displayBreadcrumbs.length > 0
-      ? displayBreadcrumbs[displayBreadcrumbs.length - 1].label
+    breadcrumbs.length > 0
+      ? breadcrumbs[breadcrumbs.length - 1].label
       : translate("fileExplorer.myDrive");
 
   const handleDragEnter = useCallback((event: DragEvent<HTMLElement>) => {
@@ -305,15 +304,15 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             />
           )}
 
-          {displayBreadcrumbs.length > 1 && (
+          {breadcrumbs.length > 1 && (
             <nav className="breadcrumb">
-              {displayBreadcrumbs.map((crumb, index) => (
+              {breadcrumbs.map((crumb, index) => (
                 <Fragment key={crumb.uri}>
-                  {index > 0 && <span className="breadcrumb__sep">/</span>}
+                  {index > 0 && <span className="breadcrumb__sep">›</span>}
                   <button
-                    className={`breadcrumb__item${index === displayBreadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
+                    className={`breadcrumb__item${index === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
                     onClick={() => handleBreadcrumbClick(index, crumb.uri)}
-                    disabled={index === displayBreadcrumbs.length - 1}
+                    disabled={index === breadcrumbs.length - 1}
                   >
                     {crumb.label}
                   </button>

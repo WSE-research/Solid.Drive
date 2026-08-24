@@ -23,8 +23,8 @@ const mockUseDriveInit = {
   storageRootUri: 'https://pod.example/',
   currentUri: 'https://pod.example/my-solid-app/' as SolidContainerUri,
   setCurrentUri: vi.fn(),
-  breadcrumbs: [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }],
   setBreadcrumbs: vi.fn(),
+  rootLabel: 'My Drive',
   noStorageDetected: false,
   handleRetryStorage: vi.fn(),
   handleNavigate: vi.fn(),
@@ -34,6 +34,31 @@ const mockUseDriveInit = {
 
 vi.mock('@/features/file-explorer/hooks/useDriveInitialization', () => ({
   useDriveInitialization: () => mockUseDriveInit,
+}));
+
+const useCatalogBreadcrumbsDefaults = () => ({
+  catalogUri: 'https://pod.example/my-solid-app/catalog.ttl' as string | undefined,
+  profileHasCatalog: true,
+  catalogEntries: [
+    {
+      uri: 'https://pod.example/annual-report/index.ttl',
+      title: 'Annual Report',
+      mediaType: 'application/pdf',
+      conformsTo: '',
+      description: '',
+      modified: '',
+      publisher: '',
+      byteSize: 0,
+      accessURL: '',
+    },
+  ],
+  catalogContainerUris: new Set<string>(),
+  folderTitles: new Map<string, string>(),
+  breadcrumbs: [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }] as Array<{ label: string; uri: SolidContainerUri }>,
+});
+const mockUseCatalogBreadcrumbs = vi.fn(useCatalogBreadcrumbsDefaults);
+vi.mock('@/features/file-explorer/hooks/useCatalogBreadcrumbs', () => ({
+  useCatalogBreadcrumbs: () => mockUseCatalogBreadcrumbs(),
 }));
 
 vi.mock('@/features/file-explorer/hooks/useContacts', () => ({
@@ -49,18 +74,8 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isReloadable: vi.fn((r: unknown) => !!(r as Record<string, unknown>)?.reload),
 }));
 
-const mockResolveCatalogUri = vi.fn(() => 'https://pod.example/my-solid-app/catalog.ttl');
-
-vi.mock('@/infrastructure/solid/catalog', () => ({
-  resolveCatalogUri: () => mockResolveCatalogUri(),
-}));
-
 vi.mock('@/features/file-explorer/services/fileFilter', () => ({
   isVisibleLeaf: () => true,
-}));
-
-vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
-  useCatalog: vi.fn(),
 }));
 
 vi.mock('@/features/file-explorer/components/SearchResults', () => ({
@@ -144,29 +159,6 @@ vi.mock('@/features/file-explorer/components/NewFolderInput', () => ({
 }));
 
 import { useResource, useSubject } from '@ldo/solid-react';
-import { useCatalog } from '@/features/file-explorer/hooks/useCatalog';
-
-const mockedUseCatalog = vi.mocked(useCatalog);
-
-const defaultCatalogReturn = {
-  entries: [
-    {
-      uri: 'https://pod.example/annual-report/index.ttl',
-      title: 'Annual Report',
-      mediaType: 'application/pdf',
-      conformsTo: '',
-      description: '',
-      modified: '',
-      publisher: '',
-      byteSize: 0,
-      accessURL: '',
-    },
-  ],
-  containerUris: new Set<string>(),
-  folderTitles: new Map<string, string>(),
-  loading: false,
-  error: null,
-} as ReturnType<typeof useCatalog>;
 
 // Helper to create a mock container resource
 const makeContainer = (childList: unknown[] = []) => ({
@@ -181,16 +173,14 @@ describe('FileExplorer', () => {
     mockSession.isActive = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockFetch.mockResolvedValue({ ok: false });
-    mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
     capturedUploadDone = null;
     capturedNewFolderDone = null;
     mockUseDriveInit.noStorageDetected = false;
     mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
     mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
-    mockUseDriveInit.breadcrumbs = [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }];
+    mockUseCatalogBreadcrumbs.mockImplementation(useCatalogBreadcrumbsDefaults);
     vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
     vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
-    mockedUseCatalog.mockReturnValue(defaultCatalogReturn);
   });
 
   it('renders login prompt when not logged in', () => {
@@ -244,34 +234,26 @@ describe('FileExplorer', () => {
   });
 
   it('renders breadcrumbs when more than one', () => {
-    mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
-    ];
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      breadcrumbs: [
+        { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+        { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
+      ],
+    }));
     render(<FileExplorer />);
     expect(screen.getByText('My Drive')).toBeInTheDocument();
     expect(screen.getByText('subfolder')).toBeInTheDocument();
   });
 
-  it('shows the catalog title instead of the URI slug for a breadcrumb with a folder catalog entry', () => {
-    mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
-      { label: 'q1-docs', uri: 'https://pod.example/my-solid-app/q1-docs/' as SolidContainerUri },
-    ];
-    mockedUseCatalog.mockReturnValue({
-      ...defaultCatalogReturn,
-      folderTitles: new Map([['https://pod.example/my-solid-app/q1-docs/', 'Q1 Docs']]),
-    });
-    render(<FileExplorer />);
-    expect(screen.getByText('Q1 Docs')).toBeInTheDocument();
-    expect(screen.queryByText('q1-docs')).not.toBeInTheDocument();
-  });
-
   it('last breadcrumb is disabled', () => {
-    mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
-    ];
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      breadcrumbs: [
+        { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+        { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
+      ],
+    }));
     render(<FileExplorer />);
     const buttons = screen.getAllByRole('button');
     const breadcrumbButtons = buttons.filter(b => b.classList.contains('breadcrumb__item'));
@@ -280,10 +262,13 @@ describe('FileExplorer', () => {
   });
 
   it('clicking a breadcrumb calls handleBreadcrumbClick with index and uri', () => {
-    mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
-    ];
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      breadcrumbs: [
+        { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+        { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
+      ],
+    }));
     render(<FileExplorer />);
     fireEvent.click(screen.getByText('My Drive'));
     expect(mockUseDriveInit.handleBreadcrumbClick).toHaveBeenCalledWith(0, 'https://pod.example/my-solid-app/');
@@ -395,11 +380,14 @@ describe('FileExplorer', () => {
   });
 
   it('renders breadcrumb separator and active class for multiple crumbs', () => {
-    mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
-      { label: 'photos', uri: 'https://pod.example/my-solid-app/photos/' as SolidContainerUri },
-      { label: 'vacation', uri: 'https://pod.example/my-solid-app/photos/vacation/' as SolidContainerUri },
-    ];
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      breadcrumbs: [
+        { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+        { label: 'photos', uri: 'https://pod.example/my-solid-app/photos/' as SolidContainerUri },
+        { label: 'vacation', uri: 'https://pod.example/my-solid-app/photos/vacation/' as SolidContainerUri },
+      ],
+    }));
     render(<FileExplorer />);
 
     // Check separators
@@ -424,10 +412,12 @@ describe('FileExplorer', () => {
     expect(sharedSection).toBeInTheDocument();
   });
 
-  it('passes empty string as catalogUri to DriveFileList when resolveCatalogUri returns undefined', () => {
-    mockResolveCatalogUri.mockReturnValue(undefined as unknown as string);
+  it('passes empty string as catalogUri to DriveFileList when no catalog is resolved', () => {
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      catalogUri: undefined,
+    }));
     render(<FileExplorer />);
-    // catalogUri ?? "" fires — DriveFileList still renders
     expect(capturedDriveFileListProps.catalogUri).toBe('');
   });
 
@@ -485,12 +475,12 @@ describe('FileExplorer', () => {
     expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
   });
 
-  it('passes containerUris from useCatalog through to DriveFileList', () => {
+  it('passes catalogContainerUris through to DriveFileList', () => {
     const reportContainerUri = 'https://pod.example/report/';
-    mockedUseCatalog.mockReturnValue({
-      ...defaultCatalogReturn,
-      containerUris: new Set([reportContainerUri]),
-    });
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      catalogContainerUris: new Set([reportContainerUri]),
+    }));
     render(<FileExplorer />);
     expect(capturedDriveFileListProps.catalogContainerUris).toEqual(
       new Set([reportContainerUri]),
@@ -504,17 +494,18 @@ describe('FileExplorer search toggle', () => {
     mockSession.isActive = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
     mockFetch.mockResolvedValue({ ok: false });
-    mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
     mockUseDriveInit.noStorageDetected = false;
     mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
     mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
-    mockUseDriveInit.breadcrumbs = [
-      { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
-      { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
-    ];
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      breadcrumbs: [
+        { label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri },
+        { label: 'subfolder', uri: 'https://pod.example/my-solid-app/sub/' as SolidContainerUri },
+      ],
+    }));
     vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
     vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
-    mockedUseCatalog.mockReturnValue(defaultCatalogReturn);
   });
 
   it('swaps the folder UI for SearchResults once the debounce elapses', () => {
@@ -575,14 +566,12 @@ describe('FileExplorer drag-and-drop', () => {
     mockQueueItems = [];
     mockSession.isActive = true;
     mockSession.webId = 'https://pod.example/profile/card#me';
-    mockResolveCatalogUri.mockReturnValue('https://pod.example/my-solid-app/catalog.ttl');
     mockUseDriveInit.noStorageDetected = false;
     mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
     mockUseDriveInit.appContainerUri = 'https://pod.example/my-solid-app/' as SolidContainerUri;
-    mockUseDriveInit.breadcrumbs = [{ label: 'My Drive', uri: 'https://pod.example/my-solid-app/' as SolidContainerUri }];
+    mockUseCatalogBreadcrumbs.mockImplementation(useCatalogBreadcrumbsDefaults);
     vi.mocked(useResource).mockReturnValue(makeContainer() as unknown as ReturnType<typeof useResource>);
     vi.mocked(useSubject).mockReturnValue({ catalog: { '@id': 'https://pod.example/catalog.ttl' } } as unknown as ReturnType<typeof useSubject>);
-    mockedUseCatalog.mockReturnValue(defaultCatalogReturn);
   });
 
   it('shows DropZone when files are dragged over the panel', () => {

@@ -33,11 +33,8 @@ const driveInitDefaults = () => ({
   storageRootUri: 'https://pod/',
   currentUri: 'https://pod/app/' as string | undefined,
   setCurrentUri: vi.fn(),
-  breadcrumbs: [{ label: 'My Pod', uri: 'https://pod/app/' }] as Array<{
-    label: string;
-    uri: string;
-  }>,
   setBreadcrumbs: vi.fn(),
+  rootLabel: 'My Pod',
   noStorageDetected: false,
   handleRetryStorage: mockHandleRetryStorage,
   handleNavigate: vi.fn(),
@@ -61,19 +58,25 @@ const fileEntry: CatalogEntry = {
   accessURL: 'https://pod/app/file1/binary',
 };
 
-vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
-  useCatalog: () => ({
-    entries: [fileEntry],
-    containerUris: new Set(['https://pod/app/file1/']),
-    folderTitles: new Map<string, string>(),
-    loading: false,
-    error: null,
-  }),
+const useCatalogBreadcrumbsDefaults = () => ({
+  catalogUri: 'https://pod/catalog' as string | undefined,
+  profileHasCatalog: true,
+  catalogEntries: [fileEntry],
+  catalogContainerUris: new Set(['https://pod/app/file1/']),
+  folderTitles: new Map<string, string>(),
+  breadcrumbs: [{ label: 'My Pod', uri: 'https://pod/app/' }] as Array<{
+    label: string;
+    uri: string;
+  }>,
+});
+const mockUseCatalogBreadcrumbs = vi.fn(useCatalogBreadcrumbsDefaults);
+vi.mock('@/features/file-explorer/hooks/useCatalogBreadcrumbs', () => ({
+  useCatalogBreadcrumbs: () => mockUseCatalogBreadcrumbs(),
 }));
 
-const mockResolveCatalogUri = vi.fn(() => 'https://pod/catalog' as string | null);
-vi.mock('@/infrastructure/solid/catalog', () => ({
-  resolveCatalogUri: () => mockResolveCatalogUri(),
+vi.mock('@/shared/hooks/useCatalogVersion', () => ({
+  useCatalogVersion: () => 0,
+  notifyCatalogChanged: vi.fn(),
 }));
 
 vi.mock('@/infrastructure/solid/resourceGuards', () => ({
@@ -92,6 +95,7 @@ vi.mock('@/features/onedrive-layout/hooks/useSharingLabel', () => ({
 const defaultUseResource = (uri: string | undefined) => ({
   uri: uri ?? '',
   children: () => [folderChild, fileContainerChild],
+  read: vi.fn().mockResolvedValue(undefined),
 });
 const mockUseResource = vi.fn<
   (uri: string | undefined) => unknown
@@ -662,12 +666,14 @@ describe('MyFilesView — folder navigation resets prefilled file', () => {
 
 describe('MyFilesView — catalog URI fallback', () => {
   beforeEach(() => {
-    mockResolveCatalogUri.mockReset();
-    mockResolveCatalogUri.mockReturnValue('https://pod/catalog');
+    mockUseCatalogBreadcrumbs.mockImplementation(useCatalogBreadcrumbsDefaults);
   });
 
   it('skips rendering FileUpload when no catalog URI can be resolved', () => {
-    mockResolveCatalogUri.mockReturnValue(null);
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      catalogUri: undefined,
+    }));
     render(<MyFilesView {...renderProps} showUpload />);
     expect(screen.queryByTestId('mock-file-upload')).not.toBeInTheDocument();
   });
@@ -675,8 +681,8 @@ describe('MyFilesView — catalog URI fallback', () => {
 
 describe('MyFilesView — empty breadcrumbs fallback', () => {
   it('falls back to the localized myDrive label when breadcrumbs are empty', () => {
-    mockUseDriveInitialization.mockImplementation(() => ({
-      ...driveInitDefaults(),
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
       breadcrumbs: [],
     }));
     const { container } = render(<MyFilesView {...renderProps} />);
@@ -694,6 +700,7 @@ describe('MyFilesView — empty breadcrumbs fallback', () => {
 describe('MyFilesView — early-return states', () => {
   beforeEach(() => {
     mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseCatalogBreadcrumbs.mockImplementation(useCatalogBreadcrumbsDefaults);
     mockUseResource.mockImplementation(defaultUseResource);
     mockHandleRetryStorage.mockClear();
   });
@@ -735,6 +742,7 @@ describe('MyFilesView — early-return states', () => {
 describe('MyFilesView — breadcrumbs', () => {
   beforeEach(() => {
     mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseCatalogBreadcrumbs.mockImplementation(useCatalogBreadcrumbsDefaults);
     mockUseResource.mockImplementation(defaultUseResource);
   });
 
@@ -742,6 +750,9 @@ describe('MyFilesView — breadcrumbs', () => {
     mockUseDriveInitialization.mockImplementation(() => ({
       ...driveInitDefaults(),
       currentUri: 'https://pod/app/docs/',
+    }));
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
       breadcrumbs: [
         { label: 'My Pod', uri: 'https://pod/app/' },
         { label: 'docs', uri: 'https://pod/app/docs/' },
@@ -762,6 +773,9 @@ describe('MyFilesView — breadcrumbs', () => {
     mockUseDriveInitialization.mockImplementation(() => ({
       ...driveInitDefaults(),
       currentUri: 'https://pod/app/docs/',
+    }));
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
       breadcrumbs: [
         { label: 'My Pod', uri: 'https://pod/app/' },
         { label: 'docs', uri: 'https://pod/app/docs/' },
@@ -781,6 +795,7 @@ describe('MyFilesView — breadcrumbs', () => {
 describe('MyFilesView — refreshNonce reload', () => {
   beforeEach(() => {
     mockUseDriveInitialization.mockImplementation(driveInitDefaults);
+    mockUseCatalogBreadcrumbs.mockImplementation(useCatalogBreadcrumbsDefaults);
   });
 
   it('re-reads the open folder when refreshNonce changes from the initial value', () => {

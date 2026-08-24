@@ -93,7 +93,7 @@
   "fileExplorer": {
     "loginPrompt": "Bitte melden Sie sich an, um auf Ihr Laufwerk zuzugreifen.",
     "connecting": "Verbindung mit Ihrem Pod…",
-    "myPod": "Mein Pod",
+    "myPod": "Meine Dateien",
     "yourFiles": "Ihre Dateien",
     "podContents": "Pod-Inhalt",
     "reloading": "Wird neu geladen…",
@@ -125,7 +125,8 @@
     "uploadTrayRetry": "Wiederholen",
     "uploadTrayDismiss": "Schließen",
     "unsupportedFolderDrop": "Ordner werden noch nicht unterstützt. Bitte einzelne Dateien ablegen.",
-    "uploadDuplicate": "Eine Datei mit dem Namen \"{{name}}\" existiert bereits in \"{{folder}}\"."
+    "uploadDuplicate": "Eine Datei mit dem Namen \"{{name}}\" existiert bereits in \"{{folder}}\".",
+    "brokenFolderPath": "Der Pfad zu \"{{folder}}\" konnte nicht ermittelt werden: die Verknüpfung zum übergeordneten Ordner fehlt oder ist fehlerhaft."
   },
   "fileCard": {
     "loading": "Wird geladen…",
