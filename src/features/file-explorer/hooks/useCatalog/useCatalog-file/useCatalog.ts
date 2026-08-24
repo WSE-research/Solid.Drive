@@ -6,16 +6,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useResource, useSolidAuth } from "@ldo/solid-react";
-import { FOLDER_CLASS_URI, parseCatalog } from "@/infrastructure/solid/catalog";
+import { isFolderEntry, parseCatalog } from "@/infrastructure/solid/catalog";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { useCatalogVersion } from "@/shared/hooks/useCatalogVersion";
-import type { CatalogEntry } from "@/types";
+import type { CatalogEntry, FolderIndex, FolderNode } from "@/types";
 
 interface UseCatalogReturn {
   entries: CatalogEntry[];
   containerUris: Set<string>;
   // Maps container URI to the folder's catalog title.
   folderTitles: Map<string, string>;
+  // Every folder in the catalog, keyed by container URI, for walking hasParent chains.
+  folderIndex: FolderIndex;
   loading: boolean;
   error: Error | null;
 }
@@ -24,17 +26,39 @@ interface CatalogCacheEntry {
   signal: unknown;
   entries: CatalogEntry[];
   containerUris: Set<string>;
-  folderTitles: Map<string, string>;
+  folderIndex: FolderIndex;
 }
+
+const EMPTY_RESULT: Omit<CatalogCacheEntry, "signal"> = {
+  entries: [],
+  containerUris: new Set(),
+  folderIndex: new Map(),
+};
 
 // Splits parsed catalog entries into files and folders.
 function partitionEntries(parsed: CatalogEntry[]): { fileEntries: CatalogEntry[]; folderEntries: CatalogEntry[] } {
   const fileEntries: CatalogEntry[] = [];
   const folderEntries: CatalogEntry[] = [];
   for (const entry of parsed) {
-    (entry.conformsTo === FOLDER_CLASS_URI ? folderEntries : fileEntries).push(entry);
+    (isFolderEntry(entry) ? folderEntries : fileEntries).push(entry);
   }
   return { fileEntries, folderEntries };
+}
+
+// Indexes folder entries by container URI so a hasParent walk needs no extra fetches.
+function buildFolderIndex(folderEntries: CatalogEntry[]): FolderIndex {
+  const index = new Map<string, FolderNode>();
+  for (const entry of folderEntries) {
+    const uri = toContainerUri(entry.uri);
+    index.set(uri, { uri, title: entry.title, parentUri: entry.parentUri ?? "", conformsTo: entry.conformsTo });
+  }
+  return index;
+}
+
+// Derives the container-URI-to-title map straight from the folder index, so
+// there is one source of truth for folder titles.
+function folderTitlesFrom(folderIndex: FolderIndex): Map<string, string> {
+  return new Map([...folderIndex].map(([uri, node]) => [uri, node.title]));
 }
 
 // Module-level cache. Both `OneDriveLayout` and `MyFilesView` call
@@ -60,7 +84,7 @@ const catalogInflight = new Map<string, Promise<CatalogCacheEntry>>();
 export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
   const { fetch: solidFetch } = useSolidAuth();
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
-  const [folderTitles, setFolderTitles] = useState<Map<string, string>>(new Map());
+  const [folderIndex, setFolderIndex] = useState<FolderIndex>(new Map());
   const [error, setError] = useState<Error | null>(null);
   const [settledAttemptKey, setSettledAttemptKey] = useState<string | undefined>(undefined);
 
@@ -100,12 +124,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
         try {
           const response = await solidFetch(catalogUri);
           if (!response.ok) {
-            const empty: CatalogCacheEntry = {
-              signal: signalKey,
-              entries: [],
-              containerUris: new Set(),
-              folderTitles: new Map(),
-            };
+            const empty: CatalogCacheEntry = { signal: signalKey, ...EMPTY_RESULT };
             catalogCache.set(catalogUri, empty);
             return empty;
           }
@@ -115,7 +134,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
             signal: signalKey,
             entries: fileEntries,
             containerUris: new Set(fileEntries.map((e) => toContainerUri(e.uri))),
-            folderTitles: new Map(folderEntries.map((e) => [toContainerUri(e.uri), e.title])),
+            folderIndex: buildFolderIndex(folderEntries),
           };
           catalogCache.set(catalogUri, entry);
           return entry;
@@ -131,14 +150,14 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
         if (cancelled) return;
         setSettledAttemptKey(attemptKey);
         setEntries(result.entries);
-        setFolderTitles(result.folderTitles);
+        setFolderIndex(result.folderIndex);
         setError(null);
       },
       (err: unknown) => {
         if (cancelled) return;
         setSettledAttemptKey(attemptKey);
-        setEntries([]);
-        setFolderTitles(new Map());
+        setEntries(EMPTY_RESULT.entries);
+        setFolderIndex(EMPTY_RESULT.folderIndex);
         setError(err instanceof Error ? err : new Error(String(err)));
       },
     );
@@ -146,27 +165,39 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     return () => { cancelled = true; };
   }, [catalogUri, solidFetch, updateSignal, catalogVersion, hasFreshCache, attemptKey, signalKey]);
 
+  // Pick the effective source once (cache vs. freshly-settled state) so
+  // the derived views below are computed from it a single time, instead
+  // of once here and again, redundantly, inside the cache-hit branch.
+  const effectiveFolderIndex = hasFreshCache && cached ? cached.folderIndex : folderIndex;
+  const folderTitles = useMemo(() => folderTitlesFrom(effectiveFolderIndex), [effectiveFolderIndex]);
   const containerUris = useMemo(
-    () => new Set(entries.map((entry) => toContainerUri(entry.uri))),
-    [entries]
+    () => (hasFreshCache && cached ? cached.containerUris : new Set(entries.map((entry) => toContainerUri(entry.uri)))),
+    [hasFreshCache, cached, entries]
   );
 
   // No catalog to read.
   if (!catalogUri) {
-    return { entries: [], containerUris: new Set(), folderTitles: new Map(), loading: false, error: null };
+    return { ...EMPTY_RESULT, folderTitles: new Map(), loading: false, error: null };
   }
 
   // Already cached: use it directly instead of waiting for the effect.
   if (hasFreshCache && cached) {
-    return { entries: cached.entries, containerUris: cached.containerUris, folderTitles: cached.folderTitles, loading, error: null };
+    return {
+      entries: cached.entries,
+      containerUris,
+      folderTitles,
+      folderIndex: effectiveFolderIndex,
+      loading,
+      error: null,
+    };
   }
 
   // Still fetching: ignore any stale result left from an earlier fetch.
   if (!isSettled) {
-    return { entries: [], containerUris: new Set(), folderTitles: new Map(), loading, error: null };
+    return { ...EMPTY_RESULT, folderTitles: new Map(), loading, error: null };
   }
 
-  return { entries, containerUris, folderTitles, loading, error };
+  return { entries, containerUris, folderTitles, folderIndex, loading, error };
 }
 
 /**
