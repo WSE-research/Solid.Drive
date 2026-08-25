@@ -119,6 +119,12 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
 
   const { runGuardedDelete } = useGuardedSoftDelete();
 
+  const classUri = resolveFileClassUri(fileMeta?.encodingFormat);
+  const sharedEntry = useMemo(
+    () => (fileMeta ? buildCatalogRow(metadataUri, binaryUri, classUri, fileMeta) : null),
+    [metadataUri, binaryUri, classUri, fileMeta]
+  );
+
   const handleDelete = useCallback(() => {
     // Soft delete requires file metadata, the owner's storage root and WebID.
     // If any of these are missing, fall back to a hard delete.
@@ -133,7 +139,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
               containerUri,
               storageRootUri: ownerStorageRoot,
               catalogUri,
-              entry: buildCatalogRow(metadataUri, binaryUri, resolveFileClassUri(fileMeta.encodingFormat), fileMeta),
+              entry: buildCatalogRow(metadataUri, binaryUri, classUri, fileMeta),
               ownerWebId: session.webId,
               fetch: solidFetch,
             })
@@ -149,6 +155,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     catalogUri,
     metadataUri,
     binaryUri,
+    classUri,
     solidFetch,
   ]);
 
@@ -211,14 +218,12 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     ? new Date(fileMeta.dateModified).toLocaleDateString(DEFAULT_LOCALE, DATE_FORMAT_OPTIONS)
     : "";
 
-  const classUri = resolveFileClassUri(fileMeta.encodingFormat);
   const fileType = getFileTypeInfo(classUri);
 
   const infoButtonLabel = showInfo ? translate("fileCard.hideInfo") : translate("fileCard.info");
   const shareButtonLabel = showShare ? translate("fileCard.hideShare") : translate("fileCard.share");
   const sharedIconTitle = translate("fileCard.shared");
   const mimeType = fileMeta.encodingFormat ?? "";
-  const sharedEntry: SharedEntry = buildCatalogRow(metadataUri, binaryUri, classUri, fileMeta);
 
   return (
     <file-card>
@@ -281,7 +286,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
         </file-card-actions>
       </file-card-meta>
 
-      {!readOnly && showShare && appContainerUri && (
+      {!readOnly && showShare && appContainerUri && sharedEntry && (
         <SharePanel
           containerUri={containerUri}
           catalogUri={catalogUri}

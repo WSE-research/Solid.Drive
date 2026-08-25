@@ -168,11 +168,13 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
   // Pick the effective source once (cache vs. freshly-settled state) so
   // the derived views below are computed from it a single time, instead
   // of once here and again, redundantly, inside the cache-hit branch.
-  const effectiveFolderIndex = hasFreshCache && cached ? cached.folderIndex : folderIndex;
+  // Prefer the cache whenever it exists, fresh or stale, so a background
+  // re-fetch doesn't blank out folder titles that are still correct.
+  const effectiveFolderIndex = cached ? cached.folderIndex : folderIndex;
   const folderTitles = useMemo(() => folderTitlesFrom(effectiveFolderIndex), [effectiveFolderIndex]);
   const containerUris = useMemo(
-    () => (hasFreshCache && cached ? cached.containerUris : new Set(entries.map((entry) => toContainerUri(entry.uri)))),
-    [hasFreshCache, cached, entries]
+    () => (cached ? cached.containerUris : new Set(entries.map((entry) => toContainerUri(entry.uri)))),
+    [cached, entries]
   );
 
   // No catalog to read.
@@ -180,8 +182,9 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     return { ...EMPTY_RESULT, folderTitles: new Map(), loading: false, error: null };
   }
 
-  // Already cached: use it directly instead of waiting for the effect.
-  if (hasFreshCache && cached) {
+  // Cached, whether fresh or awaiting a background re-fetch: serve it
+  // directly instead of waiting for the effect.
+  if (cached) {
     return {
       entries: cached.entries,
       containerUris,
@@ -192,7 +195,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     };
   }
 
-  // Still fetching: ignore any stale result left from an earlier fetch.
+  // No cache yet for this catalog: nothing to show until the first fetch settles.
   if (!isSettled) {
     return { ...EMPTY_RESULT, folderTitles: new Map(), loading, error: null };
   }

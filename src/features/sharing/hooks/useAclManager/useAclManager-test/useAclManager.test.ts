@@ -101,6 +101,24 @@ describe('useAclManager', () => {
     await doLoadAcl(result);
     expect(mockAppendToCatalog).toHaveBeenCalled();
   });
+  
+  it('loadAcl keeps the grantee list when one grantee\'s catalog resync fails', async () => {
+    mockReadAclAgents.mockResolvedValue([
+      'https://alice.example/profile/card#me',
+      'https://bob.example/profile/card#me',
+    ]);
+    mockAppendToCatalog
+      .mockRejectedValueOnce(new Error('Failed to read https://pod.example/.shared-alice.ttl: 401 Unauthorized'))
+      .mockResolvedValue(undefined);
+    const { result } = renderAclManager();
+    await doLoadAcl(result);
+    expect(result.current.error).toBeNull();
+    expect(result.current.grantees).toEqual([
+      'https://alice.example/profile/card#me',
+      'https://bob.example/profile/card#me',
+    ]);
+    expect(mockAppendToCatalog).toHaveBeenCalledTimes(2);
+  });
 
   it('loadAcl sets error message when ACL discovery fails', async () => {
     mockDiscoverAclUri.mockRejectedValue(new Error('ACL not found'));

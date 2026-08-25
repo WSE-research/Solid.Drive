@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { notifyCatalogChanged, __resetCatalogVersionsForTests } from '@/shared/hooks/useCatalogVersion';
 
 const mockFetch = vi.fn();
 vi.mock('@ldo/solid-react', () => ({
@@ -32,6 +33,7 @@ describe('useCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     __resetCatalogCacheForTests();
+    __resetCatalogVersionsForTests();
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('TTL') });
     mockParseCatalog.mockReturnValue([]);
   });
@@ -131,6 +133,26 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.loading).toBe(true));
     resolveFetch?.({ ok: true, text: () => Promise.resolve('TTL') });
     await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  it('keeps serving the cached folder titles while a background re-fetch is in flight', async () => {
+    const folderUri = 'https://pod.example/documents/';
+    mockParseCatalog.mockReturnValue([
+      { uri: folderUri, title: 'Documents', conformsTo: FOLDER_CLASS_URI },
+    ]);
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']])));
+
+    let resolveRefetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
+    mockFetch.mockReturnValue(new Promise((resolve) => { resolveRefetch = resolve; }));
+    act(() => notifyCatalogChanged(CATALOG_URI));
+
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
+
+    resolveRefetch?.({ ok: true, text: () => Promise.resolve('TTL') });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
   });
 
   it('serves a second hook instance from the cache instead of fetching again', async () => {
