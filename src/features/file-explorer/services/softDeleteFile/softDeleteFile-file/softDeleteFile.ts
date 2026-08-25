@@ -84,7 +84,8 @@ function isBinaryCandidate(childUri: string): boolean {
  * @internal
  */
 async function resolveSourceBinaryUri(containerUri: string, entry: SharedEntry, fetch: FetchFn): Promise<string | null> {
-  if (entry.binaryUri && entry.binaryUri !== entry.metadataUri) return entry.binaryUri;
+  const hasOwnBinaryUri = entry.binaryUri && entry.binaryUri !== entry.metadataUri && !entry.binaryUri.endsWith('/');
+  if (hasOwnBinaryUri) return entry.binaryUri;
   const children = await listContainerChildren(containerUri, fetch);
   return children.find(isBinaryCandidate) ?? null;
 }
@@ -165,6 +166,7 @@ export async function softDeleteFile(args: SoftDeleteFileArgs): Promise<SoftDele
       getTombstoneUri(trashItemContainerUri),
       {
         originalContainerUri: containerUri,
+        originalParentUri: entry.parentUri ?? "",
         originalCatalogUri: catalogUri,
         originalInstanceUri: entry.metadataUri,
         originalBinaryName,
@@ -176,19 +178,20 @@ export async function softDeleteFile(args: SoftDeleteFileArgs): Promise<SoftDele
       fetch,
     );
 
-    await appendToCatalog(
-      trashCatalogUri,
-      trashIndexUri,
-      trashPayloadUri,
-      entry.classUri || DEFAULT_FILE_TYPE_URI,
-      entry.mediaType || CONTENT_TYPES.OCTET_STREAM,
-      entry.byteSize,
-      entry.title || resourceFileName(containerUri.replace(/\/$/, "")),
-      entry.description,
-      entry.modified || now.toISOString(),
-      ownerWebId,
+    await appendToCatalog({
+      catalogUri: trashCatalogUri,
+      instanceUri: trashIndexUri,
+      binaryUri: trashPayloadUri,
+      classUri: entry.classUri || DEFAULT_FILE_TYPE_URI,
+      parentUri: "",
+      mediaType: entry.mediaType || CONTENT_TYPES.OCTET_STREAM,
+      byteSize: entry.byteSize,
+      title: entry.title || resourceFileName(containerUri.replace(/\/$/, "")),
+      description: entry.description,
+      modified: entry.modified || now.toISOString(),
+      publisherWebId: ownerWebId,
       fetch,
-    );
+    });
   } catch (error) {
     await rollbackTrashCopy(trashItemContainerUri, fetch);
     return { ok: false, reason: error instanceof Error ? error.message : "Unknown error" };

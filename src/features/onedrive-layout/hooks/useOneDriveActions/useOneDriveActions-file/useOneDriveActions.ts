@@ -96,6 +96,7 @@ export function useOneDriveActions({
       selected.kind === 'file' && !!storageRootUri && !!entry && !!catalogUri && !!ownerWebId;
 
     return runGuardedDelete({
+      resourceUri: selected.uri,
       confirmMessage: canSoftDelete
         ? translate('oneDriveLayout.toast.deleteConfirm', {
             defaultValue: 'Move "{{name}}" to the Recycle bin?',

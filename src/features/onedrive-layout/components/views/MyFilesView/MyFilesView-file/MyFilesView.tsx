@@ -25,9 +25,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigationHistory } from '@/features/onedrive-layout/hooks/useNavigationHistory';
 import { useResource, useSolidAuth, useSubject } from '@ldo/solid-react';
 import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
-import { resolveCatalogUri } from '@/infrastructure/solid/catalog';
 import { useDriveInitialization } from '@/features/file-explorer/hooks/useDriveInitialization';
-import { useCatalog } from '@/features/file-explorer/hooks/useCatalog';
+import { useCatalogBreadcrumbs } from '@/features/file-explorer/hooks/useCatalogBreadcrumbs';
 import { useCatalogVersion } from '@/shared/hooks/useCatalogVersion';
 import { useFileSearch } from '@/features/file-explorer/hooks/useFileSearch';
 import { useUploadQueue } from '@/features/file-explorer/hooks/useUploadQueue';
@@ -90,11 +89,23 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     storageRootUri,
     currentUri,
     setCurrentUri,
-    breadcrumbs,
     setBreadcrumbs,
+    rootLabel,
     noStorageDetected,
     handleRetryStorage,
   } = useDriveInitialization();
+
+  const {
+    catalogUri,
+    profileHasCatalog,
+    catalogEntries,
+    catalogContainerUris,
+    folderTitles,
+    breadcrumbs,
+  } = useCatalogBreadcrumbs({ profile, storageRootUri, currentUri, rootLabel });
+  // Drives the container re-read below so uploads and deletes show up
+  // without a manual refresh.
+  const catalogVersion = useCatalogVersion(catalogUri);
 
   const {
     navigate: navigateToFolder,
@@ -106,22 +117,12 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     setCurrentUri,
     setBreadcrumbs,
   });
-
-  const catalogUri = resolveCatalogUri(profile, storageRootUri);
-  const { entries: catalogEntries, containerUris: catalogContainerUris } =
-    useCatalog(catalogUri);
-  // Bumped whenever any catalog PATCH (upload, delete) fires
-  // notifyCatalogChanged. Drives the container re-read below so bulk
-  // uploads, single uploads, and out-of-band deletes all show new
-  // files without the user having to refresh.
-  const catalogVersion = useCatalogVersion(catalogUri);
   const { debouncedQuery, results: searchResults } = useFileSearch(
     catalogEntries,
     searchValue,
   );
   const isSearching = debouncedQuery.length > 0;
 
-  const profileHasCatalog = !!profile?.catalog?.['@id'];
   const safeCatalogUri = catalogUri ?? '';
   const {
     items: uploadItems,
@@ -141,24 +142,14 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
     pickedFile,
   );
 
-  // `subscribe: true` opens a WebSocket subscription to the pod's
-  // notifications endpoint, so external changes (a delete from another
-  // tab, an upload from another device, a contact sharing a file) push
-  // an 'update' event and React re-renders. On pods that do not
-  // implement the protocol the subscription silently fails and the view
-  // still works through manual reads.
+  // Subscribes to the pod's notifications endpoint so changes from
+  // another tab, device, or a contact sharing a file trigger a
+  // re-render. Pods without the protocol just fall back to manual reads.
   const currentContainer = useResource(currentUri, { subscribe: true });
 
-  // When the parent signals a stale folder OR any catalog mutation
-  // fires (upload, delete via notifyCatalogChanged), re-fetch the
-  // container from the pod and bump local state so React re-evaluates
-  // the rendered children. Skip the initial render so the view does not
-  // double-fetch on mount.
-  //
-  // The container is read through a ref rather than an effect dependency
-  // because the resource hook updates the container in-place when new
-  // data arrives, so the container reference does not change on updates
-  // and cannot be an effect dependency that way.
+  // Read through a ref, not an effect dependency, because the resource
+  // hook mutates the container in place rather than returning a new
+  // reference on update.
   const currentContainerRef = useRef(currentContainer);
   useEffect(() => {
     currentContainerRef.current = currentContainer;
@@ -267,9 +258,9 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
         showError(translate('fileExplorer.unsupportedFolderDrop'));
         return;
       }
-      dispatchDrop(files, targetUri, decodeUriTail(targetUri));
+      dispatchDrop(files, targetUri, folderTitles.get(targetUri) ?? decodeUriTail(targetUri));
     },
-    [dispatchDrop, showError, translate],
+    [dispatchDrop, showError, translate, folderTitles],
   );
 
   const handleUploadSuccess = useCallback(() => {
@@ -321,7 +312,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
   const lastCrumbIndex = breadcrumbs.length - 1;
   const breadcrumbLabel = translate('oneDriveLayout.breadcrumb', 'Breadcrumb');
   const canShowUpload = showUpload && containerIsContainer && !!catalogUri;
-  const canShowNewFolderDialog = containerIsContainer;
+  const canShowNewFolderDialog = containerIsContainer && !!catalogUri;
 
   return (
     <onedrive-view
@@ -351,7 +342,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
                 return (
                   <Fragment key={crumb.uri}>
                     {index > 0 && (
-                      <span className="odl-breadcrumb__sep">/</span>
+                      <span className="odl-breadcrumb__sep">›</span>
                     )}
                     <button
                       type="button"
@@ -379,10 +370,12 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
               prefilledFile={prefilledFile}
             />
           )}
-          {canShowNewFolderDialog && (
+          {canShowNewFolderDialog && catalogUri && (
             <NewFolderDialog
               open={showNewFolder}
               parentContainer={currentContainer}
+              catalogUri={catalogUri}
+              profileHasCatalog={profileHasCatalog}
               onOpenChange={handleNewFolderOpenChange}
             />
           )}
@@ -391,6 +384,7 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
             leafEntries={leafEntries}
             catalogEntries={catalogEntries}
             catalogContainerUris={catalogContainerUris}
+            folderTitles={folderTitles}
             sort={sort}
             selectedUri={selectedUri}
             onNavigate={navigateToFolder}

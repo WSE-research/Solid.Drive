@@ -45,20 +45,25 @@ async function findTrashItemContainerUri(
   title: string,
 ): Promise<string> {
   const catalogUri = trashCatalogUri(pod);
-  const response = await authedFetch(catalogUri);
-  expect(response.ok).toBe(true);
-  const quads = new Parser({ baseIRI: catalogUri }).parse(await response.text());
+  const deadline = Date.now() + UI_TIMEOUTS.medium;
 
-  const datasetUris = quads.filter((quad) => quad.predicate.value === DCAT_DATASET).map((quad) => quad.object.value);
-  for (const datasetUri of datasetUris) {
-    const hasMatchingTitle = quads.some(
-      (quad) => quad.subject.value === datasetUri && quad.predicate.value === DCTERMS_TITLE && quad.object.value === title,
-    );
-    if (hasMatchingTitle) {
-      return datasetUri.replace(/index\.ttl$/, "");
+  while (true) {
+    const response = await authedFetch(catalogUri);
+    if (response.ok) {
+      const quads = new Parser({ baseIRI: catalogUri }).parse(await response.text());
+      const datasetUris = quads.filter((quad) => quad.predicate.value === DCAT_DATASET).map((quad) => quad.object.value);
+      for (const datasetUri of datasetUris) {
+        const hasMatchingTitle = quads.some(
+          (quad) => quad.subject.value === datasetUri && quad.predicate.value === DCTERMS_TITLE && quad.object.value === title,
+        );
+        if (hasMatchingTitle) return datasetUri.replace(/index\.ttl$/, "");
+      }
     }
+    if (Date.now() >= deadline) {
+      throw new Error(`No trash catalog entry titled "${title}" found at ${catalogUri} (last fetch: ${response.status})`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  throw new Error(`No trash catalog entry titled "${title}" found at ${catalogUri}`);
 }
 
 /**
@@ -82,6 +87,11 @@ async function moveToBinViaUi(
   await page.locator("selection-actions").getByRole("button", { name: "Move to bin", exact: true }).click();
   await page.locator("confirm-dialog").getByRole("button", { name: "Confirm" }).click();
   await expect(fileRow).toHaveCount(0, { timeout: UI_TIMEOUTS.medium });
+  // The row can disappear from a live container listing before the soft
+  // delete's own catalog/tombstone writes have landed; the success toast
+  // only fires once that full write has settled, so callers that close
+  // the page or navigate away right after this must wait for it too.
+  await expect(page.locator(".toast").last()).toContainText("moved to the Recycle bin", { timeout: UI_TIMEOUTS.medium });
   await shot(page, `${title} moved to recycle bin`);
 }
 
@@ -144,9 +154,10 @@ test("Restore does not overwrite a resource that now occupies the original URI",
     ...SEEDED_FILE,
   });
 
-  const { page, close } = await freshLogin(browser, peach);
-  await openMyFiles(page);
-  await moveToBinViaUi(page, "Holiday Snapshot");
+  const started = await freshLogin(browser, peach);
+  await openMyFiles(started.page);
+  await moveToBinViaUi(started.page, "Holiday Snapshot");
+  await started.close();
 
   // Something else now occupies the original location.
   const occupyingBody = "not the original file";
@@ -157,6 +168,11 @@ test("Restore does not overwrite a resource that now occupies the original URI",
   });
   expect(occupyResponse.ok).toBe(true);
 
+  // Fresh browser context: restoring reads the original location straight
+  // from the pod, and a session that had it open before the write above
+  // must not serve a pre-write view of it.
+  const { page, close } = await freshLogin(browser, peach);
+  await openMyFiles(page);
   await navigateToView(page, "Recycle bin");
   const trashRow = page.locator("trash-row").filter({ hasText: "Holiday Snapshot" });
   await expect(trashRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });

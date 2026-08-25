@@ -9,7 +9,8 @@ describe("infrastructure/solid/index exports", () => {
     // profile
     "saveProfileFields", "ensureProfileDocType", "addContact", "removeContact",
     // catalog
-    "resolveCatalogUri", "appendToCatalog", "removeFromCatalog",
+    "resolveCatalogUri", "appendToCatalog", "appendFolderToCatalog",
+    "ensureCatalogRootEntry", "isFolderEntry", "removeFromCatalog",
     "parseCatalog", "linkCatalogToProfile", "resourceFileName",
     // sharedCatalog
     "getAppContainerUri", "getSharedCatalogUri", "getSharedCatalogFileName",
@@ -35,9 +36,11 @@ describe("infrastructure/solid/index exports", () => {
     expect(typeof (SolidModule as Record<string, unknown>)[name]).toBe("function");
   });
 
-  it("exports EMPTY_CATALOG_TURTLE as a string", () => {
-    expect(typeof SolidModule.EMPTY_CATALOG_TURTLE).toBe("string");
-    expect(SolidModule.EMPTY_CATALOG_TURTLE.length).toBeGreaterThan(0);
+  it("exports buildEmptyCatalogTurtle as a function producing a base-addressed catalog", () => {
+    expect(typeof SolidModule.buildEmptyCatalogTurtle).toBe("function");
+    const turtle = SolidModule.buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
+    expect(turtle).toContain("@base <https://pod.example/catalog.ttl>");
+    expect(turtle.length).toBeGreaterThan(0);
   });
 
   it("re-exports APP_CONTAINER_PATH from config", () => {

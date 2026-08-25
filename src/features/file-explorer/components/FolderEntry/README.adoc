@@ -3,6 +3,10 @@
 A folder row shown when the file explorer encounters a Pod container the app did not create.
 Displays the folder name and navigates into it when clicked.
 
+Takes an optional `title` prop, the folder's catalog name, which the caller looks
+up from `useCatalog`'s `folderTitles` map. When it's set, it replaces the URI's
+last segment so the folder shows its real name.
+
 == Navigation
 
 .Parent

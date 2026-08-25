@@ -40,6 +40,7 @@ const ownerWebId = 'https://owner.example/#me';
 
 const baseTombstone: Tombstone = {
   originalContainerUri,
+  originalParentUri: 'https://pod.example/my-solid-app/',
   originalCatalogUri: 'https://pod.example/catalog.ttl',
   originalInstanceUri: `${originalContainerUri}index.ttl`,
   originalBinaryName: 'photo.jpg',
@@ -146,19 +147,36 @@ describe('restoreTrashedFile', () => {
 
   it('appends the restored catalog row using the tombstone original catalog/instance URIs, not recomputed ones', async () => {
     await restoreTrashedFile(restoreArgs());
+    expect(mockAppendToCatalog).toHaveBeenCalledWith({
+      catalogUri: baseTombstone.originalCatalogUri,
+      instanceUri: baseTombstone.originalInstanceUri,
+      binaryUri: `${originalContainerUri}photo.jpg`,
+      classUri: trashEntry.classUri,
+      parentUri: 'https://pod.example/my-solid-app/',
+      mediaType: trashEntry.mediaType,
+      byteSize: trashEntry.byteSize,
+      title: trashEntry.title,
+      description: trashEntry.description,
+      modified: trashEntry.modified,
+      publisherWebId: ownerWebId,
+      fetch: expect.any(Function),
+    });
+  });
+
+  it('restores the file\'s catalog parent from the tombstone, not derived from its container URI', async () => {
+    const tombstone = { ...baseTombstone, originalParentUri: 'https://pod.example/my-solid-app/vacation/' };
+    await restoreTrashedFile(restoreArgs({ fetch: makeFetch({}, tombstone) }));
+
     expect(mockAppendToCatalog).toHaveBeenCalledWith(
-      baseTombstone.originalCatalogUri,
-      baseTombstone.originalInstanceUri,
-      `${originalContainerUri}photo.jpg`,
-      trashEntry.classUri,
-      trashEntry.mediaType,
-      trashEntry.byteSize,
-      trashEntry.title,
-      trashEntry.description,
-      trashEntry.modified,
-      ownerWebId,
-      expect.any(Function),
+      expect.objectContaining({ parentUri: 'https://pod.example/my-solid-app/vacation/' }),
     );
+  });
+
+  it('restores a file that lived at the storage root with no catalog parent', async () => {
+    const tombstone = { ...baseTombstone, originalParentUri: '' };
+    await restoreTrashedFile(restoreArgs({ fetch: makeFetch({}, tombstone) }));
+
+    expect(mockAppendToCatalog).toHaveBeenCalledWith(expect.objectContaining({ parentUri: '' }));
   });
 
   it('removes the trash copy, targeting the trash catalog and the trashed item\'s metadata URI', async () => {
@@ -181,19 +199,20 @@ describe('restoreTrashedFile', () => {
     const entry: SharedEntry = { ...trashEntry, classUri: '', mediaType: '', title: '' };
     await restoreTrashedFile(restoreArgs({ entry }));
 
-    expect(mockAppendToCatalog).toHaveBeenCalledWith(
-      baseTombstone.originalCatalogUri,
-      baseTombstone.originalInstanceUri,
-      `${originalContainerUri}photo.jpg`,
-      'http://schema.org/DigitalDocument',
-      'application/octet-stream',
-      trashEntry.byteSize,
-      'photo-2024',
-      trashEntry.description,
-      trashEntry.modified,
-      ownerWebId,
-      expect.any(Function),
-    );
+    expect(mockAppendToCatalog).toHaveBeenCalledWith({
+      catalogUri: baseTombstone.originalCatalogUri,
+      instanceUri: baseTombstone.originalInstanceUri,
+      binaryUri: `${originalContainerUri}photo.jpg`,
+      classUri: 'http://schema.org/DigitalDocument',
+      parentUri: 'https://pod.example/my-solid-app/',
+      mediaType: 'application/octet-stream',
+      byteSize: trashEntry.byteSize,
+      title: 'photo-2024',
+      description: trashEntry.description,
+      modified: trashEntry.modified,
+      publisherWebId: ownerWebId,
+      fetch: expect.any(Function),
+    });
   });
 
   it('returns missing-tombstone and writes nothing when the tombstone is absent', async () => {
@@ -224,6 +243,19 @@ describe('restoreTrashedFile', () => {
     expect(fetchFn.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')).toBe(false);
     expect(mockAppendToCatalog).not.toHaveBeenCalled();
     expect(mockDeleteResource).not.toHaveBeenCalled();
+  });
+
+  it('bypasses cached responses when checking occupancy, so a location freed or claimed by another client is seen immediately', async () => {
+    const fetchFn = makeFetch();
+    await restoreTrashedFile(restoreArgs({ fetch: fetchFn }));
+
+    const occupancyChecks = fetchFn.mock.calls.filter(
+      ([, init]) => (init as RequestInit | undefined)?.method === 'HEAD',
+    );
+    expect(occupancyChecks).toHaveLength(2);
+    for (const [, init] of occupancyChecks) {
+      expect((init as RequestInit).cache).toBe('no-store');
+    }
   });
 
   it('returns a failed result instead of throwing when reading the tombstone errors out', async () => {

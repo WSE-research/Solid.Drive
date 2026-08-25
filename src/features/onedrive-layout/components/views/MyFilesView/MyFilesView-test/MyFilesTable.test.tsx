@@ -201,6 +201,20 @@ describe('MyFilesTable — bare folder rows', () => {
     expect(screen.getByText('3 items')).toBeInTheDocument();
   });
 
+  it('shows the catalog title instead of the URL tail when a folder catalog entry exists', () => {
+    const folderUri = 'https://pod/app/photos/';
+    mockChildrenByUri.set(folderUri, []);
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        folderTitles={new Map([[folderUri, 'Vacation Photos']])}
+      />,
+    );
+    expect(screen.getByText('Vacation Photos')).toBeInTheDocument();
+    expect(screen.queryByText('photos')).not.toBeInTheDocument();
+  });
+
   it('clicking a bare folder row navigates and does not call onSelect', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();

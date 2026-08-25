@@ -18,6 +18,8 @@ Validates the name on blur and on submit, then creates the folder as an LDP Basi
 | Prop | Type | Description
 
 | `parentContainer` | `SolidContainer` | The container in which the new folder will be created
+| `catalogUri` | `string` | Catalog the new folder is registered in
+| `profileHasCatalog` | `boolean` | Whether the profile already links to `catalogUri`
 | `onDone` | `() => void` | Callback invoked after a successful creation or when the user cancels
 |===
 

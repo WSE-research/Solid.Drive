@@ -93,7 +93,7 @@
   "fileExplorer": {
     "loginPrompt": "Please log in to access your drive.",
     "connecting": "Connecting to your Pod…",
-    "myPod": "My Pod",
+    "myPod": "My files",
     "yourFiles": "Your Files",
     "podContents": "Pod Contents",
     "reloading": "Reloading…",
@@ -125,7 +125,8 @@
     "uploadTrayRetry": "Retry",
     "uploadTrayDismiss": "Dismiss",
     "unsupportedFolderDrop": "Folders aren't supported yet. Please drop individual files instead.",
-    "uploadDuplicate": "A file named \"{{name}}\" already exists in \"{{folder}}\"."
+    "uploadDuplicate": "A file named \"{{name}}\" already exists in \"{{folder}}\".",
+    "brokenFolderPath": "Couldn't work out the path to \"{{folder}}\": its link to its parent folder is missing or broken."
   },
   "fileCard": {
     "loading": "Loading\u2026",

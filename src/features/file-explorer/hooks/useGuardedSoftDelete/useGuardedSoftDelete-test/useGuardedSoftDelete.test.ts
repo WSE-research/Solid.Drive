@@ -9,6 +9,9 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
   useNotifications: () => ({ confirm: mockConfirm, showSuccess: mockShowSuccess, showError: mockShowError }),
 }));
 
+const resourceUri = 'https://pod.example/my-solid-app/photo-2024/';
+const otherResourceUri = 'https://pod.example/my-solid-app/sunset-2024/';
+
 describe('useGuardedSoftDelete', () => {
   beforeEach(() => {
     mockConfirm.mockReset().mockResolvedValue(true);
@@ -22,6 +25,7 @@ describe('useGuardedSoftDelete', () => {
     const { result } = renderHook(() => useGuardedSoftDelete());
 
     await result.current.runGuardedDelete({
+      resourceUri,
       confirmMessage: 'Delete it?',
       failedMessage: 'Delete failed',
       run,
@@ -37,6 +41,7 @@ describe('useGuardedSoftDelete', () => {
     const { result } = renderHook(() => useGuardedSoftDelete());
 
     await result.current.runGuardedDelete({
+      resourceUri,
       confirmMessage: 'Delete it?',
       failedMessage: 'Delete failed',
       successMessage: 'Deleted',
@@ -55,6 +60,7 @@ describe('useGuardedSoftDelete', () => {
     const { result } = renderHook(() => useGuardedSoftDelete());
 
     await result.current.runGuardedDelete({
+      resourceUri,
       confirmMessage: 'Delete it?',
       failedMessage: 'Delete failed',
       onSuccess,
@@ -71,6 +77,7 @@ describe('useGuardedSoftDelete', () => {
     const { result } = renderHook(() => useGuardedSoftDelete());
 
     await result.current.runGuardedDelete({
+      resourceUri,
       confirmMessage: 'Delete it?',
       failedMessage: 'Delete failed',
       onSuccess,
@@ -86,6 +93,7 @@ describe('useGuardedSoftDelete', () => {
     const { result } = renderHook(() => useGuardedSoftDelete());
 
     await result.current.runGuardedDelete({
+      resourceUri,
       confirmMessage: 'Delete it?',
       failedMessage: 'Delete failed',
       run,
@@ -99,6 +107,7 @@ describe('useGuardedSoftDelete', () => {
     const { result } = renderHook(() => useGuardedSoftDelete());
 
     await result.current.runGuardedDelete({
+      resourceUri,
       confirmMessage: 'Delete it?',
       failedMessage: 'Delete failed',
       run,
@@ -107,7 +116,7 @@ describe('useGuardedSoftDelete', () => {
     expect(mockShowError).toHaveBeenCalledWith('Delete failed: Unknown error');
   });
 
-  it('ignores a second call fired while the first is still in flight', async () => {
+  it('ignores a second call for the same resource fired while the first is still in flight', async () => {
     let resolveRun: ((value: { ok: true }) => void) | undefined;
     const run = vi.fn().mockReturnValue(
       new Promise((resolve) => {
@@ -116,20 +125,52 @@ describe('useGuardedSoftDelete', () => {
     );
     const { result } = renderHook(() => useGuardedSoftDelete());
 
-    const call1 = result.current.runGuardedDelete({ confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
-    const call2 = result.current.runGuardedDelete({ confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
+    const call1 = result.current.runGuardedDelete({ resourceUri, confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
+    const call2 = result.current.runGuardedDelete({ resourceUri, confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
     resolveRun!({ ok: true });
     await Promise.all([call1, call2]);
 
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  it('does not block a delete of a different resource while the first is still in flight', async () => {
+    let resolveFirstRun: ((value: { ok: true }) => void) | undefined;
+    const run = vi.fn().mockImplementation((uri: string) =>
+      uri === resourceUri
+        ? new Promise((resolve) => {
+            resolveFirstRun = resolve;
+          })
+        : Promise.resolve({ ok: true }),
+    );
+    const { result } = renderHook(() => useGuardedSoftDelete());
+
+    const call1 = result.current.runGuardedDelete({
+      resourceUri,
+      confirmMessage: 'Delete it?',
+      failedMessage: 'Delete failed',
+      run: () => run(resourceUri),
+    });
+    const call2 = result.current.runGuardedDelete({
+      resourceUri: otherResourceUri,
+      confirmMessage: 'Delete it?',
+      failedMessage: 'Delete failed',
+      run: () => run(otherResourceUri),
+    });
+    await call2;
+    resolveFirstRun!({ ok: true });
+    await call1;
+
+    expect(run).toHaveBeenCalledWith(resourceUri);
+    expect(run).toHaveBeenCalledWith(otherResourceUri);
+    expect(mockShowError).not.toHaveBeenCalled();
+  });
+
   it('allows a new delete once the previous one has settled', async () => {
     const run = vi.fn().mockResolvedValue({ ok: true });
     const { result } = renderHook(() => useGuardedSoftDelete());
 
-    await result.current.runGuardedDelete({ confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
-    await result.current.runGuardedDelete({ confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
+    await result.current.runGuardedDelete({ resourceUri, confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
+    await result.current.runGuardedDelete({ resourceUri, confirmMessage: 'Delete it?', failedMessage: 'Delete failed', run });
 
     expect(run).toHaveBeenCalledTimes(2);
   });

@@ -157,19 +157,20 @@ describe('softDeleteFile', () => {
 
   it('appends the trash catalog entry pointing at the fixed-name payload copy', async () => {
     await softDeleteFile(softDeleteArgs());
-    expect(mockAppendToCatalog).toHaveBeenCalledWith(
-      trashCatalogUri,
-      `${trashItemContainerUri}index.ttl`,
-      `${trashItemContainerUri}payload`,
-      baseEntry.classUri,
-      baseEntry.mediaType,
-      baseEntry.byteSize,
-      baseEntry.title,
-      baseEntry.description,
-      baseEntry.modified,
-      ownerWebId,
-      expect.any(Function),
-    );
+    expect(mockAppendToCatalog).toHaveBeenCalledWith({
+      catalogUri: trashCatalogUri,
+      instanceUri: `${trashItemContainerUri}index.ttl`,
+      binaryUri: `${trashItemContainerUri}payload`,
+      classUri: baseEntry.classUri,
+      parentUri: "",
+      mediaType: baseEntry.mediaType,
+      byteSize: baseEntry.byteSize,
+      title: baseEntry.title,
+      description: baseEntry.description,
+      modified: baseEntry.modified,
+      publisherWebId: ownerWebId,
+      fetch: expect.any(Function),
+    });
   });
 
   it('removes the original file with exactly the expected container, catalog, and metadata info', async () => {
@@ -197,6 +198,18 @@ describe('softDeleteFile', () => {
     expect(body).toContain(baseEntry.metadataUri);
     expect(body).toContain('photo.jpg');
     expect(body).toContain(baseEntry.classUri);
+  });
+
+  it('records the entry\'s parent folder in the tombstone, so restore can put it back where it was', async () => {
+    const entry: SharedEntry = { ...baseEntry, parentUri: 'https://pod.example/my-solid-app/' };
+    const fetchFn = makeFetch();
+    await softDeleteFile(softDeleteArgs({ entry, fetch: fetchFn }));
+
+    const tombstonePut = fetchFn.mock.calls.find(
+      ([url, init]) => url === `${trashItemContainerUri}tombstone.ttl` && (init as RequestInit | undefined)?.method === 'PUT',
+    );
+    const body = String((tombstonePut![1] as RequestInit).body);
+    expect(body).toContain(entry.parentUri);
   });
 
   it('notifies listeners that the trash catalog changed, on success', async () => {
@@ -274,17 +287,43 @@ describe('softDeleteFile', () => {
 
     expect(result).toEqual({ ok: true, trashItemContainerUri });
     expect(mockAppendToCatalog).toHaveBeenCalledWith(
-      trashCatalogUri,
-      expect.any(String),
-      `${trashItemContainerUri}payload`,
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.any(Function),
+      expect.objectContaining({
+        catalogUri: trashCatalogUri,
+        instanceUri: expect.any(String),
+        binaryUri: `${trashItemContainerUri}payload`,
+        fetch: expect.any(Function),
+      }),
+    );
+  });
+
+  it('falls back to listing the container\'s contents when the entry\'s binary URL is actually the container itself', async () => {
+    const entry: SharedEntry = { ...baseEntry, binaryUri: containerUri };
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? 'GET';
+      if (method === 'HEAD' && (url === sourceBinaryUri || url === containerUri)) return okResponse();
+      if (method === 'PUT') return okResponse('', undefined);
+      if (url === containerUri) {
+        return okResponse(
+          turtleWithChildren(containerUri, [sourceBinaryUri, `${containerUri}index.ttl`]),
+          'text/turtle',
+        );
+      }
+      if (url === sourceBinaryUri) return okResponse('binary-data', 'image/jpeg');
+      if (url === `${containerUri}index.ttl`) return okResponse('<> a <#Dataset> .', 'text/turtle');
+      return errorResponse(404, 'Not Found');
+    });
+
+    const result = await softDeleteFile(softDeleteArgs({ entry, fetch: fetchFn }));
+
+    expect(result).toEqual({ ok: true, trashItemContainerUri });
+    expect(mockAppendToCatalog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        catalogUri: trashCatalogUri,
+        instanceUri: expect.any(String),
+        binaryUri: `${trashItemContainerUri}payload`,
+        fetch: expect.any(Function),
+      }),
     );
   });
 
@@ -325,18 +364,19 @@ describe('softDeleteFile', () => {
     const entry: SharedEntry = { ...baseEntry, classUri: '', mediaType: '', title: '', modified: '' };
     await softDeleteFile(softDeleteArgs({ entry }));
 
-    expect(mockAppendToCatalog).toHaveBeenCalledWith(
-      trashCatalogUri,
-      expect.any(String),
-      expect.any(String),
-      'http://schema.org/DigitalDocument',
-      'application/octet-stream',
-      baseEntry.byteSize,
-      'photo-2024',
-      baseEntry.description,
-      '2026-01-15T00:00:00.000Z',
-      ownerWebId,
-      expect.any(Function),
-    );
+    expect(mockAppendToCatalog).toHaveBeenCalledWith({
+      catalogUri: trashCatalogUri,
+      instanceUri: expect.any(String),
+      binaryUri: expect.any(String),
+      classUri: 'http://schema.org/DigitalDocument',
+      parentUri: "",
+      mediaType: 'application/octet-stream',
+      byteSize: baseEntry.byteSize,
+      title: 'photo-2024',
+      description: baseEntry.description,
+      modified: '2026-01-15T00:00:00.000Z',
+      publisherWebId: ownerWebId,
+      fetch: expect.any(Function),
+    });
   });
 });

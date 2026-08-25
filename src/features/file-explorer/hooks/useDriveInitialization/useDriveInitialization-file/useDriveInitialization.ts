@@ -11,7 +11,6 @@ import { usePodDiscovery } from "@/features/file-explorer/hooks/usePodDiscovery"
 import type { Breadcrumb } from "@/features/file-explorer/hooks/useNavigation";
 import {
   DRIVE_FOLDER_SEARCH_PARAM,
-  buildDriveBreadcrumbs,
   decodeDriveFolderSearchParam,
   encodeDriveFolderSearchValue,
   isContainerUnderStorage,
@@ -24,8 +23,9 @@ type UseDriveInitializationReturn = {
   storageRootUri: string | undefined;
   currentUri: SolidContainerUri | undefined;
   setCurrentUri: (uri: SolidContainerUri | undefined) => void;
-  breadcrumbs: Breadcrumb[];
   setBreadcrumbs: (breadcrumbs: Breadcrumb[]) => void;
+  // Label for the root breadcrumb, used by useFolderBreadcrumbs.
+  rootLabel: string;
   noStorageDetected: boolean;
   handleRetryStorage: () => Promise<void>;
   handleNavigate: (uri: string) => void;
@@ -69,11 +69,6 @@ export function useDriveInitialization(
     }
     return initialCurrentUri;
   }, [folderFromUrl, storageRootUri, initialCurrentUri]);
-
-  const breadcrumbs = useMemo(() => {
-    if (!currentUri || !storageRootUri) return [];
-    return buildDriveBreadcrumbs(currentUri, storageRootUri, initialBreadcrumbLabel);
-  }, [currentUri, storageRootUri, initialBreadcrumbLabel]);
 
   useEffect(() => {
     if (!initialCurrentUri || !storageRootUri) return;
@@ -150,8 +145,8 @@ export function useDriveInitialization(
     storageRootUri,
     currentUri,
     setCurrentUri,
-    breadcrumbs,
     setBreadcrumbs,
+    rootLabel: initialBreadcrumbLabel,
     noStorageDetected,
     handleRetryStorage,
     handleNavigate,

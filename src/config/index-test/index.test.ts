@@ -38,6 +38,7 @@ describe("config/index exports", () => {
     "SPREADSHEET_MIME_TYPES",
     "DOCUMENT_MIME_TYPES",
     "DEFAULT_TBOX_PATH",
+    "SOLID_DRIVE_CATALOG_VOCAB_PATH",
     "SEEN_REQUESTS_STORAGE_KEY",
     "SEEN_REQUESTS_CHANGE_EVENT",
     "SEEN_REQUESTS_MAX_STORED",
@@ -64,6 +65,6 @@ describe("config/index exports", () => {
 
   it("exports exactly the expected number of runtime values", () => {
     // 49 constants + ENV
-    expect(Object.keys(Config)).toHaveLength(49);
+    expect(Object.keys(Config)).toHaveLength(50);
   });
 });

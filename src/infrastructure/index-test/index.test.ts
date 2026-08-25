@@ -24,7 +24,7 @@ describe("infrastructure/index exports", () => {
     expect(typeof Infrastructure.postCatalogAccessRequest).toBe("function");
   });
 
-  it("re-exports EMPTY_CATALOG_TURTLE constant", () => {
-    expect(typeof Infrastructure.EMPTY_CATALOG_TURTLE).toBe("string");
+  it("re-exports buildEmptyCatalogTurtle", () => {
+    expect(typeof Infrastructure.buildEmptyCatalogTurtle).toBe("function");
   });
 });

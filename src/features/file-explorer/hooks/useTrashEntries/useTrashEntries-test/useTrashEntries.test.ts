@@ -57,6 +57,7 @@ const PAST_EXPIRY = new Date(Date.now() - 1 * DAY_MS).toISOString();
 function tombstoneFor(id: string, expiresAt: string): Tombstone {
   return {
     originalContainerUri: `https://pod.example/my-solid-app/${id}-original/`,
+    originalParentUri: 'https://pod.example/my-solid-app/',
     originalCatalogUri: 'https://pod.example/catalog.ttl',
     originalInstanceUri: `https://pod.example/my-solid-app/${id}-original/index.ttl`,
     originalBinaryName: 'photo.jpg',

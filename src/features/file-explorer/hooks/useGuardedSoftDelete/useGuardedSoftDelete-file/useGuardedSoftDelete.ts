@@ -21,6 +21,8 @@ export type GuardedDeleteResult = { ok: true } | { ok: false; reason: string };
  * @public
  */
 export interface RunGuardedDeleteArgs {
+  /** URI of the resource being deleted, guarding re-entrancy per resource rather than globally. */
+  resourceUri: string;
   /** Confirm-dialog message, already resolved for whichever branch will run. */
   confirmMessage: string;
   /** Prefix shown before the failure reason, e.g. "Delete failed". */
@@ -43,26 +45,29 @@ export interface UseGuardedSoftDeleteReturn {
 }
 
 /**
- * Guards a delete behind a single in-flight lock, confirms with the user,
- * runs the caller-supplied delete, and reports the outcome as a toast.
+ * Guards a delete behind a per-resource in-flight lock, confirms with the
+ * user, runs the caller-supplied delete, and reports the outcome as a
+ * toast.
  *
- * The lock is set synchronously, before the confirm await, so a second
- * click landing while the confirm dialog (or the delete itself) is still
- * in flight is a no-op instead of opening a second dialog or firing a
- * second delete on the same resource. A thrown or rejected `run()` is
- * reported the same way as an `{ ok: false }` result, so a delete never
- * fails silently.
+ * The lock is keyed by `resourceUri` and set synchronously, before the
+ * confirm await, so a second click landing on the *same* resource while
+ * its confirm dialog (or delete) is still in flight is a no-op instead of
+ * opening a second dialog or firing a second delete on it. Deleting a
+ * different resource is unaffected — its own key is free even while
+ * another delete is still finishing up in the background. A thrown or
+ * rejected `run()` is reported the same way as an `{ ok: false }` result,
+ * so a delete never fails silently.
  *
  * @public
  */
 export function useGuardedSoftDelete(): UseGuardedSoftDeleteReturn {
   const { confirm, showSuccess, showError } = useNotifications();
-  const isDeletingRef = useRef(false);
+  const deletingUris = useRef(new Set<string>());
 
   const runGuardedDelete = useCallback(
-    async ({ confirmMessage, failedMessage, successMessage, onSuccess, run }: RunGuardedDeleteArgs) => {
-      if (isDeletingRef.current) return;
-      isDeletingRef.current = true;
+    async ({ resourceUri, confirmMessage, failedMessage, successMessage, onSuccess, run }: RunGuardedDeleteArgs) => {
+      if (deletingUris.current.has(resourceUri)) return;
+      deletingUris.current.add(resourceUri);
 
       try {
         const confirmed = await confirm(confirmMessage);
@@ -78,7 +83,7 @@ export function useGuardedSoftDelete(): UseGuardedSoftDeleteReturn {
       } catch (error) {
         showError(`${failedMessage}: ${error instanceof Error ? error.message : "Unknown error"}`);
       } finally {
-        isDeletingRef.current = false;
+        deletingUris.current.delete(resourceUri);
       }
     },
     [confirm, showSuccess, showError],

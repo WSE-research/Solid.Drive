@@ -24,7 +24,7 @@ import {
   getSharedCatalogUri,
   toContainerUri,
 } from "@/infrastructure/solid/sharedCatalog";
-import { EMPTY_CATALOG_TURTLE, parseCatalog } from "@/infrastructure/solid/catalog";
+import { buildEmptyCatalogTurtle, parseCatalog } from "@/infrastructure/solid/catalog";
 import {
   catalogEntryToSharedEntry,
   syncSharedCatalog,
@@ -56,7 +56,7 @@ async function ensureEmptySharedCatalog(uri: string, fetch: FetchFn): Promise<vo
   const response = await fetch(uri, {
     method: "PUT",
     headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-    body: EMPTY_CATALOG_TURTLE,
+    body: buildEmptyCatalogTurtle(uri),
   });
   if (!response.ok) {
     throw new Error(
@@ -186,7 +186,7 @@ export function useAccessRequests(
 ): UseAccessRequestsReturn {
   const { fetch: solidFetch } = useSolidAuth();
   const [allRequests, setAllRequests] = useState<AccessRequest[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyMessageUri, setBusyMessageUri] = useState<string | null>(null);
 
@@ -230,7 +230,7 @@ export function useAccessRequests(
   }, [ownerWebId, solidFetch]);
 
   useEffect(() => {
-    loadRequests();
+    void Promise.resolve().then(() => loadRequests());
   }, [loadRequests]);
 
   const approve = useCallback(

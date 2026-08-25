@@ -8,7 +8,6 @@
  * Catalog mutations use a GET/PUT round trip: the document is loaded into
  * an N3 store, updated in memory, and written back in full. This avoids
  * relying on SPARQL Update support, which varies across Solid servers.
- * 
  */
 
 import { Parser as N3Parser, Store as N3Store, DataFactory } from "n3";
@@ -25,6 +24,19 @@ import {
 } from "@/config";
 
 const { namedNode, literal, quad } = DataFactory;
+
+/**
+ * Throws if `uri` contains `>` or whitespace, either of which could break
+ * an angle-bracket IRI token in a SPARQL or Turtle string.
+ *
+ * @param uri - The URI to validate
+ * @throws Error if the URI contains unsafe characters
+ *
+ * @internal
+ */
+function assertSafeUri(uri: string): void {
+  if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
+}
 
 const DISTRIBUTION_FRAGMENT = "#dist";
 
@@ -50,27 +62,56 @@ const DCTERMS_MODIFIED = namedNode(`${RDF_NAMESPACES.DCTERMS}modified`);
 const DCTERMS_PUBLISHER = namedNode(`${RDF_NAMESPACES.DCTERMS}publisher`);
 const XSD_DATE_TIME = namedNode(`${RDF_NAMESPACES.XSD}dateTime`);
 const XSD_INTEGER = namedNode(`${RDF_NAMESPACES.XSD}integer`);
-
-function assertSafeUri(uri: string): void {
-  if (/[>\s]/.test(uri)) throw new Error(`Unsafe URI rejected for SPARQL interpolation: "${uri}"`);
-}
+const SD_HAS_PARENT = namedNode(`${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}hasParent`);
 
 /**
- * Minimal Turtle template for an empty DCAT catalog.
+ * Turtle for a new, empty catalog. Declares an explicit `@base` so the
+ * document identifies itself even when read outside its own retrieval
+ * context (copied, cached, or parsed without a baseUri).
+ *
+ * @param catalogUri - The catalog's own URI, used as its base address
  *
  * @public
  */
-export const EMPTY_CATALOG_TURTLE = `@prefix dcat: <${RDF_NAMESPACES.DCAT}> .
+export function buildEmptyCatalogTurtle(catalogUri: string): string {
+  return `@base <${catalogUri}> .
+@prefix dcat: <${RDF_NAMESPACES.DCAT}> .
 
 <> a dcat:Catalog .
 `;
+}
 
 /**
- * Resolves the catalog URI for a user.
+ * Marks a catalog entry as a folder, using this project's own vocabulary.
  *
- * @remarks
- * Prefers the profile-linked catalog (`dcat:catalog`), falling back to
- * the default location under the storage root.
+ * @public
+ */
+export const FOLDER_CLASS_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}Folder`;
+
+/**
+ * The `dcterms:conformsTo` value folders were marked with before this
+ * project had its own vocabulary. Catalogs written by earlier versions of
+ * this app still use it; {@link isFolderEntry} treats both as folders.
+ *
+ * @public
+ */
+export const LEGACY_FOLDER_CLASS_URI = `${RDF_NAMESPACES.LDP}Container`;
+
+/**
+ * True when a catalog entry represents a folder, whether it was written
+ * with the current {@link FOLDER_CLASS_URI} or the
+ * {@link LEGACY_FOLDER_CLASS_URI} marker used before this vocabulary
+ * existed.
+ *
+ * @public
+ */
+export function isFolderEntry(entry: CatalogEntry): boolean {
+  return entry.conformsTo === FOLDER_CLASS_URI || entry.conformsTo === LEGACY_FOLDER_CLASS_URI;
+}
+
+/**
+ * Returns a user's catalog URI: the profile-linked catalog (`dcat:catalog`)
+ * if there is one, otherwise the default location under the storage root.
  *
  * @param profile - The user's Solid profile
  * @param storageRoot - The user's pod storage root URI
@@ -126,35 +167,48 @@ async function withCatalogStore(
 }
 
 /**
- * Adds a dataset entry to the catalog.
- *
- * @param catalogUri - URI of the catalog resource
- * @param instanceUri - URI identifying this dataset instance
- * @param binaryUri - URI of the actual data file
- * @param classUri - URI of the class this dataset conforms to
- * @param mediaType - MIME type of the distribution
- * @param byteSize - Size of the distribution in bytes
- * @param title -  title for the dataset
- * @param description - Optional description of the dataset
- * @param modified - ISO 8601 datetime of last modification
- * @param publisherWebId - WebID of the publisher
- * @param fetch - Authenticated fetch function
+ * Parameters for {@link appendToCatalog}.
  *
  * @public
  */
-export async function appendToCatalog(
-  catalogUri: string,
-  instanceUri: string,
-  binaryUri: string,
-  classUri: string,
-  mediaType: string,
-  byteSize: number,
-  title: string,
-  description: string,
-  modified: string,
-  publisherWebId: string,
-  fetch: FetchFn
-): Promise<void> {
+export interface AppendFileEntryParams {
+  /** URI of the catalog resource */
+  catalogUri: string;
+  /** URI identifying this dataset instance */
+  instanceUri: string;
+  /** URI of the actual data file */
+  binaryUri: string;
+  /** URI of the class this dataset conforms to */
+  classUri: string;
+  /** URI of the folder this file lives in, empty to omit the link */
+  parentUri: string;
+  /** MIME type of the distribution */
+  mediaType: string;
+  /** Size of the distribution in bytes */
+  byteSize: number;
+  /** Human-readable title for the dataset */
+  title: string;
+  /** Description of the dataset, empty for none */
+  description: string;
+  /** ISO 8601 datetime of last modification */
+  modified: string;
+  /** WebID of the publisher */
+  publisherWebId: string;
+  /** Authenticated fetch function */
+  fetch: FetchFn;
+}
+
+/**
+ * Adds a dataset entry to the catalog.
+ *
+ * @public
+ */
+export async function appendToCatalog(params: AppendFileEntryParams): Promise<void> {
+  const {
+    catalogUri, instanceUri, binaryUri, classUri, parentUri,
+    mediaType, byteSize, title, description, modified, publisherWebId, fetch,
+  } = params;
+
   await withCatalogStore(catalogUri, fetch, (store) => {
     const catalog = namedNode(catalogUri);
     const instance = namedNode(instanceUri);
@@ -169,11 +223,110 @@ export async function appendToCatalog(
     }
     store.addQuad(quad(instance, DCTERMS_MODIFIED, literal(modified, XSD_DATE_TIME)));
     store.addQuad(quad(instance, DCTERMS_PUBLISHER, namedNode(publisherWebId)));
+    if (parentUri) {
+      store.addQuad(quad(instance, SD_HAS_PARENT, namedNode(parentUri)));
+    }
     store.addQuad(quad(instance, DCAT_DISTRIBUTION, distribution));
     store.addQuad(quad(distribution, RDF_TYPE, DCAT_DISTRIBUTION_CLASS));
     store.addQuad(quad(distribution, DCAT_ACCESS_URL, namedNode(binaryUri)));
     store.addQuad(quad(distribution, DCAT_MEDIA_TYPE, literal(mediaType)));
     store.addQuad(quad(distribution, DCAT_BYTE_SIZE, literal(String(byteSize), XSD_INTEGER)));
+  });
+}
+
+/**
+ * Parameters for {@link appendFolderToCatalog}.
+ *
+ * @public
+ */
+export interface AppendFolderEntryParams {
+  /** URI of the catalog resource */
+  catalogUri: string;
+  /** URI of the folder container this dataset describes */
+  folderUri: string;
+  /** URI of the folder this folder lives in */
+  parentUri: string;
+  /** Human-readable title for the folder (the name the user typed) */
+  title: string;
+  /** ISO 8601 datetime the folder was created */
+  modified: string;
+  /** WebID of the folder's creator */
+  publisherWebId: string;
+  /** Authenticated fetch function */
+  fetch: FetchFn;
+}
+
+/**
+ * Adds a folder's dataset entry to the catalog.
+ *
+ * @remarks
+ * Unlike {@link appendToCatalog}, a folder has no binary to point to, so
+ * no `dcat:Distribution` is written. The folder's own URI is used as the
+ * dataset URI. The entry carries both `dcterms:conformsTo` (matching how
+ * file entries declare their type) and `rdf:type` (real class membership,
+ * per the vocabulary's own class modelling).
+ *
+ * @public
+ */
+export async function appendFolderToCatalog(params: AppendFolderEntryParams): Promise<void> {
+  const { catalogUri, folderUri, parentUri, title, modified, publisherWebId, fetch } = params;
+
+  await withCatalogStore(catalogUri, fetch, (store) => {
+    const catalog = namedNode(catalogUri);
+    const folder = namedNode(folderUri);
+    const folderClass = namedNode(FOLDER_CLASS_URI);
+
+    store.addQuad(quad(catalog, DCAT_DATASET, folder));
+    store.addQuad(quad(folder, RDF_TYPE, DCAT_DATASET_CLASS));
+    store.addQuad(quad(folder, RDF_TYPE, folderClass));
+    store.addQuad(quad(folder, DCTERMS_CONFORMS_TO, folderClass));
+    store.addQuad(quad(folder, DCTERMS_TITLE, literal(title)));
+    store.addQuad(quad(folder, DCTERMS_MODIFIED, literal(modified, XSD_DATE_TIME)));
+    store.addQuad(quad(folder, DCTERMS_PUBLISHER, namedNode(publisherWebId)));
+    store.addQuad(quad(folder, SD_HAS_PARENT, namedNode(parentUri)));
+  });
+}
+
+/**
+ * Parameters for {@link ensureCatalogRootEntry}.
+ *
+ * @public
+ */
+export interface EnsureCatalogRootEntryParams {
+  /** URI of the catalog resource */
+  catalogUri: string;
+  /** URI of the pod's top storage container */
+  storageRootUri: string;
+  /** WebID of the pod owner */
+  publisherWebId: string;
+  /** Authenticated fetch function */
+  fetch: FetchFn;
+}
+
+/**
+ * Registers the pod's storage root as its own catalog entry, with no
+ * `sd:hasParent` link. This is the terminator every folder path walk
+ * reaches.
+ *
+ * @remarks
+ * Safe to call on every app start: quads are deduplicated by the N3 store,
+ * so re-adding the same triples on a repeat call is a true no-op.
+ *
+ * @public
+ */
+export async function ensureCatalogRootEntry(params: EnsureCatalogRootEntryParams): Promise<void> {
+  const { catalogUri, storageRootUri, publisherWebId, fetch } = params;
+
+  await withCatalogStore(catalogUri, fetch, (store) => {
+    const catalog = namedNode(catalogUri);
+    const root = namedNode(storageRootUri);
+    const folderClass = namedNode(FOLDER_CLASS_URI);
+
+    store.addQuad(quad(catalog, DCAT_DATASET, root));
+    store.addQuad(quad(root, RDF_TYPE, DCAT_DATASET_CLASS));
+    store.addQuad(quad(root, RDF_TYPE, folderClass));
+    store.addQuad(quad(root, DCTERMS_CONFORMS_TO, folderClass));
+    store.addQuad(quad(root, DCTERMS_PUBLISHER, namedNode(publisherWebId)));
   });
 }
 
@@ -211,8 +364,8 @@ export async function removeFromCatalog(
 }
 
 /**
- * Returns a URI's resource filename, decoding percent-escapes when the
- * tail is well-formed and falling back to the raw tail otherwise.
+ * Returns the filename at the end of a URI, decoded if it's valid,
+ * otherwise as-is.
  *
  * @public
  */
@@ -226,10 +379,10 @@ export function resourceFileName(uri: string): string {
 }
 
 /**
- * True when a dataset URI points at a user file rather than an internal
- * bookkeeping resource (the catalog itself, ACL/meta files, or a
- * per-contact shared catalog). Keeps internal `.shared-*.ttl` and system
- * files from ever surfacing as catalog entries in any view.
+ * True when a dataset URI points at a user file, not an internal
+ * bookkeeping resource like the catalog itself, an ACL/meta file, or a
+ * per-contact shared catalog. Keeps those from ever showing up as
+ * catalog entries.
  *
  * @internal
  */
@@ -240,10 +393,9 @@ function isUserVisibleDatasetUri(uri: string): boolean {
 
 /**
  * Normalizes a `dcterms:conformsTo` value to a usable class URI. A real
- * type is a vocabulary term, never a pod resource, so a value that points
- * at a `.ttl` file (a stray catalog, ACL, or shared-catalog reference) is
- * not a type and is dropped to "" so the entry falls back to its default
- * type instead of producing a junk filter chip.
+ * type is a vocabulary term, not a pod resource, so a `.ttl` file
+ * reference (catalog, ACL, shared-catalog) gets dropped to an empty
+ * string instead of becoming a junk filter chip.
  *
  * @internal
  */
@@ -257,10 +409,7 @@ function sanitizeClassUri(uri: string): string {
 }
 
 /**
- * Parses DCAT catalog entries from Turtle text.
- *
- * @remarks
- * Uses N3 parser to extract dataset metadata and distribution details.
+ * Parses DCAT catalog entries out of Turtle text using the N3 parser.
  *
  * @param turtleText - Raw Turtle content of the catalog
  * @param baseUri - Optional base URI for resolving relative IRIs
@@ -279,6 +428,7 @@ export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry
   const store = new N3Store(quads);
   const DCAT = RDF_NAMESPACES.DCAT;
   const DCTERMS = RDF_NAMESPACES.DCTERMS;
+  const HAS_PARENT = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}hasParent`;
 
   const datasetUris = store
     .getObjects(null, `${DCAT}dataset`, null)
@@ -300,6 +450,7 @@ export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry
       mediaType: queryFirstValue(distUri, `${DCAT}mediaType`),
       byteSize: parseInt(queryFirstValue(distUri, `${DCAT}byteSize`) || "0", 10),
       accessURL: queryFirstValue(distUri, `${DCAT}accessURL`),
+      parentUri: queryFirstValue(datasetUri, HAS_PARENT),
     };
   });
 }

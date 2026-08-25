@@ -9,7 +9,7 @@
 export { isLoadable, isReadable, isBinary, isDeletable, isReloadable, isSolidContainer, isSolidLeaf } from "./resourceGuards";
 export { saveProfileFields, ensureProfileDocType, addContact, removeContact } from "./profile";
 export type { ProfileFields } from "./profile";
-export { resolveCatalogUri, appendToCatalog, removeFromCatalog, parseCatalog, linkCatalogToProfile, resourceFileName, EMPTY_CATALOG_TURTLE } from "./catalog";
+export { resolveCatalogUri, appendToCatalog, appendFolderToCatalog, ensureCatalogRootEntry, isFolderEntry, FOLDER_CLASS_URI, LEGACY_FOLDER_CLASS_URI, removeFromCatalog, parseCatalog, linkCatalogToProfile, resourceFileName, buildEmptyCatalogTurtle } from "./catalog";
 export { getAppContainerUri, getSharedCatalogUri, getSharedCatalogFileName, getCandidateSharedCatalogUris, isSharedCatalogFile, normalizeShareCatalogId, toContainerUri, hasAccess } from "./sharedCatalog";
 export { resolveDisplayName } from "./displayName";
 export { discoverStorageRoot } from "./storageDiscovery";

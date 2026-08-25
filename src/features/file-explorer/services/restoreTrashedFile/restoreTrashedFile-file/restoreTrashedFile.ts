@@ -56,6 +56,17 @@ function rollbackRestoredCopy(originalContainerUri: string, fetch: FetchFn): Pro
 }
 
 /**
+ * @internal
+ */
+async function isLocationOccupied(indexUri: string, binaryUri: string, fetch: FetchFn): Promise<boolean> {
+  const [indexOccupancy, binaryOccupancy] = await Promise.all([
+    fetch(indexUri, { method: "HEAD", cache: "no-store" }),
+    fetch(binaryUri, { method: "HEAD", cache: "no-store" }),
+  ]);
+  return indexOccupancy.ok || binaryOccupancy.ok;
+}
+
+/**
  * Restores a soft-deleted file to its exact original location.
  *
  * @public
@@ -73,11 +84,9 @@ export async function restoreTrashedFile(args: RestoreTrashedFileArgs): Promise<
     originalIndexUri = `${tombstone.originalContainerUri}${INDEX_FILE}`;
     originalBinaryUri = `${tombstone.originalContainerUri}${tombstone.originalBinaryName}`;
 
-    const [indexOccupancy, binaryOccupancy] = await Promise.all([
-      fetch(originalIndexUri, { method: "HEAD" }),
-      fetch(originalBinaryUri, { method: "HEAD" }),
-    ]);
-    if (indexOccupancy.ok || binaryOccupancy.ok) return { ok: false, reason: "occupied" };
+    if (await isLocationOccupied(originalIndexUri, originalBinaryUri, fetch)) {
+      return { ok: false, reason: "occupied" };
+    }
   } catch (error) {
     return { ok: false, reason: "failed", detail: error instanceof Error ? error.message : "Unknown error" };
   }
@@ -98,19 +107,20 @@ export async function restoreTrashedFile(args: RestoreTrashedFileArgs): Promise<
       }
     }
 
-    await appendToCatalog(
-      originalCatalogUri,
-      originalInstanceUri,
-      originalBinaryUri,
-      entry.classUri || DEFAULT_FILE_TYPE_URI,
-      entry.mediaType || CONTENT_TYPES.OCTET_STREAM,
-      entry.byteSize,
-      entry.title || resourceFileName(originalContainerUri.replace(/\/$/, "")),
-      entry.description,
-      entry.modified,
-      ownerWebId,
+    await appendToCatalog({
+      catalogUri: originalCatalogUri,
+      instanceUri: originalInstanceUri,
+      binaryUri: originalBinaryUri,
+      classUri: entry.classUri || DEFAULT_FILE_TYPE_URI,
+      parentUri: tombstone.originalParentUri,
+      mediaType: entry.mediaType || CONTENT_TYPES.OCTET_STREAM,
+      byteSize: entry.byteSize,
+      title: entry.title || resourceFileName(originalContainerUri.replace(/\/$/, "")),
+      description: entry.description,
+      modified: entry.modified,
+      publisherWebId: ownerWebId,
       fetch,
-    );
+    });
   } catch (error) {
     await rollbackRestoredCopy(originalContainerUri, fetch);
     return { ok: false, reason: "failed", detail: error instanceof Error ? error.message : "Unknown error" };

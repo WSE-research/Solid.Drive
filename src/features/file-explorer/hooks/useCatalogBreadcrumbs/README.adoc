@@ -1,0 +1,38 @@
+= useCatalogBreadcrumbs
+
+Resolves a user's catalog, registers the pod's root entry in it, and builds the current folder's breadcrumb trail. `MyFilesView` and `FileExplorer` both need this same setup, so it lives here once instead of being repeated at each call site.
+
+== Parameters
+
+[cols="1,1,3", options="header"]
+|===
+| Parameter | Type | Description
+
+| `profile`        | `SolidProfile \| undefined \| null` | The user's Solid profile, used to resolve the catalog address
+| `storageRootUri`  | `string \| undefined`                | The pod's storage root, where every breadcrumb trail ends
+| `currentUri`      | `string \| undefined`                | Container the breadcrumb trail is built for
+| `rootLabel`       | `string`                             | Label for the root breadcrumb when the root's own catalog entry has no title
+|===
+
+== Returns
+
+[cols="1,1,3", options="header"]
+|===
+| Key | Type | Description
+
+| `catalogUri`            | `string \| undefined`   | The resolved catalog address
+| `profileHasCatalog`     | `boolean`                | True once the profile links directly to a catalog
+| `catalogEntries`        | `CatalogEntry[]`         | The files in the catalog
+| `catalogContainerUris`  | `Set<string>`            | Each file's own folder address
+| `folderTitles`          | `Map<string, string>`    | Each folder's address mapped to its catalog title
+| `breadcrumbs`           | `Breadcrumb[]`           | The current folder's fully-labeled breadcrumb trail, root-first
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]
+
+.Uses
+* link:../useCatalog/[useCatalog], link:../useCatalogRootEntry/[useCatalogRootEntry], link:../useFolderBreadcrumbs/[useFolderBreadcrumbs]
+* link:../../../../infrastructure/solid/catalog/[infrastructure/solid/catalog] for `resolveCatalogUri`

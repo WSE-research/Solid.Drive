@@ -11,7 +11,10 @@ import {
 import type { FetchFn } from '@/types/solid';
 import { TRASH_TERMS } from '@/config';
 
-const PREDICATE_BY_FIELD: Record<keyof Tombstone, string> = {
+// originalParentUri is intentionally absent: it's allowed to be empty
+// (a file at the storage root has no parent), so it's not one of the
+// required fields exercised by the "returns null when missing" cases below.
+const PREDICATE_BY_FIELD: Record<Exclude<keyof Tombstone, 'originalParentUri'>, string> = {
   originalContainerUri: TRASH_TERMS.originalContainer,
   originalCatalogUri: TRASH_TERMS.originalCatalog,
   originalInstanceUri: TRASH_TERMS.originalInstance,
@@ -26,6 +29,7 @@ const tombstoneUri = 'https://pod.example/trash/photo-abc123/tombstone.ttl';
 
 const sampleTombstone: Tombstone = {
   originalContainerUri: 'https://pod.example/my-solid-app/photo-2024/',
+  originalParentUri: 'https://pod.example/my-solid-app/',
   originalCatalogUri: 'https://pod.example/catalog.ttl',
   originalInstanceUri: 'https://pod.example/my-solid-app/photo-2024/index.ttl',
   originalBinaryName: 'photo.jpg',
@@ -47,6 +51,12 @@ describe('buildTombstoneTurtle / parseTombstone', () => {
     expect(parseTombstone(turtle, tombstoneUri)).toEqual(tombstone);
   });
 
+  it('round-trips an empty originalParentUri for a file that lived at the storage root', () => {
+    const tombstone = { ...sampleTombstone, originalParentUri: '' };
+    const turtle = buildTombstoneTurtle(tombstoneUri, tombstone);
+    expect(parseTombstone(turtle, tombstoneUri)).toEqual(tombstone);
+  });
+
   it('returns null for empty text', () => {
     expect(parseTombstone('', tombstoneUri)).toBeNull();
   });
@@ -55,7 +65,7 @@ describe('buildTombstoneTurtle / parseTombstone', () => {
     expect(parseTombstone('this is not turtle {{{', tombstoneUri)).toBeNull();
   });
 
-  it.each(Object.keys(sampleTombstone) as (keyof Tombstone)[])(
+  it.each(Object.keys(PREDICATE_BY_FIELD) as (keyof typeof PREDICATE_BY_FIELD)[])(
     'returns null when %s is missing',
     (missingField) => {
       const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);

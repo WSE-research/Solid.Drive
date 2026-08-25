@@ -89,6 +89,7 @@ const buildSharedEntry = (
   title: entry?.title ?? selection.name,
   description: entry?.description ?? '',
   modified: entry?.modified ?? '',
+  parentUri: entry?.parentUri ?? '',
 });
 
 /**

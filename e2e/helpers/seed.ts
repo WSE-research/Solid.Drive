@@ -44,9 +44,17 @@ export function podOf(podName: string): PodIdentity {
   };
 }
 
-const EMPTY_CATALOG_TURTLE = `@prefix dcat: <http://www.w3.org/ns/dcat#> .
+function buildEmptyCatalogTurtle(catalogUri: string): string {
+  return `@base <${catalogUri}> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+
 <> a dcat:Catalog .
 `;
+}
+
+const SDCAT_NAMESPACE = "https://purl.org/solid-drive/catalog#";
+const FOLDER_CLASS_URI = `${SDCAT_NAMESPACE}Folder`;
+
 
 async function listContainerChildren(authedFetch: typeof fetch, containerUri: string): Promise<string[]> {
   const response = await authedFetch(containerUri, { headers: { Accept: TURTLE } });
@@ -125,16 +133,36 @@ export async function cleanPod(authedFetch: typeof fetch, pod: PodIdentity): Pro
   }
 }
 
-async function ensureCatalogExists(authedFetch: typeof fetch, catalogUri: string): Promise<void> {
-  const head = await authedFetch(catalogUri, { method: "HEAD" });
-  if (head.ok) return;
-  const put = await authedFetch(catalogUri, {
-    method: "PUT",
-    headers: { "Content-Type": TURTLE },
-    body: EMPTY_CATALOG_TURTLE,
+async function ensureCatalogExists(authedFetch: typeof fetch, pod: PodIdentity): Promise<void> {
+  const head = await authedFetch(pod.catalogUri, { method: "HEAD" });
+  if (!head.ok) {
+    const put = await authedFetch(pod.catalogUri, {
+      method: "PUT",
+      headers: { "Content-Type": TURTLE },
+      body: buildEmptyCatalogTurtle(pod.catalogUri),
+    });
+    if (!put.ok) {
+      throw new Error(`PUT ${pod.catalogUri} returned ${put.status}`);
+    }
+  }
+
+  const rootSparql = `PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX sd: <${SDCAT_NAMESPACE}>
+
+INSERT DATA {
+  <${pod.catalogUri}> dcat:dataset <${pod.storageRoot}> .
+  <${pod.storageRoot}> a dcat:Dataset, sd:Folder ;
+    dcterms:conformsTo <${FOLDER_CLASS_URI}> ;
+    dcterms:publisher <${pod.webId}> .
+}`;
+  const rootPatch = await authedFetch(pod.catalogUri, {
+    method: "PATCH",
+    headers: { "Content-Type": SPARQL_UPDATE },
+    body: rootSparql,
   });
-  if (!put.ok) {
-    throw new Error(`PUT ${catalogUri} returned ${put.status}`);
+  if (!rootPatch.ok) {
+    throw new Error(`PATCH ${pod.catalogUri} (root entry) returned ${rootPatch.status} ${rootPatch.statusText}`);
   }
 }
 
@@ -215,12 +243,13 @@ export async function seedFile(args: SeedFileArgs): Promise<SeededFile> {
     throw new Error(`PUT ${instanceUri} returned ${indexResponse.status}`);
   }
 
-  await ensureCatalogExists(authedFetch, pod.catalogUri);
+  await ensureCatalogExists(authedFetch, pod);
 
   const distUri = `${instanceUri}#distribution`;
   const sparqlUpdate = `PREFIX dcat: <http://www.w3.org/ns/dcat#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX sd: <${SDCAT_NAMESPACE}>
 
 INSERT DATA {
   <${pod.catalogUri}> dcat:dataset <${instanceUri}> .
@@ -229,6 +258,7 @@ INSERT DATA {
     dcterms:title "${title.replace(/"/g, '\\"')}" ;
     dcterms:modified "${new Date().toISOString()}"^^xsd:dateTime ;
     dcterms:publisher <${pod.webId}> ;
+    sd:hasParent <${pod.appContainer}> ;
     dcat:distribution <${distUri}> .
   <${distUri}> a dcat:Distribution ;
     dcat:accessURL <${binaryUri}> ;

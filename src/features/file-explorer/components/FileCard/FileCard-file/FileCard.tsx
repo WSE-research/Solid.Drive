@@ -124,6 +124,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
     // If any of these are missing, fall back to a hard delete.
     const canSoftDelete = fileMeta && ownerStorageRoot && session.webId;
     return runGuardedDelete({
+      resourceUri: containerUri,
       confirmMessage: translate(canSoftDelete ? "fileCard.deleteConfirm" : "fileCard.deleteConfirmPermanent"),
       failedMessage: translate("fileCard.deleteFail"),
       run: () =>
@@ -155,6 +156,7 @@ export const FileCard: FunctionComponent<FileCardProps> = ({ containerUri, catal
   const handleDeletePermanently = useCallback(
     () =>
       runGuardedDelete({
+        resourceUri: containerUri,
         confirmMessage: translate("fileCard.deleteConfirmPermanent"),
         failedMessage: translate("fileCard.deleteFail"),
         run: () => deleteResource({ containerUri, metadataUri, catalogUri, fetch: solidFetch }),

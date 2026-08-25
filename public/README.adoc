@@ -14,6 +14,11 @@ Used at runtime by the validation layer to look up type definitions and generate
 node scripts/extract-tbox.mjs
 ----
 
+`vocab/solid-drive-catalog.ttl`::
+This project's own vocabulary, defining `Folder` and `hasParent`, the terms a catalog uses to describe its folder structure.
+Writing and editing are done manually; there is no automated generation.
+Identified by the `https://purl.org/solid-drive/catalog#` PURL, which is meant to redirect here once registered.
+
 == Navigation
 
 .Parent
@@ -22,3 +27,4 @@ link:../[root]
 .Related
 * link:../scripts/[scripts/extract-tbox.mjs] generates `tbox.ttl`
 * link:../src/infrastructure/validation/[infrastructure/validation] consumes `tbox.ttl` at runtime
+* link:../src/infrastructure/solid/catalog/[infrastructure/solid/catalog] writes and reads `Folder`/`hasParent` triples defined by `vocab/solid-drive-catalog.ttl`

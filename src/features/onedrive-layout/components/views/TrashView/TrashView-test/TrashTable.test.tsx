@@ -29,6 +29,7 @@ function makeEntry(overrides: Partial<TrashEntry> = {}): TrashEntry {
     containerUri: 'https://pod.example/trash/photo-abc/',
     tombstone: {
       originalContainerUri: 'https://pod.example/my-solid-app/photo-2024/',
+      originalParentUri: 'https://pod.example/my-solid-app/',
       originalCatalogUri: 'https://pod.example/catalog.ttl',
       originalInstanceUri: 'https://pod.example/my-solid-app/photo-2024/index.ttl',
       originalBinaryName: 'photo.jpg',

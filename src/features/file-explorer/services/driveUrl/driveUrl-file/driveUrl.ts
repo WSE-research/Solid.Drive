@@ -5,6 +5,7 @@
 
 import type { SolidContainerUri } from "@ldo/connected-solid";
 import type { Breadcrumb } from "@/features/file-explorer/hooks/useNavigation";
+import type { FolderIndex } from "@/types";
 
 /** Search param storing the current Solid container URI for deep links and history. */
 export const DRIVE_FOLDER_SEARCH_PARAM = "folder";
@@ -43,33 +44,40 @@ export function decodeDriveFolderSearchParam(raw: string | null): SolidContainer
 
 /**
  * Builds breadcrumbs from storage root through `folderUri` using path segments.
+ *
+ * @remarks
+ * Legacy fallback only, for a folder absent from the catalog entirely; a
+ * cataloged folder gets its trail from {@link buildFolderPath} instead. The
+ * optional `folderIndex` upgrades a segment's label to its catalog title
+ * when one exists, falling back to the decoded URL segment otherwise.
  */
 export function buildDriveBreadcrumbs(
   folderUri: string,
   storageRoot: string,
-  storageLabel: string
+  storageLabel: string,
+  folderIndex?: FolderIndex
 ): Breadcrumb[] {
   const root = normalizeContainerUri(storageRoot);
   const folder = normalizeContainerUri(folderUri);
+  const titleFor = (uri: string, fallback: string) => folderIndex?.get(uri)?.title || fallback;
 
   if (!folder.startsWith(root)) {
     return [{ label: storageLabel, uri: root as SolidContainerUri }];
   }
 
   const breadcrumbs: Breadcrumb[] = [
-    { label: storageLabel, uri: root as SolidContainerUri },
+    { label: titleFor(root, storageLabel), uri: root as SolidContainerUri },
   ];
   const remainder = folder.slice(root.length);
   const segments = remainder.replace(/^\//, "").split("/").filter(Boolean);
 
   const rootWithoutTrailingSlash = root.replace(/\/$/, "");
   for (let index = 0; index < segments.length; index += 1) {
-    const label = decodeURIComponent(segments[index]);
     const segmentsUpToHere = segments.slice(0, index + 1);
     const accumulatedPath =
       `${rootWithoutTrailingSlash}${segmentsUpToHere.map((segment) => `/${segment}`).join("")}/`;
     breadcrumbs.push({
-      label,
+      label: titleFor(accumulatedPath, decodeURIComponent(segments[index])),
       uri: accumulatedPath as SolidContainerUri,
     });
   }

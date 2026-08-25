@@ -26,6 +26,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export interface Tombstone {
   /** Container URI the file was deleted from. */
   originalContainerUri: string;
+  /** Folder the file lived in, as recorded by its own catalog entry. Empty for a file at the storage root. */
+  originalParentUri: string;
   /** Catalog the file's DCAT row lived in. */
   originalCatalogUri: string;
   /** The file's `dcat:dataset` URI in the original catalog. */
@@ -55,6 +57,9 @@ export function buildTombstoneTurtle(tombstoneUri: string, tombstone: Tombstone)
   return serializeTurtle([
     DataFactory.quad(subject, namedNode(RDF_TYPE_URI), namedNode(TRASH_TERMS.Tombstone)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalContainer), namedNode(tombstone.originalContainerUri)),
+    ...(tombstone.originalParentUri
+      ? [DataFactory.quad(subject, namedNode(TRASH_TERMS.originalParent), namedNode(tombstone.originalParentUri))]
+      : []),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalCatalog), namedNode(tombstone.originalCatalogUri)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalInstance), namedNode(tombstone.originalInstanceUri)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalBinaryName), literal(tombstone.originalBinaryName)),
@@ -90,6 +95,7 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
   const value = (predicate: string) => store.getObjects(baseUri, predicate, null)[0]?.value;
 
   const originalContainerUri = value(TRASH_TERMS.originalContainer);
+  const originalParentUri = value(TRASH_TERMS.originalParent) ?? "";
   const originalCatalogUri = value(TRASH_TERMS.originalCatalog);
   const originalInstanceUri = value(TRASH_TERMS.originalInstance);
   const originalBinaryName = value(TRASH_TERMS.originalBinaryName);
@@ -113,6 +119,7 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
 
   return {
     originalContainerUri,
+    originalParentUri,
     originalCatalogUri,
     originalInstanceUri,
     originalBinaryName,

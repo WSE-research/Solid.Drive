@@ -1,0 +1,21 @@
+= useFolderBreadcrumbs
+
+Builds the breadcrumb trail for the current folder by walking `sd:hasParent` links up to the storage root, instead of splitting the folder's URI.
+
+== Exports
+
+[cols="1,3", options="header"]
+|===
+| Name | Description
+
+| `useFolderBreadcrumbs({ currentUri, storageRootUri, rootLabel, folderIndex, rootEntryFailed })` | Returns `{ breadcrumbs, error }`. Falls back to URL splitting when the folder has no catalog entry at all, or when the root's own entry hasn't shown up in `folderIndex` yet and `rootEntryFailed` is false. Sets `error` and falls back to just the root crumb when the folder's hasParent chain is otherwise broken
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]
+
+.Uses
+* link:../../services/folderPath/[services/folderPath] for `buildFolderPath` and `FolderPathError`
+* link:../../services/driveUrl/[services/driveUrl] for the URL-splitting fallback

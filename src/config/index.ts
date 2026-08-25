@@ -69,6 +69,7 @@ export {
   DOCUMENT_MIME_TYPES,
   // Validation
   DEFAULT_TBOX_PATH,
+  SOLID_DRIVE_CATALOG_VOCAB_PATH,
   // Routing
   ROUTER_BASENAME,
 } from "./constants";

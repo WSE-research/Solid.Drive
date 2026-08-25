@@ -10,7 +10,6 @@ import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "@/infrastructure/solid/resourceGuards";
-import { resolveCatalogUri } from "@/infrastructure/solid/catalog";
 import { SharedWithMeSection } from "@/features/file-explorer/components/SharedWithMeSection";
 import { FileUpload } from "@/features/file-explorer/components/FileUpload";
 import { isVisibleContainer, isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
@@ -18,7 +17,7 @@ import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
 import { useContacts } from "@/features/file-explorer/hooks/useContacts";
-import { useCatalog } from "@/features/file-explorer/hooks/useCatalog";
+import { useCatalogBreadcrumbs } from "@/features/file-explorer/hooks/useCatalogBreadcrumbs";
 import { useFileSearch } from "@/features/file-explorer/hooks/useFileSearch";
 import { useUploadQueue } from "@/features/file-explorer/hooks/useUploadQueue";
 import { NewFolderInput } from "@/features/file-explorer/components/NewFolderInput";
@@ -63,7 +62,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     appContainerUri,
     storageRootUri,
     currentUri,
-    breadcrumbs,
+    rootLabel,
     noStorageDetected,
     handleRetryStorage,
     handleNavigate,
@@ -71,8 +70,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   } = useDriveInitialization(storageRetryDelayMs);
   const contacts = useContacts();
 
-  const catalogUri = resolveCatalogUri(profile, storageRootUri);
-  const { entries: catalogEntries, containerUris: catalogContainerUris } = useCatalog(catalogUri);
+  const {
+    catalogUri,
+    profileHasCatalog,
+    catalogEntries,
+    catalogContainerUris,
+    folderTitles,
+    breadcrumbs,
+  } = useCatalogBreadcrumbs({ profile, storageRootUri, currentUri, rootLabel });
   const [searchQuery, setSearchQuery] = useState("");
   const { debouncedQuery, results: searchResults } = useFileSearch(catalogEntries, searchQuery);
   const isSearching = debouncedQuery.length > 0;
@@ -85,7 +90,6 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const [dragState, setDragState] = useState<"idle" | "over-panel" | "over-card">("idle");
   const dragCounterRef = useRef(0);
   const [prefilledFile, setPrefilledFile] = useState<File | undefined>();
-  const profileHasCatalog = !!profile?.catalog?.["@id"];
   const safeCatalogUri = catalogUri ?? "";
   const {
     items: uploadItems,
@@ -153,9 +157,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
       showError(translate("fileExplorer.unsupportedFolderDrop"));
       return;
     }
-    const folderLabel = decodeURIComponent(targetUri.replace(/\/$/, "").split("/").pop() ?? "");
+    const folderLabel = folderTitles.get(targetUri) ?? decodeURIComponent(targetUri.replace(/\/$/, "").split("/").pop() ?? "");
     dispatchDrop(files, targetUri, folderLabel);
-  }, [dispatchDrop, isSearching, showError, translate]);
+  }, [dispatchDrop, isSearching, showError, translate, folderTitles]);
 
   /** Download a file via the session and trigger a browser save. */
   const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {
@@ -227,8 +231,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     };
   }, [showAddMenu]);
 
-  // Close any open add-menu, folder, or upload panel when navigating to
-  // another folder. Reset during render to avoid an extra effect cycle.
+  // Close any open form/menu left over from the previous folder. Tracked
+  // during render via the previous currentUri, the pattern this project
+  // uses instead of an effect that calls setState on mount.
   const [previousUri, setPreviousUri] = useState(currentUri);
   if (previousUri !== currentUri) {
     setPreviousUri(currentUri);
@@ -305,7 +310,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             <nav className="breadcrumb">
               {breadcrumbs.map((crumb, index) => (
                 <Fragment key={crumb.uri}>
-                  {index > 0 && <span className="breadcrumb__sep">/</span>}
+                  {index > 0 && <span className="breadcrumb__sep">›</span>}
                   <button
                     className={`breadcrumb__item${index === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
                     onClick={() => handleBreadcrumbClick(index, crumb.uri)}
@@ -360,8 +365,13 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             </div>
           </files-section-header>
 
-          {showNewFolder && isSolidContainer(currentContainer) && (
-            <NewFolderInput parentContainer={currentContainer} onDone={handleNewFolderDone} />
+          {showNewFolder && isSolidContainer(currentContainer) && catalogUri && (
+            <NewFolderInput
+              parentContainer={currentContainer}
+              catalogUri={catalogUri}
+              profileHasCatalog={profileHasCatalog}
+              onDone={handleNewFolderDone}
+            />
           )}
 
           <DriveFileList
@@ -370,6 +380,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             isInAppFolder={isInAppFolder}
             catalogUri={catalogUri ?? ""}
             catalogContainerUris={catalogContainerUris}
+            folderTitles={folderTitles}
             onNavigate={handleNavigate}
             onDownload={handleDownload}
             onFolderDrop={handleFolderDrop}

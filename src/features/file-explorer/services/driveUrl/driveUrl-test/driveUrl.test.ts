@@ -134,4 +134,29 @@ describe("buildDriveBreadcrumbs", () => {
       uri: "https://pod.example/my-solid-app/photos/",
     });
   });
+
+  it("upgrades a segment's label to its catalog title when folderIndex has one", () => {
+    const app = "https://pod.example/my-solid-app/";
+    const photos = "https://pod.example/my-solid-app/photos/";
+    const folderIndex = new Map([
+      [app, { uri: app, title: "My App", parentUri: "https://pod.example/", conformsTo: "" }],
+    ]);
+    const crumbs = buildDriveBreadcrumbs(photos, "https://pod.example/", "My Pod", folderIndex);
+    expect(crumbs[1]).toMatchObject({ label: "My App", uri: app });
+    expect(crumbs[2]).toMatchObject({ label: "photos", uri: photos });
+  });
+
+  it("keeps storageLabel for the root when folderIndex has an entry with no title", () => {
+    const root = "https://pod.example/";
+    const folderIndex = new Map([
+      [root, { uri: root, title: "", parentUri: "", conformsTo: "" }],
+    ]);
+    const crumbs = buildDriveBreadcrumbs(
+      "https://pod.example/my-solid-app/",
+      root,
+      "My Pod",
+      folderIndex
+    );
+    expect(crumbs[0]).toMatchObject({ label: "My Pod", uri: root });
+  });
 });

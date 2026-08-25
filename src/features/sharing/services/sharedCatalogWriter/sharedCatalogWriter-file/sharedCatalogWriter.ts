@@ -19,6 +19,7 @@ export function catalogEntryToSharedEntry(entry: CatalogEntry): SharedEntry {
     title: entry.title,
     description: entry.description,
     modified: entry.modified,
+    parentUri: entry.parentUri,
   };
 }
 
@@ -47,19 +48,20 @@ export async function syncSharedCatalog({
   if (entries.length === 0) return;
   const sharedCatalogUri = getSharedCatalogUri(appContainerUri, contactWebId);
   for (const entry of entries) {
-    await appendToCatalog(
-      sharedCatalogUri,
-      entry.metadataUri,
-      entry.binaryUri,
-      entry.classUri,
-      entry.mediaType,
-      entry.byteSize,
-      entry.title,
-      entry.description,
-      entry.modified,
-      ownerWebId,
+    await appendToCatalog({
+      catalogUri: sharedCatalogUri,
+      instanceUri: entry.metadataUri,
+      binaryUri: entry.binaryUri,
+      classUri: entry.classUri,
+      parentUri: entry.parentUri ?? "",
+      mediaType: entry.mediaType,
+      byteSize: entry.byteSize,
+      title: entry.title,
+      description: entry.description,
+      modified: entry.modified,
+      publisherWebId: ownerWebId,
       fetch,
-    );
+    });
   }
   const sharedCatalogAclUri = await discoverAclUri(sharedCatalogUri, fetch);
   await writeResourceAcl(

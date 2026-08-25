@@ -290,6 +290,8 @@ export const RDF_NAMESPACES = {
   SOLID_ACCESS: "http://www.w3.org/ns/solid/access#",
   /** Solid Terms namespace */
   SOLID_TERMS: "http://www.w3.org/ns/solid/terms#",
+  /** Solid.drive catalog vocabulary namespace (Folder, hasParent) */
+  SOLID_DRIVE_CATALOG: "https://purl.org/solid-drive/catalog#",
   /** Solid Notifications namespace */
   NOTIFY: "http://www.w3.org/ns/solid/notifications#",
   /** vCard namespace for contact/profile data */
@@ -362,6 +364,7 @@ export const TRASH_TERMS = {
   formerType: `${RDF_NAMESPACES.ACTIVITY_STREAMS}formerType`,
   deletedAt: `${RDF_NAMESPACES.ACTIVITY_STREAMS}deleted`,
   originalContainer: `${RDF_NAMESPACES.TRASH}originalContainer`,
+  originalParent: `${RDF_NAMESPACES.TRASH}originalParent`,
   originalCatalog: `${RDF_NAMESPACES.TRASH}originalCatalog`,
   originalInstance: `${RDF_NAMESPACES.TRASH}originalInstance`,
   originalBinaryName: `${RDF_NAMESPACES.TRASH}originalBinaryName`,
@@ -548,6 +551,19 @@ export const DOCUMENT_MIME_TYPES = [
  * @public
  */
 export const DEFAULT_TBOX_PATH = `${import.meta.env.BASE_URL}tbox.ttl`;
+
+/**
+ * Where this app's own catalog vocabulary document is served from.
+ *
+ * @remarks
+ * The stable identifier for the vocabulary's terms is
+ * `RDF_NAMESPACES.SOLID_DRIVE_CATALOG` (a purl.org PURL); this path is
+ * where the actual document currently lives so it can be linked to from
+ * docs. Same `BASE_URL` reasoning as {@link DEFAULT_TBOX_PATH}.
+ *
+ * @public
+ */
+export const SOLID_DRIVE_CATALOG_VOCAB_PATH = `${import.meta.env.BASE_URL}vocab/solid-drive-catalog.ttl`;
 
 // ============================================================================
 // ROUTING
