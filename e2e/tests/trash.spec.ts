@@ -251,10 +251,18 @@ test("Delete permanently from the Recycle bin removes the trash copy for good", 
   await expect(page.locator("trash-empty")).toBeVisible({ timeout: UI_TIMEOUTS.medium });
   await shot(page, "Holiday Snapshot permanently deleted");
 
-  // Nothing left registered in the trash catalog.
-  const catalogResponse = await peach.authedFetch(trashCatalogUri(peach.pod));
-  const catalogBody = catalogResponse.ok ? await catalogResponse.text() : "";
-  expect(catalogBody).not.toContain("Holiday Snapshot");
+  // Nothing left registered in the trash catalog. The catalog write can
+  // still be settling when the success toast appears, so a single read
+  // right after it can catch the entry before it's gone.
+  await expect
+    .poll(
+      async () => {
+        const catalogResponse = await peach.authedFetch(trashCatalogUri(peach.pod));
+        return catalogResponse.ok ? await catalogResponse.text() : "";
+      },
+      { timeout: UI_TIMEOUTS.medium },
+    )
+    .not.toContain("Holiday Snapshot");
 
   // The physical trash container is gone too, not just the catalog row.
   await expect
