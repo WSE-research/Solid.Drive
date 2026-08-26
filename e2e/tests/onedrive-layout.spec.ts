@@ -6,11 +6,11 @@ import { shot } from "../helpers/screenshots";
 /**
  * Opting into the OneDrive layout shell and switching back out. The tests
  * click the real controls (the ExperienceSwitcher in the Classic header and
- * the LayoutToggle in the OneDrive settings menu) because the controls
- * themselves are under test.
+ * the Theme select's "Classic" option in the OneDrive settings menu) because
+ * the controls themselves are under test.
  *
- * The Classic header offers one flat list of experiences rather than a
- * layout axis with the themes hidden behind the Settings menu, so the last
+ * Both places now offer the same flat list of experiences rather than a
+ * layout axis with the themes hidden behind a separate control, so the last
  * test drives the Google-Drive-inspired theme end to end from Classic.
  */
 
@@ -45,7 +45,8 @@ test("user switches back to the Classic layout from the TopBar settings menu", a
   await enterOneDriveLayout(page);
 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("radio", { name: "Classic" }).click();
+  await page.getByRole("combobox", { name: "Theme" }).click();
+  await page.getByRole("option", { name: "Classic" }).click();
 
   await expect(page.locator("header.site-header")).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await expect(page.getByTestId("onedrive-layout-root")).toHaveCount(0);
@@ -99,7 +100,8 @@ test("the Classic header switches straight into the Google-Drive-inspired theme"
   // Going back to Classic moves only the layout axis, so the theme is still
   // there for the next visit.
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("radio", { name: "Classic" }).click();
+  await page.getByRole("combobox", { name: "Theme" }).click();
+  await page.getByRole("option", { name: "Classic" }).click();
 
   await expect(page.locator("header.site-header")).toBeVisible({ timeout: UI_TIMEOUTS.short });
   await expect(page.getByRole("combobox", EXPERIENCE_SWITCHER)).toHaveValue("classic");

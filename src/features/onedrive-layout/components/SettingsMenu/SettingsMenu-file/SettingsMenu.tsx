@@ -1,6 +1,7 @@
 /**
  * Gear-icon dropdown in the OneDrive topbar.
- * Hosts the language radio group, the theme select, and the layout toggle.
+ * Hosts the language radio group and the theme select; the theme select
+ * also carries the option to drop back to the classic shell.
  *
  * @packageDocumentation
  */
@@ -9,7 +10,6 @@ import type { FunctionComponent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useTranslation } from 'react-i18next';
 import { GearIcon, CheckmarkIcon } from '@/features/onedrive-layout/icons';
-import { LayoutToggle } from '@/features/onedrive-layout/components/LayoutToggle';
 import { ThemeToggle } from '@/features/onedrive-layout/components/ThemeToggle';
 import { ColorSchemeToggle } from '@/features/onedrive-layout/components/ColorSchemeToggle';
 import { SUPPORTED_LANGUAGES } from '@/config';
@@ -78,15 +78,6 @@ export const SettingsMenu: FunctionComponent = () => {
           </DropdownMenu.Label>
           <topbar-menu-row>
             <ColorSchemeToggle />
-          </topbar-menu-row>
-
-          <DropdownMenu.Separator className="topbar-menu__separator" />
-
-          <DropdownMenu.Label className="topbar-menu__label">
-            {translate('oneDriveLayout.layout', 'Layout')}
-          </DropdownMenu.Label>
-          <topbar-menu-row>
-            <LayoutToggle />
           </topbar-menu-row>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

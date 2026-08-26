@@ -245,9 +245,7 @@
     "subtitle": "Wir schließen die Verbindung zu deinem Pod-Anbieter ab."
   },
   "oneDriveLayout": {
-    "layout": "Layout",
     "classic": "Klassisch",
-    "onedrive": "OneDrive",
     "theme": "Design",
     "themeOption": {
       "light": "Hell",

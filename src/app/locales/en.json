@@ -245,9 +245,7 @@
     "subtitle": "Finishing the handshake with your Pod provider."
   },
   "oneDriveLayout": {
-    "layout": "Layout",
     "classic": "Classic",
-    "onedrive": "OneDrive",
     "theme": "Theme",
     "themeOption": {
       "light": "Light",

@@ -1,10 +1,10 @@
 = SettingsMenu
 
 Gear-icon dropdown in the OneDrive topbar.
-Hosts three Radix sections separated by dividers: the language radio group, the theme select, and the layout toggle.
+Hosts Radix sections separated by dividers: the language radio group, the theme select, and the color scheme select. The theme select also carries the option to drop back to the classic shell.
 
 Stateless composition.
-The language section reads / writes through `react-i18next`; the theme section delegates to link:../ThemeToggle/[ThemeToggle]; the layout section delegates to link:../LayoutToggle/[LayoutToggle].
+The language section reads / writes through `react-i18next`; the theme section delegates to link:../ThemeToggle/[ThemeToggle].
 
 == Navigation
 
@@ -13,4 +13,3 @@ link:../[onedrive-layout/components]
 
 .Uses
 * link:../ThemeToggle/[ThemeToggle]
-* link:../LayoutToggle/[LayoutToggle]

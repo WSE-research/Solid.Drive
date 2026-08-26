@@ -1,7 +1,7 @@
 /**
- * Labeled dropdown letting the user pick a theme. Rendered inside the gear
- * (Settings) menu as a "Theme [Light v]" row, matching the OneDrive
- * reference UI.
+ * Labeled dropdown letting the user pick a theme, or drop back to the
+ * classic shell. Rendered inside the gear (Settings) menu as a
+ * "Theme [Light v]" row, matching the OneDrive reference UI.
  *
  * @packageDocumentation
  */
@@ -10,15 +10,15 @@ import type { FunctionComponent } from 'react';
 import * as Select from '@radix-ui/react-select';
 import { useTranslation } from 'react-i18next';
 import {
-  isTheme,
-  THEMES,
-  useThemePreference,
-  type Theme,
-} from '@/features/onedrive-layout/hooks/useThemePreference';
+  EXPERIENCES,
+  isExperience,
+  useExperiencePreference,
+  type Experience,
+} from '@/features/onedrive-layout/hooks/useExperiencePreference';
 import { CheckmarkIcon, ChevronDownIcon } from '@/features/onedrive-layout/icons';
 
 interface ThemeOptionProps {
-  value: Theme;
+  value: Experience;
   label: string;
 }
 
@@ -32,35 +32,40 @@ const ThemeOption: FunctionComponent<ThemeOptionProps> = ({ value, label }) => (
 );
 
 /**
- * Renders the Theme select bound to the persisted theme preference.
+ * Renders the Theme select bound to the persisted experience preference
+ * (the layout and theme axes combined). Picking a theme keeps the OneDrive
+ * shell mounted and restyles it; picking "Classic" drops back to the
+ * classic shell.
  *
  * @public
  */
 export const ThemeToggle: FunctionComponent = () => {
   const [translate] = useTranslation();
-  const [theme, setTheme] = useThemePreference();
+  const [experience, setExperience] = useExperiencePreference();
 
   const handleValueChange = (value: string) => {
-    if (isTheme(value)) setTheme(value);
+    if (isExperience(value)) setExperience(value);
   };
 
   const triggerLabel = translate('oneDriveLayout.theme', 'Theme');
-  // Derived from THEMES so adding a theme cannot leave the picker behind; the
-  // labels map is keyed by Theme, so TypeScript flags a missing entry.
-  const labels: Record<Theme, string> = {
+  // Derived from EXPERIENCES so adding a theme cannot leave the picker
+  // behind; the labels map is keyed by Experience, so TypeScript flags a
+  // missing entry.
+  const labels: Record<Experience, string> = {
+    classic: translate('oneDriveLayout.classic', 'Classic'),
     light: translate('oneDriveLayout.themeOption.light', 'Light'),
     dark: translate('oneDriveLayout.themeOption.dark', 'Dark'),
     dropbox: translate('oneDriveLayout.themeOption.dropbox', 'Dropbox'),
     gdrive: translate('oneDriveLayout.themeOption.gdrive', 'Google Drive'),
   };
-  const options: ThemeOptionProps[] = THEMES.map((value) => ({
+  const options: ThemeOptionProps[] = EXPERIENCES.map((value) => ({
     value,
     label: labels[value],
   }));
 
   return (
     <theme-toggle-row>
-      <Select.Root value={theme} onValueChange={handleValueChange}>
+      <Select.Root value={experience} onValueChange={handleValueChange}>
         <Select.Trigger className="theme-toggle__trigger" aria-label={triggerLabel}>
           <Select.Value />
           <Select.Icon className="theme-toggle__chevron" aria-hidden>

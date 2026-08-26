@@ -35,7 +35,7 @@ describe('SettingsMenu', () => {
   });
 
   it(
-    'opening the menu exposes Language radios, Theme select, and Layout toggle',
+    'opening the menu exposes Language radios and the Theme select, with Classic among its options',
     async () => {
       const user = userEvent.setup({ delay: null });
       render(<SettingsMenu />);
@@ -43,9 +43,11 @@ describe('SettingsMenu', () => {
 
       expect(await screen.findByRole('menuitemradio', { name: /english/i })).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', { name: /deutsch/i })).toBeInTheDocument();
-      expect(screen.getByRole('combobox', { name: /theme/i })).toBeInTheDocument();
-      expect(screen.getByRole('radio', { name: /classic/i })).toBeInTheDocument();
-      expect(screen.getByRole('radio', { name: /onedrive/i })).toBeInTheDocument();
+
+      const themeSelect = screen.getByRole('combobox', { name: /theme/i });
+      expect(themeSelect).toBeInTheDocument();
+      await user.click(themeSelect);
+      expect(await screen.findByRole('option', { name: /classic/i })).toBeInTheDocument();
     },
     15000,
   );
