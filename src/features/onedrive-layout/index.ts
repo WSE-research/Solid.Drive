@@ -11,7 +11,7 @@
  */
 
 export { OneDriveLayout } from './components/OneDriveLayout';
-export { LayoutToggle } from './components/LayoutToggle';
+export { ExperienceSwitcher } from './components/ExperienceSwitcher';
 export { NotificationBell } from './components/NotificationBell';
 export { InstallAppButton } from './components/InstallAppButton';
 export {
@@ -25,3 +25,9 @@ export {
   THEMES,
   type Theme,
 } from './hooks/useThemePreference';
+export {
+  useExperiencePreference,
+  isExperience,
+  EXPERIENCES,
+  type Experience,
+} from './hooks/useExperiencePreference';

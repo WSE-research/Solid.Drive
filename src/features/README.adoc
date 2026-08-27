@@ -2,7 +2,7 @@
 
 UI features, each self contained in its own folder with components, hooks, and services.
 Features may import from `@/infrastructure` and `@/shared`.
-Cross feature imports are restricted by ESLint; the allowed pairs are documented in `eslint.config.js`. The OneDrive shell reuses `file-explorer` and `profile` building blocks; `file-explorer` imports `sharing` (WAC hooks); `auth/Header` mounts the layout toggle from `onedrive-layout`.
+Cross feature imports are restricted by ESLint; the allowed pairs are documented in `eslint.config.js`. The OneDrive shell reuses `file-explorer` and `profile` building blocks; `file-explorer` imports `sharing` (WAC hooks); `auth/Header` mounts the experience switcher from `onedrive-layout`.
 
 == Contents
 

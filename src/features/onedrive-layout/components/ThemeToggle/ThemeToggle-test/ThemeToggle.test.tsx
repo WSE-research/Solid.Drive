@@ -25,6 +25,11 @@ describe('ThemeToggle', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+    // ThemeToggle only ever mounts inside the OneDrive shell's Settings
+    // menu, so the layout preference is always 'onedrive' by the time it
+    // renders; the merged experience otherwise collapses to 'classic'
+    // regardless of the stored theme.
+    localStorage.setItem('solid-drive.layout', 'onedrive');
   });
 
   it('renders a labeled trigger that exposes the current theme', () => {
@@ -34,7 +39,7 @@ describe('ThemeToggle', () => {
     expect(trigger).toHaveTextContent(/dark/i);
   });
 
-  it('reflects the persisted preference on the trigger', () => {
+  it('reflects the persisted theme preference on the trigger', () => {
     localStorage.setItem('solid-drive.theme', 'light');
     render(<ThemeToggle />);
     expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(
@@ -42,19 +47,28 @@ describe('ThemeToggle', () => {
     );
   });
 
+  it('shows Classic on the trigger when the classic layout is persisted', () => {
+    localStorage.setItem('solid-drive.layout', 'classic');
+    render(<ThemeToggle />);
+    expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(
+      /classic/i,
+    );
+  });
+
   it(
-    'opens the listbox with every shipped theme when clicked',
+    'opens the listbox with Classic plus every shipped theme when clicked',
     async () => {
       const user = userEvent.setup({ delay: null });
       render(<ThemeToggle />);
       await user.click(screen.getByRole('combobox', { name: /theme/i }));
       const listbox = await screen.findByRole('listbox');
       expect(listbox).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /classic/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /dark/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /dropbox/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /google drive/i })).toBeInTheDocument();
-      expect(screen.getAllByRole('option')).toHaveLength(4);
+      expect(screen.getAllByRole('option')).toHaveLength(5);
     },
     15000,
   );
@@ -114,9 +128,23 @@ describe('ThemeToggle', () => {
     );
   });
 
-  it('ignores a value from onValueChange that is not a known theme', () => {
+  it(
+    'selecting Classic persists the layout preference and leaves the theme untouched',
+    async () => {
+      localStorage.setItem('solid-drive.theme', 'gdrive');
+      const user = userEvent.setup({ delay: null });
+      render(<ThemeToggle />);
+      await user.click(screen.getByRole('combobox', { name: /theme/i }));
+      await user.click(await screen.findByRole('option', { name: /classic/i }));
+      expect(localStorage.getItem('solid-drive.layout')).toBe('classic');
+      expect(localStorage.getItem('solid-drive.theme')).toBe('gdrive');
+    },
+    15000,
+  );
+
+  it('ignores a value from onValueChange that is not a known experience', () => {
     render(<ThemeToggle />);
-    capturedOnValueChange?.('not-a-real-theme');
+    capturedOnValueChange?.('not-a-real-experience');
     expect(localStorage.getItem('solid-drive.theme')).toBeNull();
     expect(screen.getByRole('combobox', { name: /theme/i })).toHaveTextContent(/dark/i);
   });
