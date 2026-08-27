@@ -19,6 +19,8 @@ import { useNotifications } from '@/shared/contexts/NotificationContext';
 interface NewFolderDialogProps {
   open: boolean;
   parentContainer: SolidContainer;
+  catalogUri: string;
+  profileHasCatalog: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -30,6 +32,8 @@ interface NewFolderDialogProps {
 export const NewFolderDialog: FunctionComponent<NewFolderDialogProps> = ({
   open,
   parentContainer,
+  catalogUri,
+  profileHasCatalog,
   onOpenChange,
 }) => {
   const [translate] = useTranslation();
@@ -63,7 +67,7 @@ export const NewFolderDialog: FunctionComponent<NewFolderDialogProps> = ({
       return;
     }
     try {
-      await createFolder(parentContainer, folderName);
+      await createFolder({ parentContainer, folderName, catalogUri, profileHasCatalog });
       onOpenChange(false);
     } catch {
       showError(translate('fileExplorer.newFolderError'));
@@ -73,6 +77,8 @@ export const NewFolderDialog: FunctionComponent<NewFolderDialogProps> = ({
     validateName,
     createFolder,
     parentContainer,
+    catalogUri,
+    profileHasCatalog,
     onOpenChange,
     showError,
     translate,

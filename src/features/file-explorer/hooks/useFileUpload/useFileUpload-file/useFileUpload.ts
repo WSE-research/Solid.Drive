@@ -150,7 +150,7 @@ export function useFileUpload(): UseFileUploadReturn {
           await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
           await solidFetch(indexResource.uri, { method: "DELETE" }).catch(() => {});
           await solidFetch(`${mainContainer.uri}${containerSlug}/`, { method: "DELETE" }).catch(() => {});
-          throw new Error(`Catalog could not be updated. ${(catalogErr as Error).message}`);
+          throw new Error(`Catalog could not be updated. ${(catalogErr as Error).message}`, { cause: catalogErr });
         }
 
         if (!profileHasCatalog) {

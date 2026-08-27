@@ -29,11 +29,13 @@ import { NewFolderDialog } from '../NewFolderDialog-file/NewFolderDialog';
 const parentContainer = {
   uri: 'https://pod.example/my-solid-app/',
 } as unknown as SolidContainer;
+const catalogUri = 'https://pod.example/catalog.ttl';
+const dialogProps = { catalogUri, profileHasCatalog: true };
 
 describe('NewFolderDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreateFolder.mockResolvedValue(undefined);
+    mockCreateFolder.mockResolvedValue('https://pod.example/my-solid-app/my-new-folder/');
     mockValidateName.mockReturnValue(null);
   });
 
@@ -42,6 +44,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open={false}
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -53,6 +56,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -68,6 +72,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -81,6 +86,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={onOpenChange}
       />,
     );
@@ -98,6 +104,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -118,6 +125,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={onOpenChange}
       />,
     );
@@ -126,10 +134,12 @@ describe('NewFolderDialog', () => {
     await user.click(screen.getByRole('button', { name: /create/i }));
 
     await waitFor(() => {
-      expect(mockCreateFolder).toHaveBeenCalledWith(
+      expect(mockCreateFolder).toHaveBeenCalledWith({
         parentContainer,
-        'My New Folder',
-      );
+        folderName: 'My New Folder',
+        catalogUri,
+        profileHasCatalog: true,
+      });
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
@@ -141,6 +151,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={onOpenChange}
       />,
     );
@@ -149,7 +160,12 @@ describe('NewFolderDialog', () => {
     await user.type(input, 'Folder A{Enter}');
 
     await waitFor(() => {
-      expect(mockCreateFolder).toHaveBeenCalledWith(parentContainer, 'Folder A');
+      expect(mockCreateFolder).toHaveBeenCalledWith({
+        parentContainer,
+        folderName: 'Folder A',
+        catalogUri,
+        profileHasCatalog: true,
+      });
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
@@ -162,6 +178,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={onOpenChange}
       />,
     );
@@ -182,6 +199,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -204,6 +222,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -215,6 +234,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open={false}
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );
@@ -222,6 +242,7 @@ describe('NewFolderDialog', () => {
       <NewFolderDialog
         open
         parentContainer={parentContainer}
+        {...dialogProps}
         onOpenChange={vi.fn()}
       />,
     );

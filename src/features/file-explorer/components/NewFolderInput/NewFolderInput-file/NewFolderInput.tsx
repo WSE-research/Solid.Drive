@@ -16,6 +16,8 @@ import { useNotifications } from "@/shared/contexts/NotificationContext";
  */
 interface NewFolderInputProps {
   parentContainer: SolidContainer;
+  catalogUri: string;
+  profileHasCatalog: boolean;
   onDone: () => void;
 }
 
@@ -24,7 +26,12 @@ interface NewFolderInputProps {
  *
  * @public
  */
-export const NewFolderInput: FunctionComponent<NewFolderInputProps> = ({ parentContainer, onDone }) => {
+export const NewFolderInput: FunctionComponent<NewFolderInputProps> = ({
+  parentContainer,
+  catalogUri,
+  profileHasCatalog,
+  onDone,
+}) => {
   const [translate] = useTranslation();
   const { showError } = useNotifications();
   const { isCreating, createFolder, validateName } = useCreateFolder();
@@ -56,12 +63,12 @@ export const NewFolderInput: FunctionComponent<NewFolderInputProps> = ({ parentC
     }
     setValidationError(null);
     try {
-      await createFolder(parentContainer, folderName);
+      await createFolder({ parentContainer, folderName, catalogUri, profileHasCatalog });
       onDone();
     } catch {
       showError(translate("fileExplorer.newFolderError"));
     }
-  }, [folderName, validateName, createFolder, parentContainer, onDone, showError, translate]);
+  }, [folderName, validateName, createFolder, parentContainer, catalogUri, profileHasCatalog, onDone, showError, translate]);
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") void handleSubmit();

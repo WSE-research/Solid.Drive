@@ -10,8 +10,10 @@ vi.mock('@ldo/solid-react', () => ({
   useResource: () => undefined,
 }));
 
+const FOLDER_CLASS_URI = 'http://www.w3.org/ns/ldp#Container';
 const mockParseCatalog = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
+  FOLDER_CLASS_URI: 'http://www.w3.org/ns/ldp#Container',
   parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
 }));
 
@@ -38,10 +40,25 @@ describe('useCatalog', () => {
     const { result } = renderHook(() => useCatalog(undefined));
     expect(result.current.entries).toEqual([]);
     expect(result.current.containerUris).toEqual(new Set());
+    expect(result.current.folderTitles).toEqual(new Map());
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('fetches, parses, and exposes entries + containerUris', async () => {
+  it('puts folder entries in folderTitles and leaves them out of entries and containerUris', async () => {
+    const reportEntryUri = 'https://pod.example/report/index.ttl';
+    const folderUri = 'https://pod.example/documents/';
+    mockParseCatalog.mockReturnValue([
+      { uri: reportEntryUri, title: 'Report', conformsTo: '' },
+      { uri: folderUri, title: 'Documents', conformsTo: FOLDER_CLASS_URI },
+    ]);
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+    expect(result.current.entries).toEqual([{ uri: reportEntryUri, title: 'Report', conformsTo: '' }]);
+    expect(result.current.containerUris).toEqual(new Set(['https://pod.example/report/']));
+    expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
+  });
+
+  it('fetches the catalog and returns the parsed entries and containerUris', async () => {
     const reportEntryUri = 'https://pod.example/report/index.ttl';
     const invoiceEntryUri = 'https://pod.example/invoice/index.ttl';
     mockParseCatalog.mockReturnValue([
@@ -107,7 +124,7 @@ describe('useCatalog', () => {
     expect(result.current.entries).toEqual([]);
   });
 
-  it('reports loading=true while a fetch is in flight and false after it settles', async () => {
+  it('reports loading as true while fetching and false once it settles', async () => {
     let resolveFetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
     mockFetch.mockReturnValue(new Promise((resolve) => { resolveFetch = resolve; }));
     const { result } = renderHook(() => useCatalog(CATALOG_URI));
@@ -116,7 +133,7 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
-  it('serves a second consumer from the module cache without re-fetching', async () => {
+  it('serves a second hook instance from the cache instead of fetching again', async () => {
     mockParseCatalog.mockReturnValue([
       { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
     ]);

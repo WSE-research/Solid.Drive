@@ -9,6 +9,8 @@ import type { DragEvent, FunctionComponent } from "react";
 
 interface FolderEntryProps {
   uri: string;
+  // Optional display name for the folder. If absent, uses the last segment of the URI.
+  title?: string;
   onNavigate: (uri: string) => void;
   onDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
   onDragOverChange?: (isOver: boolean) => void;
@@ -21,9 +23,9 @@ interface FolderEntryProps {
  *
  * @public
  */
-export const FolderEntry: FunctionComponent<FolderEntryProps> = ({ uri, onNavigate, onDrop, onDragOverChange }) => {
+export const FolderEntry: FunctionComponent<FolderEntryProps> = ({ uri, title, onNavigate, onDrop, onDragOverChange }) => {
   const segments = uri.replace(/\/$/, "").split("/");
-  const name = decodeURIComponent(segments[segments.length - 1]);
+  const name = title ?? decodeURIComponent(segments[segments.length - 1]);
   const [isDropTarget, setIsDropTarget] = useState(false);
   const dragHandlers = onDrop && onDragOverChange ? {
     onDragEnter: (event: DragEvent<HTMLButtonElement>) => {

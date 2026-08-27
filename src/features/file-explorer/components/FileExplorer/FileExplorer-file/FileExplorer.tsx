@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import { useState, Fragment, useCallback, useEffect, useRef } from "react";
+import { useState, Fragment, useCallback, useEffect, useMemo, useRef } from "react";
 import type { DragEvent, FunctionComponent } from "react";
 import { useResource, useSolidAuth, useSubject } from "@ldo/solid-react";
 import { useTranslation } from "react-i18next";
@@ -72,7 +72,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   const contacts = useContacts();
 
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
-  const { entries: catalogEntries, containerUris: catalogContainerUris } = useCatalog(catalogUri);
+  const { entries: catalogEntries, containerUris: catalogContainerUris, folderTitles } = useCatalog(catalogUri);
   const [searchQuery, setSearchQuery] = useState("");
   const { debouncedQuery, results: searchResults } = useFileSearch(catalogEntries, searchQuery);
   const isSearching = debouncedQuery.length > 0;
@@ -95,9 +95,14 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
   } = useUploadQueue(safeCatalogUri, profileHasCatalog, catalogEntries);
   const isOverPanel = dragState === "over-panel";
 
+  const displayBreadcrumbs = useMemo(
+    () => breadcrumbs.map((crumb) => ({ ...crumb, label: folderTitles.get(crumb.uri) ?? crumb.label })),
+    [breadcrumbs, folderTitles]
+  );
+
   const currentFolderLabel =
-    breadcrumbs.length > 0
-      ? breadcrumbs[breadcrumbs.length - 1].label
+    displayBreadcrumbs.length > 0
+      ? displayBreadcrumbs[displayBreadcrumbs.length - 1].label
       : translate("fileExplorer.myDrive");
 
   const handleDragEnter = useCallback((event: DragEvent<HTMLElement>) => {
@@ -153,9 +158,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
       showError(translate("fileExplorer.unsupportedFolderDrop"));
       return;
     }
-    const folderLabel = decodeURIComponent(targetUri.replace(/\/$/, "").split("/").pop() ?? "");
+    const folderLabel = folderTitles.get(targetUri) ?? decodeURIComponent(targetUri.replace(/\/$/, "").split("/").pop() ?? "");
     dispatchDrop(files, targetUri, folderLabel);
-  }, [dispatchDrop, isSearching, showError, translate]);
+  }, [dispatchDrop, isSearching, showError, translate, folderTitles]);
 
   /** Download a file via the session and trigger a browser save. */
   const handleDownload = useCallback(async (entry: SolidLeaf, fileName: string) => {
@@ -227,11 +232,16 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
     };
   }, [showAddMenu]);
 
-  useEffect(() => {
+  // Close any open form/menu left over from the previous folder. Tracked
+  // during render via the previous currentUri, the pattern this project
+  // uses instead of an effect that calls setState on mount.
+  const [previousUri, setPreviousUri] = useState(currentUri);
+  if (previousUri !== currentUri) {
+    setPreviousUri(currentUri);
     setShowNewFolder(false);
     setShowUpload(false);
     setShowAddMenu(false);
-  }, [currentUri]);
+  }
 
   if (!session.isActive) {
     return (
@@ -295,15 +305,15 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             />
           )}
 
-          {breadcrumbs.length > 1 && (
+          {displayBreadcrumbs.length > 1 && (
             <nav className="breadcrumb">
-              {breadcrumbs.map((crumb, index) => (
+              {displayBreadcrumbs.map((crumb, index) => (
                 <Fragment key={crumb.uri}>
                   {index > 0 && <span className="breadcrumb__sep">/</span>}
                   <button
-                    className={`breadcrumb__item${index === breadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
+                    className={`breadcrumb__item${index === displayBreadcrumbs.length - 1 ? " breadcrumb__item--active" : ""}`}
                     onClick={() => handleBreadcrumbClick(index, crumb.uri)}
-                    disabled={index === breadcrumbs.length - 1}
+                    disabled={index === displayBreadcrumbs.length - 1}
                   >
                     {crumb.label}
                   </button>
@@ -354,8 +364,13 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             </div>
           </files-section-header>
 
-          {showNewFolder && isSolidContainer(currentContainer) && (
-            <NewFolderInput parentContainer={currentContainer} onDone={handleNewFolderDone} />
+          {showNewFolder && isSolidContainer(currentContainer) && catalogUri && (
+            <NewFolderInput
+              parentContainer={currentContainer}
+              catalogUri={catalogUri}
+              profileHasCatalog={profileHasCatalog}
+              onDone={handleNewFolderDone}
+            />
           )}
 
           <DriveFileList
@@ -364,6 +379,7 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             isInAppFolder={isInAppFolder}
             catalogUri={catalogUri ?? ""}
             catalogContainerUris={catalogContainerUris}
+            folderTitles={folderTitles}
             onNavigate={handleNavigate}
             onDownload={handleDownload}
             onFolderDrop={handleFolderDrop}

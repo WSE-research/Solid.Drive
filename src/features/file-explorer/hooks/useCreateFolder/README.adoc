@@ -1,34 +1,58 @@
 = useCreateFolder
 
-Hook for creating new folders as LDP BasicContainers on a Solid pod.
-Exposes name validation, a `createFolder` function, and an `isCreating` flag.
+Creates a new folder in the Pod and registers it in the catalog, so it has a
+real address and shows up under the name the user actually typed.
 
 == Validation
 
-`validateName` checks the proposed folder name and returns an i18n error key, or `null` if valid.
+`validateName` checks a folder name and returns an error key, or `null` if the name is fine.
 
-Rules enforced:
+Rejects:
 
-* Name must not be empty after trimming whitespace
-* Name must not contain any of `/  \  :  *  ?  "  <  >  |`
+* An empty name, after trimming whitespace
+* A name containing any of `/  \  :  *  ?  "  <  >  |`
 
-== Folder creation
+== Creating a folder
 
-`createFolder` slugifies the name (lowercase, alphanumeric + hyphens) and calls
-`parentContainer.createChildAndOverwrite` from `@ldo/connected-solid`.
-The slug always ends with `/` so the server recognises it as a container.
+`createFolder` builds the folder's address from its name and creates it, then
+saves the typed name as the folder's catalog title.
 
-An error is thrown if the server returns an error result; the caller is responsible for catching it.
+If saving the catalog title fails, the folder is deleted so nothing gets left
+behind without a name, and the failure is thrown. If saving succeeds, every
+other part of the app watching the catalog picks up the new folder right
+away, no manual refresh needed.
+
+If creating the folder itself fails, that error is thrown too; the caller is responsible for catching it.
+
+== Parameters
+
+`createFolder` takes:
+
+[cols="1,1,3", options="header"]
+|===
+| Parameter | Type | Description
+
+| `parentContainer`   | `SolidContainer` | The folder the new one is created inside
+| `folderName`        | `string`         | The name the user typed
+| `catalogUri`        | `string`         | Address of the catalog to register the new folder in
+| `profileHasCatalog` | `boolean`        | Whether the user's profile already links to that catalog
+|===
 
 == Returns
 
-`isCreating`:: `true` while the container creation request is in progress
-`createFolder`:: `(parentContainer, folderName) => Promise<void>` — creates the child container
-`validateName`:: `(folderName) => string | null` — returns an i18n key on failure, null on success
+[cols="1,1,3", options="header"]
+|===
+| Key | Type | Description
+
+| `isCreating`   | `boolean` | True while a folder is being created
+| `createFolder` | function  | Creates a folder and resolves to its address
+| `validateName` | function  | Checks a folder name and returns an error key, or `null` if it's fine
+|===
 
 == See also
 
 * link:../../components/NewFolderInput/[NewFolderInput] is the component that calls this hook and renders the inline input form.
+* link:../../../onedrive-layout/components/NewFolderDialog/[NewFolderDialog] is the modal equivalent used by the OneDrive layout.
 
 == Navigation
 
@@ -36,4 +60,6 @@ An error is thrown if the server returns an error result; the caller is responsi
 link:../[file-explorer/hooks]
 
 .Uses
-* link:../../../../types/[types] — `ContainerCreationResult`
+* link:../../../../types/[types]: `ContainerCreationResult`
+* link:../../../../infrastructure/solid/catalog/[catalog]: `appendFolderToCatalog`, `linkCatalogToProfile`
+* link:../../../../shared/hooks/useCatalogVersion/[useCatalogVersion]: `notifyCatalogChanged`
