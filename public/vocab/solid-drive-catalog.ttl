@@ -1,4 +1,4 @@
- Solid.Drive catalog vocabulary. Edit directly (not generated).
+# Solid.Drive catalog vocabulary. Edit directly (not generated).
 # See public/README.adoc for how this file relates to its PURL.
 
 @prefix : <https://purl.org/solid-drive/catalog#> .
