@@ -246,13 +246,19 @@
     "subtitle": "Wir schließen die Verbindung zu deinem Pod-Anbieter ab."
   },
   "oneDriveLayout": {
-    "layout": "Layout",
     "classic": "Klassisch",
-    "onedrive": "OneDrive",
     "theme": "Design",
     "themeOption": {
       "light": "Hell",
       "dark": "Dunkel",
+      "dropbox": "Dropbox",
+      "gdrive": "Google Drive"
+    },
+    "experience": "Ansicht",
+    "experienceOption": {
+      "classic": "Klassisch",
+      "light": "OneDrive (Hell)",
+      "dark": "OneDrive (Dunkel)",
       "dropbox": "Dropbox",
       "gdrive": "Google Drive"
     },

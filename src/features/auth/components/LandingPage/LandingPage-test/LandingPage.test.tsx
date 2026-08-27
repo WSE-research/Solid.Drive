@@ -26,15 +26,36 @@ vi.mock('@/features/auth/components/LanguageSwitcher', () => ({
 const layoutSetter = vi.fn();
 let currentLayout: 'classic' | 'onedrive' = 'classic';
 const themeSetter = vi.fn();
-let currentTheme: 'dark' | 'light' | 'dropbox' = 'dark';
+let currentTheme: 'dark' | 'light' | 'dropbox' | 'gdrive' = 'dark';
 
-vi.mock('@/features/onedrive-layout', () => ({
+// The two preferences are mocked at their own module paths, so the real
+// useExperiencePreference below runs its translation rule against them: the
+// picker assertions still pin what a card click writes to each axis.
+vi.mock('@/features/onedrive-layout/hooks/useLayoutPreference', () => ({
   useLayoutPreference: () => [currentLayout, layoutSetter],
   isLayout: (value: unknown) => value === 'classic' || value === 'onedrive',
+}));
+
+vi.mock('@/features/onedrive-layout/hooks/useThemePreference', () => ({
   useThemePreference: () => [currentTheme, themeSetter],
   THEMES: ['light', 'dark', 'dropbox', 'gdrive'],
-  InstallAppButton: () => null,
+  isTheme: (value: unknown) =>
+    ['light', 'dark', 'dropbox', 'gdrive'].includes(value as string),
 }));
+
+vi.mock('@/features/onedrive-layout', async () => {
+  const experience = await import(
+    '@/features/onedrive-layout/hooks/useExperiencePreference'
+  );
+  return {
+    ...experience,
+    useLayoutPreference: () => [currentLayout, layoutSetter],
+    isLayout: (value: unknown) => value === 'classic' || value === 'onedrive',
+    useThemePreference: () => [currentTheme, themeSetter],
+    THEMES: ['light', 'dark', 'dropbox', 'gdrive'],
+    InstallAppButton: () => null,
+  };
+});
 
 import { useSolidAuth } from '@ldo/solid-react';
 import { CUSTOM_PROVIDER_VALUE, SOLID_PROVIDERS } from '@/config';

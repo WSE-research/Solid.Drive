@@ -18,7 +18,7 @@ The cross instance event is skipped in that case so other live hooks do not over
 
 == See also
 
-* link:../../components/LayoutToggle/[LayoutToggle] is the segmented control that drives this hook.
+* link:../useExperiencePreference/[useExperiencePreference] combines this preference with the theme preference into the single control both the classic header and the OneDrive Settings menu offer.
 * link:../../../../app/App/[App] reads the preference to decide which layout to mount.
 
 == Navigation

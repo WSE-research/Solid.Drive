@@ -51,7 +51,7 @@ No Dropbox logo, wordmark or proprietary typeface is used or imitated, and Solid
 
 == Public exports
 
-`InstallAppButton` is re-exported from the barrel (`index.ts`) so that `auth/Header` (classic shell) can mount it alongside `LayoutToggle` and `NotificationBell` without importing from a deep path.
+`InstallAppButton` is re-exported from the barrel (`index.ts`) so that `auth/Header` (classic shell) can mount it alongside `ExperienceSwitcher` and `NotificationBell` without importing from a deep path.
 The TopBar also mounts `InstallAppButton` directly in the OneDrive shell.
 `InstallIcon` (`DesktopArrowDownRegular`) is the icon used inside the button, exported from `icons`.
 

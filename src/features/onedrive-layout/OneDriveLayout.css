@@ -805,29 +805,6 @@ theme-toggle-row {
   height: 14px;
 }
 
-.topbar-menu .layout-toggle {
-  background: var(--odl-bg-page);
-  border-color: var(--odl-border);
-  box-shadow: none;
-}
-.topbar-menu .layout-toggle__pill {
-  color: var(--odl-text-muted);
-}
-.topbar-menu .layout-toggle__pill:hover {
-  color: var(--odl-text);
-}
-.topbar-menu .layout-toggle__pill[data-state="on"] {
-  background: var(--odl-accent);
-  color: #ffffff;
-  box-shadow: 0 2px 8px var(--odl-accent-soft);
-}
-.topbar-menu .layout-toggle__pill[data-state="on"]:hover {
-  color: #ffffff;
-}
-.topbar-menu .layout-toggle__pill:focus-visible {
-  outline-color: var(--odl-accent);
-}
-
 /* ─── Account dropdown — profile header ───────────────────────────────── */
 
 .topbar-menu--account {

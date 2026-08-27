@@ -86,7 +86,7 @@ export default defineConfig([
       'no-restricted-imports': ['error', {
         patterns: [
           // @/features/onedrive-layout/* is intentionally allowed — auth/Header
-          // mounts the LayoutToggle shipped by the onedrive-layout feature.
+          // mounts the ExperienceSwitcher shipped by the onedrive-layout feature.
           { group: ['@/features/file-explorer/*', '@/features/profile/*', '@/features/sharing/*'], message: 'Cross-feature imports are not allowed.' },
           { group: ['@fluentui/react-icons'], message: 'Import icons from @/features/onedrive-layout/icons instead.' },
         ],
