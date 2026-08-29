@@ -96,7 +96,7 @@ describe("appendToCatalog", () => {
     expect(calls[2].method).toBe("PATCH");
   });
 
-  it("PUT body for new catalog declares dcat:Catalog with an explicit base", async () => {
+  it("the catalog it creates from scratch declares itself as a catalog with its own address", async () => {
     const { fetch, calls } = capturingMock([
       { status: 404, ok: false }, { status: 201, ok: true }, { status: 200, ok: true },
     ]);
@@ -131,6 +131,11 @@ describe("appendToCatalog", () => {
     expect(calls[0].body).toContain("dcat:Dataset");
   });
 
+  it("marks the new entry as a file, not just a generic catalog dataset", async () => {
+    const { calls } = await runAppend();
+    expect(calls[0].body).toContain(`<${instanceUri}> a dcat:Dataset, sd:File ;`);
+  });
+
   it("SPARQL INSERT includes dcterms:title, dcterms:publisher, dcterms:conformsTo", async () => {
     const { calls } = await runAppend();
     const sparql = calls[0].body ?? "";
@@ -139,12 +144,12 @@ describe("appendToCatalog", () => {
     expect(sparql).toContain(`dcterms:conformsTo <${classUri}>`);
   });
 
-  it("SPARQL INSERT links the entry to its folder via sd:hasParent", async () => {
+  it("links the entry to the folder it lives in", async () => {
     const { calls } = await runAppend();
     expect(calls[0].body).toContain(`sd:hasParent <${parentUri}>`);
   });
 
-  it("omits sd:hasParent when parentUri is empty", async () => {
+  it("leaves out the parent-folder link when no parent is given", async () => {
     const { calls } = await runAppend({ parentUri: "" });
     expect(calls[0].body).not.toContain("sd:hasParent");
   });
@@ -263,7 +268,7 @@ describe("appendFolderToCatalog", () => {
     expect(calls[0].method).toBe("PATCH");
   });
 
-  it("SPARQL INSERT links the folder's own URI as the dataset, with no distribution", async () => {
+  it("registers the folder itself as the catalog entry, with no separate file to point at", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
     await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     const sparql = calls[0].body ?? "";
@@ -275,13 +280,13 @@ describe("appendFolderToCatalog", () => {
     expect(sparql).not.toContain("dcat:distribution");
   });
 
-  it("types the folder as both dcat:Dataset and sd:Folder, so rdf:type membership is real", async () => {
+  it("marks the new entry as a real Folder, not just a generic dataset", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
     await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     expect(calls[0].body).toContain(`<${folderUri}> a dcat:Dataset, sd:Folder ;`);
   });
 
-  it("always links the folder to its parent via sd:hasParent", async () => {
+  it("always links the folder to the folder it lives in", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
     await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     expect(calls[0].body).toContain(`sd:hasParent <${parentUri}>`);
@@ -340,7 +345,7 @@ describe("ensureCatalogRootEntry", () => {
     expect(calls[2].method).toBe("PATCH");
   });
 
-  it("declares the storage root as dcat:Dataset and sd:Folder, with no parent", async () => {
+  it("registers the storage root as a real Folder with no parent link", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
     await ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch });
     const sparql = calls[0].body ?? "";
@@ -350,7 +355,7 @@ describe("ensureCatalogRootEntry", () => {
     expect(sparql).not.toContain("sd:hasParent");
   });
 
-  it("carries no dcterms:title or dcterms:modified, so repeated calls emit identical triples", async () => {
+  it("has no name or timestamp, so calling it again writes the exact same thing", async () => {
     const first = capturingMock([{ status: 200, ok: true }]);
     await ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch: first.fetch });
     const second = capturingMock([{ status: 200, ok: true }]);
@@ -378,15 +383,15 @@ describe("isFolderEntry", () => {
     mediaType: "", byteSize: 0, accessURL: "",
   };
 
-  it("is true for the current sd:Folder class", () => {
+  it("recognizes an entry using the current Folder type", () => {
     expect(isFolderEntry({ ...base, conformsTo: FOLDER_CLASS_URI })).toBe(true);
   });
 
-  it("is true for the legacy ldp:Container marker, so old pods still list folders", () => {
+  it("also recognizes the older marker folders used before this vocabulary existed, so old pods still list folders correctly", () => {
     expect(isFolderEntry({ ...base, conformsTo: LEGACY_FOLDER_CLASS_URI })).toBe(true);
   });
 
-  it("is false for a file's schema.org class", () => {
+  it("does not mistake a file's own type for a folder", () => {
     expect(isFolderEntry({ ...base, conformsTo: "http://schema.org/ImageObject" })).toBe(false);
   });
 });
@@ -394,12 +399,12 @@ describe("isFolderEntry", () => {
 // ─── buildEmptyCatalogTurtle ────────────────────────────────────────────────
 
 describe("buildEmptyCatalogTurtle", () => {
-  it("declares an explicit @base matching the catalog's own URI", () => {
+  it("gives the empty catalog its own address, so it's understandable even outside its original location", () => {
     const turtle = buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
     expect(turtle).toContain("@base <https://pod.example/catalog.ttl> .");
   });
 
-  it("declares the catalog resource as a dcat:Catalog", () => {
+  it("marks the empty document as a catalog", () => {
     const turtle = buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
     expect(turtle).toContain("<> a dcat:Catalog .");
   });
@@ -652,7 +657,7 @@ describe("parseCatalog", () => {
     expect(entry.conformsTo).toBe("http://schema.org/ImageObject");
   });
 
-  it("parses a folder entry with no distribution and its sd:hasParent link", () => {
+  it("reads a folder entry correctly, including which folder it lives in", () => {
     const catalogUri = "https://pod.example/my-app/catalog.ttl";
     const folderUri = "https://pod.example/my-app/documents/";
     const parentUri = "https://pod.example/my-app/";
@@ -683,7 +688,7 @@ describe("parseCatalog", () => {
     });
   });
 
-  it("parses the storage root entry with an empty parentUri", () => {
+  it("reads the storage root as having no parent folder", () => {
     const catalogUri = "https://pod.example/catalog.ttl";
     const storageRootUri = "https://pod.example/";
     const turtle = `

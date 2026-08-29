@@ -11,7 +11,9 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
   useNotifications: () => ({ showError: mockShowError, showSuccess: vi.fn() }),
 }));
 
-const mockResolveCatalogUri = vi.fn((..._args: unknown[]) => 'https://pod.example/catalog.ttl' as string | undefined);
+const mockResolveCatalogUri = vi.fn<(...args: unknown[]) => string | undefined>(
+  () => 'https://pod.example/catalog.ttl'
+);
 vi.mock('@/infrastructure/solid/catalog', () => ({
   resolveCatalogUri: (...args: unknown[]) => mockResolveCatalogUri(...args),
 }));
@@ -30,7 +32,9 @@ vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
   useCatalog: () => mockUseCatalog(),
 }));
 
-const mockUseCatalogRootEntry = vi.fn((..._args: unknown[]) => 'succeeded' as 'pending' | 'succeeded' | 'failed');
+const mockUseCatalogRootEntry = vi.fn<(...args: unknown[]) => 'pending' | 'succeeded' | 'failed'>(
+  () => 'succeeded'
+);
 vi.mock('@/features/file-explorer/hooks/useCatalogRootEntry', () => ({
   useCatalogRootEntry: (...args: unknown[]) => mockUseCatalogRootEntry(...args),
 }));
@@ -39,7 +43,9 @@ const folderBreadcrumbsDefaults = () => ({
   breadcrumbs: [{ label: 'My Pod', uri: 'https://pod.example/' }],
   error: null as { atUri: string } | null,
 });
-const mockUseFolderBreadcrumbs = vi.fn((..._args: unknown[]) => folderBreadcrumbsDefaults());
+const mockUseFolderBreadcrumbs = vi.fn<(...args: unknown[]) => ReturnType<typeof folderBreadcrumbsDefaults>>(
+  () => folderBreadcrumbsDefaults()
+);
 vi.mock('@/features/file-explorer/hooks/useFolderBreadcrumbs', () => ({
   useFolderBreadcrumbs: (...args: unknown[]) => mockUseFolderBreadcrumbs(...args),
 }));
