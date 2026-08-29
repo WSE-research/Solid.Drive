@@ -6,6 +6,7 @@ import {
   buildEmptyCatalogTurtle,
   isFolderEntry,
   FOLDER_CLASS_URI,
+  FILE_CLASS_URI,
   LEGACY_FOLDER_CLASS_URI,
   removeFromCatalog,
   linkCatalogToProfile,
@@ -128,13 +129,18 @@ describe("appendToCatalog", () => {
     expect(entries.map((entry) => entry.title).sort()).toEqual(["Existing File", "Summer Photo"]);
   });
 
+  it("marks the new entry as a file, not just a generic catalog dataset", async () => {
+    const { calls } = await runAppend();
+    expect(putBody(calls)).toContain(`<${instanceUri}> a dcat:Dataset, <${FILE_CLASS_URI}>`);
+  });
+
   it("links the entry to its folder via sd:hasParent, readable back from the written document", async () => {
     const { calls } = await runAppend();
     const [entry] = parseCatalog(putBody(calls), catalogUri);
     expect(entry.parentUri).toBe(parentUri);
   });
 
-  it("omits sd:hasParent when parentUri is empty", async () => {
+  it("leaves out the parent-folder link when no parent is given", async () => {
     const { calls } = await runAppend({ parentUri: "" });
     expect(putBody(calls)).not.toContain("hasParent");
     const [entry] = parseCatalog(putBody(calls), catalogUri);
@@ -333,15 +339,15 @@ describe("isFolderEntry", () => {
     mediaType: "", byteSize: 0, accessURL: "",
   };
 
-  it("is true for the current sd:Folder class", () => {
+  it("recognizes an entry using the current Folder type", () => {
     expect(isFolderEntry({ ...base, conformsTo: FOLDER_CLASS_URI })).toBe(true);
   });
 
-  it("is true for the legacy ldp:Container marker, so old pods still list folders", () => {
+  it("also recognizes the older marker folders used before this vocabulary existed, so old pods still list folders correctly", () => {
     expect(isFolderEntry({ ...base, conformsTo: LEGACY_FOLDER_CLASS_URI })).toBe(true);
   });
 
-  it("is false for a file's schema.org class", () => {
+  it("does not mistake a file's own type for a folder", () => {
     expect(isFolderEntry({ ...base, conformsTo: "http://schema.org/ImageObject" })).toBe(false);
   });
 });
@@ -349,12 +355,12 @@ describe("isFolderEntry", () => {
 // ─── buildEmptyCatalogTurtle ────────────────────────────────────────────────
 
 describe("buildEmptyCatalogTurtle", () => {
-  it("declares an explicit @base matching the catalog's own URI", () => {
+  it("gives the empty catalog its own address, so it's understandable even outside its original location", () => {
     const turtle = buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
     expect(turtle).toContain("@base <https://pod.example/catalog.ttl> .");
   });
 
-  it("declares the catalog resource as a dcat:Catalog", () => {
+  it("marks the empty document as a catalog", () => {
     const turtle = buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
     expect(turtle).toContain("<> a dcat:Catalog .");
   });
@@ -679,7 +685,7 @@ describe("parseCatalog", () => {
     expect(entry.conformsTo).toBe("http://schema.org/ImageObject");
   });
 
-  it("parses a folder entry with no distribution and its sd:hasParent link", () => {
+  it("reads a folder entry correctly, including which folder it lives in", () => {
     const catalogUri = "https://pod.example/my-app/catalog.ttl";
     const folderUri = "https://pod.example/my-app/documents/";
     const parentUri = "https://pod.example/my-app/";
@@ -710,7 +716,7 @@ describe("parseCatalog", () => {
     });
   });
 
-  it("parses the storage root entry with an empty parentUri", () => {
+  it("reads the storage root as having no parent folder", () => {
     const catalogUri = "https://pod.example/catalog.ttl";
     const storageRootUri = "https://pod.example/";
     const turtle = `

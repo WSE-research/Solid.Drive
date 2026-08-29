@@ -89,6 +89,15 @@ export function buildEmptyCatalogTurtle(catalogUri: string): string {
 export const FOLDER_CLASS_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}Folder`;
 
 /**
+ * Marks a catalog entry as a file, using this project's own vocabulary.
+ * Nothing routes on it the way {@link FOLDER_CLASS_URI} does, since every
+ * non-folder entry is already treated as a file.
+ *
+ * @public
+ */
+export const FILE_CLASS_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}File`;
+
+/**
  * The `dcterms:conformsTo` value folders were marked with before this
  * project had its own vocabulary. Catalogs written by earlier versions of
  * this app still use it; {@link isFolderEntry} treats both as folders.
@@ -213,9 +222,11 @@ export async function appendToCatalog(params: AppendFileEntryParams): Promise<vo
     const catalog = namedNode(catalogUri);
     const instance = namedNode(instanceUri);
     const distribution = namedNode(`${instanceUri}${DISTRIBUTION_FRAGMENT}`);
+    const fileClass = namedNode(FILE_CLASS_URI);
 
     store.addQuad(quad(catalog, DCAT_DATASET, instance));
     store.addQuad(quad(instance, RDF_TYPE, DCAT_DATASET_CLASS));
+    store.addQuad(quad(instance, RDF_TYPE, fileClass));
     store.addQuad(quad(instance, DCTERMS_CONFORMS_TO, namedNode(classUri)));
     store.addQuad(quad(instance, DCTERMS_TITLE, literal(title)));
     if (description.trim()) {

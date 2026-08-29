@@ -1,4 +1,4 @@
-# Solid.Drive catalog vocabulary. Hand-authored, edit directly (not generated).
+# Solid.Drive catalog vocabulary. Edit directly (not generated).
 # See public/README.adoc for how this file relates to its PURL.
 
 @prefix : <https://purl.org/solid-drive/catalog#> .
@@ -13,31 +13,56 @@
 
 <https://purl.org/solid-drive/catalog>
   a owl:Ontology ;
-  rdfs:label "Solid.Drive catalog vocabulary" ;
-  rdfs:comment "Terms describing folder containment in a Solid.Drive catalog: which dataset entries represent folders, and which folder each entry lives in." ;
+  rdfs:label "Solid.Drive catalog vocabulary"@en, "Solid.Drive-Katalogvokabular"@de ;
+  rdfs:comment "Terms describing storage-object containment in a Solid.Drive catalog: which dataset entries represent folders or files, and which folder each entry lives in."@en, "Begriffe zur Beschreibung der Speicherobjekt-Zugehörigkeit in einem Solid.Drive-Katalog: welche Dataset-Einträge Ordner oder Dateien darstellen und in welchem Ordner sich jeder Eintrag befindet."@de ;
   vann:preferredNamespacePrefix "sdcat" ;
   vann:preferredNamespaceUri "https://purl.org/solid-drive/catalog#" ;
-  owl:versionInfo "1.0.0" ;
-  owl:versionIRI <https://purl.org/solid-drive/catalog/1.0.0> ;
+  owl:versionInfo "1.1.0" ;
+  owl:versionIRI <https://purl.org/solid-drive/catalog/1.1.0> ;
   dcterms:created "2026-08-23"^^xsd:date ;
-  dcterms:modified "2026-08-23"^^xsd:date ;
+  dcterms:modified "2026-08-27"^^xsd:date ;
   dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
   rdfs:seeAlso <https://github.com/WSE-research/Solid-Hello-World-Frontend-React> .
 
+:StorageObject
+  a rdfs:Class, owl:Class ;
+  rdfs:subClassOf dcat:Dataset ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
+  rdfs:label "Storage object"@en, "Speicherobjekt"@de ;
+  rdfs:comment "A catalog entry that represents something stored in the Pod: a Folder or a File. Holds the properties every stored thing shares (hasParent, deletedAt), so Folder and File don't each define them separately."@en, "Ein Katalogeintrag, der etwas im Pod Gespeichertes darstellt: einen Ordner oder eine Datei. Enthält die Eigenschaften, die alle gespeicherten Dinge gemeinsam haben (hasParent, deletedAt), damit Ordner und Datei sie nicht jeweils einzeln definieren müssen."@de .
+
 :Folder
   a rdfs:Class, owl:Class ;
-  rdfs:subClassOf dcat:Dataset, ldp:Container ;
+  rdfs:subClassOf :StorageObject, ldp:Container ;
   rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
-  rdfs:label "Folder" ;
-  rdfs:comment "A catalog entry that represents a folder. It is also the LDP container it describes, so it has no dcat:distribution. Typed with both dcterms:conformsTo, like files, and rdf:type, for real class membership." ;
+  rdfs:label "Folder"@en, "Ordner"@de ;
+  rdfs:comment "A catalog entry that represents a folder. It is also the LDP container it describes, so it has no dcat:distribution. Typed with both dcterms:conformsTo, like files, and rdf:type, for real class membership."@en, "Ein Katalogeintrag, der einen Ordner darstellt. Er ist zugleich der LDP-Container, den er beschreibt, und hat daher keine dcat:distribution. Wie Dateien mit dcterms:conformsTo typisiert, zusätzlich mit rdf:type für eine echte Klassenzugehörigkeit."@de ;
+  owl:disjointWith :File ;
   rdfs:seeAlso <http://tracker.api.gnome.org/ontology/v3/nfo#Folder> .
+
+:File
+  a rdfs:Class, owl:Class ;
+  rdfs:subClassOf :StorageObject ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
+  rdfs:label "File"@en, "Datei"@de ;
+  rdfs:comment "A catalog entry that represents an uploaded file. Unlike Folder, it is typed on the file's own RDF metadata resource (index.ttl), not on the LDP container that physically wraps that metadata and the binary together; dcat:distribution still points at the binary itself. Typed with both dcterms:conformsTo (its schema.org media type) and rdf:type, like Folder."@en, "Ein Katalogeintrag, der eine hochgeladene Datei darstellt. Anders als Ordner ist er auf der eigenen RDF-Metadatenressource der Datei (index.ttl) typisiert, nicht auf dem LDP-Container, der Metadaten und Binärdatei gemeinsam umschließt; dcat:distribution verweist weiterhin auf die Binärdatei selbst. Wie Ordner sowohl mit dcterms:conformsTo (dem schema.org-Medientyp) als auch mit rdf:type typisiert."@de ;
+  rdfs:seeAlso <http://tracker.api.gnome.org/ontology/v3/nfo#FileDataObject> .
 
 :hasParent
   a rdf:Property, owl:ObjectProperty, owl:FunctionalProperty ;
   rdfs:subPropertyOf dcterms:isPartOf ;
-  rdfs:domain dcat:Dataset ;
+  rdfs:domain :StorageObject ;
   rdfs:range :Folder ;
   rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
-  rdfs:label "has parent" ;
-  rdfs:comment "Points to the folder a catalog entry lives in: the real parent container for a folder, or the folder shown to the user for a file, which may not be its literal immediate container. At most one value; the top storage container has none, marking the end of every path." ;
+  rdfs:label "has parent"@en, "hat übergeordneten Ordner"@de ;
+  rdfs:comment "Points to the folder a catalog entry lives in: the real parent container for a folder, or the folder shown to the user for a file, which may not be its literal immediate container. At most one value; the top storage container has none, marking the end of every path."@en, "Verweist auf den Ordner, in dem sich ein Katalogeintrag befindet: der tatsächliche übergeordnete Container für einen Ordner, oder der dem Nutzer angezeigte Ordner für eine Datei, der nicht zwingend ihr unmittelbarer Container ist. Höchstens ein Wert; der oberste Speichercontainer hat keinen, was das Ende jedes Pfads markiert."@de ;
   rdfs:seeAlso <http://www.w3.org/ns/ldp#contains>, <http://tracker.api.gnome.org/ontology/v3/nfo#belongsToContainer> .
+
+:deletedAt
+  a rdf:Property, owl:DatatypeProperty, owl:FunctionalProperty ;
+  rdfs:domain :StorageObject ;
+  rdfs:range xsd:dateTime ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
+  rdfs:label "deleted at"@en, "gelöscht am"@de ;
+  rdfs:comment "When a storage object was soft-deleted: moved to trash, not removed from the Pod. Makes the deleted state visible on the entry itself, so a consumer doesn't need to recognize the name of whatever container holds trashed items. No value means live. At most one value."@en, "Wann ein Speicherobjekt soft-gelöscht wurde: in den Papierkorb verschoben, nicht aus dem Pod entfernt. Macht den Löschzustand am Eintrag selbst sichtbar, sodass ein Konsument nicht den Namen des Papierkorb-Containers erkennen muss. Kein Wert bedeutet aktiv. Höchstens ein Wert."@de ;
+  rdfs:seeAlso <https://www.w3.org/ns/activitystreams#deleted>, <https://specifications.freedesktop.org/trash-spec/latest/> .

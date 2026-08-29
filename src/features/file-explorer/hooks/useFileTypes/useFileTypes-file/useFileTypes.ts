@@ -69,13 +69,8 @@ export function useFileTypes(tboxUri?: string): UseFileTypesResult {
   const [loaded, setLoaded] = useState(() => getFileTypesSync() !== null);
 
   useEffect(() => {
-    // If already cached, no need to load
-    if (getFileTypesSync() !== null) {
-      setFileTypes(getFileTypesSync()!);
-      setLoaded(true);
-      setLoading(false);
-      return;
-    }
+    // If already cached, the lazy initial state above already reflects it.
+    if (getFileTypesSync() !== null) return;
 
     let cancelled = false;
 

@@ -1,13 +1,13 @@
 = ThemeToggle
 
-Dropdown that switches the active theme: `Light`, `Dark` or `Dropbox`.
+Dropdown that switches the active experience: `Classic`, `Light`, `Dark`, `Dropbox` or `Google Drive`.
 The trigger shows the current value with a chevron; the `Theme` heading above it is rendered by the TopBar's Settings menu.
-Mounted inside that Settings dropdown above the LayoutToggle.
+Picking a theme keeps the OneDrive shell mounted and restyles it; picking `Classic` drops back to the classic shell.
 
-The option list is derived from `THEMES` and the labels are a `Record<Theme, string>`, so adding a theme to the union makes TypeScript demand a label rather than silently leaving the picker one option short.
+The option list is derived from `EXPERIENCES` and the labels are a `Record<Experience, string>`, so adding a theme to the union makes TypeScript demand a label rather than silently leaving the picker one option short.
 
-Stateless wrapper around link:../../hooks/useThemePreference/[useThemePreference].
-The hook owns the value, mirrors it onto `document.documentElement` as `data-theme`, and writes to `localStorage`.
+Stateless wrapper around link:../../hooks/useExperiencePreference/[useExperiencePreference].
+The hook owns the value, translating it into the underlying layout and theme preferences.
 
 == Navigation
 
@@ -15,4 +15,4 @@ The hook owns the value, mirrors it onto `document.documentElement` as `data-the
 link:../[onedrive-layout/components]
 
 .Uses
-* link:../../hooks/useThemePreference/[useThemePreference]
+* link:../../hooks/useExperiencePreference/[useExperiencePreference]

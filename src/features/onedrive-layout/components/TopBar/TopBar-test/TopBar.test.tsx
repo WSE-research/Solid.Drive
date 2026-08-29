@@ -109,13 +109,13 @@ describe('TopBar — settings dropdown', () => {
     expect(mockChangeLanguage).toHaveBeenCalledWith('de');
   });
 
-  it('settings menu exposes the layout toggle which flips the layout preference', async () => {
+  it('settings menu exposes the theme select, whose Classic option flips the layout preference', async () => {
     localStorage.setItem('solid-drive.layout', 'onedrive');
     const user = userEvent.setup();
     renderTopBar();
     await user.click(screen.getByRole('button', { name: /settings/i }));
-    const classicPill = await screen.findByRole('radio', { name: /classic/i });
-    await user.click(classicPill);
+    await user.click(screen.getByRole('combobox', { name: /theme/i }));
+    await user.click(await screen.findByRole('option', { name: /classic/i }));
     expect(localStorage.getItem('solid-drive.layout')).toBe('classic');
   });
 });

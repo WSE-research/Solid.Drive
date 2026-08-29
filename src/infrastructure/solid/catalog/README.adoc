@@ -12,11 +12,12 @@ All communication goes through raw `fetch`; LDO is not used.
 | Name | Description
 
 | `resolveCatalogUri(profile, storageRoot)` | Returns `profile.catalog["@id"]` or falls back to `{storageRoot}catalog.ttl`
-| `appendToCatalog(params)` | Adds a file's dataset and distribution entry via a GET/PUT round trip; creates the catalog on 404. Writes `sd:hasParent` when `params.parentUri` is non-empty
+| `appendToCatalog(params)` | Adds a file's dataset and distribution entry via a GET/PUT round trip; creates the catalog on 404. Types the entry as both `dcat:Dataset` and `sd:File`, and writes `sd:hasParent` when `params.parentUri` is non-empty
 | `appendFolderToCatalog(params)` | Adds a folder's dataset entry (no distribution) via a GET/PUT round trip; creates the catalog on 404. Always writes `sd:hasParent`, and types the entry as both `dcat:Dataset` and `sd:Folder`
 | `ensureCatalogRootEntry(params)` | Registers the pod's storage root as its own parentless catalog entry, the terminator every folder path walk reaches. Safe to call repeatedly: quads are deduplicated by the N3 store, so re-adding the same triples is a no-op
 | `isFolderEntry(entry)` | True when a `CatalogEntry` is a folder, whether marked with the current `sd:Folder` class or the legacy `ldp:Container` marker
 | `FOLDER_CLASS_URI` | The `dcterms:conformsTo` / `rdf:type` value (`sd:Folder`, from this project's own catalog vocabulary) that marks a catalog entry as a folder
+| `FILE_CLASS_URI` | The `sd:File` value `appendToCatalog` types every file entry with. Descriptive only, nothing routes on it
 | `LEGACY_FOLDER_CLASS_URI` | The `ldp:Container` marker folders were written with before `sd:Folder` existed; `isFolderEntry` still recognizes it
 | `removeFromCatalog(...)` | Removes a dataset entry via a GET/PUT round trip; no-ops if the catalog is not reachable (`HEAD` check first)
 | `parseCatalog(turtleText, baseUri?)` | Parses a Turtle catalog into `CatalogEntry[]` objects, including each entry's `parentUri` from `sd:hasParent`
@@ -25,7 +26,7 @@ All communication goes through raw `fetch`; LDO is not used.
 | `buildEmptyCatalogTurtle(catalogUri)` | Turtle template for a new, empty catalog, with an explicit `@base` so the document identifies itself outside its own retrieval context (used directly by `useAccessRequests`, independent of `appendToCatalog`'s own 404 handling)
 |===
 
-The folder vocabulary (`sd:Folder`, `sd:hasParent`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL.
+The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:deletedAt`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL. `sd:deletedAt` is defined there but not yet written by this module.
 
 `appendToCatalog`/`removeFromCatalog`/`parseCatalog` are parameterised entirely by `catalogUri`, so `softDeleteFile` and `useTrashEntries` reuse them unmodified against `trash/catalog.ttl` instead of the main catalog; see link:../trashPaths/[trashPaths].
 

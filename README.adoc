@@ -73,7 +73,7 @@ toc::[]
 === Authentication and layout
 
 * *Authentication:* log in via any OIDC-compliant Solid identity provider (`solidcommunity.net`, `inrupt.net`, `solidweb.org`, or a self-hosted server)
-* *Layout choice:* switch at runtime between the classic two-pane shell and the OneDrive style shell; the preference is persisted in `localStorage`
+* *Layout and theme choice:* switch at runtime between the classic two-pane shell and the OneDrive style shell in any of its themes — OneDrive Light, OneDrive Dark, Dropbox inspired, or Google Drive inspired. Pick the look before login on the landing page, from the switcher in the classic header, or from the Settings menu of the OneDrive shell; both preferences are persisted in `localStorage`
 * *Language switching:* switch between English and German at runtime
 
 === Navigation

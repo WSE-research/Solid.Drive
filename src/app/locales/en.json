@@ -248,13 +248,19 @@
     "subtitle": "Finishing the handshake with your Pod provider."
   },
   "oneDriveLayout": {
-    "layout": "Layout",
     "classic": "Classic",
-    "onedrive": "OneDrive",
     "theme": "Theme",
     "themeOption": {
       "light": "Light",
       "dark": "Dark",
+      "dropbox": "Dropbox",
+      "gdrive": "Google Drive"
+    },
+    "experience": "Experience",
+    "experienceOption": {
+      "classic": "Classic",
+      "light": "OneDrive (Light)",
+      "dark": "OneDrive (Dark)",
       "dropbox": "Dropbox",
       "gdrive": "Google Drive"
     },

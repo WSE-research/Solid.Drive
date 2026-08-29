@@ -3,7 +3,7 @@
  * Manages the user's foaf:knows contact list.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isReloadable } from "@/infrastructure/solid/resourceGuards";
@@ -15,6 +15,9 @@ interface UseContactsReturn {
   removeContact: (webId: string) => Promise<void>;
   isAdding: boolean;
 }
+
+/** Sentinel for "no profile synced yet", distinct from a real `undefined` profile. */
+const NOT_YET_SYNCED = Symbol("not-yet-synced");
 
 /**
  * Reads and modifies the foaf:knows triples in a user's profile.
@@ -31,12 +34,13 @@ export function useContacts(ownerWebId: string): UseContactsReturn {
   const profile = useSubject(SolidProfileShapeType, ownerWebId);
   const [contacts, setContacts] = useState<string[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+ 
+  const [syncedProfile, setSyncedProfile] = useState<typeof profile | typeof NOT_YET_SYNCED>(NOT_YET_SYNCED);
 
-  useEffect(() => {
-    if (!profile) return;
-    const knows = profile.knows?.toArray().map((entry: { "@id": string }) => entry["@id"]) ?? [];
-    setContacts(knows);
-  }, [profile]);
+  if (profile && profile !== syncedProfile) {
+    setSyncedProfile(profile);
+    setContacts(profile.knows?.toArray().map((entry: { "@id": string }) => entry["@id"]) ?? []);
+  }
 
   const addContact = async (webId: string) => {
     const trimmed = webId.trim();
