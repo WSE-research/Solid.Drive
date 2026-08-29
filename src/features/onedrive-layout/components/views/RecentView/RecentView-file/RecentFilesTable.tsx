@@ -1,7 +1,8 @@
 /**
  * Renders the Home view's "Recent" list as a flat table — one row per
  * catalog entry, columns Name / Opened / Owner — to match the
- * OneDrive reference layout.
+ * OneDrive reference layout. Rows are clickable, opening the file in
+ * the full-screen preview modal.
  *
  * @packageDocumentation
  */
@@ -12,6 +13,7 @@ import type { CatalogEntry } from '@/types';
 import { pickFileIcon } from '@/features/onedrive-layout/formatting';
 import {
   formatRowDate,
+  isActivationKey,
   parentFolderLabel,
   safeDecodeUriTail,
 } from '@/features/onedrive-layout/formatting';
@@ -19,12 +21,13 @@ import {
 interface RecentRowProps {
   entry: CatalogEntry;
   ownerName: string;
+  onOpen: (entry: CatalogEntry) => void;
 }
 
 const formatOpened = (modified: string | undefined): string =>
   formatRowDate(modified, undefined, '');
 
-const RecentRow: FunctionComponent<RecentRowProps> = ({ entry, ownerName }) => {
+const RecentRow: FunctionComponent<RecentRowProps> = ({ entry, ownerName, onOpen }) => {
   const fileName = safeDecodeUriTail(entry.uri);
   const title = entry.title || fileName;
   const { Icon } = pickFileIcon({
@@ -33,8 +36,21 @@ const RecentRow: FunctionComponent<RecentRowProps> = ({ entry, ownerName }) => {
     conformsTo: entry.conformsTo,
   });
   const parent = parentFolderLabel(entry.uri);
+  const handleOpen = () => onOpen(entry);
   return (
-    <recent-files-row data-testid="recent-files-row" data-uri={entry.uri}>
+    <recent-files-row
+      data-testid="recent-files-row"
+      data-uri={entry.uri}
+      role="row"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={(event) => {
+        if (isActivationKey(event.key)) {
+          event.preventDefault();
+          handleOpen();
+        }
+      }}
+    >
       <recent-files-cell>
         <span className="odl-recent-row__icon" aria-hidden>
           <Icon width={24} height={24} />
@@ -64,6 +80,7 @@ const RecentRow: FunctionComponent<RecentRowProps> = ({ entry, ownerName }) => {
 export interface RecentFilesTableProps {
   entries: readonly CatalogEntry[];
   ownerName: string;
+  onOpen: (entry: CatalogEntry) => void;
 }
 
 /**
@@ -75,6 +92,7 @@ export interface RecentFilesTableProps {
 export const RecentFilesTable: FunctionComponent<RecentFilesTableProps> = ({
   entries,
   ownerName,
+  onOpen,
 }) => {
   const [translate] = useTranslation();
 
@@ -110,7 +128,7 @@ export const RecentFilesTable: FunctionComponent<RecentFilesTableProps> = ({
       </recent-files-head>
       <recent-files-body>
         {entries.map((entry) => (
-          <RecentRow key={entry.uri} entry={entry} ownerName={ownerName} />
+          <RecentRow key={entry.uri} entry={entry} ownerName={ownerName} onOpen={onOpen} />
         ))}
       </recent-files-body>
     </recent-files-table>

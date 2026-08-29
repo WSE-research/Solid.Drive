@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
 const mockFetch = vi.fn();
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
-  // `useCatalog` subscribes to the catalog resource so notifications
-  // trigger re-fetches. The hook only reads `resource.status` from the
-  // result to detect updates; tests do not exercise that path.
-  useResource: () => undefined,
 }));
 
 const FOLDER_CLASS_URI = 'http://www.w3.org/ns/ldp#Container';
@@ -25,6 +21,10 @@ import {
   __resetCatalogCacheForTests,
   useCatalog,
 } from '../useCatalog-file/useCatalog';
+import {
+  __resetCatalogVersionsForTests,
+  notifyCatalogChanged,
+} from '@/shared/hooks/useCatalogVersion';
 
 const CATALOG_URI = 'https://pod.example/catalog.ttl';
 
@@ -32,6 +32,7 @@ describe('useCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     __resetCatalogCacheForTests();
+    __resetCatalogVersionsForTests();
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('TTL') });
     mockParseCatalog.mockReturnValue([]);
   });
@@ -131,6 +132,44 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.loading).toBe(true));
     resolveFetch?.({ ok: true, text: () => Promise.resolve('TTL') });
     await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  it('keeps serving the last-known entries while re-fetching the same catalog', async () => {
+    mockParseCatalog.mockReturnValueOnce([
+      { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
+    ]);
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+
+    // A confirmed write elsewhere bumps the version and re-fetches the same
+    // catalog. Hold that re-fetch open so we can inspect the mid-flight state.
+    let resolveRefetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
+    mockFetch.mockReturnValueOnce(new Promise((resolve) => { resolveRefetch = resolve; }));
+    act(() => notifyCatalogChanged(CATALOG_URI));
+
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    // The previous entries stay visible instead of flashing empty.
+    expect(result.current.entries).toHaveLength(1);
+
+    resolveRefetch?.({ ok: true, text: () => Promise.resolve('TTL') });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  it('does not re-fetch on its own — only catalogUri changing or notifyCatalogChanged does', async () => {
+    mockParseCatalog.mockReturnValueOnce([
+      { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
+    ]);
+    const { result, rerender } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+    const fetchCountAfterFirst = mockFetch.mock.calls.length;
+
+    // Plain re-renders (no catalogUri change, no notifyCatalogChanged) must
+    // never trigger another fetch.
+    rerender();
+    rerender();
+    rerender();
+    expect(mockFetch.mock.calls.length).toBe(fetchCountAfterFirst);
+    expect(result.current.entries).toHaveLength(1);
   });
 
   it('serves a second hook instance from the cache instead of fetching again', async () => {
