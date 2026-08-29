@@ -211,22 +211,29 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
   );
   const mainCatalogUri = profile?.catalog?.["@id"] ?? (storageRoot ? `${storageRoot}${DEFAULT_CATALOG_FILENAME}` : null);
 
-  const [resolved, setResolved] = useState<ResolvedSharedCatalog>(EMPTY_RESOLVED);
-
   // Global invalidation signal. Bumped by `notifySharedCatalogsChanged`
   // (focus refresh, manual invalidation). Folded into the cache key so a
   // bump becomes a cache miss across every consumer in one shot.
   const sharedCatalogVersion = useSharedCatalogVersion();
 
-  useEffect(() => {
-    if (catalogUris.length === 0 && !mainCatalogUri) return;
+  const key =
+    catalogUris.length === 0 && !mainCatalogUri
+      ? null
+      : cacheKey(catalogUris, mainCatalogUri, sharedCatalogVersion);
 
-    const key = cacheKey(catalogUris, mainCatalogUri, sharedCatalogVersion);
-    const cached = sharedCatalogCache.get(key);
+  const [resolved, setResolved] = useState<ResolvedSharedCatalog>(EMPTY_RESOLVED);
+  const [syncedKey, setSyncedKey] = useState<string | null>(null);
+
+  if (key !== syncedKey) {
+    const cached = key ? sharedCatalogCache.get(key) : undefined;
     if (cached) {
+      setSyncedKey(key);
       setResolved(cached);
-      return;
     }
+  }
+
+  useEffect(() => {
+    if (key === null || sharedCatalogCache.has(key)) return;
 
     let cancelled = false;
 
@@ -245,11 +252,14 @@ export function useSharedCatalog(contactWebId: string, viewerWebId: string): Use
     }
 
     void promise.then((result) => {
-      if (!cancelled) setResolved(result);
+      if (!cancelled) {
+        setSyncedKey(key);
+        setResolved(result);
+      }
     });
 
     return () => { cancelled = true; };
-  }, [catalogUris, mainCatalogUri, solidFetch, sharedCatalogVersion]);
+  }, [key, catalogUris, mainCatalogUri, solidFetch]);
 
   return {
     sharedEntries: resolved.sharedEntries,

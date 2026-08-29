@@ -3,7 +3,7 @@
  * Manages the current user's Solid profile fields.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useResource, useSubject, useSolidAuth } from "@ldo/solid-react";
 import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isLoadable, isReloadable } from "@/infrastructure/solid/resourceGuards";
@@ -27,6 +27,9 @@ interface UseProfileOptions {
   suspendSync?: boolean;
 }
 
+/** Sentinel for "no profile synced yet", distinct from a real `undefined` profile. */
+const NOT_YET_SYNCED = Symbol("not-yet-synced");
+
 /**
  * Provides read/write access to the logged-in user's profile.
  *
@@ -41,13 +44,13 @@ export function useProfile({ suspendSync = false }: UseProfileOptions = {}): Use
   const [name, setName] = useState("");
   const [imgUrl, setImgUrl] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [syncedProfile, setSyncedProfile] = useState<typeof profile | typeof NOT_YET_SYNCED>(NOT_YET_SYNCED);
 
-  useEffect(() => {
-    if (suspendSync) return;
-    if (!profile) return;
+  if (!suspendSync && profile && profile !== syncedProfile) {
+    setSyncedProfile(profile);
     setName(profile.name ?? "");
     setImgUrl(profile.img?.["@id"] ?? "");
-  }, [profile, suspendSync]);
+  }
 
   const isLoading = isLoadable(webIdResource) && webIdResource.isLoading();
   const displayName = profile?.name ?? profile?.fn ?? "";

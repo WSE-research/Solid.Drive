@@ -147,11 +147,13 @@ export function useUploadQueue(
   const catalogMutexRef = useRef(createMutex());
 
   const catalogEntriesRef = useRef(catalogEntries);
-  catalogEntriesRef.current = catalogEntries;
   const catalogUriRef = useRef(catalogUri);
-  catalogUriRef.current = catalogUri;
   const profileHasCatalogRef = useRef(profileHasCatalog);
-  profileHasCatalogRef.current = profileHasCatalog;
+  useEffect(() => {
+    catalogEntriesRef.current = catalogEntries;
+    catalogUriRef.current = catalogUri;
+    profileHasCatalogRef.current = profileHasCatalog;
+  }, [catalogEntries, catalogUri, profileHasCatalog]);
 
   const cancelledRef = useRef(false);
   useEffect(() => {
