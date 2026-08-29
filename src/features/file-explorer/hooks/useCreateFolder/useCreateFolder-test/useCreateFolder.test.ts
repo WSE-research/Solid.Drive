@@ -101,14 +101,15 @@ describe('useCreateFolder', () => {
       });
     });
 
-    expect(mockAppendFolderToCatalog).toHaveBeenCalledWith(
+    expect(mockAppendFolderToCatalog).toHaveBeenCalledWith({
       catalogUri,
-      'https://pod.example/my-solid-app/my-new-folder/',
-      'My New Folder',
-      expect.any(String),
-      mockWebId,
-      mockSolidFetch,
-    );
+      folderUri: 'https://pod.example/my-solid-app/my-new-folder/',
+      parentUri: mockParentContainer.uri,
+      title: 'My New Folder',
+      modified: expect.any(String),
+      publisherWebId: mockWebId,
+      fetch: mockSolidFetch,
+    });
   });
 
   it('resolves to the new folder URI', async () => {

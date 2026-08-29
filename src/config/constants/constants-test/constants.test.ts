@@ -24,6 +24,7 @@ import {
   RDF_TYPE_URI,
   SHARED_CATALOG_PREFIX,
   SHORT_DATE_FORMAT_OPTIONS,
+  SOLID_DRIVE_CATALOG_VOCAB_PATH,
   SOLID_PROVIDERS,
   SPREADSHEET_MIME_TYPES,
   STORAGE_RETRY_DELAY_MS,
@@ -357,6 +358,22 @@ describe("DOCUMENT_MIME_TYPES", () => {
 describe("DEFAULT_TBOX_PATH", () => {
   it("ends with .ttl", () => {
     expect(DEFAULT_TBOX_PATH.endsWith(".ttl")).toBe(true);
+  });
+});
+
+// ─── SOLID_DRIVE_CATALOG_VOCAB_PATH ────────────────────────────────────────────
+
+describe("SOLID_DRIVE_CATALOG_VOCAB_PATH", () => {
+  it("ends with .ttl", () => {
+    expect(SOLID_DRIVE_CATALOG_VOCAB_PATH.endsWith(".ttl")).toBe(true);
+  });
+});
+
+// ─── RDF_NAMESPACES.SOLID_DRIVE_CATALOG ────────────────────────────────────────
+
+describe("RDF_NAMESPACES.SOLID_DRIVE_CATALOG", () => {
+  it("is a purl.org PURL distinct from the file-metadata solid-drive namespace", () => {
+    expect(RDF_NAMESPACES.SOLID_DRIVE_CATALOG).toBe("https://purl.org/solid-drive/catalog#");
   });
 });
 

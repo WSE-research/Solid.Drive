@@ -27,7 +27,8 @@ Loads the list of files and folders a user has stored, from a catalog file kept 
 
 | `entries`       | `CatalogEntry[]`      | The files in the catalog
 | `containerUris` | `Set<string>`         | Each file's own folder address, used to tell a real folder apart from a file's storage folder
-| `folderTitles`  | `Map<string, string>` | Each folder's address mapped to the name the user gave it when creating it
+| `folderTitles`  | `Map<string, string>` | Each folder's address mapped to the name the user gave it when creating it. Derived from `folderIndex`
+| `folderIndex`   | `FolderIndex`         | Every folder in the catalog, keyed by address, with its own parent link. Lets a breadcrumb trail be built without extra fetches
 | `loading`       | `boolean`             | True while the catalog is being loaded
 | `error`         | `Error \| null`       | Set if loading failed, otherwise null
 |===

@@ -29,7 +29,7 @@ type FileMediaPreviewProps = {
  */
 const applyDarkPreviewTheme = (event: SyntheticEvent<HTMLIFrameElement>): void => {
   const frame = event.currentTarget;
-  let frameDocument: Document | null = null;
+  let frameDocument: Document | null;
   try {
     frameDocument = frame.contentDocument;
   } catch {

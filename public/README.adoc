@@ -8,11 +8,16 @@ Files here are copied verbatim to `dist/` at build time and are not processed by
 `tbox.ttl`::
 SHACL TBox (Turtle format) downloaded from datashapes.org.
 Used at runtime by the validation layer to look up type definitions and generate SHACL shapes.
-*Do not edit by hand* — regenerate with:
+*Do not edit by hand*, regenerate with:
 +
 ----
 node scripts/extract-tbox.mjs
 ----
+
+`vocab/solid-drive-catalog.ttl`::
+This project's own vocabulary: `StorageObject`, `Folder`, `File`, and `hasParent` describe a catalog's folder structure; `deletedAt` marks a soft-deleted entry, not yet written by this app.
+Writing and editing are done manually; there is no automated generation.
+Identified by the `https://purl.org/solid-drive/catalog#` PURL, which is meant to redirect here once registered.
 
 == Navigation
 
@@ -22,3 +27,4 @@ link:../[root]
 .Related
 * link:../scripts/[scripts/extract-tbox.mjs] generates `tbox.ttl`
 * link:../src/infrastructure/validation/[infrastructure/validation] consumes `tbox.ttl` at runtime
+* link:../src/infrastructure/solid/catalog/[infrastructure/solid/catalog] writes and reads `Folder`/`File`/`hasParent` triples defined by `vocab/solid-drive-catalog.ttl`

@@ -12,8 +12,8 @@ import { SolidProfileShapeType } from '@/.ldo/solidProfile.shapeTypes';
 
 /**
  * Returns the list of contact WebIDs from the current session profile.
- * The list is empty until the profile resolves; this is a derived value,
- * so consumers can read it freely without further memoisation.
+ * The list is empty until the profile resolves. Memoised so repeated
+ * renders with an unchanged contact list return the same array reference.
  *
  * Subscribes to the profile document so that a foaf:knows added in another
  * tab, or by another component on this page, is reflected here without a
@@ -34,8 +34,10 @@ export function useContacts(): string[] {
       profile?.knows
         ?.toArray()
         .map((contact: { '@id': string }) => contact['@id']) ?? [],
-    // Include knowsCount so this recomputes when foaf:knows changes even
-    // if LDO keeps the profile proxy reference stable across updates.
+    // knowsCount is included on purpose: LDO keeps the profile proxy
+    // reference stable across updates, so `profile` alone would not
+    // recompute this when foaf:knows changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [profile, knowsCount],
   );
 }

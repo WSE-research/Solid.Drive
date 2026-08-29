@@ -13,7 +13,7 @@ vi.mock('@ldo/solid-react', () => ({
 const FOLDER_CLASS_URI = 'http://www.w3.org/ns/ldp#Container';
 const mockParseCatalog = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
-  FOLDER_CLASS_URI: 'http://www.w3.org/ns/ldp#Container',
+  isFolderEntry: (entry: { conformsTo: string }) => entry.conformsTo === FOLDER_CLASS_URI,
   parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
 }));
 

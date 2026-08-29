@@ -1,0 +1,22 @@
+= useCatalogRootEntry
+
+Registers the pod's storage root as its own parentless catalog entry once `catalogUri` and `storageRootUri` are both known. This is the terminator every folder's `sd:hasParent` chain walks up to.
+
+Skips the write entirely when the caller already knows a fresh `folderIndex` has the root entry, so a returning visit doesn't repeat a PATCH that would be a no-op anyway.
+
+== Exports
+
+[cols="1,3", options="header"]
+|===
+| Name | Description
+
+| `useCatalogRootEntry(catalogUri, storageRootUri, rootAlreadyPresent)` | Registers the storage root's catalog entry once per distinct `(catalogUri, storageRootUri)` pair, unless `rootAlreadyPresent` is true. Returns `"pending"`, `"succeeded"`, or `"failed"`
+|===
+
+== Navigation
+
+.Parent
+link:../[file-explorer/hooks]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/[infrastructure/solid/catalog] for `ensureCatalogRootEntry`

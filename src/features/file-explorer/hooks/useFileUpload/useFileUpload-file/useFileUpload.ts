@@ -133,19 +133,20 @@ export function useFileUpload(): UseFileUploadReturn {
       // cleaning up would let the next upload observe a half-written catalog.
       await withCatalogLock(async () => {
         try {
-          await appendToCatalog(
+          await appendToCatalog({
             catalogUri,
-            indexResource.uri,
+            instanceUri: indexResource.uri,
             binaryUri,
             classUri,
-            file.type,
-            file.size,
-            title.trim() || file.name,
+            parentUri: mainContainer.uri,
+            mediaType: file.type,
+            byteSize: file.size,
+            title: title.trim() || file.name,
             description,
-            new Date().toISOString(),
-            session.webId!,
-            solidFetch
-          );
+            modified: new Date().toISOString(),
+            publisherWebId: session.webId!,
+            fetch: solidFetch,
+          });
         } catch (catalogErr) {
           await solidFetch(binaryUri, { method: "DELETE" }).catch(() => {});
           await solidFetch(indexResource.uri, { method: "DELETE" }).catch(() => {});

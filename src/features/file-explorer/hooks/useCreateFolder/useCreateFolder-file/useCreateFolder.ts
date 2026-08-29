@@ -103,7 +103,15 @@ export function useCreateFolder(): UseCreateFolderReturn {
       const folderUri = `${parentContainer.uri}${containerSlug}`;
 
       try {
-        await appendFolderToCatalog(catalogUri, folderUri, title, new Date().toISOString(), session.webId, solidFetch);
+        await appendFolderToCatalog({
+          catalogUri,
+          folderUri,
+          parentUri: parentContainer.uri,
+          title,
+          modified: new Date().toISOString(),
+          publisherWebId: session.webId,
+          fetch: solidFetch,
+        });
       } catch (catalogErr) {
         await solidFetch(folderUri, { method: "DELETE" }).catch(() => {});
         throw new Error(`Catalog could not be updated. ${(catalogErr as Error).message}`, { cause: catalogErr });

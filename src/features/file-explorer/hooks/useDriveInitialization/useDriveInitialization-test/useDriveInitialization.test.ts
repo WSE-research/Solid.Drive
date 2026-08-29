@@ -76,7 +76,7 @@ describe('useDriveInitialization', () => {
     expect(result.current).toHaveProperty('storageRootUri');
     expect(result.current).toHaveProperty('currentUri');
     expect(result.current).toHaveProperty('setCurrentUri');
-    expect(result.current).toHaveProperty('breadcrumbs');
+    expect(result.current).toHaveProperty('rootLabel');
     expect(result.current).toHaveProperty('setBreadcrumbs');
     expect(result.current).toHaveProperty('noStorageDetected');
     expect(result.current).toHaveProperty('handleRetryStorage');
@@ -91,11 +91,9 @@ describe('useDriveInitialization', () => {
     expect(result.current.currentUri).toBe('https://pod.example/');
   });
 
-  it('sets initial breadcrumbs', () => {
+  it('sets rootLabel to the translated pod label', () => {
     const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
-    expect(result.current.breadcrumbs).toHaveLength(1);
-    expect(result.current.breadcrumbs[0].label).toBe('fileExplorer.myPod');
-    expect(result.current.breadcrumbs[0].uri).toBe('https://pod.example/');
+    expect(result.current.rootLabel).toBe('fileExplorer.myPod');
   });
 
   it('creates app container if createIfAbsent is available', () => {
@@ -174,34 +172,27 @@ describe('useDriveInitialization', () => {
     expect(result.current.noStorageDetected).toBe(false);
   });
 
-  it('handleNavigate pushes a new folder onto the breadcrumb trail and updates currentUri', () => {
+  it('handleNavigate updates currentUri to the target folder', () => {
     const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     act(() => {
       result.current.handleNavigate('https://pod.example/my-solid-app/photos/');
     });
     expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
-    expect(result.current.breadcrumbs).toHaveLength(3);
-    expect(result.current.breadcrumbs[2].uri).toBe('https://pod.example/my-solid-app/photos/');
-    expect(result.current.breadcrumbs[2].label).toBe('photos');
   });
 
-  it('handleBreadcrumbClick trims the breadcrumb trail and updates currentUri', () => {
+  it('handleBreadcrumbClick navigates currentUri directly to the clicked crumb URI', () => {
     const { result } = renderHook(() => useDriveInitialization(), { wrapper: testWrapper() });
     act(() => {
       result.current.handleNavigate('https://pod.example/my-solid-app/photos/');
-      result.current.handleNavigate('https://pod.example/my-solid-app/photos/vacation/');
     });
-    expect(result.current.breadcrumbs).toHaveLength(4);
 
     act(() => {
       result.current.handleBreadcrumbClick(
-        2,
-        'https://pod.example/my-solid-app/photos/' as import('@ldo/connected-solid').SolidContainerUri
+        0,
+        'https://pod.example/my-solid-app/' as import('@ldo/connected-solid').SolidContainerUri
       );
     });
-    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/photos/');
-    expect(result.current.breadcrumbs).toHaveLength(3);
-    expect(result.current.breadcrumbs[2].uri).toBe('https://pod.example/my-solid-app/photos/');
+    expect(result.current.currentUri).toBe('https://pod.example/my-solid-app/');
   });
 
   it('respects a valid folder deep link in the URL', () => {

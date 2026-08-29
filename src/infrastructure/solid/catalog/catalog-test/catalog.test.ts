@@ -2,7 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import {
   appendToCatalog,
   appendFolderToCatalog,
+  ensureCatalogRootEntry,
+  buildEmptyCatalogTurtle,
+  isFolderEntry,
   FOLDER_CLASS_URI,
+  LEGACY_FOLDER_CLASS_URI,
   removeFromCatalog,
   linkCatalogToProfile,
   parseCatalog,
@@ -10,6 +14,7 @@ import {
 } from '../catalog-file/catalog';
 import { getFileTypeLabel } from "@/infrastructure/validation/fileTypeRegistry";
 import type { SolidProfile } from "@/.ldo/solidProfile.typings";
+import type { CatalogEntry } from "@/types";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -52,22 +57,25 @@ describe("appendToCatalog", () => {
   const instanceUri = "https://pod.example/my-app/photo/index.ttl";
   const binaryUri = "https://pod.example/my-app/photo/photo.jpg";
   const classUri = "http://schema.org/ImageObject";
+  const parentUri = "https://pod.example/my-app/";
   const publisherWebId = "https://pod.example/profile/card#me";
   const modified = "2026-03-16T00:00:00.000Z";
 
   async function runAppend(
     overrides: Partial<{
       description: string;
+      parentUri: string;
       responses: Array<{ status: number; ok?: boolean; statusText?: string }>;
     }> = {}
   ) {
     const responses = overrides.responses ?? [{ status: 200, ok: true }];
     const { fetch, calls } = capturingMock(responses);
-    await appendToCatalog(
+    await appendToCatalog({
       catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 4_500_000, "Summer Photo",
-      overrides.description ?? "", modified, publisherWebId, fetch
-    );
+      parentUri: overrides.parentUri ?? parentUri,
+      mediaType: "image/jpeg", byteSize: 4_500_000, title: "Summer Photo",
+      description: overrides.description ?? "", modified, publisherWebId, fetch,
+    });
     return { calls };
   }
 
@@ -77,21 +85,28 @@ describe("appendToCatalog", () => {
       { status: 201, ok: true },
       { status: 200, ok: true },
     ]);
-    await appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch);
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "Photo",
+      description: "", modified, publisherWebId, fetch,
+    });
     expect(calls[0].method).toBe("PATCH");
     expect(calls[1].method).toBe("PUT");
     expect(calls[1].url).toBe(catalogUri);
     expect(calls[2].method).toBe("PATCH");
   });
 
-  it("PUT body for new catalog declares dcat:Catalog", async () => {
+  it("the catalog it creates from scratch declares itself as a catalog with its own address", async () => {
     const { fetch, calls } = capturingMock([
       { status: 404, ok: false }, { status: 201, ok: true }, { status: 200, ok: true },
     ]);
-    await appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, "Photo", "", modified, publisherWebId, fetch);
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "Photo",
+      description: "", modified, publisherWebId, fetch,
+    });
     expect(calls[1].body).toContain("dcat:Catalog");
+    expect(calls[1].body).toContain(`@base <${catalogUri}>`);
   });
 
   it("skips PUT when catalog.ttl already exists", async () => {
@@ -116,6 +131,11 @@ describe("appendToCatalog", () => {
     expect(calls[0].body).toContain("dcat:Dataset");
   });
 
+  it("marks the new entry as a file, not just a generic catalog dataset", async () => {
+    const { calls } = await runAppend();
+    expect(calls[0].body).toContain(`<${instanceUri}> a dcat:Dataset, sd:File ;`);
+  });
+
   it("SPARQL INSERT includes dcterms:title, dcterms:publisher, dcterms:conformsTo", async () => {
     const { calls } = await runAppend();
     const sparql = calls[0].body ?? "";
@@ -124,11 +144,24 @@ describe("appendToCatalog", () => {
     expect(sparql).toContain(`dcterms:conformsTo <${classUri}>`);
   });
 
+  it("links the entry to the folder it lives in", async () => {
+    const { calls } = await runAppend();
+    expect(calls[0].body).toContain(`sd:hasParent <${parentUri}>`);
+  });
+
+  it("leaves out the parent-folder link when no parent is given", async () => {
+    const { calls } = await runAppend({ parentUri: "" });
+    expect(calls[0].body).not.toContain("sd:hasParent");
+  });
+
   it("dcterms:conformsTo references the schema.org class URI resolved from MIME type", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendToCatalog(catalogUri, instanceUri, binaryUri,
-      "http://schema.org/TextDigitalDocument",
-      "application/pdf", 512000, "Report", "", modified, publisherWebId, fetch);
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri,
+      classUri: "http://schema.org/TextDigitalDocument", parentUri,
+      mediaType: "application/pdf", byteSize: 512000, title: "Report",
+      description: "", modified, publisherWebId, fetch,
+    });
     expect(calls[0].body).toContain("dcterms:conformsTo <http://schema.org/TextDigitalDocument>");
   });
 
@@ -160,36 +193,49 @@ describe("appendToCatalog", () => {
     const { fetch } = capturingMock([
       { status: 404, ok: false }, { status: 500, ok: false, statusText: "Internal Server Error" },
     ]);
-    await expect(appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, "x", "", modified, publisherWebId, fetch))
-      .rejects.toThrow("Failed to create catalog.ttl");
+    await expect(appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "x",
+      description: "", modified, publisherWebId, fetch,
+    })).rejects.toThrow("Failed to create catalog.ttl");
   });
 
   it("throws when PATCH update fails", async () => {
     const { fetch } = capturingMock([{ status: 500, ok: false, statusText: "Internal Server Error" }]);
-    await expect(appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, "x", "", modified, publisherWebId, fetch))
-      .rejects.toThrow("Failed to update catalog.ttl");
+    await expect(appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "x",
+      description: "", modified, publisherWebId, fetch,
+    })).rejects.toThrow("Failed to update catalog.ttl");
   });
 
   it("escapes double quotes in title so the SPARQL is not malformed", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, 'Q1 "Draft"', "", modified, publisherWebId, fetch);
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: 'Q1 "Draft"',
+      description: "", modified, publisherWebId, fetch,
+    });
     expect(calls[0].body).toContain('dcterms:title "Q1 \\"Draft\\""');
   });
 
   it("escapes backslashes in description so the SPARQL is not malformed", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, "Photo", "Path: C:\\Users\\me", modified, publisherWebId, fetch);
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "Photo",
+      description: "Path: C:\\Users\\me", modified, publisherWebId, fetch,
+    });
     expect(calls[0].body).toContain('dcterms:description "Path: C:\\\\Users\\\\me"');
   });
 
   it("escapes newlines in description so the SPARQL is not malformed", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendToCatalog(catalogUri, instanceUri, binaryUri, classUri,
-      "image/jpeg", 100, "Photo", "line one\nline two", modified, publisherWebId, fetch);
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "Photo",
+      description: "line one\nline two", modified, publisherWebId, fetch,
+    });
     expect(calls[0].body).toContain('dcterms:description "line one\\nline two"');
   });
 });
@@ -199,6 +245,7 @@ describe("appendToCatalog", () => {
 describe("appendFolderToCatalog", () => {
   const catalogUri = "https://pod.example/catalog.ttl";
   const folderUri = "https://pod.example/my-app/documents/";
+  const parentUri = "https://pod.example/my-app/";
   const publisherWebId = "https://pod.example/profile/card#me";
   const modified = "2026-03-16T00:00:00.000Z";
 
@@ -208,7 +255,7 @@ describe("appendFolderToCatalog", () => {
       { status: 201, ok: true },
       { status: 200, ok: true },
     ]);
-    await appendFolderToCatalog(catalogUri, folderUri, "Documents", modified, publisherWebId, fetch);
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     expect(calls[0].method).toBe("PATCH");
     expect(calls[1].method).toBe("PUT");
     expect(calls[2].method).toBe("PATCH");
@@ -216,14 +263,14 @@ describe("appendFolderToCatalog", () => {
 
   it("skips PUT when catalog.ttl already exists", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendFolderToCatalog(catalogUri, folderUri, "Documents", modified, publisherWebId, fetch);
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe("PATCH");
   });
 
-  it("SPARQL INSERT links the folder's own URI as the dataset, with no distribution", async () => {
+  it("registers the folder itself as the catalog entry, with no separate file to point at", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendFolderToCatalog(catalogUri, folderUri, "Documents", modified, publisherWebId, fetch);
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     const sparql = calls[0].body ?? "";
     expect(sparql).toContain(`dcat:dataset <${folderUri}>`);
     expect(sparql).toContain(`dcterms:title "Documents"`);
@@ -233,9 +280,21 @@ describe("appendFolderToCatalog", () => {
     expect(sparql).not.toContain("dcat:distribution");
   });
 
+  it("marks the new entry as a real Folder, not just a generic dataset", async () => {
+    const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
+    expect(calls[0].body).toContain(`<${folderUri}> a dcat:Dataset, sd:Folder ;`);
+  });
+
+  it("always links the folder to the folder it lives in", async () => {
+    const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
+    expect(calls[0].body).toContain(`sd:hasParent <${parentUri}>`);
+  });
+
   it("escapes double quotes in the title", async () => {
     const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
-    await appendFolderToCatalog(catalogUri, folderUri, 'Q1 "Draft"', modified, publisherWebId, fetch);
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: 'Q1 "Draft"', modified, publisherWebId, fetch });
     expect(calls[0].body).toContain('dcterms:title "Q1 \\"Draft\\""');
   });
 
@@ -243,21 +302,111 @@ describe("appendFolderToCatalog", () => {
     const { fetch } = capturingMock([
       { status: 404, ok: false }, { status: 500, ok: false, statusText: "Internal Server Error" },
     ]);
-    await expect(appendFolderToCatalog(catalogUri, folderUri, "Documents", modified, publisherWebId, fetch))
+    await expect(appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch }))
       .rejects.toThrow("Failed to create catalog.ttl");
   });
 
   it("throws when PATCH update fails", async () => {
     const { fetch } = capturingMock([{ status: 500, ok: false, statusText: "Internal Server Error" }]);
-    await expect(appendFolderToCatalog(catalogUri, folderUri, "Documents", modified, publisherWebId, fetch))
+    await expect(appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch }))
       .rejects.toThrow("Failed to update catalog.ttl");
   });
 
   it("throws when folderUri contains whitespace", async () => {
     const { fetch } = capturingMock([]);
     await expect(
-      appendFolderToCatalog(catalogUri, "https://pod.example/my app/", "Documents", modified, publisherWebId, fetch)
+      appendFolderToCatalog({ catalogUri, folderUri: "https://pod.example/my app/", parentUri, title: "Documents", modified, publisherWebId, fetch })
     ).rejects.toThrow("Unsafe URI");
+  });
+
+  it("throws when parentUri contains whitespace", async () => {
+    const { fetch } = capturingMock([]);
+    await expect(
+      appendFolderToCatalog({ catalogUri, folderUri, parentUri: "https://pod.example/my app/", title: "Documents", modified, publisherWebId, fetch })
+    ).rejects.toThrow("Unsafe URI");
+  });
+});
+
+// ─── ensureCatalogRootEntry ─────────────────────────────────────────────────
+
+describe("ensureCatalogRootEntry", () => {
+  const catalogUri = "https://pod.example/catalog.ttl";
+  const storageRootUri = "https://pod.example/";
+  const publisherWebId = "https://pod.example/profile/card#me";
+
+  it("creates catalog.ttl via PUT when it does not exist, then PATCHes", async () => {
+    const { fetch, calls } = capturingMock([
+      { status: 404, ok: false },
+      { status: 201, ok: true },
+      { status: 200, ok: true },
+    ]);
+    await ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch });
+    expect(calls[1].method).toBe("PUT");
+    expect(calls[2].method).toBe("PATCH");
+  });
+
+  it("registers the storage root as a real Folder with no parent link", async () => {
+    const { fetch, calls } = capturingMock([{ status: 200, ok: true }]);
+    await ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch });
+    const sparql = calls[0].body ?? "";
+    expect(sparql).toContain(`dcat:dataset <${storageRootUri}>`);
+    expect(sparql).toContain(`<${storageRootUri}> a dcat:Dataset, sd:Folder ;`);
+    expect(sparql).toContain(`dcterms:conformsTo <${FOLDER_CLASS_URI}>`);
+    expect(sparql).not.toContain("sd:hasParent");
+  });
+
+  it("has no name or timestamp, so calling it again writes the exact same thing", async () => {
+    const first = capturingMock([{ status: 200, ok: true }]);
+    await ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch: first.fetch });
+    const second = capturingMock([{ status: 200, ok: true }]);
+    await ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch: second.fetch });
+
+    expect(first.calls[0].body).not.toContain("dcterms:title");
+    expect(first.calls[0].body).not.toContain("dcterms:modified");
+    expect(first.calls[0].body).toBe(second.calls[0].body);
+  });
+
+  it("throws when storageRootUri contains whitespace", async () => {
+    const { fetch } = capturingMock([]);
+    await expect(
+      ensureCatalogRootEntry({ catalogUri, storageRootUri: "https://pod example/", publisherWebId, fetch })
+    ).rejects.toThrow("Unsafe URI");
+  });
+});
+
+// ─── isFolderEntry ──────────────────────────────────────────────────────────
+
+describe("isFolderEntry", () => {
+  const base: Omit<CatalogEntry, "conformsTo"> = {
+    uri: "https://pod.example/my-app/documents/",
+    title: "Documents", description: "", modified: "", publisher: "",
+    mediaType: "", byteSize: 0, accessURL: "",
+  };
+
+  it("recognizes an entry using the current Folder type", () => {
+    expect(isFolderEntry({ ...base, conformsTo: FOLDER_CLASS_URI })).toBe(true);
+  });
+
+  it("also recognizes the older marker folders used before this vocabulary existed, so old pods still list folders correctly", () => {
+    expect(isFolderEntry({ ...base, conformsTo: LEGACY_FOLDER_CLASS_URI })).toBe(true);
+  });
+
+  it("does not mistake a file's own type for a folder", () => {
+    expect(isFolderEntry({ ...base, conformsTo: "http://schema.org/ImageObject" })).toBe(false);
+  });
+});
+
+// ─── buildEmptyCatalogTurtle ────────────────────────────────────────────────
+
+describe("buildEmptyCatalogTurtle", () => {
+  it("gives the empty catalog its own address, so it's understandable even outside its original location", () => {
+    const turtle = buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
+    expect(turtle).toContain("@base <https://pod.example/catalog.ttl> .");
+  });
+
+  it("marks the empty document as a catalog", () => {
+    const turtle = buildEmptyCatalogTurtle("https://pod.example/catalog.ttl");
+    expect(turtle).toContain("<> a dcat:Catalog .");
   });
 });
 
@@ -393,6 +542,7 @@ describe("parseCatalog", () => {
       mediaType: "image/jpeg",
       byteSize: 4500000,
       accessURL: binaryUri,
+      parentUri: "",
     });
   });
 
@@ -439,6 +589,7 @@ describe("parseCatalog", () => {
     expect(entries[0].conformsTo).toBe("");
     expect(entries[0].description).toBe("");
     expect(entries[0].accessURL).toBe("");
+    expect(entries[0].parentUri).toBe("");
   });
 
   it("parses catalog with baseUri parameter for resolving relative URIs", () => {
@@ -506,20 +657,23 @@ describe("parseCatalog", () => {
     expect(entry.conformsTo).toBe("http://schema.org/ImageObject");
   });
 
-  it("parses a folder entry with no distribution", () => {
+  it("reads a folder entry correctly, including which folder it lives in", () => {
     const catalogUri = "https://pod.example/my-app/catalog.ttl";
     const folderUri = "https://pod.example/my-app/documents/";
+    const parentUri = "https://pod.example/my-app/";
     const turtle = `
     @prefix dcat:    <http://www.w3.org/ns/dcat#> .
     @prefix dcterms: <http://purl.org/dc/terms/> .
     @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+    @prefix sd:      <${FOLDER_CLASS_URI.slice(0, -"Folder".length)}> .
 
     <${catalogUri}> dcat:dataset <${folderUri}> .
-    <${folderUri}> a dcat:Dataset ;
+    <${folderUri}> a dcat:Dataset, sd:Folder ;
       dcterms:conformsTo <${FOLDER_CLASS_URI}> ;
       dcterms:title "Documents" ;
       dcterms:modified "2026-03-16T11:52:13.066Z"^^xsd:dateTime ;
-      dcterms:publisher <https://pod.example/profile/card#me> .
+      dcterms:publisher <https://pod.example/profile/card#me> ;
+      sd:hasParent <${parentUri}> .
     `.trim();
 
     const [entry] = parseCatalog(turtle, catalogUri);
@@ -530,7 +684,25 @@ describe("parseCatalog", () => {
       mediaType: "",
       byteSize: 0,
       accessURL: "",
+      parentUri,
     });
+  });
+
+  it("reads the storage root as having no parent folder", () => {
+    const catalogUri = "https://pod.example/catalog.ttl";
+    const storageRootUri = "https://pod.example/";
+    const turtle = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dcterms: <http://purl.org/dc/terms/> .
+
+    <${catalogUri}> dcat:dataset <${storageRootUri}> .
+    <${storageRootUri}> a dcat:Dataset, <${FOLDER_CLASS_URI.slice(0, -"Folder".length)}Folder> ;
+      dcterms:conformsTo <${FOLDER_CLASS_URI}> ;
+      dcterms:publisher <https://pod.example/profile/card#me> .
+    `.trim();
+
+    const [entry] = parseCatalog(turtle, catalogUri);
+    expect(entry.parentUri).toBe("");
   });
 });
 
@@ -605,6 +777,7 @@ describe("assertSafeUri (via appendToCatalog)", () => {
     instanceUri: "https://pod.example/my-app/photo/index.ttl",
     binaryUri:   "https://pod.example/my-app/photo/photo.jpg",
     classUri:    "http://schema.org/ImageObject",
+    parentUri:   "https://pod.example/my-app/",
     publisher:   "https://pod.example/profile/card#me",
     modified:    "2026-03-16T00:00:00.000Z",
   };
@@ -612,20 +785,22 @@ describe("assertSafeUri (via appendToCatalog)", () => {
   it("throws when catalogUri contains a '>' character", async () => {
     const { fetch } = capturingMock([]);
     await expect(
-      appendToCatalog(
-        "https://evil.example/><script>", base.instanceUri, base.binaryUri,
-        base.classUri, "image/jpeg", 0, "x", "", base.modified, base.publisher, fetch
-      )
+      appendToCatalog({
+        catalogUri: "https://evil.example/><script>", instanceUri: base.instanceUri, binaryUri: base.binaryUri,
+        classUri: base.classUri, parentUri: base.parentUri, mediaType: "image/jpeg", byteSize: 0, title: "x",
+        description: "", modified: base.modified, publisherWebId: base.publisher, fetch,
+      })
     ).rejects.toThrow("Unsafe URI");
   });
 
   it("throws when instanceUri contains whitespace", async () => {
     const { fetch } = capturingMock([]);
     await expect(
-      appendToCatalog(
-        "https://pod.example/catalog.ttl", "https://pod.example/my app/index.ttl", base.binaryUri,
-        base.classUri, "image/jpeg", 0, "x", "", base.modified, base.publisher, fetch
-      )
+      appendToCatalog({
+        catalogUri: "https://pod.example/catalog.ttl", instanceUri: "https://pod.example/my app/index.ttl", binaryUri: base.binaryUri,
+        classUri: base.classUri, parentUri: base.parentUri, mediaType: "image/jpeg", byteSize: 0, title: "x",
+        description: "", modified: base.modified, publisherWebId: base.publisher, fetch,
+      })
     ).rejects.toThrow("Unsafe URI");
   });
 });
