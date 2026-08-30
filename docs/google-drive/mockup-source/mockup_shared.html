@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-theme="gdrive">
+<head><meta charset="utf-8"><link rel="stylesheet" href="soliddrive.css"></head>
+<body class="shot">
+<div class="app" data-active="shared" data-search="top">
+  <main class="main">
+    <div class="title-row">
+      <div class="crumb"><span class="here">Shared</span></div>
+      <div class="spacer"></div>
+      <div class="seg"><button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button><button><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg></button></div>
+      <button class="icon-btn" title="Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+    </div>
+    <div class="tabs">
+      <div class="tab active">With you</div>
+      <div class="tab">By you</div>
+      <div class="chip-sep"></div>
+      <div class="chip">Type<span class="caret"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span></div>
+      <div class="chip">People<span class="caret"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span></div>
+    </div>
+    <div class="table">
+      <div class="thead">
+        <div>Name</div><div>Shared by</div>
+        <div class="sortable">Date shared <span class="arrow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-6h10z"/></svg></span></div>
+        <div>Your access</div>
+        <div class="sortbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h12M3 12h9M3 18h6"/></svg></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="render.js"></script>
+<script src="shell.js"></script>
+<script>
+  SD.renderRows('.table', [
+    { name:'study-results.csv', cols:[SD.ownerCell('theo'), '<div class="cell">28 Oct 2026</div>', SD.shareCell('write','Write')] },
+    { name:'shared-corpus', folder:true, cols:[SD.ownerCell('nadia'), '<div class="cell">28 Oct 2026</div>', SD.shareCell('read','Read')] },
+    { name:'protocol.md', cols:[SD.ownerCell('theo'), '<div class="cell">24 Oct 2026</div>', SD.shareCell('read','Read')] },
+    { name:'poster-A0.png', cols:[SD.ownerCell('lena'), '<div class="cell">09 Jul 2026</div>', SD.shareCell('read','Read')] },
+    { name:'interview-audio.mp3', cols:[SD.ownerCell('ravi'), '<div class="cell">02 Jul 2026</div>', SD.shareCell('read','Read')] },
+    { name:'annotations.jsonld', cols:[SD.ownerCell('iris'), '<div class="cell">20 Jun 2026</div>', SD.shareCell('write','Write')] }
+  ]);
+</script>
+</body>
+</html>

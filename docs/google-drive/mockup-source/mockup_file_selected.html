@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="gdrive">
+<head><meta charset="utf-8"><link rel="stylesheet" href="soliddrive.css"></head>
+<body class="shot">
+<div class="app" data-active="myfiles" data-search="top">
+  <main class="main">
+    <div class="title-row">
+      <div class="crumb"><span class="sep" style="color:#444746">My Files</span>
+        <span class="caret" style="color:#5f6368"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6z"/></svg></span>
+        <span class="here">datasets</span></div>
+      <div class="spacer"></div>
+      <div class="seg"><button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button><button><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg></button></div>
+      <button class="icon-btn" title="Details" style="background:var(--tonal);color:#041e49"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+    </div>
+
+    <div class="seltool">
+      <button class="icon-btn x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <span class="count">1 selected</span>
+      <button class="icon-btn" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3"/><path d="M2 20a6 6 0 0 1 12 0"/><path d="M17 8v6M14 11h6"/></svg></button>
+      <button class="icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg></button>
+      <button class="icon-btn" title="Move to"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5L12 11l2.5 2.5"/></svg></button>
+      <button class="icon-btn" title="Rename"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
+      <button class="icon-btn" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></button>
+      <button class="icon-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 6V4h6v2M8 6l1 14h6l1-14"/></svg></button>
+      <div style="margin-left:auto"></div>
+      <button class="icon-btn" title="More actions"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+    </div>
+
+    <div class="table">
+      <div class="thead">
+        <div class="sortable">Name <span class="arrow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l5 6H7z"/></svg></span></div>
+        <div>Owner</div><div>Modified</div><div>Sharing</div>
+        <div class="sortbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h12M3 12h9M3 18h6"/></svg></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="detail">
+    <div class="detail-head">
+      <span class="fic" id="dfic"></span>
+      <span class="nm">survey-dataset.ttl</span>
+      <button class="icon-btn x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="d-tabs"><span class="d-tab on">Details</span><span class="d-tab">Activity</span></div>
+    <div class="thumb" id="dthumb"></div>
+
+    <div class="d-sub">Description</div>
+    <div class="desc-box">Add a description…</div>
+
+    <div class="d-sub">Has access</div>
+    <div class="access">
+      <span class="aav c1">EC</span><span class="aav c2">JM</span><span class="aav c3">SJ</span>
+      <span class="pub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:5px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>Public</span>
+    </div>
+    <button class="manage">Manage access</button>
+
+    <div class="d-sub">Resource details</div>
+    <div class="d-row"><div class="k">Type</div><div class="v">Turtle dataset · text/turtle</div></div>
+    <div class="d-row"><div class="k">Size</div><div class="v">57 KB</div></div>
+    <div class="d-row"><div class="k">Created</div><div class="v">01 Jun 2026 by Emily Carter</div></div>
+    <div class="d-row"><div class="k">Modified</div><div class="v">01 Jun 2026 by Emily Carter</div></div>
+    <div class="d-row"><div class="k">Resource URI</div><div class="v uri">https://emily.solidcommunity.net/datasets/survey-dataset.ttl</div></div>
+  </aside>
+</div>
+<script src="render.js"></script>
+<script src="shell.js"></script>
+<script>
+  document.getElementById('dfic').innerHTML = SD.fileIcon('survey-dataset.ttl');
+  document.getElementById('dthumb').innerHTML = SD.fileIcon('survey-dataset.ttl').replace('viewBox="0 0 24 24"','viewBox="0 0 24 24" width="56" height="56"');
+  SD.renderRows('.table', [
+    { name:'raw', folder:true, cols:[SD.ownerCell('me'), '<div class="cell">18 Aug 2026</div>', SD.shareCell('private','Private')] },
+    { name:'survey-dataset.ttl', shared:true, sel:true, cols:[SD.ownerCell('me'), '<div class="cell">01 Jun 2026</div>', SD.shareCell('public','Public')] },
+    { name:'results-2026.csv', cols:[SD.ownerCell('theo'), '<div class="cell">12 Nov 2025</div>', SD.shareCell('shared','Shared')] },
+    { name:'codebook.pdf', cols:[SD.ownerCell('me'), '<div class="cell">05 Nov 2025</div>', SD.shareCell('private','Private')] }
+  ]);
+</script>
+</body>
+</html>
