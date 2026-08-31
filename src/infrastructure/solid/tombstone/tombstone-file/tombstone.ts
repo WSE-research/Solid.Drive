@@ -24,15 +24,21 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * @public
  */
 export interface Tombstone {
-  /** Container URI the file was deleted from. */
+  /** Whether this trash item is a single file or a whole folder. */
+  kind: "file" | "folder";
+  /** Container URI the file or folder was deleted from. */
   originalContainerUri: string;
-  /** Folder the file lived in, as recorded by its own catalog entry. Empty for a file at the storage root. */
+  /** Folder the item lived in, as recorded by its own catalog entry. Empty for an item at the storage root. */
   originalParentUri: string;
-  /** Catalog the file's DCAT row lived in. */
+  /** Catalog the item's DCAT row lived in. */
   originalCatalogUri: string;
-  /** The file's `dcat:dataset` URI in the original catalog. */
+  /** The item's `dcat:dataset` URI in the original catalog. */
   originalInstanceUri: string;
-  /** Decoded filename of the payload, for restoring it under its original name. */
+  /**
+   * Decoded filename of the payload, for restoring it under its original
+   * name. Empty for a folder, whose payload is a container tree rather
+   * than a single named file.
+   */
   originalBinaryName: string;
   /**
    * Original resource class, stored through Activity Streams 2.0
@@ -56,13 +62,16 @@ export function buildTombstoneTurtle(tombstoneUri: string, tombstone: Tombstone)
   const subject = namedNode(tombstoneUri);
   return serializeTurtle([
     DataFactory.quad(subject, namedNode(RDF_TYPE_URI), namedNode(TRASH_TERMS.Tombstone)),
+    DataFactory.quad(subject, namedNode(TRASH_TERMS.kind), literal(tombstone.kind)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalContainer), namedNode(tombstone.originalContainerUri)),
     ...(tombstone.originalParentUri
       ? [DataFactory.quad(subject, namedNode(TRASH_TERMS.originalParent), namedNode(tombstone.originalParentUri))]
       : []),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalCatalog), namedNode(tombstone.originalCatalogUri)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalInstance), namedNode(tombstone.originalInstanceUri)),
-    DataFactory.quad(subject, namedNode(TRASH_TERMS.originalBinaryName), literal(tombstone.originalBinaryName)),
+    ...(tombstone.originalBinaryName
+      ? [DataFactory.quad(subject, namedNode(TRASH_TERMS.originalBinaryName), literal(tombstone.originalBinaryName))]
+      : []),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.formerType), namedNode(tombstone.originalClassUri)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.hasAclSnapshot), literal(String(tombstone.hasAclSnapshot), XSD_BOOLEAN)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.deletedAt), literal(tombstone.deletedAt, XSD_DATE_TIME)),
@@ -94,11 +103,16 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
   const store = new N3Store(quads);
   const value = (predicate: string) => store.getObjects(baseUri, predicate, null)[0]?.value;
 
+  // Absent on a tombstone written before folders could be soft-deleted;
+  // every such tombstone is, by definition, for a file.
+  const kindRaw = value(TRASH_TERMS.kind);
+  const kind = kindRaw === "folder" ? "folder" : "file";
   const originalContainerUri = value(TRASH_TERMS.originalContainer);
   const originalParentUri = value(TRASH_TERMS.originalParent) ?? "";
   const originalCatalogUri = value(TRASH_TERMS.originalCatalog);
   const originalInstanceUri = value(TRASH_TERMS.originalInstance);
-  const originalBinaryName = value(TRASH_TERMS.originalBinaryName);
+  // Only a file's payload has an original filename to restore under.
+  const originalBinaryName = value(TRASH_TERMS.originalBinaryName) ?? "";
   const originalClassUri = value(TRASH_TERMS.formerType);
   const hasAclSnapshotRaw = value(TRASH_TERMS.hasAclSnapshot);
   const deletedAt = value(TRASH_TERMS.deletedAt);
@@ -108,7 +122,7 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
     !originalContainerUri ||
     !originalCatalogUri ||
     !originalInstanceUri ||
-    !originalBinaryName ||
+    (kind === "file" && !originalBinaryName) ||
     !originalClassUri ||
     hasAclSnapshotRaw === undefined ||
     !deletedAt ||
@@ -118,6 +132,7 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
   }
 
   return {
+    kind,
     originalContainerUri,
     originalParentUri,
     originalCatalogUri,

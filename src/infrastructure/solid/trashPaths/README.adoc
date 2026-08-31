@@ -1,16 +1,17 @@
 = trashPaths
 
-URI scheme for the trash container and its per-item resources: `trash/catalog.ttl` at the pod storage root, and `trash/<id>/` per soft-deleted item holding a fixed-name `payload`, `index.ttl`, `acl-snapshot.ttl`, and `tombstone.ttl`. The trash lives at the storage root rather than under the app container, so it's a pod-wide recycle bin rather than scoped to this one app.
+URI scheme for the trash: `trash/catalog.ttl` at the pod storage root, and `trash/<id>/` per soft-deleted item. A trashed file holds `payload`, `index.ttl`, `acl-snapshot.ttl`, and `tombstone.ttl`; a trashed folder holds a `payload/` container mirroring its original subtree, plus `catalog-snapshot.ttl` in place of `index.ttl`. It lives at the storage root, not the app container, so it's a pod-wide recycle bin, not scoped to this one app.
 
-The payload keeps its original filename only at its active location. Inside the trash it's always named `payload`, regardless of the source file's name or extension. This sidesteps filename edge cases (spaces, accents, percent-encoding) for a copy that's purely internal bookkeeping; the original name lives on the tombstone (`originalBinaryName`) and is restored verbatim on undelete. Trash item ids are plain unique strings (e.g. `crypto.randomUUID()`) supplied by the caller, so this module has no side effects and stays fully deterministic in tests.
+The payload is always named `payload` (or, for a folder, held under `payload/`), regardless of the original filename. That sidesteps filename edge cases (spaces, accents, percent-encoding) for what's purely internal bookkeeping; the real name lives on the tombstone (`originalBinaryName`) and is restored on undelete. Trash item ids are plain unique strings supplied by the caller, so this module has no side effects and stays deterministic in tests.
 
-The container name is deliberately `trash/`, not `.trash/`: a leading dot reads as "hidden" to most generic Solid pod browsers and gets filtered out of their listing by default, making the trash hard to inspect outside this app. It's a real, plainly-named, fully addressable container. Hiding it from end users in *this* app's regular My Files view is done at the application level instead (`isVisibleContainer` in link:../../../features/file-explorer/services/fileFilter/[fileFilter]), not by relying on a naming convention. Search stays clean without any extra filtering because trashed items live in a separate trash catalog (`getTrashCatalogUri`) that `useFileSearch` never reads from.
+The container is `trash/`, not `.trash/`: a leading dot reads as hidden to most generic Solid pod browsers and gets filtered from their listing by default. It's hidden from this app's own My Files view at the application level instead (`isVisibleContainer` in link:../../../features/file-explorer/services/fileFilter/[fileFilter]), not by naming convention. Search stays clean too, since trashed items live in their own catalog that `useFileSearch` never reads from.
 
 == See also
 
 * link:../sharedCatalog/[sharedCatalog] does the equivalent job for `.shared-*.ttl` files.
 * link:../../../features/file-explorer/services/fileFilter/[fileFilter] hides `trash/` from the regular My Files view; the Recycle bin nav item is the in-app way in.
-* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] and link:../../../features/file-explorer/services/restoreTrashedFile/[restoreTrashedFile] are the primary consumers.
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] and link:../../../features/file-explorer/services/restoreTrashedFile/[restoreTrashedFile] are the primary consumers for files.
+* link:../../../features/file-explorer/services/softDeleteFolder/[softDeleteFolder] and link:../../../features/file-explorer/services/restoreTrashedFolder/[restoreTrashedFolder] are the primary consumers for folders.
 
 == Navigation
 

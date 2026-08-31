@@ -4,6 +4,8 @@ import {
   getTrashCatalogUri,
   getTrashItemContainerUri,
   getTrashPayloadUri,
+  getTrashFolderPayloadContainerUri,
+  getTrashCatalogSnapshotUri,
   getTombstoneUri,
   getAclSnapshotUri,
 } from '../trashPaths-file/trashPaths';
@@ -27,6 +29,18 @@ describe('trashPaths', () => {
   it('builds the fixed-name payload URI, ignoring the original filename', () => {
     expect(getTrashPayloadUri(trashItemContainerUri)).toBe(
       'https://pod.example/trash/abc123/payload',
+    );
+  });
+
+  it('builds the folder payload container URI', () => {
+    expect(getTrashFolderPayloadContainerUri(trashItemContainerUri)).toBe(
+      'https://pod.example/trash/abc123/payload/',
+    );
+  });
+
+  it('builds the catalog snapshot URI', () => {
+    expect(getTrashCatalogSnapshotUri(trashItemContainerUri)).toBe(
+      'https://pod.example/trash/abc123/catalog-snapshot.ttl',
     );
   });
 

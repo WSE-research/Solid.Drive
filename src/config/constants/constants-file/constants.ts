@@ -330,6 +330,23 @@ export const TRASH_CONTAINER_NAME = "trash/";
 export const TRASH_PAYLOAD_FILE = "payload";
 
 /**
+ * Container name holding a trashed folder's copied contents, mirroring
+ * its original subtree. Distinct from {@link TRASH_PAYLOAD_FILE}, which
+ * names a single trashed file's binary.
+ *
+ * @public
+ */
+export const TRASH_FOLDER_PAYLOAD_CONTAINER_NAME = "payload/";
+
+/**
+ * Filename for a trashed folder's catalog-entry snapshot, replayed into
+ * the original catalog on restore.
+ *
+ * @public
+ */
+export const TRASH_CATALOG_SNAPSHOT_FILE = "catalog-snapshot.ttl";
+
+/**
  * Filename for the tombstone containing the resource's deletion metadata.
  *
  * @public
@@ -370,6 +387,8 @@ export const TRASH_TERMS = {
   originalBinaryName: `${RDF_NAMESPACES.TRASH}originalBinaryName`,
   hasAclSnapshot: `${RDF_NAMESPACES.TRASH}hasAclSnapshot`,
   expiresAt: `${RDF_NAMESPACES.TRASH}expiresAt`,
+  /** Distinguishes a single trashed file from a whole trashed folder. */
+  kind: `${RDF_NAMESPACES.TRASH}kind`,
 } as const;
 
 // ============================================================================

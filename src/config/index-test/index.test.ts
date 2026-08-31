@@ -53,6 +53,8 @@ describe("config/index exports", () => {
     "ROUTER_BASENAME",
     "TRASH_CONTAINER_NAME",
     "TRASH_PAYLOAD_FILE",
+    "TRASH_FOLDER_PAYLOAD_CONTAINER_NAME",
+    "TRASH_CATALOG_SNAPSHOT_FILE",
     "TRASH_TOMBSTONE_FILE",
     "TRASH_ACL_SNAPSHOT_FILE",
     "TRASH_RETENTION_DAYS",
@@ -64,7 +66,7 @@ describe("config/index exports", () => {
   });
 
   it("exports exactly the expected number of runtime values", () => {
-    // 49 constants + ENV
-    expect(Object.keys(Config)).toHaveLength(50);
+    // 51 constants + ENV
+    expect(Object.keys(Config)).toHaveLength(52);
   });
 });

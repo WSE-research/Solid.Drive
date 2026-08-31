@@ -1,1 +1,1 @@
-export { copyResource, ensureContainer } from './resourceCopy-file/resourceCopy';
+export { copyResource, ensureContainer, copyContainerTree } from './resourceCopy-file/resourceCopy';

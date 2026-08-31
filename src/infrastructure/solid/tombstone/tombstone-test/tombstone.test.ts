@@ -12,9 +12,11 @@ import type { FetchFn } from '@/types/solid';
 import { TRASH_TERMS } from '@/config';
 
 // originalParentUri is intentionally absent: it's allowed to be empty
-// (a file at the storage root has no parent), so it's not one of the
+// (an item at the storage root has no parent), so it's not one of the
 // required fields exercised by the "returns null when missing" cases below.
-const PREDICATE_BY_FIELD: Record<Exclude<keyof Tombstone, 'originalParentUri'>, string> = {
+// kind is absent too: a tombstone without one predates folder soft-delete
+// and defaults to "file" rather than failing to parse.
+const PREDICATE_BY_FIELD: Record<Exclude<keyof Tombstone, 'originalParentUri' | 'kind'>, string> = {
   originalContainerUri: TRASH_TERMS.originalContainer,
   originalCatalogUri: TRASH_TERMS.originalCatalog,
   originalInstanceUri: TRASH_TERMS.originalInstance,
@@ -28,6 +30,7 @@ const PREDICATE_BY_FIELD: Record<Exclude<keyof Tombstone, 'originalParentUri'>, 
 const tombstoneUri = 'https://pod.example/trash/photo-abc123/tombstone.ttl';
 
 const sampleTombstone: Tombstone = {
+  kind: 'file',
   originalContainerUri: 'https://pod.example/my-solid-app/photo-2024/',
   originalParentUri: 'https://pod.example/my-solid-app/',
   originalCatalogUri: 'https://pod.example/catalog.ttl',
@@ -37,6 +40,15 @@ const sampleTombstone: Tombstone = {
   hasAclSnapshot: true,
   deletedAt: '2026-01-01T00:00:00.000Z',
   expiresAt: '2026-01-31T00:00:00.000Z',
+};
+
+const sampleFolderTombstone: Tombstone = {
+  ...sampleTombstone,
+  kind: 'folder',
+  originalContainerUri: 'https://pod.example/my-solid-app/photos/',
+  originalInstanceUri: 'https://pod.example/my-solid-app/photos/',
+  originalBinaryName: '',
+  originalClassUri: 'https://w3id.org/solid-drive-catalog#Folder',
 };
 
 describe('buildTombstoneTurtle / parseTombstone', () => {
@@ -77,6 +89,25 @@ describe('buildTombstoneTurtle / parseTombstone', () => {
       expect(parseTombstone(withoutField, tombstoneUri)).toBeNull();
     },
   );
+
+  it('round-trips a folder tombstone, with an empty originalBinaryName', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleFolderTombstone);
+    expect(parseTombstone(turtle, tombstoneUri)).toEqual(sampleFolderTombstone);
+  });
+
+  it('defaults kind to "file" when the predicate predates folder soft-delete', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone)
+      .split('\n')
+      .filter((line) => !line.includes(TRASH_TERMS.kind))
+      .join('\n');
+    expect(parseTombstone(turtle, tombstoneUri)).toEqual(sampleTombstone);
+  });
+
+  it('does not require originalBinaryName for a folder tombstone', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleFolderTombstone);
+    expect(turtle).not.toContain(TRASH_TERMS.originalBinaryName);
+    expect(parseTombstone(turtle, tombstoneUri)).not.toBeNull();
+  });
 });
 
 describe('computeExpiry', () => {
