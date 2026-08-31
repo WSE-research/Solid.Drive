@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useResource, useSolidAuth } from "@ldo/solid-react";
+import { useSolidAuth } from "@ldo/solid-react";
 import { isFolderEntry, parseCatalogRecovering } from "@/infrastructure/solid/catalog";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { useCatalogVersion } from "@/shared/hooks/useCatalogVersion";
@@ -19,9 +19,9 @@ interface UseCatalogReturn {
   // for the files/folders split, since the trash catalog is flat.
   folderEntries: CatalogEntry[];
   containerUris: Set<string>;
-  // Maps container URI to the folder's catalog title.
+  // Container URI -> folder title.
   folderTitles: Map<string, string>;
-  // Every folder in the catalog, keyed by container URI, for walking hasParent chains.
+  // Every folder in the catalog, keyed by container URI.
   folderIndex: FolderIndex;
   loading: boolean;
   error: Error | null;
@@ -46,7 +46,7 @@ const EMPTY_RESULT: Omit<CatalogCacheEntry, "signal"> = {
   parseError: null,
 };
 
-// Splits parsed catalog entries into files and folders.
+// Splits parsed entries into files and folders.
 function partitionEntries(parsed: CatalogEntry[]): { fileEntries: CatalogEntry[]; folderEntries: CatalogEntry[] } {
   const fileEntries: CatalogEntry[] = [];
   const folderEntries: CatalogEntry[] = [];
@@ -56,7 +56,7 @@ function partitionEntries(parsed: CatalogEntry[]): { fileEntries: CatalogEntry[]
   return { fileEntries, folderEntries };
 }
 
-// Indexes folder entries by container URI so a hasParent walk needs no extra fetches.
+// Indexes folders by container URI, so walking a hasParent chain needs no extra fetches.
 function buildFolderIndex(folderEntries: CatalogEntry[]): FolderIndex {
   const index = new Map<string, FolderNode>();
   for (const entry of folderEntries) {
@@ -66,17 +66,14 @@ function buildFolderIndex(folderEntries: CatalogEntry[]): FolderIndex {
   return index;
 }
 
-// Derives the container-URI-to-title map straight from the folder index, so
-// there is one source of truth for folder titles.
+// Derives the title map from the folder index, so there's one source of truth.
 function folderTitlesFrom(folderIndex: FolderIndex): Map<string, string> {
   return new Map([...folderIndex].map(([uri, node]) => [uri, node.title]));
 }
 
-// Module-level cache. Both `OneDriveLayout` and `MyFilesView` call
-// `useCatalog` for the same `catalogUri` on every render of the My Files
-// view, which used to mean two parallel pod fetches + two TTL parses per
-// load. The cache keys on (uri, updateSignal) so a pod-pushed update
-// still invalidates and re-fetches.
+// Shared across hook instances, so two views reading the same catalog fetch
+// and parse it once instead of twice. Keyed on (uri, catalogVersion), so a
+// confirmed write still invalidates it.
 const catalogCache = new Map<string, CatalogCacheEntry>();
 const catalogInflight = new Map<string, Promise<CatalogCacheEntry>>();
 
@@ -100,23 +97,19 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
   const [folderIndex, setFolderIndex] = useState<FolderIndex>(new Map());
   const [error, setError] = useState<Error | null>(null);
   const [settledAttemptKey, setSettledAttemptKey] = useState<string | undefined>(undefined);
+  // Which catalogUri the current entries/folderIndex belong to, so a
+  // same-catalog refetch can keep serving them instead of going empty.
+  const [entriesCatalogUri, setEntriesCatalogUri] = useState<string | undefined>(undefined);
 
-  // Best-effort subscription so pod notifications can trigger a re-parse.
-  // Not all pods support notifications, and raw SPARQL PATCH changes
-  // bypass LDO. The version pub/sub below is the reliable signal.
-  const catalogResource = useResource(catalogUri, {
-    subscribe: true,
-    suppressInitialRead: true,
-  });
-  const updateSignal = catalogResource?.status;
-
-  // In-app signal for catalog mutations. Writers call notifyCatalogChanged
-  // after a successful PATCH and the version bump invalidates the cache.
+  // Only catalogVersion triggers a refetch: writers call notifyCatalogChanged
+  // after a confirmed write, a plain re-render never does. We used to also
+  // key off the catalog resource's own live subscription, but @ldo/react
+  // rewraps that resource on every pod notification, so it looked "changed"
+  // almost constantly and caused near-continuous refetching.
   const catalogVersion = useCatalogVersion(catalogUri);
 
-  // Read the cache; the effect below skips fetching when it's already fresh.
-  const signalKey = catalogUri ? `${String(updateSignal)}@${catalogVersion}` : undefined;
-  // Includes the catalog URI so two catalogs with the same signal aren't mixed up.
+  const signalKey = catalogUri ? `${catalogVersion}` : undefined;
+  // Includes the catalog URI so two catalogs with the same version aren't mixed up.
   const attemptKey = catalogUri ? `${catalogUri}#${signalKey}` : undefined;
   const cached = catalogUri ? catalogCache.get(catalogUri) : undefined;
   const hasFreshCache = !!cached && cached.signal === signalKey;
@@ -165,6 +158,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
         setEntries(result.entries);
         setFolderEntries(result.folderEntries);
         setFolderIndex(result.folderIndex);
+        setEntriesCatalogUri(catalogUri);
         setError(result.parseError);
       },
       (err: unknown) => {
@@ -173,31 +167,27 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
         setEntries(EMPTY_RESULT.entries);
         setFolderEntries(EMPTY_RESULT.folderEntries);
         setFolderIndex(EMPTY_RESULT.folderIndex);
+        setEntriesCatalogUri(catalogUri);
         setError(err instanceof Error ? err : new Error(String(err)));
       },
     );
 
     return () => { cancelled = true; };
-  }, [catalogUri, solidFetch, updateSignal, catalogVersion, hasFreshCache, attemptKey, signalKey]);
+  }, [catalogUri, solidFetch, catalogVersion, hasFreshCache, attemptKey, signalKey]);
 
-  // Pick one source for the derived views below: cache or settled state.
-  // Prefer cached data, even if stale, so background re-fetches do not
-  // temporarily clear folder titles that are still correct.
-  const effectiveFolderIndex = cached ? cached.folderIndex : folderIndex;
+  // Computed once here so the branches below don't repeat the same check.
+  const effectiveFolderIndex = hasFreshCache && cached ? cached.folderIndex : folderIndex;
   const folderTitles = useMemo(() => folderTitlesFrom(effectiveFolderIndex), [effectiveFolderIndex]);
   const containerUris = useMemo(
-    () => (cached ? cached.containerUris : new Set(entries.map((entry) => toContainerUri(entry.uri)))),
-    [cached, entries]
+    () => (hasFreshCache && cached ? cached.containerUris : new Set(entries.map((entry) => toContainerUri(entry.uri)))),
+    [hasFreshCache, cached, entries]
   );
 
-  // No catalog to read.
   if (!catalogUri) {
     return { ...EMPTY_RESULT, folderTitles: new Map(), loading: false, error: null };
   }
 
-  // Cached, whether fresh or awaiting a background re-fetch: serve it
-  // directly instead of waiting for the effect.
-  if (cached) {
+  if (hasFreshCache && cached) {
     return {
       entries: cached.entries,
       folderEntries: cached.folderEntries,
@@ -209,8 +199,13 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     };
   }
 
-  // No cache yet for this catalog: nothing to show until the first fetch settles.
+  // Still fetching. If catalogUri itself changed we have no data for it yet,
+  // so serve empty. Otherwise it's a refetch of the same catalog, so keep
+  // serving its last-known entries instead of flashing empty.
   if (!isSettled) {
+    if (entriesCatalogUri === catalogUri) {
+      return { entries, folderEntries, containerUris, folderTitles, folderIndex, loading, error };
+    }
     return { ...EMPTY_RESULT, folderTitles: new Map(), loading, error: null };
   }
 

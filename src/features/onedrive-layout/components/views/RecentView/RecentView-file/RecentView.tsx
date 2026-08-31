@@ -1,15 +1,15 @@
 /**
  * Home / Recent view for the OneDrive inspired layout.
  *
- * Reads the user's catalog, sorts entries by `modified` desc, and
- * surfaces them in a flat Name / Opened / Owner table that mirrors the
- * OneDrive Home recent section. The toolbar above carries the type
- * chips derived from the catalog's observed schema.org classes plus a
- * person/name filter input.
+ * Sorts the user's catalog by `modified` desc and shows the 10 most
+ * recent in a flat Name / Opened / Owner table. The toolbar carries
+ * type chips and a person/name filter. Clicking a row opens it in the
+ * shared {@link FilePreviewDialog}.
  *
  * @packageDocumentation
  */
 
+import { useCallback, useState } from 'react';
 import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSolidAuth, useSubject } from '@ldo/solid-react';
@@ -18,12 +18,17 @@ import { resolveCatalogUri } from '@/infrastructure/solid/catalog';
 import { useDriveInitialization } from '@/features/file-explorer/hooks/useDriveInitialization';
 import { useCatalog } from '@/features/file-explorer/hooks/useCatalog';
 import { getProfileDisplayName } from '@/shared/utils/getProfileDisplayName';
+import { useNotifications } from '@/shared/contexts/NotificationContext';
+import { downloadResource } from '@/features/file-explorer/services/downloadResource';
+import { FilePreviewDialog } from '@/features/onedrive-layout/components/FilePreviewDialog';
 import {
   TypeFilterChips,
   TypeFilterChipsDropdown,
 } from '@/features/onedrive-layout/components/filters/TypeFilterChips';
 import { PersonNameFilter } from '@/features/onedrive-layout/components/filters/PersonNameFilter';
 import { useRecentFilters } from '@/features/onedrive-layout/hooks/useRecentFilters';
+import { safeDecodeUriTail } from '@/features/onedrive-layout/formatting';
+import type { CatalogEntry } from '@/types';
 import { RecentFilesTable } from './RecentFilesTable';
 
 /**
@@ -33,14 +38,31 @@ import { RecentFilesTable } from './RecentFilesTable';
  */
 export const RecentView: FunctionComponent = () => {
   const [translate] = useTranslation();
-  const { session } = useSolidAuth();
+  const { session, fetch: solidFetch } = useSolidAuth();
   const { storageRootUri } = useDriveInitialization();
   const profile = useSubject(SolidProfileShapeType, session.webId);
   const catalogUri = resolveCatalogUri(profile, storageRootUri);
-  const { entries: catalogEntries } = useCatalog(catalogUri);
+  const { entries: catalogEntries, loading } = useCatalog(catalogUri);
+  const { showError } = useNotifications();
+  const [previewEntry, setPreviewEntry] = useState<CatalogEntry | null>(null);
 
   const ownerWebId = session.webId ?? '';
   const ownerName = getProfileDisplayName(profile, ownerWebId);
+
+  const handlePreviewOpenChange = useCallback((open: boolean) => {
+    if (!open) setPreviewEntry(null);
+  }, []);
+
+  const handleDownload = useCallback(async () => {
+    if (!previewEntry) return;
+    const binaryUri = previewEntry.accessURL || previewEntry.uri;
+    const result = await downloadResource(binaryUri, previewEntry.title, solidFetch);
+    if (!result.ok) {
+      showError(
+        `${translate('oneDriveLayout.toast.downloadFail', 'Download failed')}: ${result.reason}`,
+      );
+    }
+  }, [previewEntry, solidFetch, showError, translate]);
 
   const {
     chips,
@@ -51,6 +73,19 @@ export const RecentView: FunctionComponent = () => {
     toggleChip,
     resetChips,
   } = useRecentFilters({ catalogEntries, ownerName });
+
+  // Only show the spinner on the first, empty load. A background
+  // revalidation flips `loading` again but keeps entries around (see useCatalog).
+  if (loading && catalogEntries.length === 0) {
+    return (
+      <onedrive-view data-view-id="recent">
+        <div className="spinner" />
+        <span>
+          {translate('oneDriveLayout.recentView.loading', 'Loading recent files…')}
+        </span>
+      </onedrive-view>
+    );
+  }
 
   return (
     <onedrive-view data-view-id="recent">
@@ -81,7 +116,23 @@ export const RecentView: FunctionComponent = () => {
         </recent-toolbar-search>
       </recent-toolbar>
 
-      <RecentFilesTable entries={visibleEntries} ownerName={ownerName} />
+      <RecentFilesTable
+        entries={visibleEntries}
+        ownerName={ownerName}
+        onOpen={setPreviewEntry}
+      />
+
+      {previewEntry && (
+        <FilePreviewDialog
+          open
+          onOpenChange={handlePreviewOpenChange}
+          binaryUri={previewEntry.accessURL || previewEntry.uri}
+          title={previewEntry.title || safeDecodeUriTail(previewEntry.uri)}
+          mediaType={previewEntry.mediaType}
+          solidFetch={solidFetch}
+          onDownload={handleDownload}
+        />
+      )}
     </onedrive-view>
   );
 };

@@ -420,6 +420,7 @@
     "recentView": {
       "heading": "Recent",
       "empty": "No recent files yet, anything you open will show up here.",
+      "loading": "Loading recent files…",
       "column": {
         "name": "Name",
         "opened": "Opened",

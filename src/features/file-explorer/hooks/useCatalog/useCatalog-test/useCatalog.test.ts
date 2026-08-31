@@ -1,14 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { notifyCatalogChanged, __resetCatalogVersionsForTests } from '@/shared/hooks/useCatalogVersion';
 
 const mockFetch = vi.fn();
 vi.mock('@ldo/solid-react', () => ({
   useSolidAuth: () => ({ fetch: mockFetch }),
-  // `useCatalog` subscribes to the catalog resource so notifications
-  // trigger re-fetches. The hook only reads `resource.status` from the
-  // result to detect updates; tests do not exercise that path.
-  useResource: () => undefined,
 }));
 
 const FOLDER_CLASS_URI = 'http://www.w3.org/ns/ldp#Container';
@@ -26,6 +21,10 @@ import {
   __resetCatalogCacheForTests,
   useCatalog,
 } from '../useCatalog-file/useCatalog';
+import {
+  __resetCatalogVersionsForTests,
+  notifyCatalogChanged,
+} from '@/shared/hooks/useCatalogVersion';
 
 const CATALOG_URI = 'https://pod.example/catalog.ttl';
 
@@ -180,8 +179,31 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
-  it('keeps serving the cached folder titles while a background re-fetch is in flight', async () => {
+  it('keeps serving the last-known entries while re-fetching the same catalog', async () => {
+    mockParseCatalogRecovering.mockReturnValueOnce(entries([
+      { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
+    ]));
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+
+    // A confirmed write elsewhere bumps the version and re-fetches the same
+    // catalog. Hold that re-fetch open so we can inspect the mid-flight state.
+    let resolveRefetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
+    mockFetch.mockReturnValueOnce(new Promise((resolve) => { resolveRefetch = resolve; }));
+    act(() => notifyCatalogChanged(CATALOG_URI));
+
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    // The previous entries stay visible instead of flashing empty.
+    expect(result.current.entries).toHaveLength(1);
+
+    resolveRefetch?.({ ok: true, text: () => Promise.resolve('TTL') });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  it('keeps serving the last-known folder titles while re-fetching the same catalog', async () => {
     const folderUri = 'https://pod.example/documents/';
+    // Returned on both the initial fetch and the refetch below, so the final
+    // assertion confirms the titles are still correct, not just unchanged.
     mockParseCatalogRecovering.mockReturnValue(entries([
       { uri: folderUri, title: 'Documents', conformsTo: FOLDER_CLASS_URI },
     ]));
@@ -189,7 +211,7 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']])));
 
     let resolveRefetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
-    mockFetch.mockReturnValue(new Promise((resolve) => { resolveRefetch = resolve; }));
+    mockFetch.mockReturnValueOnce(new Promise((resolve) => { resolveRefetch = resolve; }));
     act(() => notifyCatalogChanged(CATALOG_URI));
 
     await waitFor(() => expect(result.current.loading).toBe(true));
@@ -198,6 +220,23 @@ describe('useCatalog', () => {
     resolveRefetch?.({ ok: true, text: () => Promise.resolve('TTL') });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
+  });
+
+  it('does not re-fetch on its own — only catalogUri changing or notifyCatalogChanged does', async () => {
+    mockParseCatalogRecovering.mockReturnValueOnce(entries([
+      { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
+    ]));
+    const { result, rerender } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+    const fetchCountAfterFirst = mockFetch.mock.calls.length;
+
+    // Plain re-renders (no catalogUri change, no notifyCatalogChanged) must
+    // never trigger another fetch.
+    rerender();
+    rerender();
+    rerender();
+    expect(mockFetch.mock.calls.length).toBe(fetchCountAfterFirst);
+    expect(result.current.entries).toHaveLength(1);
   });
 
   it('serves a second hook instance from the cache instead of fetching again', async () => {

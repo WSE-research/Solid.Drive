@@ -84,6 +84,22 @@ describe('useRecentFilters', () => {
     expect(result.current.selectedChips.size).toBe(0);
   });
 
+  it('caps visibleEntries to the 10 most recently modified', () => {
+    const entries = Array.from({ length: 15 }, (_unused, index) =>
+      makeEntry({
+        uri: `https://x/${index}/index.ttl`,
+        title: `entry-${index}`,
+        modified: new Date(2026, 0, index + 1).toISOString(),
+      }),
+    );
+    const { result } = renderHook(() =>
+      useRecentFilters({ catalogEntries: entries, ownerName: 'Alice' }),
+    );
+    expect(result.current.visibleEntries).toHaveLength(10);
+    expect(result.current.visibleEntries[0].title).toBe('entry-14');
+    expect(result.current.visibleEntries[9].title).toBe('entry-5');
+  });
+
   it('derives the chip set from the catalog entries', () => {
     const a = makeEntry({ uri: 'https://x/a/index.ttl', conformsTo: 'http://schema.org/ImageObject' });
     const b = makeEntry({ uri: 'https://x/b/index.ttl', conformsTo: 'http://schema.org/VideoObject' });
