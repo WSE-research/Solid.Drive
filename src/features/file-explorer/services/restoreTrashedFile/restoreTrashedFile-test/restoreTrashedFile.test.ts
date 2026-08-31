@@ -39,6 +39,7 @@ const originalContainerUri = 'https://pod.example/my-solid-app/photo-2024/';
 const ownerWebId = 'https://owner.example/#me';
 
 const baseTombstone: Tombstone = {
+  kind: 'file',
   originalContainerUri,
   originalParentUri: 'https://pod.example/my-solid-app/',
   originalCatalogUri: 'https://pod.example/catalog.ttl',
@@ -223,6 +224,14 @@ describe('restoreTrashedFile', () => {
     expect(fetchFn.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')).toBe(false);
     expect(mockAppendToCatalog).not.toHaveBeenCalled();
     expect(mockDeleteResource).not.toHaveBeenCalled();
+  });
+
+  it('returns missing-tombstone for a folder-kind tombstone, which restoreTrashedFolder owns instead', async () => {
+    const folderTombstone = { ...baseTombstone, kind: 'folder' as const, originalBinaryName: '' };
+    const fetchFn = makeFetch({}, folderTombstone);
+    const result = await restoreTrashedFile(restoreArgs({ fetch: fetchFn }));
+
+    expect(result).toEqual({ ok: false, reason: 'missing-tombstone' });
   });
 
   it('returns occupied and writes nothing when the original location is occupied', async () => {

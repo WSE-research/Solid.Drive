@@ -165,6 +165,7 @@ export async function softDeleteFile(args: SoftDeleteFileArgs): Promise<SoftDele
     await writeTombstone(
       getTombstoneUri(trashItemContainerUri),
       {
+        kind: "file",
         originalContainerUri: containerUri,
         originalParentUri: entry.parentUri ?? "",
         originalCatalogUri: catalogUri,

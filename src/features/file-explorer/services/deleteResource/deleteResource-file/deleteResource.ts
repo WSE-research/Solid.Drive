@@ -1,7 +1,10 @@
 /**
  * Recursively hard-deletes Solid resources. Non-empty containers are
  * cleared by deleting their descendants first, then the container itself.
- * Catalog cleanup is best-effort because not all resources are catalogued.
+ * When `catalogUri` is given, every descendant container's catalog entry
+ * is cleaned up too, so deleting a folder doesn't leave its contents
+ * orphaned in the catalog. Catalog cleanup is best-effort because not
+ * all resources are catalogued.
  *
  * @packageDocumentation
  */
@@ -9,6 +12,7 @@
 import { removeFromCatalog } from '@/infrastructure/solid/catalog';
 import { listContainerChildren } from '@/infrastructure/solid/containerListing';
 import { notifyCatalogChanged } from '@/shared/hooks/useCatalogVersion';
+import { INDEX_FILE } from '@/config';
 import type { FetchFn } from '@/types/solid';
 
 /**
@@ -53,6 +57,30 @@ async function dropCompanionAcl(uri: string, fetch: FetchFn): Promise<void> {
 }
 
 /**
+ * Removes a container's catalog entry before deleting the container.
+ *
+ * @remarks
+ * A container can be cataloged either as a folder, keyed by its own URI,
+ * or as a file, keyed by its `index.ttl`. This tries both forms. The
+ * non-matching removal is a no-op, so it is safe to call for descendant
+ * containers without knowing their catalog shape first.
+ *
+ * @internal
+ */
+async function removeDescendantCatalogEntries(
+  catalogUri: string,
+  containerUri: string,
+  fetch: FetchFn,
+): Promise<void> {
+  await removeFromCatalog(catalogUri, containerUri, fetch).catch((error: unknown) => {
+    void error;
+  });
+  await removeFromCatalog(catalogUri, `${containerUri}${INDEX_FILE}`, fetch).catch((error: unknown) => {
+    void error;
+  });
+}
+
+/**
  * Hard deletes a Solid container and all of its descendants. See file
  * docs. Returns a result envelope rather than throwing.
  * 
@@ -71,9 +99,13 @@ export async function deleteResource(
       if (isContainer) {
         const childResult = await deleteResource({
           containerUri: childUri,
+          catalogUri: args.catalogUri,
           fetch: args.fetch,
         });
         if (!childResult.ok) return childResult;
+        if (args.catalogUri) {
+          await removeDescendantCatalogEntries(args.catalogUri, childUri, args.fetch);
+        }
       } else {
         await dropCompanionAcl(childUri, args.fetch);
         const response = await args.fetch(childUri, { method: 'DELETE' });

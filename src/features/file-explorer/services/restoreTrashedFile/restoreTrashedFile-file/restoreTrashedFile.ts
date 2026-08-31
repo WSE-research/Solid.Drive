@@ -79,7 +79,7 @@ export async function restoreTrashedFile(args: RestoreTrashedFileArgs): Promise<
   let originalBinaryUri: string;
   try {
     tombstone = await readTombstone(getTombstoneUri(trashItemContainerUri), fetch);
-    if (!tombstone) return { ok: false, reason: "missing-tombstone" };
+    if (!tombstone || tombstone.kind !== "file") return { ok: false, reason: "missing-tombstone" };
 
     originalIndexUri = `${tombstone.originalContainerUri}${INDEX_FILE}`;
     originalBinaryUri = `${tombstone.originalContainerUri}${tombstone.originalBinaryName}`;

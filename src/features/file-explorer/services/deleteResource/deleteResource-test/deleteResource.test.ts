@@ -156,6 +156,68 @@ describe('deleteResource', () => {
     expect(mockRemoveFromCatalog).not.toHaveBeenCalled();
   });
 
+  it('cleans up catalog entries for nested folders and files when catalogUri is given', async () => {
+    const root = 'https://pod/app/folder/';
+    const subFolder = 'https://pod/app/folder/sub/';
+    const subFile = 'https://pod/app/folder/report/';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') return okResponse();
+      if (url === root) return okResponse(turtleWithChildren(root, [subFolder, subFile]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    await deleteResource({
+      containerUri: root,
+      metadataUri: root,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    // The root entry plus both catalog key forms for each child container.
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', root, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', subFolder, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', `${subFolder}index.ttl`, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', subFile, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', `${subFile}index.ttl`, fetchFn);
+  });
+
+  it('still deletes a nested folder even when its own catalog cleanup fails', async () => {
+    const root = 'https://pod/app/folder/';
+    const subFolder = 'https://pod/app/folder/sub/';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') return okResponse();
+      if (url === root) return okResponse(turtleWithChildren(root, [subFolder]));
+      return errorResponse(404, 'Not Found');
+    });
+    mockRemoveFromCatalog.mockRejectedValue(new Error('catalog offline'));
+
+    const result = await deleteResource({
+      containerUri: root,
+      metadataUri: root,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('skips descendant catalog cleanup when no catalogUri is given', async () => {
+    const root = 'https://pod/app/folder/';
+    const subFolder = 'https://pod/app/folder/sub/';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') return okResponse();
+      if (url === root) return okResponse(turtleWithChildren(root, [subFolder]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    await deleteResource({ containerUri: root, fetch: fetchFn });
+
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalled();
+  });
+
   it('recurses into nested containers', async () => {
     const root = 'https://pod/app/folder/';
     const sub = 'https://pod/app/folder/sub/';
@@ -263,6 +325,35 @@ describe('deleteResource', () => {
 
     const result = await deleteResource({ containerUri: root, fetch: fetchFn });
     expect(result).toEqual({ ok: false, reason: `${leaf}: 403 Forbidden` });
+  });
+
+  it('does not strip a descendant folder\'s catalog entry when it still has undeleted contents', async () => {
+    const root = 'https://pod/app/folder/';
+    const sub = 'https://pod/app/folder/sub/';
+    const leaf = 'https://pod/app/folder/sub/locked.pdf';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') {
+        return url === leaf ? errorResponse(403, 'Forbidden') : okResponse();
+      }
+      if (url === root) return okResponse(turtleWithChildren(root, [sub]));
+      if (url === sub) return okResponse(turtleWithChildren(sub, [leaf]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    const result = await deleteResource({
+      containerUri: root,
+      metadataUri: root,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    expect(result.ok).toBe(false);
+    // sub is still physically there (leaf inside it failed to delete), so
+    // its catalog entry must not disappear — that would orphan it from
+    // every listing with no way back to it.
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalledWith('https://pod/catalog', sub, fetchFn);
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalledWith('https://pod/catalog', `${sub}index.ttl`, fetchFn);
   });
 
   it('returns "Unknown error" when fetch throws a non-Error value', async () => {
