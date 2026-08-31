@@ -1,16 +1,20 @@
 = useTrashEntries
 
-Lists soft-deleted files from the trash catalog and exposes `restore` and `purge` to act on them.
+Lists soft-deleted files and folders from the trash catalog and exposes `restore` and `purge` to act on them.
 
 == Behaviour
 
-The hook resolves the trash catalog URI from `storageRootUri`, the pod's storage root rather than the app container, since the trash is pod-wide. It hands that URI to `useCatalog` unmodified, so the trash catalog shares the same module cache and `useCatalogVersion` invalidation as every other catalog read in the app instead of running its own fetcher.
+The hook resolves the trash catalog URI from `storageRootUri`, the pod's storage root rather than the app container, since the trash is pod-wide. It hands that URI to `useCatalog` unmodified, so the trash catalog shares the same module cache and `useCatalogVersion` invalidation as every other catalog read in the app instead of running its own fetcher. It reads both `entries` and `folderEntries` off `useCatalog` and merges them. The trash catalog is flat, not a folder hierarchy, so a trashed folder has no use for `useCatalog`'s files/folders split and would otherwise never show up, since `entries` alone excludes folder-typed rows.
 
 Each row gets its tombstone read alongside it. When a tombstone is missing or fails to parse, the row still shows up with `tombstone: null`. Restoring is disabled for it in the UI, but purging still works.
 
+`kind` is read from the tombstone's own `kind` field first, the app's own trash vocabulary, written once at delete time, falling back to the row's catalog shape via `isFolderEntry` only when the tombstone is missing or unreadable.
+
+A folder row also gets its contents read alongside its tombstone, into `contents`: `readTrashFolderContents`'s item counts and entries, scoped by the tombstone's `originalContainerUri` (the only place that original address is known). This reads the catalog snapshot and reconciles it against the live trash payload, so a file or folder that was never catalogued still counts, not just whatever the snapshot happened to capture. `contents` is `null` for a file row, and for a folder row whose tombstone couldn't be read. A folder with a working tombstone but nothing in it still gets `contents` with zero counts, not `null`, so the UI can tell "known empty" apart from "unreadable."
+
 Rows whose tombstone has passed `expiresAt` are purged before they're ever exposed to the caller. Expiry is lazy and client-triggered: there's no server-side scheduler in a client-only app, so a stale row only gets cleaned up the next time someone opens the Recycle bin. A whole batch of expired rows fires `notifyCatalogChanged` once, not once per row.
 
-`restore(item)` delegates to `restoreTrashedFile`. `purge(item)` skips a dedicated service and calls `deleteResource` directly: permanently deleting a trashed item is just `deleteResource({ containerUri: item.containerUri, catalogUri: <trash catalog>, metadataUri: item.entry.metadataUri, fetch })`, nothing more.
+`restore(item)` delegates to `restoreTrashedFile` for a file and `restoreTrashedFolder` for a folder. `restoreTrashedFolder` needs no `ownerWebId`, so it's called without checking who's logged in. `purge(item)` skips a dedicated service and calls `deleteResource` directly, uniformly for both kinds: permanently deleting a trashed item is just `deleteResource({ containerUri: item.containerUri, catalogUri: <trash catalog>, metadataUri: item.entry.metadataUri, fetch })`, which recursively wipes a folder's whole trash payload the same way it wipes a single file's.
 
 == Returns
 
@@ -18,10 +22,10 @@ Rows whose tombstone has passed `expiresAt` are purged before they're ever expos
 |===
 | Key | Type | Description
 
-| `entries` | `TrashEntry[]` | `{ entry, containerUri, tombstone }` per live (non-expired) row
+| `entries` | `TrashEntry[]` | `{ kind, entry, containerUri, tombstone, contents }` per live (non-expired) row
 | `loading` | `boolean` | Passed through from `useCatalog`
 | `error` | `Error \| null` | Passed through from `useCatalog`
-| `restore` | `(item) => Promise<RestoreTrashedFileResult>` |
+| `restore` | `(item) => Promise<RestoreTrashedFileResult \| RestoreTrashedFolderResult>` |
 | `purge` | `(item) => Promise<DeleteResourceResult>` |
 |===
 
@@ -32,8 +36,11 @@ link:../[file-explorer/hooks]
 
 .Uses
 * link:../useCatalog/[useCatalog]
+* link:../../../../infrastructure/solid/catalog/[catalog]
 * link:../../../../infrastructure/solid/trashPaths/[trashPaths]
+* link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]
 * link:../../../../infrastructure/solid/tombstone/[tombstone]
 * link:../../services/restoreTrashedFile/[restoreTrashedFile]
+* link:../../services/restoreTrashedFolder/[restoreTrashedFolder]
 * link:../../services/deleteResource/[deleteResource]
 * link:../../../../shared/hooks/useCatalogVersion/[useCatalogVersion]

@@ -8,7 +8,7 @@ Loads the list of files and folders a user has stored, from a catalog file kept 
 . Splits that list into files and folders, so folders never get mistaken for files anywhere else in the app (search, upload duplicate checks, the Recent list, and so on).
 . Keeps a shared cache, so if another part of the app already loaded the same catalog a moment ago, this just reuses that result instead of fetching again.
 . Reloads automatically whenever the catalog address changes, and cleans up safely if the component using it disappears while a fetch is still running.
-. If loading fails, everything resets to empty and the failure is reported separately so the caller can show an error message.
+. If loading fails, everything resets to empty and the failure is reported separately so the caller can show an error message. This covers two different situations the same way on the outside but not on the inside: a catalog that doesn't exist yet (a fresh pod) reads as zero entries with no error, while a catalog that exists but is malformed (invalid Turtle from some earlier bad write) reports a real `error` instead of silently looking the same as "nothing here yet."
 
 == Parameters
 
@@ -26,6 +26,7 @@ Loads the list of files and folders a user has stored, from a catalog file kept 
 | Key | Type | Description
 
 | `entries`       | `CatalogEntry[]`      | The files in the catalog
+| `folderEntries` | `CatalogEntry[]`      | The folders in the catalog, as full entries rather than the trimmed shape in `folderIndex`. For a caller with no use for the files/folders split (`useTrashEntries`, since the trash catalog is flat, not a hierarchy) that still needs every field
 | `containerUris` | `Set<string>`         | Each file's own folder address, used to tell a real folder apart from a file's storage folder
 | `folderTitles`  | `Map<string, string>` | Each folder's address mapped to the name the user gave it when creating it. Derived from `folderIndex`
 | `folderIndex`   | `FolderIndex`         | Every folder in the catalog, keyed by address, with its own parent link. Lets a breadcrumb trail be built without extra fetches

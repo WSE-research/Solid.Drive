@@ -6,13 +6,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useResource, useSolidAuth } from "@ldo/solid-react";
-import { isFolderEntry, parseCatalog } from "@/infrastructure/solid/catalog";
+import { isFolderEntry, parseCatalogRecovering } from "@/infrastructure/solid/catalog";
 import { toContainerUri } from "@/infrastructure/solid/sharedCatalog";
 import { useCatalogVersion } from "@/shared/hooks/useCatalogVersion";
 import type { CatalogEntry, FolderIndex, FolderNode } from "@/types";
 
 interface UseCatalogReturn {
   entries: CatalogEntry[];
+  // The same folders as folderIndex, but as full CatalogEntry rows rather
+  // than the trimmed FolderNode shape, for a caller like useTrashEntries
+  // that needs every field (not just uri/title/parentUri) and has no use
+  // for the files/folders split, since the trash catalog is flat.
+  folderEntries: CatalogEntry[];
   containerUris: Set<string>;
   // Maps container URI to the folder's catalog title.
   folderTitles: Map<string, string>;
@@ -25,14 +30,20 @@ interface UseCatalogReturn {
 interface CatalogCacheEntry {
   signal: unknown;
   entries: CatalogEntry[];
+  folderEntries: CatalogEntry[];
   containerUris: Set<string>;
   folderIndex: FolderIndex;
+  // Set when the document needed truncating (or couldn't be read at all)
+  // to parse. `entries` still holds whatever was recovered before that.
+  parseError: Error | null;
 }
 
 const EMPTY_RESULT: Omit<CatalogCacheEntry, "signal"> = {
   entries: [],
+  folderEntries: [],
   containerUris: new Set(),
   folderIndex: new Map(),
+  parseError: null,
 };
 
 // Splits parsed catalog entries into files and folders.
@@ -70,12 +81,13 @@ const catalogCache = new Map<string, CatalogCacheEntry>();
 const catalogInflight = new Map<string, Promise<CatalogCacheEntry>>();
 
 /**
- * Fetches the catalog at `catalogUri`, parses it into `CatalogEntry[]`,
- * and pre-computes the set of container URIs for downstream folder routing.
+ * Loads the catalog at `catalogUri`, parses its entries, and builds the
+ * container URI set used to decide how folders are shown.
  *
  * @remarks
- * Re-fetches when `catalogUri` changes. Silently ignores fetch/parse errors
- * (exposes them via `error` for callers that want to surface them).
+ * Runs again when `catalogUri` changes. A non-2xx response is treated as
+ * an empty catalog. If the fetch succeeds but the document is malformed,
+ * any entries parsed before the error are still returned and `error` is set.
  *
  * @param catalogUri - URI of the DCAT catalog Turtle document
  *
@@ -84,16 +96,14 @@ const catalogInflight = new Map<string, Promise<CatalogCacheEntry>>();
 export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
   const { fetch: solidFetch } = useSolidAuth();
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
+  const [folderEntries, setFolderEntries] = useState<CatalogEntry[]>([]);
   const [folderIndex, setFolderIndex] = useState<FolderIndex>(new Map());
   const [error, setError] = useState<Error | null>(null);
   const [settledAttemptKey, setSettledAttemptKey] = useState<string | undefined>(undefined);
 
-  // Subscribe to the catalog so pod-pushed notifications flip the
-  // resource status and the parse effect below re-runs. The subscription
-  // is opportunistic: not every pod implements notifications, and
-  // mutations issued as raw SPARQL PATCH never reach LDO. The version
-  // pub/sub below is the reliable signal; this is a best-effort speedup
-  // when the pod does push updates.
+  // Best-effort subscription so pod notifications can trigger a re-parse.
+  // Not all pods support notifications, and raw SPARQL PATCH changes
+  // bypass LDO. The version pub/sub below is the reliable signal.
   const catalogResource = useResource(catalogUri, {
     subscribe: true,
     suppressInitialRead: true,
@@ -129,12 +139,15 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
             return empty;
           }
           const text = await response.text();
-          const { fileEntries, folderEntries } = partitionEntries(parseCatalog(text, catalogUri));
+          const { entries: parsedEntries, error: parseError } = parseCatalogRecovering(text, catalogUri);
+          const { fileEntries, folderEntries } = partitionEntries(parsedEntries);
           const entry: CatalogCacheEntry = {
             signal: signalKey,
             entries: fileEntries,
+            folderEntries,
             containerUris: new Set(fileEntries.map((e) => toContainerUri(e.uri))),
             folderIndex: buildFolderIndex(folderEntries),
+            parseError,
           };
           catalogCache.set(catalogUri, entry);
           return entry;
@@ -150,13 +163,15 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
         if (cancelled) return;
         setSettledAttemptKey(attemptKey);
         setEntries(result.entries);
+        setFolderEntries(result.folderEntries);
         setFolderIndex(result.folderIndex);
-        setError(null);
+        setError(result.parseError);
       },
       (err: unknown) => {
         if (cancelled) return;
         setSettledAttemptKey(attemptKey);
         setEntries(EMPTY_RESULT.entries);
+        setFolderEntries(EMPTY_RESULT.folderEntries);
         setFolderIndex(EMPTY_RESULT.folderIndex);
         setError(err instanceof Error ? err : new Error(String(err)));
       },
@@ -165,11 +180,9 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     return () => { cancelled = true; };
   }, [catalogUri, solidFetch, updateSignal, catalogVersion, hasFreshCache, attemptKey, signalKey]);
 
-  // Pick the effective source once (cache vs. freshly-settled state) so
-  // the derived views below are computed from it a single time, instead
-  // of once here and again, redundantly, inside the cache-hit branch.
-  // Prefer the cache whenever it exists, fresh or stale, so a background
-  // re-fetch doesn't blank out folder titles that are still correct.
+  // Pick one source for the derived views below: cache or settled state.
+  // Prefer cached data, even if stale, so background re-fetches do not
+  // temporarily clear folder titles that are still correct.
   const effectiveFolderIndex = cached ? cached.folderIndex : folderIndex;
   const folderTitles = useMemo(() => folderTitlesFrom(effectiveFolderIndex), [effectiveFolderIndex]);
   const containerUris = useMemo(
@@ -187,11 +200,12 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
   if (cached) {
     return {
       entries: cached.entries,
+      folderEntries: cached.folderEntries,
       containerUris,
       folderTitles,
       folderIndex: effectiveFolderIndex,
       loading,
-      error: null,
+      error: cached.parseError,
     };
   }
 
@@ -200,7 +214,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     return { ...EMPTY_RESULT, folderTitles: new Map(), loading, error: null };
   }
 
-  return { entries, containerUris, folderTitles, folderIndex, loading, error };
+  return { entries, folderEntries, containerUris, folderTitles, folderIndex, loading, error };
 }
 
 /**
