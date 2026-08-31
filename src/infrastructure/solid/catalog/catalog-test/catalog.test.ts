@@ -11,6 +11,7 @@ import {
   removeFromCatalog,
   linkCatalogToProfile,
   parseCatalog,
+  parseCatalogRecovering,
   resolveCatalogUri,
 } from '../catalog-file/catalog';
 import { getFileTypeLabel } from "@/infrastructure/validation/fileTypeRegistry";
@@ -213,6 +214,17 @@ describe("appendToCatalog", () => {
     })).rejects.toThrow(`Failed to read ${catalogUri}`);
   });
 
+  it("throws a message naming the document and pointing at the fix, not N3's bare parser text, when the existing catalog is malformed", async () => {
+    const { fetch, calls } = capturingMock({ status: 200, body: "this is not valid turtle {{{ <<< >>>" });
+    await expect(appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "x",
+      description: "", modified, publisherWebId, fetch,
+    })).rejects.toThrow(catalogUri);
+    // Nothing gets written over the unreadable document.
+    expect(calls.some((call) => call.method === "PUT")).toBe(false);
+  });
+
   it("throws when the PUT fails", async () => {
     const { fetch } = capturingMock({ status: 404 }, 500);
     await expect(appendToCatalog({
@@ -220,6 +232,29 @@ describe("appendToCatalog", () => {
       mediaType: "image/jpeg", byteSize: 100, title: "x",
       description: "", modified, publisherWebId, fetch,
     })).rejects.toThrow(`Failed to write ${catalogUri}`);
+  });
+
+  it("heals a catalog that parses partway: writes succeed against the recovered prefix, dropping the corrupted tail", async () => {
+    const clean = capturingMock({ status: 404 });
+    await appendToCatalog({
+      catalogUri, instanceUri, binaryUri, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 100, title: "existing entry",
+      description: "", modified, publisherWebId, fetch: clean.fetch,
+    });
+    const corrupted = `${putBody(clean.calls)}\nthis is not valid turtle {{{ <<< >>>`;
+
+    const { fetch, calls } = capturingMock({ status: 200, body: corrupted });
+    await appendToCatalog({
+      catalogUri, instanceUri: `${instanceUri}-2`, binaryUri: `${binaryUri}-2`, classUri, parentUri,
+      mediaType: "image/jpeg", byteSize: 200, title: "new entry",
+      description: "", modified, publisherWebId, fetch,
+    });
+
+    const entries = parseCatalog(putBody(calls), catalogUri);
+    expect(entries.map((entry) => entry.title)).toEqual(
+      expect.arrayContaining(["existing entry", "new entry"])
+    );
+    expect(putBody(calls)).not.toContain("this is not valid turtle");
   });
 });
 
@@ -256,11 +291,19 @@ describe("appendFolderToCatalog", () => {
     expect(isFolderEntry(entry)).toBe(true);
   });
 
-  it("always links the folder to its parent via sd:hasParent", async () => {
+  it("links the folder to its parent via sd:hasParent", async () => {
     const { fetch, calls } = capturingMock({ status: 404 });
     await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     const [entry] = parseCatalog(putBody(calls), catalogUri);
     expect(entry.parentUri).toBe(parentUri);
+  });
+
+  it("leaves out the parent-folder link for a folder with nothing above it, such as a trash item", async () => {
+    const { fetch, calls } = capturingMock({ status: 404 });
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri: "", title: "Documents", modified, publisherWebId, fetch });
+    expect(putBody(calls)).not.toContain("hasParent");
+    const [entry] = parseCatalog(putBody(calls), catalogUri);
+    expect(entry.parentUri).toBe("");
   });
 
   it("round-trips a title containing quotes", async () => {
@@ -327,6 +370,113 @@ describe("ensureCatalogRootEntry", () => {
     const { fetch } = capturingMock({ status: 404 }, 500);
     await expect(ensureCatalogRootEntry({ catalogUri, storageRootUri, publisherWebId, fetch }))
       .rejects.toThrow(`Failed to write ${catalogUri}`);
+  });
+});
+
+// ─── concurrent writes to the same catalog ─────────────────────────────────
+
+describe("concurrent writes to the same catalog", () => {
+  const catalogUri = "https://pod.example/catalog.ttl";
+  const publisherWebId = "https://pod.example/profile/card#me";
+  const modified = "2026-03-16T00:00:00.000Z";
+
+  async function waitUntil(condition: () => boolean) {
+    for (let attempt = 0; attempt < 50 && !condition(); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  }
+
+  /** Lets `times` rounds of already-queued microtasks resolve, without advancing real or fake timers. */
+  async function flushMicrotasks(times: number) {
+    for (let round = 0; round < times; round += 1) await Promise.resolve();
+  }
+
+  /**
+   * A stateful mock: GET returns whatever the last PUT stored (404 until
+   * the first one), and the *first* PUT stays pending until `releaseFirstPut`
+   * is called, long enough for a second write's GET to start racing it if
+   * nothing were serializing them.
+   */
+  function racingMock() {
+    let stored = "";
+    let putCount = 0;
+    let releaseFirstPut: (() => void) | undefined;
+    const firstPutGate = new Promise<void>((resolve) => {
+      releaseFirstPut = resolve;
+    });
+
+    const fetch = vi.fn(async (_url: RequestInfo, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "PUT") {
+        putCount += 1;
+        if (putCount === 1) await firstPutGate;
+        stored = init!.body as string;
+        return { ok: true, status: 200, statusText: "OK" } as Response;
+      }
+      if (stored === "") return { ok: false, status: 404, statusText: "Not Found", text: async () => "" } as Response;
+      return { ok: true, status: 200, statusText: "OK", text: async () => stored } as Response;
+    });
+
+    return { fetch, releaseFirstPut: releaseFirstPut!, putCountRef: () => putCount, storedRef: () => stored };
+  }
+
+  it("keeps both writes instead of the second silently overwriting the first, when they overlap", async () => {
+    const { fetch, releaseFirstPut, putCountRef, storedRef } = racingMock();
+
+    const firstWrite = appendFolderToCatalog({
+      catalogUri, folderUri: "https://pod.example/new-folder-test/", parentUri: "https://pod.example/",
+      title: "new-folder-test", modified, publisherWebId, fetch,
+    });
+    
+    await waitUntil(() => putCountRef() === 1);
+
+    const callsBeforeSecondWrite = fetch.mock.calls.length;
+    const secondWrite = appendFolderToCatalog({
+      catalogUri, folderUri: "https://pod.example/new-folder-test/folder1/", parentUri: "https://pod.example/new-folder-test/",
+      title: "folder1", modified, publisherWebId, fetch,
+    });
+    
+    await flushMicrotasks(5);
+    expect(fetch.mock.calls.length).toBe(callsBeforeSecondWrite);
+
+    releaseFirstPut();
+    await Promise.all([firstWrite, secondWrite]);
+
+    const entries = parseCatalog(storedRef(), catalogUri);
+    expect(entries.map((entry) => entry.title)).toEqual(
+      expect.arrayContaining(["new-folder-test", "folder1"])
+    );
+    const folder1 = entries.find((entry) => entry.title === "folder1");
+    expect(folder1?.parentUri).toBe("https://pod.example/new-folder-test/");
+  });
+
+  it("does not wedge the queue after a rejected write: a later write to the same catalog still succeeds", async () => {
+    let getCount = 0;
+    let stored = "";
+    const fetch = vi.fn(async (_url: RequestInfo, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "PUT") {
+        stored = init!.body as string;
+        return { ok: true, status: 200, statusText: "OK" } as Response;
+      }
+      getCount += 1;
+      if (getCount === 1) return { ok: false, status: 500, statusText: "Server Error" } as Response;
+      if (stored === "") return { ok: false, status: 404, statusText: "Not Found", text: async () => "" } as Response;
+      return { ok: true, status: 200, statusText: "OK", text: async () => stored } as Response;
+    });
+
+    await expect(appendFolderToCatalog({
+      catalogUri, folderUri: "https://pod.example/first-attempt/", parentUri: "https://pod.example/",
+      title: "first-attempt", modified, publisherWebId, fetch,
+    })).rejects.toThrow(`Failed to read ${catalogUri}`);
+
+    await appendFolderToCatalog({
+      catalogUri, folderUri: "https://pod.example/second-attempt/", parentUri: "https://pod.example/",
+      title: "second-attempt", modified, publisherWebId, fetch,
+    });
+
+    const entries = parseCatalog(stored, catalogUri);
+    expect(entries.map((entry) => entry.title)).toEqual(["second-attempt"]);
   });
 });
 
@@ -731,6 +881,60 @@ describe("parseCatalog", () => {
 
     const [entry] = parseCatalog(turtle, catalogUri);
     expect(entry.parentUri).toBe("");
+  });
+});
+
+// ─── parseCatalogRecovering ─────────────────────────────────────────────────
+
+describe("parseCatalogRecovering", () => {
+  const catalogUri = "https://pod.example/catalog.ttl";
+
+  it("returns the same entries as parseCatalog, with error: null, for well-formed turtle", () => {
+    const instanceUri = "https://pod.example/report/index.ttl";
+    const turtle = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dcterms: <http://purl.org/dc/terms/> .
+
+    <${catalogUri}> dcat:dataset <${instanceUri}> .
+    <${instanceUri}> a dcat:Dataset ;
+      dcterms:title "Report" .
+    `.trim();
+
+    expect(parseCatalogRecovering(turtle, catalogUri)).toEqual({
+      entries: parseCatalog(turtle, catalogUri),
+      error: null,
+    });
+  });
+
+  it("recovers every entry that appears before a corrupted tail, and reports the error naming the document", () => {
+    const goodUri = "https://pod.example/report/index.ttl";
+    const turtle = [
+      "@prefix dcat: <http://www.w3.org/ns/dcat#> .",
+      "@prefix dcterms: <http://purl.org/dc/terms/> .",
+      "",
+      `<${catalogUri}> dcat:dataset <${goodUri}> .`,
+      `<${goodUri}> a dcat:Dataset ;`,
+      '  dcterms:title "Report" .',
+      "",
+      "this is not valid turtle {{{ <<< >>>",
+    ].join("\n");
+
+    const result = parseCatalogRecovering(turtle, catalogUri);
+
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]).toMatchObject({ uri: goodUri, title: "Report" });
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toContain(catalogUri);
+  });
+
+  it("returns no entries and a wrapped error when nothing in the document is recoverable", () => {
+    const invalidTurtle = "this is not valid turtle {{{ <<< >>>";
+
+    const result = parseCatalogRecovering(invalidTurtle, catalogUri);
+
+    expect(result.entries).toEqual([]);
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toContain(catalogUri);
   });
 });
 

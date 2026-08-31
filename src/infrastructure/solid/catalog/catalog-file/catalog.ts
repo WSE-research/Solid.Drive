@@ -11,6 +11,7 @@
  */
 
 import { Parser as N3Parser, Store as N3Store, DataFactory } from "n3";
+import type { Quad } from "n3";
 import type { FetchFn, CatalogEntry } from "@/types";
 import type { SolidProfile } from "@/.ldo/solidProfile.typings";
 import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
@@ -139,13 +140,51 @@ export function resolveCatalogUri(
 }
 
 /**
- * Reads a Turtle document into an N3 store, mutates it, and PUTs the whole
- * document back. A 404 GET starts from an empty store, so this doubles as
- * "create the catalog if it doesn't exist yet".
+ * Queues every {@link withCatalogStore} call by `catalogUri`, so writes to
+ * the same document never overlap.
+ *
+ * @remarks
+ * A GET/PUT round trip has no server-side precondition (no ETag or
+ * If-Match). If two writes to the same document overlap, both read the
+ * same starting state, and whichever PUT lands second silently wins,
+ * discarding the first write, even though both report success. Queuing
+ * per `catalogUri` closes that gap for every writer this client issues:
+ * the next GET only starts once the previous PUT has landed.
+ *
+ * This only covers writers within this client. A genuinely concurrent
+ * writer elsewhere (another tab, another device) still needs server-side
+ * conditional PUT support to be safe, which is a separate, bigger change.
  *
  * @internal
  */
+const catalogWriteQueues = new Map<string, Promise<void>>();
+
 async function withCatalogStore(
+  catalogUri: string,
+  fetch: FetchFn,
+  mutate: (store: N3Store) => void
+): Promise<void> {
+  const previous = catalogWriteQueues.get(catalogUri) ?? Promise.resolve();
+  const queued = previous.catch(() => {}).then(() => performCatalogWrite(catalogUri, fetch, mutate));
+  const settled = queued.catch(() => {});
+  catalogWriteQueues.set(catalogUri, settled);
+  // Drop the entry once this write settles, unless a later write has
+  // already replaced it in the map.
+  void settled.then(() => {
+    if (catalogWriteQueues.get(catalogUri) === settled) catalogWriteQueues.delete(catalogUri);
+  });
+  return queued;
+}
+
+/**
+ * Reads a Turtle document into an N3 store, mutates it, and PUTs the whole
+ * document back. A 404 GET starts from an empty store, so this doubles as
+ * "create the catalog if it doesn't exist yet". Only ever called through
+ * {@link withCatalogStore}'s queue, never directly.
+ *
+ * @internal
+ */
+async function performCatalogWrite(
   catalogUri: string,
   fetch: FetchFn,
   mutate: (store: N3Store) => void
@@ -156,7 +195,20 @@ async function withCatalogStore(
   }
 
   const isNewCatalog = getResponse.status === 404;
-  const quads = isNewCatalog ? [] : new N3Parser({ baseIRI: catalogUri }).parse(await getResponse.text());
+  let quads: Quad[];
+  if (isNewCatalog) {
+    quads = [];
+  } else {
+    // A totally unparseable document has to fail the write, or we'd PUT
+    // back an empty catalog and lose everything in it. A partial parse is
+    // still a real prefix of the content, so it's safe to write from, and
+    // it heals the document once the next write drops the bad tail.
+    const recovered = parseQuadsRecovering(await getResponse.text(), catalogUri);
+    if (recovered.error && recovered.quads.length === 0) {
+      throw recovered.error;
+    }
+    quads = recovered.quads;
+  }
   const store = new N3Store(quads);
   if (isNewCatalog) {
     store.addQuad(quad(namedNode(catalogUri), RDF_TYPE, DCAT_CATALOG_CLASS));
@@ -255,7 +307,7 @@ export interface AppendFolderEntryParams {
   catalogUri: string;
   /** URI of the folder container this dataset describes */
   folderUri: string;
-  /** URI of the folder this folder lives in */
+  /** URI of the folder this folder lives in, empty to omit the link */
   parentUri: string;
   /** Human-readable title for the folder (the name the user typed) */
   title: string;
@@ -275,7 +327,9 @@ export interface AppendFolderEntryParams {
  * no `dcat:Distribution` is written. The folder's own URI is used as the
  * dataset URI. The entry carries both `dcterms:conformsTo` (matching how
  * file entries declare their type) and `rdf:type` (real class membership,
- * per the vocabulary's own class modelling).
+ * per the vocabulary's own class modelling). `sd:hasParent` is omitted
+ * for an empty `parentUri`, a folder with nothing above it such as a
+ * trash item, the same as {@link appendToCatalog} already does for files.
  *
  * @public
  */
@@ -294,7 +348,9 @@ export async function appendFolderToCatalog(params: AppendFolderEntryParams): Pr
     store.addQuad(quad(folder, DCTERMS_TITLE, literal(title)));
     store.addQuad(quad(folder, DCTERMS_MODIFIED, literal(modified, XSD_DATE_TIME)));
     store.addQuad(quad(folder, DCTERMS_PUBLISHER, namedNode(publisherWebId)));
-    store.addQuad(quad(folder, SD_HAS_PARENT, namedNode(parentUri)));
+    if (parentUri) {
+      store.addQuad(quad(folder, SD_HAS_PARENT, namedNode(parentUri)));
+    }
   });
 }
 
@@ -420,22 +476,11 @@ function sanitizeClassUri(uri: string): string {
 }
 
 /**
- * Parses DCAT catalog entries out of Turtle text using the N3 parser.
+ * Builds catalog entries from already-parsed quads.
  *
- * @param turtleText - Raw Turtle content of the catalog
- * @param baseUri - Optional base URI for resolving relative IRIs
- * @returns Array of parsed catalog entries
- *
- * @public
+ * @internal
  */
-export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry[] {
-  let quads;
-  try {
-    quads = new N3Parser(baseUri ? { baseIRI: baseUri } : undefined).parse(turtleText);
-  } catch {
-    return [];
-  }
-
+function entriesFromQuads(quads: Quad[]): CatalogEntry[] {
   const store = new N3Store(quads);
   const DCAT = RDF_NAMESPACES.DCAT;
   const DCTERMS = RDF_NAMESPACES.DCTERMS;
@@ -464,6 +509,132 @@ export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry
       parentUri: queryFirstValue(datasetUri, HAS_PARENT),
     };
   });
+}
+
+/**
+ * Wraps a Turtle parse failure in a message that names the offending
+ * document and points at the fix, instead of surfacing N3's bare text on its own.
+ *
+ * @internal
+ */
+function catalogParseError(documentUri: string, cause: unknown): Error {
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  return new Error(
+    `${documentUri} contains invalid Turtle and could not be read (${detail}). ` +
+    `A previous write likely left it malformed — open the document and fix or remove the offending line.`
+  );
+}
+
+/** Pulls the 1-indexed line number out of an N3 parse error's own message.*/
+function parseErrorLine(message: string): number | null {
+  const match = /on line (\d+)/.exec(message);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
+ * Upper bound on truncate-and-retry passes in {@link parseQuadsRecovering},
+ * so a document that fails at every single line still terminates quickly
+ * instead of retrying once per line.
+ */
+const MAX_RECOVERY_ATTEMPTS = 20;
+
+/**
+ * Parses Turtle text, salvaging as much as it can when the document is
+ * malformed.
+ *
+ * @remarks
+ * N3 gives up on the whole document at its first syntax error, even
+ * though only one line is actually bad. Its error names that line, so
+ * this truncates the text just before it and retries, up to
+ * {@link MAX_RECOVERY_ATTEMPTS} times, until something parses or
+ * truncating stops helping. Everything it returns is a real, valid
+ * prefix of the document; nothing is guessed at.
+ *
+ * @returns The parsed quads, plus the original parse error if truncation
+ * was needed, so a caller can tell "nothing here" apart from "some of
+ * this was unreadable."
+ *
+ * @internal
+ */
+function parseQuadsRecovering(turtleText: string, baseUri: string): { quads: Quad[]; error: Error | null } {
+  let text = turtleText;
+  let firstError: unknown = null;
+
+  for (let attempt = 0; attempt < MAX_RECOVERY_ATTEMPTS; attempt++) {
+    try {
+      const quads = new N3Parser({ baseIRI: baseUri }).parse(text);
+      return { quads, error: firstError ? catalogParseError(baseUri, firstError) : null };
+    } catch (error) {
+      firstError ??= error;
+      const line = parseErrorLine(error instanceof Error ? error.message : String(error));
+      if (line === null || line <= 1) break;
+
+      const lines = text.split("\n");
+      if (line - 1 >= lines.length) break;
+      const truncated = lines.slice(0, line - 1).join("\n");
+      if (truncated === text) break;
+      text = truncated;
+    }
+  }
+
+  return { quads: [], error: catalogParseError(baseUri, firstError) };
+}
+
+/**
+ * Parses DCAT catalog entries out of Turtle text using the N3 parser.
+ * Malformed Turtle comes back as an empty catalog instead of throwing,
+ * matching every other read-only catalog consumer in the app. A caller
+ * that wants to recover what it can from a malformed document, and know
+ * about the parts it couldn't, should use {@link parseCatalogRecovering}
+ * instead.
+ *
+ * @param turtleText - Raw Turtle content of the catalog
+ * @param baseUri - Optional base URI for resolving relative IRIs
+ * @returns Array of parsed catalog entries
+ *
+ * @public
+ */
+export function parseCatalog(turtleText: string, baseUri?: string): CatalogEntry[] {
+  let quads;
+  try {
+    quads = new N3Parser(baseUri ? { baseIRI: baseUri } : undefined).parse(turtleText);
+  } catch {
+    return [];
+  }
+  return entriesFromQuads(quads);
+}
+
+/**
+ * Result of {@link parseCatalogRecovering}.
+ *
+ * @public
+ */
+export interface ParseCatalogRecoveringResult {
+  /** Every entry recovered: the whole document when it parses cleanly, or its longest valid prefix otherwise. */
+  entries: CatalogEntry[];
+  /** Set when the document needed truncating to parse at all, or couldn't be read at all. Null on a clean parse. */
+  error: Error | null;
+}
+
+/**
+ * Same parse as {@link parseCatalog}, but recovers entries from a
+ * malformed document instead of giving up on the whole thing.
+ *
+ * @remarks
+ * `useCatalog` uses this so a document corrupted partway through still
+ * shows every entry that came before the corruption, with `error` set
+ * so the caller can still say something's wrong, instead of either
+ * silently rendering nothing (indistinguishable from a pod that's
+ * genuinely empty) or refusing to show anything at all.
+ *
+ * @param turtleText - Raw Turtle content of the catalog
+ * @param baseUri - Base URI for resolving relative IRIs and naming the document in `error`
+ *
+ * @public
+ */
+export function parseCatalogRecovering(turtleText: string, baseUri: string): ParseCatalogRecoveringResult {
+  const { quads, error } = parseQuadsRecovering(turtleText, baseUri);
+  return { entries: entriesFromQuads(quads), error };
 }
 
 /**
