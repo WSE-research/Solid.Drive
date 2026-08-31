@@ -9,13 +9,18 @@ vi.mock('react-i18next', () => ({
     (key: string, fallbackOrOpts?: unknown) => {
       if (typeof fallbackOrOpts === 'string') return fallbackOrOpts;
       const opts = fallbackOrOpts as { defaultValue?: string; count?: number } | undefined;
-      return opts?.defaultValue ?? key;
+      if (opts?.defaultValue) return opts.defaultValue;
+      // No fallback text: stand in for real i18next's {{count}} interpolation
+      // so a count-only translate call (no defaultValue, e.g. itemCount) is
+      // still testable.
+      return opts?.count !== undefined ? `${key}:${opts.count}` : key;
     },
   ],
 }));
 
 function makeEntry(overrides: Partial<TrashEntry> = {}): TrashEntry {
   return {
+    kind: 'file',
     entry: {
       metadataUri: 'https://pod.example/trash/photo-abc/index.ttl',
       binaryUri: 'https://pod.example/trash/photo-abc/photo.jpg',
@@ -28,6 +33,7 @@ function makeEntry(overrides: Partial<TrashEntry> = {}): TrashEntry {
     },
     containerUri: 'https://pod.example/trash/photo-abc/',
     tombstone: {
+      kind: 'file',
       originalContainerUri: 'https://pod.example/my-solid-app/photo-2024/',
       originalParentUri: 'https://pod.example/my-solid-app/',
       originalCatalogUri: 'https://pod.example/catalog.ttl',
@@ -38,6 +44,7 @@ function makeEntry(overrides: Partial<TrashEntry> = {}): TrashEntry {
       deletedAt: '2026-01-01T00:00:00.000Z',
       expiresAt: '2026-12-31T00:00:00.000Z',
     },
+    contents: null,
     ...overrides,
   };
 }
@@ -81,6 +88,29 @@ describe('TrashTable', () => {
     expect(screen.getByRole('button', { name: /delete permanently: photo\.jpg/i })).toBeEnabled();
   });
 
+  it('shows a blank size for a folder row instead of a byte count', () => {
+    const entry = makeEntry({
+      kind: 'folder',
+      entry: { ...makeEntry().entry, title: 'Vacation Photos', byteSize: 0 },
+    });
+    const { container } = render(<TrashTable entries={[entry]} onRestore={vi.fn()} onPurge={vi.fn()} />);
+    expect(screen.getByText('Vacation Photos')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /restore: Vacation Photos/i })).toBeEnabled();
+    expect(container.querySelectorAll('[role="cell"]')[3]).toHaveTextContent('—');
+  });
+
+  it('shows an item count for a folder row with a known catalog snapshot, instead of a blank size', () => {
+    const entry = makeEntry({
+      kind: 'folder',
+      entry: { ...makeEntry().entry, title: 'Vacation Photos', byteSize: 0 },
+      contents: { entries: [], fileCount: 3, folderCount: 1 },
+    });
+    const { container } = render(<TrashTable entries={[entry]} onRestore={vi.fn()} onPurge={vi.fn()} />);
+    const sizeCell = container.querySelectorAll('[role="cell"]')[3];
+    expect(sizeCell).not.toHaveTextContent('—');
+    expect(sizeCell).toHaveTextContent('oneDriveLayout.trashView.itemCount:4');
+  });
+
   it('disables both actions for the busy row only', () => {
     const busyEntry = makeEntry();
     const otherEntry = makeEntry({
@@ -114,10 +144,18 @@ describe('TrashTable', () => {
     expect(onRestore).toHaveBeenCalledWith(entry);
   });
 
-  it('falls back to the container URI tail for the title and shows — for the original location when the tombstone is missing', () => {
+  it('falls back to the container URI tail for the title and shows the em-dash placeholder for the original location when the tombstone is missing', () => {
     const entry = makeEntry({ tombstone: null, entry: { ...makeEntry().entry, title: '' } });
     render(<TrashTable entries={[entry]} onRestore={vi.fn()} onPurge={vi.fn()} />);
     expect(screen.getByText('photo-abc')).toBeInTheDocument();
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
+
+  it('falls back to the tombstone\'s original name, not the trash item\'s own UUID, when the catalog row has no title', () => {
+    const entry = makeEntry({ entry: { ...makeEntry().entry, title: '' } });
+    const { container } = render(<TrashTable entries={[entry]} onRestore={vi.fn()} onPurge={vi.fn()} />);
+    expect(container.querySelector('.odl-trash-row__title')).toHaveTextContent('photo-2024');
+    expect(screen.queryByText('photo-abc')).not.toBeInTheDocument();
+  });
+
 });

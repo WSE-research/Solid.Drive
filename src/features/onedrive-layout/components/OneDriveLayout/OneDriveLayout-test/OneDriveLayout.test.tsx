@@ -191,6 +191,11 @@ vi.mock('@/features/file-explorer/services/softDeleteFile', () => ({
   softDeleteFile: (...args: unknown[]) => mockSoftDeleteFile(...args),
 }));
 
+const mockSoftDeleteFolder = vi.fn().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/folder/' });
+vi.mock('@/features/file-explorer/services/softDeleteFolder', () => ({
+  softDeleteFolder: (...args: unknown[]) => mockSoftDeleteFolder(...args),
+}));
+
 vi.mock('@/features/file-explorer/hooks/useDriveInitialization', () => ({
   useDriveInitialization: () => ({
     storageRootUri: 'https://pod/',
@@ -598,6 +603,7 @@ describe('OneDriveLayout — handler outcomes', () => {
     mockDownloadResource.mockClear().mockResolvedValue({ ok: true });
     mockDeleteResource.mockClear().mockResolvedValue({ ok: true });
     mockSoftDeleteFile.mockClear().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/doc/' });
+    mockSoftDeleteFolder.mockClear().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/folder/' });
     mockClear.mockClear();
     mockMyFilesViewProps.mockClear();
     window.history.replaceState({}, '', '/?view=my-files');
@@ -665,15 +671,31 @@ describe('OneDriveLayout — handler outcomes', () => {
     expect(mockClear).toHaveBeenCalled();
   });
 
-  it('hard-deletes a folder selection instead of soft-deleting', async () => {
+  it('soft-deletes a folder selection and clears the selection when Delete is confirmed', async () => {
     mockSelected.current = { kind: 'folder', uri: 'https://pod/app/folder/', name: 'folder' };
     const user = userEvent.setup();
     render(<OneDriveLayout />);
-    await user.click(screen.getByRole('button', { name: /delete/i }));
-    expect(mockDeleteResource).toHaveBeenCalledWith(
-      expect.objectContaining({ containerUri: 'https://pod/app/folder/' }),
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
+    expect(mockSoftDeleteFolder).toHaveBeenCalledWith(
+      expect.objectContaining({ containerUri: 'https://pod/app/folder/', storageRootUri: 'https://pod/' }),
     );
+    expect(mockDeleteResource).not.toHaveBeenCalled();
     expect(mockSoftDeleteFile).not.toHaveBeenCalled();
+    expect(mockShowSuccess).toHaveBeenCalled();
+    expect(mockClear).toHaveBeenCalled();
+  });
+
+  it('falls back to hard-deleting a folder, using its own URI as the catalog key, when no owner webId is resolved', async () => {
+    mockSelected.current = { kind: 'folder', uri: 'https://pod/app/folder/', name: 'folder' };
+    mockSession.current = { webId: undefined, isActive: true };
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
+    expect(mockDeleteResource).toHaveBeenCalledWith(
+      expect.objectContaining({ containerUri: 'https://pod/app/folder/', metadataUri: 'https://pod/app/folder/' }),
+    );
+    expect(mockSoftDeleteFolder).not.toHaveBeenCalled();
+    mockSession.current = { webId: 'https://owner/me', isActive: true };
   });
 
   it('skips the delete when the user cancels the confirmation', async () => {

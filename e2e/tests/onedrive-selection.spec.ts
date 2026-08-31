@@ -47,9 +47,9 @@ test("selecting a file reveals the contextual action strip", async ({ browser, p
   const strip = page.locator("selection-actions");
   await expect(strip).toBeVisible();
   await expect(page.locator(".odl-page-title")).toHaveCount(0);
-  // Delete is "Move to bin" for a file selection — soft delete. Folders
-  // would show "Delete" instead, which hard-deletes directly since
-  // folders aren't catalog-backed and can't be tombstoned.
+  // "Move to bin" for both files and folders: the selection strip can't
+  // tell in advance whether a delete will end up soft or hard, so both
+  // kinds get the same label.
   for (const action of ["Share", "Copy link", "Move to bin", "Download"]) {
     await expect(strip.getByRole("button", { name: action, exact: true })).toBeVisible();
   }

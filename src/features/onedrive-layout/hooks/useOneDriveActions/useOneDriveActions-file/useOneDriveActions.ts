@@ -12,6 +12,7 @@ import { useGuardedSoftDelete } from '@/features/file-explorer/hooks/useGuardedS
 import { copyToClipboard } from '@/shared/utils/copyToClipboard';
 import { deleteResource } from '@/features/file-explorer/services/deleteResource';
 import { softDeleteFile } from '@/features/file-explorer/services/softDeleteFile';
+import { softDeleteFolder } from '@/features/file-explorer/services/softDeleteFolder';
 import { downloadResource } from '@/features/file-explorer/services/downloadResource';
 import { decodeUriTail } from '@/features/onedrive-layout/formatting';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
@@ -23,9 +24,9 @@ export interface UseOneDriveActionsArgs {
   catalogUri: string | null | undefined;
   solidFetch: typeof fetch;
   onAfterDelete: () => void;
-  /** Pod storage root. Required for soft delete; folders always hard-delete regardless. */
+  /** Pod storage root. Required for soft delete; falls back to permanent deletion without it. */
   storageRootUri?: string | null;
-  /** The selection's catalog-row payload, built by the caller (`OneDriveLayout`'s `sharedEntry` memo). */
+  /** The selection's catalog-row payload, built by the caller (`OneDriveLayout`'s `sharedEntry` memo). Only files need this — a folder's soft delete reads its own catalog subtree directly. */
   entry?: SharedEntry | null;
   /** WebID used as the trash catalog entry's publisher. */
   ownerWebId?: string;
@@ -34,7 +35,7 @@ export interface UseOneDriveActionsArgs {
 export interface UseOneDriveActionsReturn {
   handleCopyLink: () => Promise<void>;
   handleDownload: () => Promise<void>;
-  /** Moves a file to the Recycle bin; hard-deletes folders (they aren't catalog-backed, so they can't be tombstoned). */
+  /** Moves the selection to the Recycle bin, falling back to permanent deletion when required owner/catalog data isn't available. */
   handleDelete: () => Promise<void>;
 }
 
@@ -89,11 +90,12 @@ export function useOneDriveActions({
   const handleDelete = useCallback(() => {
     if (!selected) return Promise.resolve();
 
-    // Folders always hard-delete because they are not catalog-backed.
-    // Files use soft delete when all required owner and catalog data is
-    // available, otherwise they fall back to permanent deletion staying dead.
-    const canSoftDelete =
-      selected.kind === 'file' && !!storageRootUri && !!entry && !!catalogUri && !!ownerWebId;
+    // Soft-deletes when the owner and catalog data are available, otherwise
+    // falls back to a permanent delete. A file also needs its own catalog
+    // row (`entry`); a folder gets what it needs from its catalog subtree.
+    const canSoftDeleteFile = selected.kind === 'file' && !!storageRootUri && !!entry && !!catalogUri && !!ownerWebId;
+    const canSoftDeleteFolder = selected.kind === 'folder' && !!storageRootUri && !!catalogUri && !!ownerWebId;
+    const canSoftDelete = canSoftDeleteFile || canSoftDeleteFolder;
 
     return runGuardedDelete({
       resourceUri: selected.uri,
@@ -117,22 +119,33 @@ export function useOneDriveActions({
             name: selected.name,
           }),
       onSuccess: onAfterDelete,
-      run: () =>
-        canSoftDelete
-          ? softDeleteFile({
-              containerUri: selected.uri,
-              storageRootUri: storageRootUri!,
-              catalogUri: catalogUri!,
-              entry: entry!,
-              ownerWebId: ownerWebId!,
-              fetch: solidFetch,
-            })
-          : deleteResource({
-              containerUri: selected.uri,
-              metadataUri: catalogByContainer.get(selected.uri)?.uri,
-              catalogUri: catalogUri ?? undefined,
-              fetch: solidFetch,
-            }),
+      run: () => {
+        if (canSoftDeleteFile) {
+          return softDeleteFile({
+            containerUri: selected.uri,
+            storageRootUri: storageRootUri!,
+            catalogUri: catalogUri!,
+            entry: entry!,
+            ownerWebId: ownerWebId!,
+            fetch: solidFetch,
+          });
+        }
+        if (canSoftDeleteFolder) {
+          return softDeleteFolder({
+            containerUri: selected.uri,
+            storageRootUri: storageRootUri!,
+            catalogUri: catalogUri!,
+            ownerWebId: ownerWebId!,
+            fetch: solidFetch,
+          });
+        }
+        return deleteResource({
+          containerUri: selected.uri,
+          metadataUri: selected.kind === 'folder' ? selected.uri : catalogByContainer.get(selected.uri)?.uri,
+          catalogUri: catalogUri ?? undefined,
+          fetch: solidFetch,
+        });
+      },
     });
   }, [
     runGuardedDelete,

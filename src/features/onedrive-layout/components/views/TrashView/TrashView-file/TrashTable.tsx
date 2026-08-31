@@ -1,7 +1,7 @@
 /**
  * @packageDocumentation
- * Renders the Recycle Bin as a flat table with file details,
- * retention information, and restore or permanent-delete actions.
+ * Renders the Recycle Bin as a flat table with file details, retention
+ * information, and restore or permanent-delete actions.
  */
 
 import type { FunctionComponent } from 'react';
@@ -13,6 +13,7 @@ import {
   formatCatalogSize,
   formatRowDate,
   pickFileIcon,
+  pickFolderIcon,
 } from '@/features/onedrive-layout/formatting';
 import type { TrashEntry } from '@/features/file-explorer/hooks/useTrashEntries';
 import { formatExpiry } from './formatExpiry';
@@ -39,13 +40,20 @@ interface TrashRowProps {
 
 const TrashRow: FunctionComponent<TrashRowProps> = ({ item, busy, onRestore, onPurge }) => {
   const [translate] = useTranslation();
-  const { entry, tombstone } = item;
-  const title = entry.title || decodeUriTail(item.containerUri);
+  const { entry, tombstone, contents } = item;
+  const isFolder = item.kind === 'folder';
+  // Falls back to the tombstone's original location when the catalog row
+  // has no title (e.g. a partially-recovered catalog), and to the trash
+  // item's own UUID when there's no tombstone either.
+  const title = entry.title || (tombstone ? decodeUriTail(tombstone.originalContainerUri) : decodeUriTail(item.containerUri));
   const originalLocation = tombstone ? decodeUriTail(tombstone.originalContainerUri) : EMPTY_CELL;
-  const { Icon } = pickFileIcon({ name: title, mediaType: entry.mediaType, conformsTo: entry.classUri });
+  const { Icon } = isFolder ? pickFolderIcon() : pickFileIcon({ name: title, mediaType: entry.mediaType, conformsTo: entry.classUri });
   const deleted = formatRowDate(tombstone?.deletedAt);
   const expiry = tombstone ? formatExpiry(tombstone.expiresAt, new Date()) : null;
-  const size = formatCatalogSize(entry.byteSize);
+  const itemCount = contents ? contents.fileCount + contents.folderCount : null;
+  const size = isFolder
+    ? (itemCount === null ? EMPTY_CELL : translate('oneDriveLayout.trashView.itemCount', { count: itemCount }))
+    : formatCatalogSize(entry.byteSize);
   const canRestore = tombstone !== null && !busy;
 
   const restoreLabel = translate('oneDriveLayout.trashView.action.restore', 'Restore');

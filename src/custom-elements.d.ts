@@ -30,6 +30,8 @@ declare module "react" {
       "empty-state": El;
       "empty-state-icon": El;
       "file-entry": El;
+      // FolderEntry
+      "folder-entry": El;
       // FileExplorer
       "drive-gate": El;
       "drive-gate-icon": El;

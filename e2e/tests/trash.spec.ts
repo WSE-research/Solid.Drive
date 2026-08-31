@@ -95,6 +95,104 @@ async function moveToBinViaUi(
   await shot(page, `${title} moved to recycle bin`);
 }
 
+/**
+ * Creates a folder via the Create menu, in whatever container is currently
+ * open, and returns its (already slug-shaped) name.
+ */
+async function createFolderViaUi(page: import("@playwright/test").Page): Promise<string> {
+  const folderName = `e2e-folder-${Date.now()}`;
+  await page
+    .locator("nav-rail")
+    .getByRole("button", { name: "Create or upload", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "New folder" }).click();
+
+  const dialog = page.locator(".odl-dialog--new-folder");
+  await dialog.locator("#odl-new-folder-name").fill(folderName);
+  await dialog.getByRole("button", { name: "Create", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.locator(".odl-files-row--folder").filter({ hasText: folderName }),
+  ).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+
+  return folderName;
+}
+
+/**
+ * Moves a folder to the Recycle Bin through the UI. A folder row navigates
+ * on click, so selecting it needs its hover-revealed checkbox instead of
+ * the row click `moveToBinViaUi` uses for files.
+ */
+async function moveFolderToBinViaUi(page: import("@playwright/test").Page, folderName: string): Promise<void> {
+  const folderRow = page.locator(".odl-files-row--folder").filter({ hasText: folderName });
+  await expect(folderRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  await folderRow.hover();
+  await folderRow.getByRole("checkbox", { name: "Select" }).click();
+  await expect(folderRow).toHaveAttribute("aria-selected", "true");
+
+  await page.locator("selection-actions").getByRole("button", { name: "Move to bin", exact: true }).click();
+  await page.locator("confirm-dialog").getByRole("button", { name: "Confirm" }).click();
+  await expect(folderRow).toHaveCount(0, { timeout: UI_TIMEOUTS.medium });
+  await expect(page.locator(".toast").last()).toContainText("moved to the Recycle bin", { timeout: UI_TIMEOUTS.medium });
+  await shot(page, `${folderName} moved to recycle bin`);
+}
+
+test("Restore returns a folder to My Files and removes it from the Recycle bin", async ({ browser, peach }) => {
+  test.setTimeout(TEST_TIMEOUTS.long);
+
+  const { page, close } = await freshLogin(browser, peach);
+  await openMyFiles(page);
+  const folderName = await createFolderViaUi(page);
+  await moveFolderToBinViaUi(page, folderName);
+
+  await navigateToView(page, "Recycle bin");
+  const trashRow = page.locator("trash-row").filter({ hasText: folderName });
+  await expect(trashRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+
+  await trashRow.getByRole("button", { name: /^Restore/ }).click();
+  await expect(trashRow).toHaveCount(0, { timeout: UI_TIMEOUTS.medium });
+  await expect(page.locator(".toast").last()).toContainText(folderName);
+  await shot(page, `${folderName} restored`);
+
+  // Fresh context, same reasoning as the file restore test: LDO's subject
+  // cache must not serve stale pre-restore state.
+  await close();
+  const after = await freshLogin(browser, peach);
+  await openMyFiles(after.page);
+  await expect(
+    after.page.locator(".odl-files-row--folder").filter({ hasText: folderName }),
+  ).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  await shot(after.page, `${folderName} back at its original location`);
+
+  await after.close();
+});
+
+test("Delete permanently from the Recycle bin removes a trashed folder for good", async ({ browser, peach }) => {
+  test.setTimeout(TEST_TIMEOUTS.medium);
+
+  const { page, close } = await freshLogin(browser, peach);
+  await openMyFiles(page);
+  const folderName = await createFolderViaUi(page);
+  await moveFolderToBinViaUi(page, folderName);
+
+  await navigateToView(page, "Recycle bin");
+  const trashRow = page.locator("trash-row").filter({ hasText: folderName });
+  await expect(trashRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  const trashContainerUri = await findTrashItemContainerUri(peach.authedFetch, peach.pod, folderName);
+
+  await trashRow.getByRole("button", { name: /^Delete permanently/ }).click();
+  await page.locator("confirm-dialog").getByRole("button", { name: "Confirm" }).click();
+  await expect(trashRow).toHaveCount(0, { timeout: UI_TIMEOUTS.medium });
+  await shot(page, `${folderName} permanently deleted`);
+
+  // The physical trash payload is gone too, not just the row.
+  await expect
+    .poll(async () => (await peach.authedFetch(trashContainerUri)).status, { timeout: UI_TIMEOUTS.medium })
+    .toBe(404);
+
+  await close();
+});
+
 test("Restore returns the file to My Files, removes it from the Recycle bin, and preserves its ACL", async ({ browser, peach, parni }) => {
   test.setTimeout(TEST_TIMEOUTS.long);
 

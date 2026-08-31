@@ -131,19 +131,30 @@ export const TrashView: FunctionComponent = () => {
     );
   }, [entries, purge, confirm, showSuccess, showError, translate]);
 
+  // Show recovered entries even when the trash catalog only parsed partially.
   const body = loading ? (
     <p className="odl-trash-loading">{translate('oneDriveLayout.trashView.loading', 'Loading…')}</p>
-  ) : error ? (
+  ) : error && entries.length === 0 ? (
     <p className="odl-trash-error">
       {translate('oneDriveLayout.trashView.loadError', 'Could not load the Recycle bin')}
     </p>
   ) : (
-    <TrashTable
-      entries={entries}
-      busyContainerUri={busyContainerUri}
-      onRestore={handleRestore}
-      onPurge={handlePurge}
-    />
+    <>
+      {error && (
+        <p className="odl-trash-warning">
+          {translate(
+            'oneDriveLayout.trashView.loadPartialError',
+            "Some items couldn't be loaded. Refresh to try again.",
+          )}
+        </p>
+      )}
+      <TrashTable
+        entries={entries}
+        busyContainerUri={busyContainerUri}
+        onRestore={handleRestore}
+        onPurge={handlePurge}
+      />
+    </>
   );
 
   return (

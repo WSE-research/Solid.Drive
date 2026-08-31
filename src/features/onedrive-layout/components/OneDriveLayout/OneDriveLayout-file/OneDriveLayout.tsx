@@ -147,10 +147,24 @@ export const OneDriveLayout: FunctionComponent = () => {
     selection: selected,
     catalogByContainer,
   });
+  // Gets a new Map on every refetch, even with no real changes.
+  const matchedCatalogEntry = selected ? catalogByContainer.get(selected.uri) : undefined;
   const sharedEntry = useMemo(
-    () =>
-      selected ? buildSharedEntry(selected, catalogByContainer.get(selected.uri)) : null,
-    [selected, catalogByContainer],
+    () => (selected ? buildSharedEntry(selected, matchedCatalogEntry) : null),
+    // Deliberately depending on matchedCatalogEntry's fields instead of the
+    // object itself; see the comment above for why.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      selected,
+      matchedCatalogEntry?.accessURL,
+      matchedCatalogEntry?.conformsTo,
+      matchedCatalogEntry?.mediaType,
+      matchedCatalogEntry?.byteSize,
+      matchedCatalogEntry?.title,
+      matchedCatalogEntry?.description,
+      matchedCatalogEntry?.modified,
+      matchedCatalogEntry?.parentUri,
+    ],
   );
 
   const handleAfterDelete = useCallback(() => {

@@ -39,6 +39,7 @@ vi.mock('@/shared/contexts/NotificationContext', () => ({
 import { TrashView } from '../TrashView-file/TrashView';
 
 const item: TrashEntry = {
+  kind: 'file',
   entry: {
     metadataUri: 'https://pod.example/trash/photo-abc/index.ttl',
     binaryUri: 'https://pod.example/trash/photo-abc/photo.jpg',
@@ -51,6 +52,7 @@ const item: TrashEntry = {
   },
   containerUri: 'https://pod.example/trash/photo-abc/',
   tombstone: {
+    kind: 'file',
     originalContainerUri: 'https://pod.example/my-solid-app/photo-2024/',
     originalParentUri: 'https://pod.example/my-solid-app/',
     originalCatalogUri: 'https://pod.example/catalog.ttl',
@@ -61,6 +63,7 @@ const item: TrashEntry = {
     deletedAt: '2026-01-01T00:00:00.000Z',
     expiresAt: '2026-12-31T00:00:00.000Z',
   },
+  contents: null,
 };
 
 describe('TrashView', () => {
@@ -83,6 +86,14 @@ describe('TrashView', () => {
     mockTrashState = { entries: [], loading: false, error: new Error('boom') };
     render(<TrashView />);
     expect(screen.getByText(/could not load the recycle bin/i)).toBeInTheDocument();
+  });
+
+  it('shows both a warning and the recovered entries when the catalog only partly failed to load', () => {
+    mockTrashState = { entries: [item], loading: false, error: new Error('boom') };
+    render(<TrashView />);
+    expect(screen.getByText(/couldn't be loaded/i)).toBeInTheDocument();
+    expect(screen.getByText('photo.jpg')).toBeInTheDocument();
+    expect(screen.queryByText(/could not load the recycle bin/i)).not.toBeInTheDocument();
   });
 
   it('renders the table with entries', () => {

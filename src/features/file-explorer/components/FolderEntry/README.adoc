@@ -7,7 +7,20 @@ Takes an optional `title` prop, the folder's catalog name, which the caller look
 up from `useCatalog`'s `folderTitles` map. When it's set, it replaces the URI's
 last segment so the folder shows its real name.
 
+When a `catalogUri` is given, a delete button is shown alongside the name.
+With `storageRootUri` and `ownerWebId` also given, deleting asks to move
+the folder to the Recycle bin and calls `softDeleteFolder`; without them
+it falls back to an immediate, permanent delete via `deleteResource`,
+using the folder's own URI as both the container and the catalog key,
+same rule `FileCard` applies for files. Either way, a failed delete surfaces
+a toast instead of failing silently.
+
 == Navigation
 
 .Parent
 link:../[file-explorer/components]
+
+.Uses
+* link:../../services/softDeleteFolder/[softDeleteFolder]
+* link:../../services/deleteResource/[deleteResource]
+* link:../../hooks/useGuardedSoftDelete/[useGuardedSoftDelete]

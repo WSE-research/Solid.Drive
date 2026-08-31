@@ -126,7 +126,11 @@
     "uploadTrayDismiss": "Schließen",
     "unsupportedFolderDrop": "Ordner werden noch nicht unterstützt. Bitte einzelne Dateien ablegen.",
     "uploadDuplicate": "Eine Datei mit dem Namen \"{{name}}\" existiert bereits in \"{{folder}}\".",
-    "brokenFolderPath": "Der Pfad zu \"{{folder}}\" konnte nicht ermittelt werden: die Verknüpfung zum übergeordneten Ordner fehlt oder ist fehlerhaft."
+    "brokenFolderPath": "Der Pfad zu \"{{folder}}\" konnte nicht ermittelt werden: die Verknüpfung zum übergeordneten Ordner fehlt oder ist fehlerhaft.",
+    "deleteFolder": "In den Papierkorb",
+    "deleteFolderConfirm": "Diesen Ordner in den Papierkorb verschieben?",
+    "deleteFolderConfirmPermanent": "Diesen Ordner endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+    "deleteFolderFail": "Löschen fehlgeschlagen"
   },
   "fileCard": {
     "loading": "Wird geladen\u2026",
@@ -353,6 +357,7 @@
       "moveTo": "Verschieben",
       "rename": "Umbenennen",
       "more": "Weitere Aktionen",
+      "select": "Auswählen",
       "clearSelection": "Auswahl aufheben",
       "selectionCount_one": "{{count}} ausgewählt",
       "selectionCount_other": "{{count}} ausgewählt"
@@ -414,7 +419,7 @@
     },
     "recentView": {
       "heading": "Zuletzt",
-      "empty": "Noch keine zuletzt geöffneten Dateien — alles, was du öffnest, erscheint hier.",
+      "empty": "Noch keine zuletzt geöffneten Dateien, alles, was du öffnest, erscheint hier.",
       "column": {
         "name": "Name",
         "opened": "Geöffnet",
@@ -433,6 +438,7 @@
       "retentionNote": "Elemente werden nach 30 Tagen endgültig gelöscht.",
       "loading": "Lädt…",
       "loadError": "Papierkorb konnte nicht geladen werden",
+      "loadPartialError": "Einige Elemente konnten nicht geladen werden. Aktualisieren, um es erneut zu versuchen.",
       "column": {
         "name": "Name",
         "deleted": "Gelöscht",
@@ -463,7 +469,9 @@
       "expiresToday": "Läuft heute ab",
       "expiresTomorrow": "Läuft morgen ab",
       "expiresIn_one": "Läuft in {{count}} Tag ab",
-      "expiresIn_other": "Läuft in {{count}} Tagen ab"
+      "expiresIn_other": "Läuft in {{count}} Tagen ab",
+      "itemCount_one": "{{count}} Element",
+      "itemCount_other": "{{count}} Elemente"
     }
   },
   "auth": {

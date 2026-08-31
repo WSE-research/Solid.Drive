@@ -126,7 +126,11 @@
     "uploadTrayDismiss": "Dismiss",
     "unsupportedFolderDrop": "Folders aren't supported yet. Please drop individual files instead.",
     "uploadDuplicate": "A file named \"{{name}}\" already exists in \"{{folder}}\".",
-    "brokenFolderPath": "Couldn't work out the path to \"{{folder}}\": its link to its parent folder is missing or broken."
+    "brokenFolderPath": "Couldn't work out the path to \"{{folder}}\": its link to its parent folder is missing or broken.",
+    "deleteFolder": "Move to bin",
+    "deleteFolderConfirm": "Move this folder and its contents to the Recycle bin?",
+    "deleteFolderConfirmPermanent": "Delete this folder and its contents permanently? This cannot be undone.",
+    "deleteFolderFail": "Delete failed"
   },
   "fileCard": {
     "loading": "Loading\u2026",
@@ -353,6 +357,7 @@
       "moveTo": "Move to",
       "rename": "Rename",
       "more": "More actions",
+      "select": "Select",
       "clearSelection": "Clear selection",
       "selectionCount_one": "{{count}} selected",
       "selectionCount_other": "{{count}} selected"
@@ -414,7 +419,7 @@
     },
     "recentView": {
       "heading": "Recent",
-      "empty": "No recent files yet — anything you open will show up here.",
+      "empty": "No recent files yet, anything you open will show up here.",
       "column": {
         "name": "Name",
         "opened": "Opened",
@@ -433,6 +438,7 @@
       "retentionNote": "Items are permanently deleted after 30 days.",
       "loading": "Loading…",
       "loadError": "Could not load the Recycle bin",
+      "loadPartialError": "Some items couldn't be loaded. Refresh to try again.",
       "column": {
         "name": "Name",
         "deleted": "Deleted",
@@ -463,7 +469,9 @@
       "expiresToday": "Expires today",
       "expiresTomorrow": "Expires tomorrow",
       "expiresIn_one": "Expires in {{count}} day",
-      "expiresIn_other": "Expires in {{count}} days"
+      "expiresIn_other": "Expires in {{count}} days",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items"
     }
   },
   "auth": {

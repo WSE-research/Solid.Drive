@@ -16,7 +16,6 @@ import { useTranslation } from 'react-i18next';
 import {
   ShareIcon,
   LinkIcon,
-  DeleteIcon,
   DownloadIcon,
   MoveToIcon,
   RenameIcon,
@@ -29,7 +28,9 @@ interface SelectionActionsProps {
   selection: SelectedResource;
   onShare: () => void;
   onCopyLink: () => void;
-  // Moves a file to the Recycle Bin or hard-deletes a folder.
+  // Moves the selection to the Recycle Bin, falling back to a hard delete
+  // when soft-delete's prerequisites (storage root, catalog, owner) aren't
+  // resolved yet — see useOneDriveActions.
   onDelete: () => void;
   onDownload: () => void;
   onMoveTo: () => void;
@@ -90,27 +91,20 @@ export const SelectionActions: FunctionComponent<SelectionActionsProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Files move to the Recycle Bin, while folders are permanently deleted
-  // because they are currently not catalog-backed and cannot be restored from trash.
-  // TODO: add a catalog vocabulary for containers, linked via a parent container,
-  // so folders become catalog-backed like files. That would make soft delete
-  // and restore possible for folders too, instead of always hard-deleting them.
-  const isFile = selection?.kind === 'file';
-  const deleteLabel = isFile
-    ? translate('oneDriveLayout.action.moveToTrash', 'Move to bin')
-    : translate('oneDriveLayout.action.delete', 'Delete');
-  const deleteIcon = isFile ? TrashIcon : DeleteIcon;
+  // Always labeled "Move to bin": this component has no way to tell
+  // whether useOneDriveActions will end up doing a soft or hard delete.
+  const deleteLabel = translate('oneDriveLayout.action.moveToTrash', 'Move to bin');
 
   const actions = useMemo<ActionDef[]>(
     () => [
       { Icon: ShareIcon,    label: translate('oneDriveLayout.action.share',    'Share'),     onClick: onShare },
       { Icon: LinkIcon,     label: translate('oneDriveLayout.action.link',     'Copy link'), onClick: onCopyLink },
-      { Icon: deleteIcon,   label: deleteLabel,                                              onClick: onDelete },
+      { Icon: TrashIcon,    label: deleteLabel,                                              onClick: onDelete },
       { Icon: DownloadIcon, label: translate('oneDriveLayout.action.download', 'Download'),  onClick: onDownload },
       { Icon: MoveToIcon,   label: translate('oneDriveLayout.action.moveTo',   'Move to'),   onClick: onMoveTo,   stub: true },
       { Icon: RenameIcon,   label: translate('oneDriveLayout.action.rename',   'Rename'),    onClick: onRename,   stub: true },
     ],
-    [translate, onShare, onCopyLink, deleteIcon, deleteLabel, onDelete, onDownload, onMoveTo, onRename],
+    [translate, onShare, onCopyLink, deleteLabel, onDelete, onDownload, onMoveTo, onRename],
   );
 
   // Reserve KEBAB_WIDTH only when overflow is actually needed, so the

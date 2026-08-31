@@ -61,30 +61,28 @@ const baseHandlers = {
 
 // Exact accessible names — "Move to bin" and "Move to" collide under
 // substring/regex matching, so every lookup here uses an exact string.
-const FILE_ACTION_LABELS = ['Share', 'Copy link', 'Move to bin', 'Download', 'Move to', 'Rename'];
-const FOLDER_ACTION_LABELS = ['Share', 'Copy link', 'Delete', 'Download', 'Move to', 'Rename'];
+const ACTION_LABELS = ['Share', 'Copy link', 'Move to bin', 'Download', 'Move to', 'Rename'];
 
 describe('SelectionActions', () => {
   it('renders no action buttons when nothing is selected', () => {
     render(<SelectionActions selection={null} {...baseHandlers} />);
-    for (const label of FILE_ACTION_LABELS) {
+    for (const label of ACTION_LABELS) {
       expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument();
     }
   });
 
   it('renders all six action buttons for a file selection, delete relabeled "Move to bin"', () => {
     render(<SelectionActions selection={fileSelection} {...baseHandlers} />);
-    for (const label of FILE_ACTION_LABELS) {
+    for (const label of ACTION_LABELS) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
   });
 
-  it('renders six action buttons for a folder selection, delete labeled "Delete"', () => {
+  it('renders all six action buttons for a folder selection, delete also relabeled "Move to bin"', () => {
     render(<SelectionActions selection={folderSelection} {...baseHandlers} />);
-    for (const label of FOLDER_ACTION_LABELS) {
+    for (const label of ACTION_LABELS) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
-    expect(screen.queryByRole('button', { name: 'Move to bin' })).not.toBeInTheDocument();
   });
 
   it('clicking Share fires onShare', async () => {
@@ -145,7 +143,7 @@ describe('SelectionActions', () => {
     expect(onDelete).toHaveBeenCalledOnce();
   });
 
-  it('clicking Delete fires onDelete for a folder selection (not stubbed)', async () => {
+  it('clicking Move to bin fires onDelete for a folder selection (not stubbed)', async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(
@@ -155,7 +153,7 @@ describe('SelectionActions', () => {
         onDelete={onDelete}
       />,
     );
-    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
+    const deleteBtn = screen.getByRole('button', { name: 'Move to bin' });
     expect(deleteBtn).not.toHaveAttribute('data-stub');
     await user.click(deleteBtn);
     expect(onDelete).toHaveBeenCalledOnce();

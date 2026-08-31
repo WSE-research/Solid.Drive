@@ -1156,6 +1156,41 @@ selection-actions-kebab {
   white-space: nowrap;
   min-width: 0;
 }
+.odl-row-checkbox {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--odl-text-faint);
+  border-radius: 999px;
+  background: var(--odl-bg-panel);
+  color: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--odl-transition-fast),
+              background var(--odl-transition-fast),
+              border-color var(--odl-transition-fast);
+}
+.odl-row-checkbox svg { width: 12px; height: 12px; }
+.odl-row-checkbox:hover { border-color: var(--odl-accent); }
+.odl-row-checkbox:focus-visible {
+  outline: 2px solid var(--odl-accent);
+  outline-offset: 2px;
+  opacity: 1;
+}
+.odl-row-checkbox--checked {
+  opacity: 1;
+  border-color: var(--odl-accent);
+  background: var(--odl-accent);
+  color: #fff;
+}
+.odl-files-row:hover .odl-row-checkbox,
+.odl-files-row:focus-within .odl-row-checkbox {
+  opacity: 1;
+}
 .odl-sharing-cell { color: var(--odl-text-muted); }
 .odl-sharing-cell--loading { color: var(--odl-text-faint); }
 .odl-search-empty {
@@ -3202,6 +3237,15 @@ trash-header {
   padding: var(--odl-space-6) var(--odl-space-4);
   text-align: center;
   color: var(--odl-text-muted);
+}
+
+.odl-trash-warning {
+  margin: var(--odl-space-3) 0;
+  padding: var(--odl-space-3) var(--odl-space-4);
+  border-radius: var(--odl-radius-card);
+  background: rgba(255, 138, 138, 0.12);
+  color: #ff8a8a;
+  font-size: var(--odl-font-size-sm);
 }
 
 trash-table {

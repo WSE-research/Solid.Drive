@@ -42,6 +42,11 @@ vi.mock('@/features/file-explorer/services/softDeleteFile', () => ({
   softDeleteFile: (...args: unknown[]) => mockSoftDeleteFile(...args),
 }));
 
+const mockSoftDeleteFolder = vi.fn();
+vi.mock('@/features/file-explorer/services/softDeleteFolder', () => ({
+  softDeleteFolder: (...args: unknown[]) => mockSoftDeleteFolder(...args),
+}));
+
 import { useOneDriveActions } from '../useOneDriveActions-file/useOneDriveActions';
 import type { CatalogEntry, SharedEntry } from '@/types';
 
@@ -97,6 +102,7 @@ describe('useOneDriveActions', () => {
     mockDownloadResource.mockResolvedValue({ ok: true });
     mockDeleteResource.mockResolvedValue({ ok: true });
     mockSoftDeleteFile.mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod.example/app/trash/doc/' });
+    mockSoftDeleteFolder.mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod.example/app/trash/folder/' });
     mockConfirm.mockResolvedValue(true);
   });
 
@@ -289,17 +295,40 @@ describe('useOneDriveActions', () => {
       expect(onAfterDelete).toHaveBeenCalledTimes(1);
     });
 
-    it('hard-deletes a folder selection even when soft-delete prerequisites are resolved', async () => {
+    it('soft-deletes a folder selection when storageRootUri, catalogUri, and ownerWebId are all resolved', async () => {
+      const onAfterDelete = vi.fn();
       const { result } = renderHook(() =>
-        useOneDriveActions({ ...softDeleteArgs(), selected: folderSelection }),
+        useOneDriveActions({ ...softDeleteArgs(), selected: folderSelection, onAfterDelete }),
       );
       await act(async () => {
         await result.current.handleDelete();
       });
-      expect(mockDeleteResource).toHaveBeenCalledWith(
-        expect.objectContaining({ containerUri: folderSelection.uri }),
+      expect(mockSoftDeleteFolder).toHaveBeenCalledWith({
+        containerUri: folderSelection.uri,
+        storageRootUri: 'https://pod.example/',
+        catalogUri: 'https://pod.example/app/catalog.ttl',
+        ownerWebId: 'https://owner.example/#me',
+        fetch: expect.any(Function),
+      });
+      expect(mockDeleteResource).not.toHaveBeenCalled();
+      expect(mockShowSuccess).toHaveBeenCalled();
+      expect(onAfterDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it('hard-deletes a folder selection, using its own URI as the catalog key, when soft-delete prerequisites are missing', async () => {
+      const { result } = renderHook(() =>
+        useOneDriveActions({ ...softDeleteArgs(), selected: folderSelection, ownerWebId: undefined }),
       );
-      expect(mockSoftDeleteFile).not.toHaveBeenCalled();
+      await act(async () => {
+        await result.current.handleDelete();
+      });
+      expect(mockDeleteResource).toHaveBeenCalledWith({
+        containerUri: folderSelection.uri,
+        metadataUri: folderSelection.uri,
+        catalogUri: 'https://pod.example/app/catalog.ttl',
+        fetch: expect.any(Function),
+      });
+      expect(mockSoftDeleteFolder).not.toHaveBeenCalled();
     });
 
     it('falls back to deleteResource when storageRootUri is missing', async () => {
