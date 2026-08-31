@@ -1,7 +1,8 @@
 /**
  * Filter, search, and sort state for the Home / Recent view. Owns chip
  * selection, query input, the chip set derived from catalog observations,
- * and the recency-ordered visible-entries projection.
+ * and the recency-ordered visible-entries projection, capped to the
+ * {@link RECENT_ENTRIES_LIMIT} most recently modified matches.
  *
  * @packageDocumentation
  */
@@ -14,6 +15,9 @@ import {
   type FilterChipDef,
 } from '@/features/onedrive-layout/components/filters/TypeFilterChips/TypeFilterChips-file/chipCatalog';
 import type { CatalogEntry } from '@/types';
+
+/** Maximum number of rows the Recent view surfaces. */
+const RECENT_ENTRIES_LIMIT = 10;
 
 export interface UseRecentFiltersArgs {
   catalogEntries: readonly CatalogEntry[];
@@ -32,7 +36,8 @@ export interface UseRecentFiltersReturn {
 
 /**
  * Returns the chip set, current selection, query, and the
- * already-filtered + sorted entries the table should render.
+ * already-filtered + sorted entries the table should render, capped to
+ * {@link RECENT_ENTRIES_LIMIT} rows.
  *
  * @public
  */
@@ -79,11 +84,13 @@ export function useRecentFilters({
       };
       return entryMatchesChipSelection(chipEntry, selectedChips, chips);
     });
-    return [...filtered].sort((left, right) => {
-      const leftMs = left.modified ? Date.parse(left.modified) : 0;
-      const rightMs = right.modified ? Date.parse(right.modified) : 0;
-      return rightMs - leftMs;
-    });
+    return [...filtered]
+      .sort((left, right) => {
+        const leftMs = left.modified ? Date.parse(left.modified) : 0;
+        const rightMs = right.modified ? Date.parse(right.modified) : 0;
+        return rightMs - leftMs;
+      })
+      .slice(0, RECENT_ENTRIES_LIMIT);
   }, [catalogEntries, query, ownerName, selectedChips, chips]);
 
   return {

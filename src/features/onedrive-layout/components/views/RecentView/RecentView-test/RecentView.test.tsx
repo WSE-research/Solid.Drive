@@ -9,9 +9,20 @@ vi.mock('react-i18next', () => ({
 const mockWebId: { current: string | undefined } = {
   current: 'https://owner.example/profile/card#me',
 };
+const mockSolidFetch = vi.fn();
 vi.mock('@ldo/solid-react', () => ({
-  useSolidAuth: () => ({ session: { webId: mockWebId.current } }),
+  useSolidAuth: () => ({ session: { webId: mockWebId.current }, fetch: mockSolidFetch }),
   useSubject: () => null,
+}));
+
+const showError = vi.fn();
+vi.mock('@/shared/contexts/NotificationContext', () => ({
+  useNotifications: () => ({ showError }),
+}));
+
+const mockDownloadResource = vi.fn();
+vi.mock('@/features/file-explorer/services/downloadResource', () => ({
+  downloadResource: (...args: unknown[]) => mockDownloadResource(...args),
 }));
 
 vi.mock('@/.ldo/solidProfile.shapeTypes', () => ({ SolidProfileShapeType: {} }));
@@ -25,11 +36,12 @@ vi.mock('@/features/file-explorer/hooks/useDriveInitialization', () => ({
 }));
 
 const mockEntries: { current: CatalogEntry[] } = { current: [] };
+const mockLoading: { current: boolean } = { current: false };
 vi.mock('@/features/file-explorer/hooks/useCatalog', () => ({
   useCatalog: () => ({
     entries: mockEntries.current,
     containerUris: new Set(),
-    loading: false,
+    loading: mockLoading.current,
     error: null,
   }),
 }));
@@ -90,11 +102,34 @@ vi.mock('../RecentView-file/RecentFilesTable', () => ({
   RecentFilesTable: (props: Record<string, unknown>) => {
     lastTableProps = props;
     const entries = props.entries as CatalogEntry[];
+    const onOpen = props.onOpen as (entry: CatalogEntry) => void;
     return (
       <div data-testid="recent-files-table" data-count={entries.length}>
         {entries.map((entry) => (
-          <span key={entry.uri} data-testid="visible-row" data-uri={entry.uri} />
+          <span
+            key={entry.uri}
+            data-testid="visible-row"
+            data-uri={entry.uri}
+            onClick={() => onOpen(entry)}
+          />
         ))}
+      </div>
+    );
+  },
+}));
+
+let lastPreviewProps: Record<string, unknown> | undefined;
+vi.mock('@/features/onedrive-layout/components/FilePreviewDialog', () => ({
+  FilePreviewDialog: (props: Record<string, unknown>) => {
+    lastPreviewProps = props;
+    const onOpenChange = props.onOpenChange as (next: boolean) => void;
+    return (
+      <div data-testid="preview-modal" data-uri={props.binaryUri as string}>
+        <button
+          type="button"
+          data-testid="preview-close"
+          onClick={() => onOpenChange(false)}
+        />
       </div>
     );
   },
@@ -118,8 +153,70 @@ const makeEntry = (overrides: Partial<CatalogEntry> = {}): CatalogEntry => ({
 describe('RecentView', () => {
   beforeEach(() => {
     mockEntries.current = [];
+    mockLoading.current = false;
     lastTableProps = undefined;
+    lastPreviewProps = undefined;
     mockWebId.current = 'https://owner.example/profile/card#me';
+    showError.mockClear();
+    mockDownloadResource.mockReset().mockResolvedValue({ ok: true });
+  });
+
+  it('shows a loading state instead of the table on the first, empty load', () => {
+    mockLoading.current = true;
+    render(<RecentView />);
+    expect(screen.getByText(/loading recent files/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('recent-files-table')).not.toBeInTheDocument();
+  });
+
+  it('keeps showing the table during a background revalidation that still has entries', () => {
+    mockEntries.current = [makeEntry()];
+    mockLoading.current = true;
+    render(<RecentView />);
+    expect(screen.queryByText(/loading recent files/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('recent-files-table')).toBeInTheDocument();
+  });
+
+  it('opens the preview dialog for the clicked entry, and closes it', () => {
+    const entry = makeEntry({ accessURL: 'https://owner.example/my-solid-app/file/File.pdf' });
+    mockEntries.current = [entry];
+    render(<RecentView />);
+    expect(screen.queryByTestId('preview-modal')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('visible-row'));
+    expect(screen.getByTestId('preview-modal')).toBeInTheDocument();
+    expect(lastPreviewProps?.binaryUri).toBe(entry.accessURL);
+    expect(lastPreviewProps?.title).toBe(entry.title);
+    expect(lastPreviewProps?.mediaType).toBe(entry.mediaType);
+
+    fireEvent.click(screen.getByTestId('preview-close'));
+    expect(screen.queryByTestId('preview-modal')).not.toBeInTheDocument();
+  });
+
+  it('downloads the previewed entry via its accessURL', async () => {
+    const entry = makeEntry({ accessURL: 'https://owner.example/my-solid-app/file/File.pdf' });
+    mockEntries.current = [entry];
+    render(<RecentView />);
+    fireEvent.click(screen.getByTestId('visible-row'));
+
+    const onDownload = lastPreviewProps?.onDownload as () => Promise<void>;
+    await onDownload();
+    expect(mockDownloadResource).toHaveBeenCalledWith(
+      entry.accessURL,
+      entry.title,
+      mockSolidFetch,
+    );
+  });
+
+  it('shows an error toast when the preview download fails', async () => {
+    mockDownloadResource.mockResolvedValue({ ok: false, reason: 'boom' });
+    const entry = makeEntry();
+    mockEntries.current = [entry];
+    render(<RecentView />);
+    fireEvent.click(screen.getByTestId('visible-row'));
+
+    const onDownload = lastPreviewProps?.onDownload as () => Promise<void>;
+    await onDownload();
+    expect(showError).toHaveBeenCalledWith(expect.stringContaining('boom'));
   });
 
   it('still renders when the auth-restore window has not produced a WebID yet', () => {

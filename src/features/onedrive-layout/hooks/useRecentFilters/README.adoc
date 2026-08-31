@@ -25,7 +25,7 @@ The query matches against both the entry title and the owner's display name, so 
 | `chips` | Derived chip set from observed types
 | `selectedChips` | Currently selected chip id, single select
 | `query` | Current person and name query
-| `visibleEntries` | Catalog entries that pass both the query and the chip filter, sorted by `modified` desc
+| `visibleEntries` | Catalog entries that pass both the query and the chip filter, sorted by `modified` desc, capped to the 10 most recent
 | `setQuery` | Updates the query
 | `toggleChip(chipId)` | Switches the active chip
 | `resetChips()` | Clears the chip filter

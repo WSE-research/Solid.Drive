@@ -7,7 +7,8 @@ Loads the list of files and folders a user has stored, from a catalog file kept 
 . Fetches the catalog and reads it into a list of entries.
 . Splits that list into files and folders, so folders never get mistaken for files anywhere else in the app (search, upload duplicate checks, the Recent list, and so on).
 . Keeps a shared cache, so if another part of the app already loaded the same catalog a moment ago, this just reuses that result instead of fetching again.
-. Reloads automatically whenever the catalog address changes, and cleans up safely if the component using it disappears while a fetch is still running.
+. Reloads when the catalog address changes, or after this app confirms a write (upload, delete, folder creation, rename, ...) via `notifyCatalogChanged`. A plain re-render never triggers a fetch. Cleans up safely if the component disappears mid-fetch.
+. A reload of the *same* address keeps serving the last-known entries while it re-fetches, so views don't flash empty. Switching to a *different* address resets to empty until the new catalog loads.
 . If loading fails, everything resets to empty and the failure is reported separately so the caller can show an error message.
 
 == Parameters

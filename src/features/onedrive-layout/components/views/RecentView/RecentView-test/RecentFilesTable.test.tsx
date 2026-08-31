@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { CatalogEntry } from '@/types';
 
 vi.mock('react-i18next', () => ({
@@ -38,7 +38,7 @@ const makeEntry = (overrides: Partial<CatalogEntry> = {}): CatalogEntry => ({
 
 describe('RecentFilesTable', () => {
   it('shows the empty hint when there are no entries', () => {
-    render(<RecentFilesTable entries={[]} ownerName="Alice" />);
+    render(<RecentFilesTable entries={[]} ownerName="Alice" onOpen={vi.fn()} />);
     expect(
       screen.getByText(/no recent files/i),
     ).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('RecentFilesTable', () => {
 
   it('renders the column headers (Name / Opened / Owner)', () => {
     render(
-      <RecentFilesTable entries={[makeEntry()]} ownerName="Alice" />,
+      <RecentFilesTable entries={[makeEntry()]} ownerName="Alice" onOpen={vi.fn()} />,
     );
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText('Opened')).toBeInTheDocument();
@@ -63,6 +63,7 @@ describe('RecentFilesTable', () => {
           }),
         ]}
         ownerName="Alice"
+        onOpen={vi.fn()}
       />,
     );
     expect(screen.getByText('Beach.jpg')).toBeInTheDocument();
@@ -80,6 +81,7 @@ describe('RecentFilesTable', () => {
           }),
         ]}
         ownerName="Alice"
+        onOpen={vi.fn()}
       />,
     );
     expect(screen.getByText('spreadsheet.xlsx')).toBeInTheDocument();
@@ -87,7 +89,7 @@ describe('RecentFilesTable', () => {
 
   it('passes 24x24 width/height to the row icon', () => {
     render(
-      <RecentFilesTable entries={[makeEntry()]} ownerName="Alice" />,
+      <RecentFilesTable entries={[makeEntry()]} ownerName="Alice" onOpen={vi.fn()} />,
     );
     const icon = screen.getByTestId('row-icon');
     expect(icon.getAttribute('data-w')).toBe('24');
@@ -99,6 +101,7 @@ describe('RecentFilesTable', () => {
       <RecentFilesTable
         entries={[makeEntry({ modified: undefined })]}
         ownerName="Alice"
+        onOpen={vi.fn()}
       />,
     );
     // The <span> for the date should be present but empty
@@ -111,6 +114,7 @@ describe('RecentFilesTable', () => {
       <RecentFilesTable
         entries={[makeEntry({ modified: 'not-a-date' })]}
         ownerName="Alice"
+        onOpen={vi.fn()}
       />,
     );
     const dateSpan = document.querySelector('.odl-recent-row__date');
@@ -126,8 +130,30 @@ describe('RecentFilesTable', () => {
           makeEntry({ uri: 'https://owner.example/c/index.ttl', title: 'C' }),
         ]}
         ownerName="Alice"
+        onOpen={vi.fn()}
       />,
     );
     expect(screen.getAllByTestId('recent-files-row')).toHaveLength(3);
+  });
+
+  it('calls onOpen with the entry when a row is clicked', () => {
+    const onOpen = vi.fn();
+    const entry = makeEntry();
+    render(
+      <RecentFilesTable entries={[entry]} ownerName="Alice" onOpen={onOpen} />,
+    );
+    fireEvent.click(screen.getByTestId('recent-files-row'));
+    expect(onOpen).toHaveBeenCalledWith(entry);
+  });
+
+  it('calls onOpen when a row is activated with Enter or Space', () => {
+    const onOpen = vi.fn();
+    render(
+      <RecentFilesTable entries={[makeEntry()]} ownerName="Alice" onOpen={onOpen} />,
+    );
+    const row = screen.getByTestId('recent-files-row');
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onOpen).toHaveBeenCalledTimes(2);
   });
 });

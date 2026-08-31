@@ -408,6 +408,7 @@
     "recentView": {
       "heading": "Zuletzt",
       "empty": "Noch keine zuletzt geöffneten Dateien — alles, was du öffnest, erscheint hier.",
+      "loading": "Zuletzt geöffnete Dateien werden geladen…",
       "column": {
         "name": "Name",
         "opened": "Geöffnet",
