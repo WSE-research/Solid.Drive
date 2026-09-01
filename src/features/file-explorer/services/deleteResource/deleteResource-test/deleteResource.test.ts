@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { deleteResource } from '../deleteResource-file/deleteResource';
+import { deleteResource, deleteResourceQuietly } from '../deleteResource-file/deleteResource';
 import type { FetchFn } from '@/types/solid';
 
 const mockRemoveFromCatalog = vi.fn().mockResolvedValue(undefined);
@@ -90,7 +90,7 @@ describe('deleteResource', () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it('removes the catalog entry when catalogUri + metadataUri are provided', async () => {
+  it('removes the matching catalog entry when a catalog and metadata URI are given', async () => {
     const fetchFn = vi.fn<FetchFn>(async () => okResponse(''));
     await deleteResource({
       containerUri: 'https://pod/app/file/',
@@ -105,7 +105,7 @@ describe('deleteResource', () => {
     );
   });
 
-  it('continues even when removeFromCatalog rejects', async () => {
+  it('still deletes the resource even when cleaning up its catalog entry fails', async () => {
     mockRemoveFromCatalog.mockRejectedValue(new Error('catalog offline'));
     const fetchFn = vi.fn<FetchFn>(async () => okResponse(''));
     const result = await deleteResource({
@@ -115,6 +115,107 @@ describe('deleteResource', () => {
       fetch: fetchFn,
     });
     expect(result).toEqual({ ok: true });
+  });
+
+  it('removes the catalog entry only after the physical delete succeeds', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const order: string[] = [];
+    mockRemoveFromCatalog.mockImplementation(async () => {
+      order.push('removeFromCatalog');
+    });
+    const fetchFn = vi.fn<FetchFn>(async (_input, init) => {
+      if (init?.method === 'DELETE') order.push('DELETE');
+      return okResponse('');
+    });
+
+    await deleteResource({
+      containerUri,
+      metadataUri: `${containerUri}index.ttl`,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    expect(order).toEqual(['DELETE', 'DELETE', 'removeFromCatalog']);
+  });
+
+  it('leaves the catalog entry in place when the physical delete fails, so the file is not orphaned from its listing', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const fetchFn = vi.fn<FetchFn>(async (_input, init) => {
+      if (init?.method === 'DELETE') return errorResponse(403, 'Forbidden');
+      return okResponse('');
+    });
+
+    const result = await deleteResource({
+      containerUri,
+      metadataUri: `${containerUri}index.ttl`,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalled();
+  });
+
+  it('cleans up catalog entries for nested folders and files when catalogUri is given', async () => {
+    const root = 'https://pod/app/folder/';
+    const subFolder = 'https://pod/app/folder/sub/';
+    const subFile = 'https://pod/app/folder/report/';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') return okResponse();
+      if (url === root) return okResponse(turtleWithChildren(root, [subFolder, subFile]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    await deleteResource({
+      containerUri: root,
+      metadataUri: root,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    // The root entry plus both catalog key forms for each child container.
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', root, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', subFolder, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', `${subFolder}index.ttl`, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', subFile, fetchFn);
+    expect(mockRemoveFromCatalog).toHaveBeenCalledWith('https://pod/catalog', `${subFile}index.ttl`, fetchFn);
+  });
+
+  it('still deletes a nested folder even when its own catalog cleanup fails', async () => {
+    const root = 'https://pod/app/folder/';
+    const subFolder = 'https://pod/app/folder/sub/';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') return okResponse();
+      if (url === root) return okResponse(turtleWithChildren(root, [subFolder]));
+      return errorResponse(404, 'Not Found');
+    });
+    mockRemoveFromCatalog.mockRejectedValue(new Error('catalog offline'));
+
+    const result = await deleteResource({
+      containerUri: root,
+      metadataUri: root,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('skips descendant catalog cleanup when no catalogUri is given', async () => {
+    const root = 'https://pod/app/folder/';
+    const subFolder = 'https://pod/app/folder/sub/';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') return okResponse();
+      if (url === root) return okResponse(turtleWithChildren(root, [subFolder]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    await deleteResource({ containerUri: root, fetch: fetchFn });
+
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalled();
   });
 
   it('recurses into nested containers', async () => {
@@ -145,7 +246,7 @@ describe('deleteResource', () => {
     ]);
   });
 
-  it('returns { ok: false, reason } with a child failure', async () => {
+  it('fails with a reason when a child resource cannot be deleted', async () => {
     const containerUri = 'https://pod/app/file/';
     const child = 'https://pod/app/file/locked.pdf';
     const fetchFn = vi.fn<FetchFn>(async (input, init) => {
@@ -160,7 +261,7 @@ describe('deleteResource', () => {
     expect(result).toEqual({ ok: false, reason: `${child}: 403 Forbidden` });
   });
 
-  it('returns { ok: false, reason } when the container DELETE fails', async () => {
+  it('fails with a reason when deleting the container itself fails', async () => {
     const containerUri = 'https://pod/app/file/';
     const fetchFn = vi.fn<FetchFn>(async (input, init) => {
       const url = String(input);
@@ -185,7 +286,7 @@ describe('deleteResource', () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it('returns { ok: false, reason } when fetch throws', async () => {
+  it('fails with a reason when the network request itself throws', async () => {
     const fetchFn = vi.fn<FetchFn>(async () => {
       throw new Error('offline');
     });
@@ -226,6 +327,35 @@ describe('deleteResource', () => {
     expect(result).toEqual({ ok: false, reason: `${leaf}: 403 Forbidden` });
   });
 
+  it('does not strip a descendant folder\'s catalog entry when it still has undeleted contents', async () => {
+    const root = 'https://pod/app/folder/';
+    const sub = 'https://pod/app/folder/sub/';
+    const leaf = 'https://pod/app/folder/sub/locked.pdf';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const url = String(input);
+      if (init?.method === 'DELETE') {
+        return url === leaf ? errorResponse(403, 'Forbidden') : okResponse();
+      }
+      if (url === root) return okResponse(turtleWithChildren(root, [sub]));
+      if (url === sub) return okResponse(turtleWithChildren(sub, [leaf]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    const result = await deleteResource({
+      containerUri: root,
+      metadataUri: root,
+      catalogUri: 'https://pod/catalog',
+      fetch: fetchFn,
+    });
+
+    expect(result.ok).toBe(false);
+    // sub is still physically there (leaf inside it failed to delete), so
+    // its catalog entry must not disappear — that would orphan it from
+    // every listing with no way back to it.
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalledWith('https://pod/catalog', sub, fetchFn);
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalledWith('https://pod/catalog', `${sub}index.ttl`, fetchFn);
+  });
+
   it('returns "Unknown error" when fetch throws a non-Error value', async () => {
     const fetchFn = vi.fn<FetchFn>(async () => {
       throw 'plain string failure';
@@ -236,5 +366,21 @@ describe('deleteResource', () => {
       fetch: fetchFn,
     });
     expect(result).toEqual({ ok: false, reason: 'Unknown error' });
+  });
+});
+
+describe('deleteResourceQuietly', () => {
+  it('resolves when the delete succeeds', async () => {
+    const fetchFn = vi.fn<FetchFn>(async () => okResponse());
+    await expect(
+      deleteResourceQuietly({ containerUri: 'https://pod/app/file/', fetch: fetchFn }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('resolves without throwing when the underlying delete fails', async () => {
+    const fetchFn = vi.fn<FetchFn>(async () => errorResponse(403, 'Forbidden'));
+    await expect(
+      deleteResourceQuietly({ containerUri: 'https://pod/app/file/', fetch: fetchFn }),
+    ).resolves.toBeUndefined();
   });
 });

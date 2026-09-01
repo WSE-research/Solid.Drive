@@ -126,14 +126,20 @@
     "uploadTrayDismiss": "Schließen",
     "unsupportedFolderDrop": "Ordner werden noch nicht unterstützt. Bitte einzelne Dateien ablegen.",
     "uploadDuplicate": "Eine Datei mit dem Namen \"{{name}}\" existiert bereits in \"{{folder}}\".",
-    "brokenFolderPath": "Der Pfad zu \"{{folder}}\" konnte nicht ermittelt werden: die Verknüpfung zum übergeordneten Ordner fehlt oder ist fehlerhaft."
+    "brokenFolderPath": "Der Pfad zu \"{{folder}}\" konnte nicht ermittelt werden: die Verknüpfung zum übergeordneten Ordner fehlt oder ist fehlerhaft.",
+    "deleteFolder": "In den Papierkorb",
+    "deleteFolderConfirm": "Diesen Ordner in den Papierkorb verschieben?",
+    "deleteFolderConfirmPermanent": "Diesen Ordner endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+    "deleteFolderFail": "Löschen fehlgeschlagen"
   },
   "fileCard": {
-    "loading": "Wird geladen…",
-    "deleteConfirm": "Möchten Sie diese Datei wirklich löschen?",
+    "loading": "Wird geladen\u2026",
+    "deleteConfirm": "Diese Datei in den Papierkorb verschieben?",
+    "deleteConfirmPermanent": "Diese Datei endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
     "deleteFail": "Löschen fehlgeschlagen",
     "download": "Herunterladen",
-    "delete": "Löschen",
+    "delete": "In den Papierkorb",
+    "deletePermanently": "Endgültig löschen",
     "noMetadata": "Keine Metadaten",
     "info": "Info",
     "hideInfo": "Info ausblenden",
@@ -280,6 +286,7 @@
     "shared": "Geteilt",
     "requests": "Anfragen",
     "people": "Personen",
+    "trash": "Papierkorb",
     "searchPlaceholder": "Suchen",
     "installApp": "App installieren",
     "settings": "Einstellungen",
@@ -293,7 +300,8 @@
       "myFiles": "Meine Dateien",
       "shared": "Geteilt",
       "requests": "Anfragen",
-      "people": "Personen"
+      "people": "Personen",
+      "trash": "Papierkorb"
     },
     "column": {
       "name": "Name",
@@ -343,11 +351,13 @@
       "share": "Teilen",
       "link": "Link kopieren",
       "delete": "Löschen",
+      "moveToTrash": "In den Papierkorb",
       "download": "Herunterladen",
       "open": "Öffnen",
       "moveTo": "Verschieben",
       "rename": "Umbenennen",
       "more": "Weitere Aktionen",
+      "select": "Auswählen",
       "clearSelection": "Auswahl aufheben",
       "selectionCount_one": "{{count}} ausgewählt",
       "selectionCount_other": "{{count}} ausgewählt"
@@ -358,8 +368,10 @@
       "linkCopied": "Link zu „{{name}}\" in die Zwischenablage kopiert",
       "linkCopyFail": "Link konnte nicht kopiert werden",
       "downloadFail": "Download fehlgeschlagen",
-      "deleteConfirm": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",
-      "deleteSuccess": "„{{name}}\" gelöscht",
+      "deleteConfirm": "„{{name}}\" in den Papierkorb verschieben?",
+      "deleteConfirmPermanent": "„{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",
+      "deleteSuccess": "„{{name}}\" in den Papierkorb verschoben",
+      "deleteSuccessPermanent": "„{{name}}\" gelöscht",
       "deleteFail": "Löschen fehlgeschlagen"
     },
     "preview": {
@@ -407,7 +419,7 @@
     },
     "recentView": {
       "heading": "Zuletzt",
-      "empty": "Noch keine zuletzt geöffneten Dateien — alles, was du öffnest, erscheint hier.",
+      "empty": "Noch keine zuletzt geöffneten Dateien, alles, was du öffnest, erscheint hier.",
       "loading": "Zuletzt geöffnete Dateien werden geladen…",
       "column": {
         "name": "Name",
@@ -421,6 +433,46 @@
       "filesByHeading": "Dateien geteilt von {{name}}",
       "back": "Zurück zu Personen",
       "catalog": "Katalog"
+    },
+    "trashView": {
+      "empty": "Papierkorb ist leer",
+      "retentionNote": "Elemente werden nach 30 Tagen endgültig gelöscht.",
+      "loading": "Lädt…",
+      "loadError": "Papierkorb konnte nicht geladen werden",
+      "loadPartialError": "Einige Elemente konnten nicht geladen werden. Aktualisieren, um es erneut zu versuchen.",
+      "column": {
+        "name": "Name",
+        "deleted": "Gelöscht",
+        "expires": "Läuft ab",
+        "size": "Größe",
+        "actions": "Aktionen"
+      },
+      "action": {
+        "restore": "Wiederherstellen",
+        "purge": "Endgültig löschen",
+        "emptyTrash": "Papierkorb leeren"
+      },
+      "confirm": {
+        "purge": "„{{name}}\" endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+        "emptyTrash": "Alle {{count}} Elemente im Papierkorb endgültig löschen? Dies kann nicht rückgängig gemacht werden."
+      },
+      "toast": {
+        "restoreSuccess": "„{{name}}\" wiederhergestellt",
+        "restoreOccupied": "Am ursprünglichen Ort existiert bereits eine Datei",
+        "restoreFail": "Wiederherstellung fehlgeschlagen",
+        "purgeSuccess": "„{{name}}\" endgültig gelöscht",
+        "purgeFail": "Löschen fehlgeschlagen",
+        "aclNotRestored": "Wiederhergestellt, aber die Freigabeberechtigungen konnten nicht wiederhergestellt werden",
+        "emptyTrashSuccess": "Papierkorb geleert",
+        "emptyTrashPartialFail": "{{count}} Elemente konnten nicht gelöscht werden"
+      },
+      "expiryPast": "Abgelaufen",
+      "expiresToday": "Läuft heute ab",
+      "expiresTomorrow": "Läuft morgen ab",
+      "expiresIn_one": "Läuft in {{count}} Tag ab",
+      "expiresIn_other": "Läuft in {{count}} Tagen ab",
+      "itemCount_one": "{{count}} Element",
+      "itemCount_other": "{{count}} Elemente"
     }
   },
   "auth": {

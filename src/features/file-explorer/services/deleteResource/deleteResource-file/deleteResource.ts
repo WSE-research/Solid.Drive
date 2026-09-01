@@ -1,24 +1,25 @@
 /**
- * Recursively deletes a Solid resource, container or leaf. Most Solid
- * pods reject `DELETE` on a non empty container, so the service walks
- * `ldp:contains` first, deletes every descendant, then deletes the
- * container itself. Catalog cleanup is best effort and silent failures
- * are acceptable, since folders aren't always catalogued.
+ * Recursively hard-deletes Solid resources. Non-empty containers are
+ * cleared by deleting their descendants first, then the container itself.
+ * When `catalogUri` is given, every descendant container's catalog entry
+ * is cleaned up too, so deleting a folder doesn't leave its contents
+ * orphaned in the catalog. Catalog cleanup is best-effort because not
+ * all resources are catalogued.
  *
  * @packageDocumentation
  */
 
-import { Parser } from 'n3';
 import { removeFromCatalog } from '@/infrastructure/solid/catalog';
+import { listContainerChildren } from '@/infrastructure/solid/containerListing';
 import { notifyCatalogChanged } from '@/shared/hooks/useCatalogVersion';
+import { INDEX_FILE } from '@/config';
 import type { FetchFn } from '@/types/solid';
 
-const LDP_CONTAINS = 'http://www.w3.org/ns/ldp#contains';
-const ACCEPT_TURTLE: HeadersInit = { Accept: 'text/turtle' };
-
 /**
- * Result envelope. Callers receive `{ ok: false, reason }` so they can
- * surface the underlying server message without relying on thrown errors.
+ * Result of a {@link deleteResource} operation.
+ * 
+ * Failed operations return their reason instead of throwing, allowing
+ * callers to surface the underlying error.
  *
  * @public
  */
@@ -32,77 +33,65 @@ export type DeleteResourceResult =
  * @public
  */
 export interface DeleteResourceArgs {
-  /** Container URI to delete . */
+  // Container URI to delete.
   containerUri: string;
-  /** Authenticated Solid fetch. */
+  // Authenticated Solid fetch. 
   fetch: FetchFn;
   /**
-   * Catalog URI. When provided alongside `metadataUri`, the entry is
-   * removed from the catalog before the container is deleted.
+   * Catalog URI containing the resource. When provided with
+   * `metadataUri`, the catalog entry is removed before deletion.
    */
   catalogUri?: string;
-  /** Metadata URI for catalog removal. */
+  // Metadata URI for catalog removal.
   metadataUri?: string;
 }
 
 /**
- * Drops the companion `.acl` for a resource. Pods reject DELETE on a
- * resource that still has an ACL attached. Most resources do not have
- * one, so the 404 path is the common case; failures are ignored.
+ * Drops the companion `.acl` resource before deleting its resource.
+ * Missing ACLs and deletion failures are ignored.
+ * 
+ * @internal
  */
 async function dropCompanionAcl(uri: string, fetch: FetchFn): Promise<void> {
   await fetch(`${uri}.acl`, { method: 'DELETE' }).catch(() => {});
 }
 
 /**
- * Reads ldp:contains triples from a container's Turtle representation
- * and returns the absolute URIs of every immediate child. An empty list
- * is returned for any non-2xx response. Callers should still attempt
- * the parent delete in that case, since the parent itself may be missing.
+ * Removes a container's catalog entry before deleting the container.
+ *
+ * @remarks
+ * A container can be cataloged either as a folder, keyed by its own URI,
+ * or as a file, keyed by its `index.ttl`. This tries both forms. The
+ * non-matching removal is a no-op, so it is safe to call for descendant
+ * containers without knowing their catalog shape first.
+ *
+ * @internal
  */
-async function listContainerChildren(
+async function removeDescendantCatalogEntries(
+  catalogUri: string,
   containerUri: string,
   fetch: FetchFn,
-): Promise<string[]> {
-  const response = await fetch(containerUri, { headers: ACCEPT_TURTLE });
-  if (!response.ok) return [];
-  const text = await response.text();
-  const parser = new Parser({ baseIRI: containerUri });
-  const quads = parser.parse(text);
-  return quads
-    .filter((quad) => quad.predicate.value === LDP_CONTAINS)
-    .map((quad) => quad.object.value);
+): Promise<void> {
+  await removeFromCatalog(catalogUri, containerUri, fetch).catch((error: unknown) => {
+    void error;
+  });
+  await removeFromCatalog(catalogUri, `${containerUri}${INDEX_FILE}`, fetch).catch((error: unknown) => {
+    void error;
+  });
 }
 
 /**
  * Hard deletes a Solid container and all of its descendants. See file
  * docs. Returns a result envelope rather than throwing.
- *
+ * 
+ * @param args - Resource and optional catalog information for the deletion.
+ * @returns The deletion result, including the failure reason when unsuccessful.
+ * 
  * @public
  */
 export async function deleteResource(
   args: DeleteResourceArgs,
 ): Promise<DeleteResourceResult> {
-  if (args.catalogUri && args.metadataUri) {
-    await removeFromCatalog(
-      args.catalogUri,
-      args.metadataUri,
-      args.fetch,
-    ).catch((error: unknown) => {
-      // Catalog cleanup is best-effort: the container delete below is the
-      // source of truth for whether the resource is gone. Swallow here so a
-      // stale or already-removed catalog entry doesn't fail the user-facing
-      // delete.
-      void error;
-    });
-    // The catalog PATCH bypassed LDO, so push a local notification to
-    // wake every useCatalog consumer (file table, share dialog, etc.).
-    // Fires on both success and a swallowed error: in the error case
-    // the entry may still have been partially patched, and forcing a
-    // re-fetch is the safe choice over leaving consumers stale.
-    notifyCatalogChanged(args.catalogUri);
-  }
-
   try {
     const children = await listContainerChildren(args.containerUri, args.fetch);
     for (const childUri of children) {
@@ -110,9 +99,13 @@ export async function deleteResource(
       if (isContainer) {
         const childResult = await deleteResource({
           containerUri: childUri,
+          catalogUri: args.catalogUri,
           fetch: args.fetch,
         });
         if (!childResult.ok) return childResult;
+        if (args.catalogUri) {
+          await removeDescendantCatalogEntries(args.catalogUri, childUri, args.fetch);
+        }
       } else {
         await dropCompanionAcl(childUri, args.fetch);
         const response = await args.fetch(childUri, { method: 'DELETE' });
@@ -133,6 +126,18 @@ export async function deleteResource(
         reason: `${response.status} ${response.statusText}`,
       };
     }
+
+    if (args.catalogUri && args.metadataUri) {
+      await removeFromCatalog(
+        args.catalogUri,
+        args.metadataUri,
+        args.fetch,
+      ).catch((error: unknown) => {
+        void error;
+      });
+      notifyCatalogChanged(args.catalogUri);
+    }
+
     return { ok: true };
   } catch (error) {
     return {
@@ -140,4 +145,18 @@ export async function deleteResource(
       reason: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+/**
+ * Runs {@link deleteResource} as a best-effort cleanup operation,
+ * suppressing failures when leftover resources are acceptable.
+ *
+ * Intended for rollback paths where another failure is already being handled.
+ *
+ * @param args - Resource and optional catalog information for the deletion.
+ *
+ * @public
+ */
+export async function deleteResourceQuietly(args: DeleteResourceArgs): Promise<void> {
+  await deleteResource(args).catch(() => {});
 }

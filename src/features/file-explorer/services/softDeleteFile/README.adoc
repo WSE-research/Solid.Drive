@@ -1,0 +1,45 @@
+= softDeleteFile
+
+Moves a catalog-backed file to the trash instead of deleting it outright.
+
+== Sequence
+
+Resolves the source binary (`entry.binaryUri`, falling back to listing the container), checks it's still there and the agent has permission to delete it. Either failing writes nothing and returns a reason.
+
+It ensures the trash container exists, takes a best-effort ACL snapshot (a failure just records `hasAclSnapshot: false` rather than blocking the delete), then copies the binary into `trash/<id>/` under the fixed name `payload`, alongside `index.ttl` and a `tombstone.ttl` recording where it came from and when it expires.
+
+A row is appended to the trash catalog, and the original is removed via `deleteResource`, unmodified.
+
+Any failure before the trash catalog append rolls the trash copy back; the original is untouched unless the copy fully completed. If the final delete fails, the trash copy is left in place on purpose: a stale trash copy is a safe failure mode, never data loss.
+
+== Reuse
+
+No new delete or catalog logic exists in this module. It reuses, unmodified:
+
+* `appendToCatalog` (link:../../../../infrastructure/solid/catalog/[catalog]) for the trash catalog row.
+* `deleteResource` and `deleteResourceQuietly` (link:../deleteResource/[deleteResource]) for the real delete and the rollback delete, respectively.
+* `snapshotAcl` (link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]) for the ACL copy.
+* `checkHasPermission` (link:../../../../infrastructure/wac/wacAllow/[wacAllow]) for the preflight permission check.
+
+== Notes
+
+* `index.ttl` copies inside `trash/` may carry absolute IRIs pointing at the pre-delete location. Harmless: the app resolves a file's binary by listing its container, never by reading `index.ttl`.
+* Classic layout (`FileExplorer`/`FileCard`) shares this service with the OneDrive layout, so soft delete applies there too, even without its own Recycle bin UI. See link:../../../onedrive-layout/components/views/TrashView/[TrashView].
+* `trash/` isn't dot-prefixed on purpose, so any generic pod browser can inspect it. It's hidden from My Files at the application level (`isVisibleContainer` in link:../fileFilter/[fileFilter]), not via a naming convention.
+* `trash/` lives at the pod storage root, not under `my-solid-app/`: it's a pod-wide recycle bin, not scoped to this one app.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/containerListing/[containerListing]
+* link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]
+* link:../../../../infrastructure/solid/trashPaths/[trashPaths]
+* link:../../../../infrastructure/solid/tombstone/[tombstone]
+* link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]
+* link:../../../../infrastructure/wac/wacAllow/[wacAllow]
+* link:../deleteResource/[deleteResource]
+* link:../../../../types/[types]

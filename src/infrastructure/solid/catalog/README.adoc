@@ -1,8 +1,12 @@
 = catalog
 
-DCAT catalog operations for Solid Pods, using raw `fetch` instead of LDO
-for every request. URIs passed to SPARQL operations are checked for unsafe
-characters before interpolation.
+DCAT catalog operations for Solid Pods. All communication goes through raw `fetch`; LDO is not used.
+
+The mutating functions (`appendToCatalog`, `appendFolderToCatalog`, `ensureCatalogRootEntry`, `removeFromCatalog`) read the whole Turtle document, apply the change to an in-memory N3 store, and PUT it back, rather than SPARQL PATCH, since PATCH support is inconsistent across Solid servers. A 404 GET starts from an empty store, so the same round trip creates the catalog on first write. `linkCatalogToProfile` is the exception: it stays a single-triple SPARQL PATCH, since the profile document is shared with other apps and a full rewrite is a bigger blast radius than one triple justifies.
+
+A malformed existing document (leftover from an earlier bad write) gets truncated back to before the first syntax error and re-parsed, the same recovery `parseCatalogRecovering` uses for reads; a write then proceeds against that recovered prefix, which is what heals the document over time. Only a document with nothing recoverable makes the mutating functions throw, instead of risking an overwrite with an empty catalog.
+
+Every mutating function is also queued per `catalogUri`: a plain GET/PUT has no server-side precondition, so two overlapping writes to the same document would otherwise silently discard one. See `catalogWriteQueues`'s comment in catalog.ts for the full reasoning.
 
 == Exports
 
@@ -10,28 +14,34 @@ characters before interpolation.
 |===
 | Name | Description
 
-| `resolveCatalogUri(profile, storageRoot)` | Returns the profile's catalog address if it has one, otherwise the default under the storage root
-| `appendToCatalog(params)` | Adds a file's dataset and distribution entry via SPARQL PATCH, creating the catalog first if it doesn't exist. Types the entry as both `dcat:Dataset` and `sd:File`, and writes `sd:hasParent` when `params.parentUri` is non-empty
-| `appendFolderToCatalog(params)` | Adds a folder's dataset entry (no distribution) via SPARQL PATCH, creating the catalog first if it doesn't exist. Always writes `sd:hasParent`, and types the entry as both `dcat:Dataset` and `sd:Folder`
-| `ensureCatalogRootEntry(params)` | Registers the pod's storage root as its own parentless catalog entry, the terminator every folder path walk reaches. Safe to call repeatedly: its triples never vary, so re-inserting them is a no-op
+| `resolveCatalogUri(profile, storageRoot)` | Returns `profile.catalog["@id"]` or falls back to `{storageRoot}catalog.ttl`
+| `appendToCatalog(params)` | Adds a file's dataset and distribution entry. Types it as `dcat:Dataset` and `sd:File`, and writes `sd:hasParent` when `parentUri` is set
+| `appendFolderToCatalog(params)` | Adds a folder's dataset entry (no distribution). Types it as `dcat:Dataset` and `sd:Folder`, and writes `sd:hasParent` when `parentUri` is set (omitted for a folder with nothing above it, e.g. a trash item)
+| `ensureCatalogRootEntry(params)` | Registers the pod's storage root as its own parentless entry, the terminator every folder path walk reaches. Safe to call repeatedly; duplicate triples are no-ops
 | `isFolderEntry(entry)` | True when a `CatalogEntry` is a folder, whether marked with the current `sd:Folder` class or the legacy `ldp:Container` marker
-| `FOLDER_CLASS_URI` | The `dcterms:conformsTo` / `rdf:type` value (`sd:Folder`, from this project's own catalog vocabulary) that marks a catalog entry as a folder
-| `FILE_CLASS_URI` | The `sd:File` value `appendToCatalog` types every file entry with. Descriptive only, nothing routes on it
+| `FOLDER_CLASS_URI` | The `sd:Folder` class/`conformsTo` value marking a folder
+| `FILE_CLASS_URI` | The `sd:File` value files are typed with. Descriptive only, nothing routes on it
 | `LEGACY_FOLDER_CLASS_URI` | The `ldp:Container` marker folders were written with before `sd:Folder` existed; `isFolderEntry` still recognizes it
-| `removeFromCatalog(...)` | Removes a dataset entry via SPARQL DELETE WHERE, doing nothing if the catalog isn't reachable
-| `parseCatalog(turtleText, baseUri?)` | Parses a Turtle catalog into a list of `CatalogEntry` objects, including each entry's `parentUri` from `sd:hasParent`
-| `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document
-| `buildEmptyCatalogTurtle(catalogUri)` | Turtle template for a new, empty catalog, with an explicit `@base` so the document identifies itself outside its own retrieval context
+| `removeFromCatalog(...)` | Removes a dataset entry; no-ops if the catalog isn't reachable (`HEAD` check first)
+| `parseCatalog(turtleText, baseUri?)` | Parses Turtle into `CatalogEntry[]`, including each entry's `parentUri` from `sd:hasParent`. Malformed Turtle comes back as `[]`, the same as a genuinely empty catalog
+| `parseCatalogRecovering(turtleText, baseUri)` | Same as `parseCatalog`, but salvages what it can from malformed Turtle and returns the parse error alongside the recovered entries, instead of discarding it. `useCatalog` uses this so a corrupt catalog still shows what could be read
+| `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document via SPARQL PATCH
+| `resourceFileName(uri)` | Decodes a URI's resource filename, falling back to the raw tail on malformed percent-escapes
+| `buildEmptyCatalogTurtle(catalogUri)` | Turtle template for a new, empty catalog with an explicit `@base`. Used directly by `useAccessRequests`, independent of `appendToCatalog`'s own 404 handling
 |===
 
 The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:deletedAt`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL. `sd:deletedAt` is defined there but not yet written by this module.
 
+`appendToCatalog`/`removeFromCatalog`/`parseCatalog` are parameterised entirely by `catalogUri`, so `softDeleteFile` and `useTrashEntries` reuse them unmodified against `trash/catalog.ttl` instead of the main catalog; see link:../trashPaths/[trashPaths].
+
 == See also
 
-* link:../../features/file-explorer/hooks/useFileUpload/[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
-* link:../../features/file-explorer/hooks/useCreateFolder/[useCreateFolder] calls `appendFolderToCatalog` and `linkCatalogToProfile` when a folder is created.
-* link:../../features/file-explorer/hooks/useCatalog/[useCatalog] splits parsed entries into files and folders using `FOLDER_CLASS_URI`.
-* link:../../features/file-explorer/hooks/useSharedCatalog/[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
+* link:../../../features/file-explorer/hooks/useFileUpload/[useFileUpload] calls `appendToCatalog` and `linkCatalogToProfile` from this module during the upload sequence.
+* link:../../../features/file-explorer/hooks/useCreateFolder/[useCreateFolder] calls `appendFolderToCatalog` and `linkCatalogToProfile` when a folder is created.
+* link:../../../features/file-explorer/hooks/useCatalogRootEntry/[useCatalogRootEntry] calls `ensureCatalogRootEntry` on app start.
+* link:../../../features/file-explorer/hooks/useCatalog/[useCatalog] splits parsed entries into files and folders using `FOLDER_CLASS_URI`.
+* link:../../../features/file-explorer/hooks/useSharedCatalog/[useSharedCatalog] calls `parseCatalog` from this module to read both the shared and main catalog documents.
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] calls `resourceFileName` to derive a trashed file's original binary name for its tombstone.
 
 == Navigation
 

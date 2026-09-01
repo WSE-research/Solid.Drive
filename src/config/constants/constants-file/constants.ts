@@ -264,6 +264,8 @@ export const SHORT_DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
 export const RDF_NAMESPACES = {
   /** Web Access Control namespace */
   ACL: "http://www.w3.org/ns/auth/acl#",
+  /** Activity Streams 2.0 namespace (W3C Recommendation) — reused for `Tombstone`, `formerType`, `deleted` */
+  ACTIVITY_STREAMS: "https://www.w3.org/ns/activitystreams#",
   /** Dublin Core Terms namespace */
   DCTERMS: "http://purl.org/dc/terms/",
   /** Data Catalog Vocabulary namespace */
@@ -296,6 +298,10 @@ export const RDF_NAMESPACES = {
   VCARD: "http://www.w3.org/2006/vcard/ns#",
   /** XML Schema namespace */
   XSD: "http://www.w3.org/2001/XMLSchema#",
+  /**
+   * Vocabulary for the trash bookkeeping.
+   */
+  TRASH: "https://w3id.org/trash#",
 } as const;
 
 /**
@@ -304,6 +310,86 @@ export const RDF_NAMESPACES = {
  * @public
  */
 export const RDF_TYPE_URI = `${RDF_NAMESPACES.RDF}type`;
+
+// ============================================================================
+// TRASH / SOFT DELETION
+// ============================================================================
+
+/**
+ * Container name holding soft-deleted files.
+ * @public
+ */
+export const TRASH_CONTAINER_NAME = "trash/";
+
+/**
+ * Fixed filename for a trashed resource's binary payload.
+ * The original filename is stored in the tombstone for restoration.
+ *
+ * @public
+ */
+export const TRASH_PAYLOAD_FILE = "payload";
+
+/**
+ * Container name holding a trashed folder's copied contents, mirroring
+ * its original subtree. Distinct from {@link TRASH_PAYLOAD_FILE}, which
+ * names a single trashed file's binary.
+ *
+ * @public
+ */
+export const TRASH_FOLDER_PAYLOAD_CONTAINER_NAME = "payload/";
+
+/**
+ * Filename for a trashed folder's catalog-entry snapshot, replayed into
+ * the original catalog on restore.
+ *
+ * @public
+ */
+export const TRASH_CATALOG_SNAPSHOT_FILE = "catalog-snapshot.ttl";
+
+/**
+ * Filename for the tombstone containing the resource's deletion metadata.
+ *
+ * @public
+ */
+export const TRASH_TOMBSTONE_FILE = "tombstone.ttl";
+
+/**
+ * Filename for a trashed resource's raw ACL snapshot, restored verbatim on undelete.
+ *
+ * @public
+ */
+export const TRASH_ACL_SNAPSHOT_FILE = "acl-snapshot.ttl";
+
+/**
+ * Default retention period for soft-deleted resources.
+ *
+ * @public
+ */
+export const TRASH_RETENTION_DAYS = 30;
+
+/**
+ * RDF terms used for trash tombstones and restoration metadata.
+ *
+ * @remarks
+ * Standard deletion terms reuse Activity Streams 2.0.
+ * Trash-specific metadata uses the project's `trash:` vocabulary.
+ *
+ * @public
+ */
+export const TRASH_TERMS = {
+  Tombstone: `${RDF_NAMESPACES.ACTIVITY_STREAMS}Tombstone`,
+  formerType: `${RDF_NAMESPACES.ACTIVITY_STREAMS}formerType`,
+  deletedAt: `${RDF_NAMESPACES.ACTIVITY_STREAMS}deleted`,
+  originalContainer: `${RDF_NAMESPACES.TRASH}originalContainer`,
+  originalParent: `${RDF_NAMESPACES.TRASH}originalParent`,
+  originalCatalog: `${RDF_NAMESPACES.TRASH}originalCatalog`,
+  originalInstance: `${RDF_NAMESPACES.TRASH}originalInstance`,
+  originalBinaryName: `${RDF_NAMESPACES.TRASH}originalBinaryName`,
+  hasAclSnapshot: `${RDF_NAMESPACES.TRASH}hasAclSnapshot`,
+  expiresAt: `${RDF_NAMESPACES.TRASH}expiresAt`,
+  /** Distinguishes a single trashed file from a whole trashed folder. */
+  kind: `${RDF_NAMESPACES.TRASH}kind`,
+} as const;
 
 // ============================================================================
 // REQUEST NOTIFICATIONS

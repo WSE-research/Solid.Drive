@@ -9,7 +9,8 @@
 
 import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
 import { SYSTEM_FILES } from "@/config/constants";
-import type { SolidLeaf } from "@ldo/connected-solid";
+import { getTrashContainerUri } from "@/infrastructure/solid/trashPaths";
+import type { SolidContainer, SolidLeaf } from "@ldo/connected-solid";
 
 /**
  * Checks if a resource URI should be shown to the user.
@@ -38,4 +39,37 @@ export function isVisibleResourceUri(uri: string): boolean {
  */
 export function isVisibleLeaf(entry: SolidLeaf): boolean {
   return isVisibleResourceUri(entry.uri);
+}
+
+/**
+ * Checks whether a container URI should appear in the regular file browser.
+ *
+ * @remarks
+ * Excludes the trash container itself (an exact match on the storage-root
+ * trash path), which is exposed through the dedicated Recycle Bin view
+ * rather than as a regular user folder. A user folder that happens to be
+ * named "trash" elsewhere in the tree is unaffected.
+ *
+ * @param uri - The container URI to check
+ * @param storageRootUri - The pod's storage root URI
+ * @returns True if the container should be visible
+ *
+ * @public
+ */
+export function isVisibleContainerUri(uri: string, storageRootUri: string): boolean {
+  const trim = (value: string) => (value.endsWith("/") ? value.slice(0, -1) : value);
+  return trim(uri) !== trim(getTrashContainerUri(storageRootUri));
+}
+
+/**
+ * Checks whether a container should appear in the regular file browser.
+ *
+ * @param entry - The container resource to check
+ * @param storageRootUri - The pod's storage root URI
+ * @returns True if the container should be visible
+ *
+ * @public
+ */
+export function isVisibleContainer(entry: SolidContainer, storageRootUri: string): boolean {
+  return isVisibleContainerUri(entry.uri, storageRootUri);
 }

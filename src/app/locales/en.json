@@ -126,14 +126,20 @@
     "uploadTrayDismiss": "Dismiss",
     "unsupportedFolderDrop": "Folders aren't supported yet. Please drop individual files instead.",
     "uploadDuplicate": "A file named \"{{name}}\" already exists in \"{{folder}}\".",
-    "brokenFolderPath": "Couldn't work out the path to \"{{folder}}\": its link to its parent folder is missing or broken."
+    "brokenFolderPath": "Couldn't work out the path to \"{{folder}}\": its link to its parent folder is missing or broken.",
+    "deleteFolder": "Move to bin",
+    "deleteFolderConfirm": "Move this folder and its contents to the Recycle bin?",
+    "deleteFolderConfirmPermanent": "Delete this folder and its contents permanently? This cannot be undone.",
+    "deleteFolderFail": "Delete failed"
   },
   "fileCard": {
-    "loading": "Loading…",
-    "deleteConfirm": "Are you sure you want to delete this file?",
+    "loading": "Loading\u2026",
+    "deleteConfirm": "Move this file to the Recycle bin?",
+    "deleteConfirmPermanent": "Delete this file permanently? This cannot be undone.",
     "deleteFail": "Delete failed",
     "download": "Download",
-    "delete": "Delete",
+    "delete": "Move to bin",
+    "deletePermanently": "Delete permanently",
     "noMetadata": "No metadata",
     "info": "Info",
     "hideInfo": "Hide Info",
@@ -280,6 +286,7 @@
     "shared": "Shared",
     "requests": "Requests",
     "people": "People",
+    "trash": "Recycle bin",
     "searchPlaceholder": "Search",
     "installApp": "Install app",
     "settings": "Settings",
@@ -293,7 +300,8 @@
       "myFiles": "My Files",
       "shared": "Shared",
       "requests": "Requests",
-      "people": "People"
+      "people": "People",
+      "trash": "Recycle bin"
     },
     "column": {
       "name": "Name",
@@ -343,11 +351,13 @@
       "share": "Share",
       "link": "Copy link",
       "delete": "Delete",
+      "moveToTrash": "Move to bin",
       "download": "Download",
       "open": "Open",
       "moveTo": "Move to",
       "rename": "Rename",
       "more": "More actions",
+      "select": "Select",
       "clearSelection": "Clear selection",
       "selectionCount_one": "{{count}} selected",
       "selectionCount_other": "{{count}} selected"
@@ -358,8 +368,10 @@
       "linkCopied": "Link to \"{{name}}\" copied to clipboard",
       "linkCopyFail": "Could not copy link",
       "downloadFail": "Download failed",
-      "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
-      "deleteSuccess": "\"{{name}}\" deleted",
+      "deleteConfirm": "Move \"{{name}}\" to the Recycle bin?",
+      "deleteConfirmPermanent": "Delete \"{{name}}\"? This cannot be undone.",
+      "deleteSuccess": "\"{{name}}\" moved to the Recycle bin",
+      "deleteSuccessPermanent": "\"{{name}}\" deleted",
       "deleteFail": "Delete failed"
     },
     "preview": {
@@ -407,7 +419,7 @@
     },
     "recentView": {
       "heading": "Recent",
-      "empty": "No recent files yet — anything you open will show up here.",
+      "empty": "No recent files yet, anything you open will show up here.",
       "loading": "Loading recent files…",
       "column": {
         "name": "Name",
@@ -421,6 +433,46 @@
       "filesByHeading": "Files shared by {{name}}",
       "back": "Back to People",
       "catalog": "Catalog"
+    },
+    "trashView": {
+      "empty": "Recycle bin is empty",
+      "retentionNote": "Items are permanently deleted after 30 days.",
+      "loading": "Loading…",
+      "loadError": "Could not load the Recycle bin",
+      "loadPartialError": "Some items couldn't be loaded. Refresh to try again.",
+      "column": {
+        "name": "Name",
+        "deleted": "Deleted",
+        "expires": "Expires",
+        "size": "Size",
+        "actions": "Actions"
+      },
+      "action": {
+        "restore": "Restore",
+        "purge": "Delete permanently",
+        "emptyTrash": "Empty recycle bin"
+      },
+      "confirm": {
+        "purge": "Permanently delete \"{{name}}\"? This cannot be undone.",
+        "emptyTrash": "Permanently delete all {{count}} items in the Recycle bin? This cannot be undone."
+      },
+      "toast": {
+        "restoreSuccess": "\"{{name}}\" restored",
+        "restoreOccupied": "A file already exists at the original location",
+        "restoreFail": "Restore failed",
+        "purgeSuccess": "\"{{name}}\" permanently deleted",
+        "purgeFail": "Delete failed",
+        "aclNotRestored": "Restored, but sharing permissions could not be restored",
+        "emptyTrashSuccess": "Recycle bin emptied",
+        "emptyTrashPartialFail": "{{count}} items could not be deleted"
+      },
+      "expiryPast": "Expired",
+      "expiresToday": "Expires today",
+      "expiresTomorrow": "Expires tomorrow",
+      "expiresIn_one": "Expires in {{count}} day",
+      "expiresIn_other": "Expires in {{count}} days",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items"
     }
   },
   "auth": {

@@ -1,0 +1,36 @@
+= restoreTrashedFolder
+
+Restores a soft-deleted folder to its original location. The folder equivalent of link:../restoreTrashedFile/[restoreTrashedFile].
+
+== Sequence
+
+Reads the tombstone. Fails with `missing-tombstone` if it's absent or belongs to a file, since that's `restoreTrashedFile`'s job instead. Then checks the original location is free via a `HEAD` on the folder's container: unlike a file restore, this is safe here because `deleteResource` fully removes a folder's container on delete, so a live `HEAD` means something new occupies that path.
+
+Once clear, it copies the trash payload back, restores the ACL if one was snapshotted, and replays the catalog snapshot's entries (the folder and every descendant) into the original catalog. A missing snapshot just means nothing to replay. The trash copy is then removed, best-effort.
+
+Any failure after the occupancy check rolls the restore back and leaves the trash copy in place so it can be retried. The rollback deletes through the original catalog too, not just the physical copy, since some entries may already have been replayed before the failure.
+
+== Reuse
+
+Shares its building blocks with the rest of the trash system instead of reimplementing them: `readTrashCatalogSnapshot`/`writeCatalogEntry` (link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]) for the snapshot, `copyContainerTree` (link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]) for the physical mirror, `deleteResource`/`deleteResourceQuietly` (link:../deleteResource/[deleteResource]) for cleanup and rollback, and `restoreAclFromSnapshot` (link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]) for the ACL.
+
+== Notes
+
+* No `ownerWebId`: each entry's publisher comes from the snapshot itself.
+* Only the root folder's ACL is restorable. Descendant ACLs were never captured.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]
+* link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]
+* link:../../../../infrastructure/solid/trashPaths/[trashPaths]
+* link:../../../../infrastructure/solid/tombstone/[tombstone]
+* link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]
+* link:../deleteResource/[deleteResource]
+* link:../../../../shared/hooks/[shared/hooks]
+* link:../../../../types/[types]
