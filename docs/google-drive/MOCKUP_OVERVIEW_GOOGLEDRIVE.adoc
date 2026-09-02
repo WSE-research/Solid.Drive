@@ -1,0 +1,330 @@
+= Solid.drive UI Design — Google Drive Inspired Mockup
+:toc: macro
+:toc-title: Contents
+:toclevels: 2
+:imagesdir: images
+
+toc::[]
+
+This document presents the UI mockup for Solid.drive, designed with inspiration from Google Drive. Each section places the Google Drive reference and the Solid.drive mockup side by side, followed by callouts explaining each element in the Solid.drive design.
+
+== Navigation Sidebar
+
+The left sidebar is present in every view and provides global navigation throughout the application. The icons map closely to Google Drive's sidebar, with Solid.drive specific additions.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_Homepage.png" alt="Google Drive Sidebar" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_Homepage.png" alt="Solid.drive Sidebar" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+[NOTE]
+.➕ New
+====
+Opens a menu to upload a file or create a new folder inside the current Pod location.
+====
+
+[NOTE]
+.Recent / Home (first icon)
+====
+Shows recently accessed files across all Pod containers, sorted by last opened time.
+====
+
+[NOTE]
+.My Drive / My Files (second icon)
+====
+Navigates to the root of the user's personal Solid Pod, listing all stored containers and files.
+====
+
+[NOTE]
+.Shared with me (third icon)
+====
+Displays files and folders that others have shared with you, or that you have shared with others.
+====
+
+[NOTE]
+.Requests - Solid.Drive specific (fourth icon)
+====
+Lists incoming access requests from other Solid users who are asking permission to view resources in your Pod.
+====
+
+[NOTE]
+.Recycle Bin (fifth icon)
+====
+Shows deleted files which still can be restored before they are permanently removed.
+====
+
+[NOTE]
+.People (bottom icon)
+====
+Shows your contacts and the files they have shared with you, grouped by person.
+====
+
+== Homepage / Recent Files
+
+The homepage contains the search field, filter controls, and the list of recent files. The general structure follows the Google Drive reference, while the displayed information is adapted to Solid resources and Pods.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_Homepage.png" alt="Google Drive Homepage" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_Homepage.png" alt="Solid.drive Homepage" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+[NOTE]
+.Search your Pod
+====
+allows the user to search for resources available through their Pod.
+====
+
+[NOTE]
+.Filter chips (Type / People / Modified / Pod)
+====
+Narrow the recent list by RDF type metadata, by the display name of a WebID, by modification date, or by the active Pod. The Pod chip is a Solid.drive-specific switcher (see below).
+====
+
+[NOTE]
+.Owner column
+====
+Owners are resolved from their Solid WebID profiles and shown as a display name with a coloured initials avatar.
+====
+
+[NOTE]
+.Location column
+====
+Shows the WAC permissions and container of each resource, such as "My Files", "Shared", "Private" or "Public".
+====
+
+== Switching Pods
+
+A Solid user can hold resources across several Pods. The Pod chip in the filter row opens a switcher listing every connected Pod, so the whole view can be re-pointed at a different Pod. It sits where Google Drive's *Source* filter does, where the chip narrows the list by where files came from (Gmail, Meet). 
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive — Source filter*
+
++++<img src="images/Googledrive_source_filter.png" alt="Google Drive Source filter" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive — Pod switcher*
+
++++<img src="images/Solid.drive_pod_switcher.png" alt="Solid.drive Pod switcher" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *Pod chip*: Shows the active Pod (e.g. `emily.solidpod.net`).
+. *Your Pods*: The dropdown lists every connected Pod with its origin. The active Pod carries a checkmark.
+. *Connect another Pod*: Adds a new Pod via its Solid OIDC issuer, joining it to the switcher.
+
+== Create
+
+The ➕ New button opens a creation menu that lets the user upload a file or create a new folder inside the current Pod location. While Google Drive offers extra shortcuts for document types like Docs and Sheets through Google Workspace, Solid.drive menu is generic.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_create_selected.png" alt="Google Drive Create" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_create_selected.png" alt="Solid.drive Create" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *New Folder*: Creates an LDP container (folder) at the current Pod path.
+. *File upload*: Uploads files as resources into the current container.
+. *Folder upload*: Uploads a folder and its contents as resources into the current container.
+
+== My Files
+
+The _My Files_ / _My Drive_ view shows the root of the user's Solid Pod. Folders and files are listed with metadata columns, mirroring Google Drive's file browser.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_Myfiles_selected.png" alt="Google Drive My Drive" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_Myfiles_selected.png" alt="Solid.drive My Files" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+[NOTE]
+.Sort
+====
+Reorders the file list by name, modification date, or sharing status. The sort state is kept for the duration of the session.
+====
+
+[NOTE]
+.Details
+====
+Toggles the detail side panel. When a file or folder is selected the panel slides in from the right, showing metadata and access information without navigating away from the current directory.
+====
+
+[NOTE]
+.Modified column
+====
+Shows when the resource was last changed.
+====
+
+[NOTE]
+.Sharing column
+====
+Reflects the WAC (Web Access Control) permissions stored in the Pod. Values such as "Private", "Public", or "People" indicate who currently has access to the resource.
+====
+
+== Inside a Folder
+
+Navigating into a folder shows its contents. The breadcrumb trail at the top updates to reflect the current container path, and the file list refreshes to show only the resources inside that container.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_inside_a_folder.png" alt="Google Drive Inside a Folder" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_inside_a_folder.png" alt="Solid.drive Inside a Folder" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+[NOTE]
+.Breadcrumb navigation
+====
+Shows the full path from the Pod root to the current container. Each segment is a clickable link that jumps back up the hierarchy without reloading the page.
+====
+
+[NOTE]
+.Folder contents list
+====
+Lists all resources (files and folders) inside the current container. The same sort and filter controls from the My Files view are available here.
+====
+
+== File Selected
+
+When a single file is selected, the toolbar at the top reveals contextual action buttons and the detail panel slides in on the right to preview the file and display its metadata.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_single_file_selected.png" alt="Google Drive File Selected" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_single_file_selected.png" alt="Solid.drive File Selected" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *Selected file*: When you click a file in the list and open the details view, a side panel appears with all relevant information about the selected file.
+. *Details button*: When active the panel slides in from the right showing the file's metadata and access information.
+. *File preview and name*: The detail panel header shows the resource name and a thumbnail preview of the file content fetched directly from the Pod.
+. *Add a description*: An optional free text annotation stored as metadata on the resource in the Pod. It can be used to give context to collaborators who have access.
+. *Has access*: Avatar thumbnails for each WebID that has been granted access to this file via WAC permissions, plus a "Public" badge.
+. *Manage access*: Opens the sharing panel to grant or revoke access to other WebIDs.
+. *File metadata*: Displays the resource type, size, created and modified timestamps with the acting WebID, and the file's URI in the Pod.
+
+== Folder Selected
+
+Selecting a folder surfaces the same toolbar actions as file selection. The detail panel shows the folder's access list and editable description.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_folder_selected.png" alt="Google Drive Folder Selected" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_folder_selected.png" alt="Solid.drive Folder Selected" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *Move To*: Moves the selected folder to a different container in the Pod. Also available for a single file.
+. *Rename*: Renames the folder by copying it to a new URL and deleting the original. Also available for single files.
+. *Selected folder*: The highlighted row shows which folder is currently active. Like a selected file, the detail panel on the right displays the folder's description, access list, and metadata.
+
+[NOTE]
+.Who has access (WAC)
+====
+Each WebID with access is listed with its access mode — Control, Write or Read — taken directly from the container's Web Access Control rules. Google Drive's "Who has access" collapses these into owner/editor/viewer.
+====
+
+[NOTE]
+.download
+====
+The user can also download a selected file or an entire folder directly to their local device.
+====
+
+[NOTE]
+.Links
+====
+If the user wants to share a resource directly, the "Copy link" button in the top panel copies the resource URI to the clipboard.
+====
+
+[NOTE]
+.Share
+====
+The "Share" button opens a sharing configuration panel where the user can grant access to other WebIDs by setting WAC permissions on the resource in the Pod. This is available for both files and folders.
+====
+
+== Shared
+
+The Shared view is split into two tabs. "With you" lists files that other users have shared with you. "By you" shows files from your own Pod that you have granted access to others.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_shared_selected.png" alt="Google Drive Shared" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_shared_selected.png" alt="Solid.drive Shared" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *Shared section*: Shows the list of shared resources. The "With you" tab, shows the resources from other Pods shared with your WebID. Switching to "By you" lists resources from your own Pod that you have shared with others.
+
+The filter chips (Type / People) narrow the list by resource type using RDF type metadata, or by the display name of the person who shared the resource. The *Your access* column shows the WAC access mode you hold on the shared resource — Read or Write.
+
+== Recycle Bin
+
+The Recycle Bin shows deleted resources. In Google Drive this is a server managed feature with automatic expiry. In Solid.drive deletion is a hard DELETE on the Pod, so this view tracks resources that the application has marked as deleted within the user's session.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_bin_selected.png" alt="Google Drive Recycle Bin" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_bin_selected.png" alt="Solid.drive Recycle Bin" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *Recycle bin section*: The view lists deleted resources with their name, who deleted them, deletion time, and original container location.
+
+The "Empty recycle bin" button at the top permanently purges all records from the deleted items tracking state.
+
+=== Deleted Item Selected
+
+When a deleted item is selected, two action buttons appear in the top toolbar.
+
+[cols="1,1", frame=none, grid=none]
+|===
+a| *Google Drive*
+
++++<img src="images/Googledrive_deleted_file_selected.png" alt="Google Drive Deleted File Selected" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+
+a| *Solid.drive*
+
++++<img src="images/Solid.drive_deleted_file_selected.png" alt="Solid.drive Deleted File Selected" style="width:100%; height:340px; object-fit:contain; box-sizing:border-box; background:#2a2d33; border:1px solid #2a2d33; border-radius:8px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.15);">+++
+|===
+
+. *Action toolbar*: Appears when a deleted item is selected, revealing two buttons. *Restore* reuploads the resource to its original Pod location. *Delete forever* permanently removes the record from the application's deleted items tracking state.
