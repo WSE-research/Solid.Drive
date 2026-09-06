@@ -5,9 +5,9 @@
  * writer count. One run measures the whole grid, so we can read it
  * both ways without measuring twice.
  *
- * Each cell seeds one catalog per writer to the target size, 
- * then has every writer append once, given the 30 s deadline.
- * gaders the average, spread, and percentiles of the appends which finished within 30s.
+ * Each cell seeds one catalog per writer to the target size, then has every
+ * writer append once under a 30 s deadline. It reports the average, spread, and
+ * percentiles of the appends that finished within the deadline.
  *
  * Known limitation: an append that misses its deadline can still land on
  * the server afterward, growing the catalog by an entry. 
@@ -34,7 +34,6 @@ interface Args {
   abortPct: number;
 }
 
-// Parses command-line arguments into an Args object.
 function parseArgs(argv: string[]): Args {
   const args: Args = {
     baseUrl: "",
@@ -65,7 +64,7 @@ function parseArgs(argv: string[]): Args {
 
 const ARGS = parseArgs(process.argv.slice(2));
 
-// Runs tasks in parallel with a fixed number of workers. 
+// Runs fn over items with at most poolSize in flight at once.
 async function mapPool<T>(items: T[], poolSize: number, fn: (item: T) => Promise<void>): Promise<void> {
   let cursor = 0;
   const workers = Array.from({ length: Math.min(poolSize, items.length) }, async () => {

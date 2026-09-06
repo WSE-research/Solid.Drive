@@ -29,7 +29,7 @@ const ARGS = parseGridArgs(process.argv.slice(2), {
   repeats: 3,
 });
 
-// Reads and normalizes the required server base URL.
+// Times one restore, capturing latency plus the request and byte counts.
 async function measureRestore(base: AuthFetch, webId: string, file: PreparedFile, trashItemContainerUri: string): Promise<Sample> {
   const { fetch: metered, metrics } = instrumentFetch(base);
   const start = performance.now();
@@ -65,7 +65,7 @@ interface Row {
   meanKbReceived: number;
 }
 
-// Runs a single cell for the grid. 
+// One grid cell: for a fixed method, size, trash size, and client count, prepare fresh files each round, measure the op, and return the aggregates.
 async function runCell(base: AuthFetch, pod: string, webId: string, method: string, sizeKb: number, trashSize: number, concurrency: number): Promise<Row> {
   const samples: Sample[] = [];
   for (let repeat = 0; repeat < ARGS.repeats; repeat++) {
@@ -100,7 +100,6 @@ async function runCell(base: AuthFetch, pod: string, webId: string, method: stri
   };
 }
 
-// Prints a Markdown table of the results to stdout.
 function printTable(rows: Row[]): void {
   console.log("\n| method | size KB | trash | C | mean ms | SD | p50 | p95 | p99 | reqs | KB recv |");
   console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");

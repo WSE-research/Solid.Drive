@@ -144,7 +144,8 @@ async function main(): Promise<void> {
     checks.push(result);
   }
 
-  const outPath = writeResults("correctness", runId, { baseUrl: BASE_URL, server: session.serverHeader, checks });
+  const rows = checks.map((check) => ({ check: check.name, passed: check.ok ? 1 : 0, detail: check.detail }));
+  const outPath = writeResults("correctness", runId, { args: { baseUrl: BASE_URL, repeats: 1 }, server: session.serverHeader, pod: session.pod, rows });
   const failed = checks.filter((check) => !check.ok);
   console.log(`\n${checks.length - failed.length}/${checks.length} passed. wrote ${outPath}`);
   if (failed.length > 0) process.exit(1);

@@ -145,8 +145,7 @@ const ACL_CASES: AclCase[] = [
   { name: "mixed-authorizations", createAcl: mixedAuthorizationsAcl },
 ];
 
-// Runs all ACL preservation cases and writes the results.
-// in case of any failure, the process exits with a non-zero code.
+// Runs one case, turning a thrown error into a failed check instead of aborting the run.
 async function runCaseSafely(session: PodSession, aclCase: AclCase): Promise<Check> {
   try {
     return await runCase(session, aclCase);
@@ -170,7 +169,8 @@ async function main(): Promise<void> {
     checks.push(check);
   }
 
-  const outPath = writeResults("acl-preservation", runId, { baseUrl: BASE_URL, server: session.serverHeader, checks });
+  const rows = checks.map((check) => ({ check: check.name, passed: check.ok ? 1 : 0, detail: check.detail }));
+  const outPath = writeResults("acl-preservation", runId, { args: { baseUrl: BASE_URL, repeats: 1 }, server: session.serverHeader, pod: session.pod, rows });
   const failed = checks.filter((check) => !check.ok);
   console.log(`\n${checks.length - failed.length}/${checks.length} preserved. wrote ${outPath}`);
   if (failed.length > 0) process.exit(1);

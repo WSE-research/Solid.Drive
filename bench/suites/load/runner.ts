@@ -5,10 +5,10 @@
  * reports the response-time distribution and the share of requests that remain
  * unanswered within the configured deadline of 30 s.
  *
- * `levels` represents the concurrency ladder. Each level is the number of
- * concurrent writes sent by the client. The ladder increases until the server
- * reaches saturation.(too many unanswered requests). 
- * 
+ * The levels are the concurrency ladder: each is the number of concurrent
+ * writes the client sends. The ladder climbs until the server saturates (too
+ * many unanswered requests).
+ *
  * Tested levels: 8,16,24,32,40,48,56,64
  */
 
@@ -25,7 +25,6 @@ interface Args {
   abortPct: number;
 }
 
-// Parse a command-line arguments into an Args object. 
 function parseArgs(argv: string[]): Args {
   const args: Args = { 
     baseUrl: "", 
@@ -103,7 +102,6 @@ async function runLevel(authFetch: AuthFetch, pod: string, level: number): Promi
   };
 }
 
-// Prints a table of the results to stdout.
 function printTable(rows: Row[]): void {
   console.log("\n| level | ok | fail | fail% | mean ms | p50 | p95 | p99 | ops/s |");
   console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");

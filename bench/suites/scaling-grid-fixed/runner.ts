@@ -1,14 +1,14 @@
 /**
  * @packageDocumentation
  * Catalog-append latency across catalog size and concurrency, the fixed-size
- * sibling of `scaling-grid`. The original lets each catalog grow through a cell,
+ * sibling of scaling-grid. The original lets each catalog grow through a cell,
  * so later appends hit a bigger catalog than earlier ones. This variant seeds a
  * fresh catalog at the target size before every round, so every append in a cell
- * is measured at the same size. Results land under the `scaling-grid-fixed` suite
+ * is measured at the same size. Results land under the scaling-grid-fixed suite
  * so the two never mix.
  *
  * A cell fixes a catalog size and a writer count, then repeats a round until it
- * has about `runsPerCell` appends: seed one catalog per writer to the target
+ * has about runs-per-cell appends: seed one catalog per writer to the target
  * size, fire one append each against a 30 s deadline, delete them. The catalog
  * URLs carry the round number, so an append that missed its deadline but still
  * lands on the server writes where no later round reads, and a straggler cannot
@@ -16,13 +16,10 @@
  * timeout and error shares sit next to them. Deep, low-concurrency cells run
  * slowest, since they need the most rounds.
  *
- * `clients` is concurrent operations from one process over one session, not
- * separate machines. `throughput` is the append rate inside a round and leaves
- * out the resets. `--size-kb` only sets a `dcat:byteSize` value on the row; no
- * binary of that size is uploaded, so it is metadata, not bytes on the wire.
- *
- *   NODE_OPTIONS=--max-old-space-size=8192 npx tsx bench/suites/scaling-grid-fixed/runner.ts \
- *     --base-url https://host/ --runs-per-cell 500 --deadline-ms 30000
+ * Clients here means concurrent operations from one process over one session,
+ * not separate machines. Throughput is the append rate inside a round and leaves
+ * out the resets. The --size-kb flag only sets a dcat:byteSize value on the row;
+ * no binary of that size is uploaded, so it is metadata, not bytes on the wire.
  */
 
 import { hostname } from "node:os";
@@ -131,7 +128,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined>
 }
 
 /**
- * Runs `fn` over items with bounded concurrency, for setup work. After the first
+ * Runs fn over items with bounded concurrency, for setup work. After the first
  * failure it stops handing out new items, lets the running ones finish, then
  * rethrows, so a failed seed does not bleed workers into the next cell.
  */

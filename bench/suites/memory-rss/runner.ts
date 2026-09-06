@@ -6,8 +6,8 @@
  * adds the entry, and re-serializes. 
  * Peak resident memory is what that costs, and it grows with the pod content.
  *
- * Since the N3 Patch method is O(1). This suite measures the GET+PUT method, 
- * while the Patch memory cost is represented by the runtime floor.
+ * The N3 Patch method is O(1), so this suite measures only the GET+PUT method;
+ * the Patch memory cost is the runtime floor.
  */
 
 import { hostname } from "node:os";

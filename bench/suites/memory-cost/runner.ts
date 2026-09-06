@@ -67,7 +67,7 @@ const ARGS = parseArgs(process.argv.slice(2));
 
 const makeEntry = catalogEntryMaker(ARGS.byteSize);
 
-// For each catalog size we seed one catalog, and measure both write methods:
+// Run GC twice so pending finalizers settle before we read the heap baseline.
 function collectGarbage(): void {
   if (typeof global.gc === "function") {
     global.gc();
