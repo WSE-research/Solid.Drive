@@ -35,7 +35,7 @@ import { parseGridArgs, meanOf, writeResults, type Sample } from "../soft-delete
 const ARGS = parseGridArgs(process.argv.slice(2), {
   sizesKb: [1, 16, 256, 4096],
   trashSizes: [0],
-  arms: ["basic"],
+  methods: ["basic"],
   concurrency: [1],
   repeats: 3,
 });
