@@ -168,7 +168,11 @@ restore returns it to its exact original location with its original
 ACL (a Control-mode grant `readAclAgents` would not round-trip),
 permanently deleting from the bin removes the trash catalog row and
 container, and an item past its retention window is purged the moment
-the Recycle bin is opened.
+the Recycle bin is opened. Also covers the restore-conflict dialog
+that opens when a file was recreated under the same name after being
+trashed: cancel leaves both versions where they are, "keep both"
+restores the trashed one under a "(restored)" name alongside the
+current one, and "replace" moves the current one to the bin first.
 
 | `e2e/tests/notification-bell.spec.ts`
 | Inbox-driven NotificationBell: badge appears on unseen requests,

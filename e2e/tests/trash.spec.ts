@@ -241,13 +241,21 @@ test("Restore returns the file to My Files, removes it from the Recycle bin, and
   await after.close();
 });
 
-test("Restore does not overwrite a resource that now occupies the original URI", async ({ browser, peach }) => {
-  test.setTimeout(TEST_TIMEOUTS.medium);
-
-  const seeded = await seedFile({
+/**
+ * Deletes "Holiday Snapshot", recreates a file under the exact same name,
+ * and returns a fresh browser context sitting on the Recycle bin with the
+ * trashed item's Restore button ready to click. The shared setup for every
+ * restore-conflict test below.
+ */
+async function setUpRestoreConflict(
+  browser: import("@playwright/test").Browser,
+  peach: import("../helpers/fixtures").UserFixture,
+): Promise<{ page: import("@playwright/test").Page; close: () => Promise<void>; trashRow: import("@playwright/test").Locator }> {
+  const fileName = `holiday-${Date.now()}.png`;
+  await seedFile({
     authedFetch: peach.authedFetch,
     pod: peach.pod,
-    fileName: `holiday-${Date.now()}.png`,
+    fileName,
     title: "Holiday Snapshot",
     ...SEEDED_FILE,
   });
@@ -257,18 +265,19 @@ test("Restore does not overwrite a resource that now occupies the original URI",
   await moveToBinViaUi(started.page, "Holiday Snapshot");
   await started.close();
 
-  // Something else now occupies the original location.
-  const occupyingBody = "not the original file";
-  const occupyResponse = await peach.authedFetch(seeded.instanceUri, {
-    method: "PUT",
-    headers: { "Content-Type": "text/turtle" },
-    body: occupyingBody,
+  // Recreates the file under the exact same name: the same setup that
+  // produces a real restore conflict, not a synthetic occupied resource.
+  await seedFile({
+    authedFetch: peach.authedFetch,
+    pod: peach.pod,
+    fileName,
+    title: "Holiday Snapshot",
+    ...SEEDED_FILE,
   });
-  expect(occupyResponse.ok).toBe(true);
 
-  // Fresh browser context: restoring reads the original location straight
-  // from the pod, and a session that had it open before the write above
-  // must not serve a pre-write view of it.
+  // Fresh browser context: the recreation above happened outside any open
+  // session, and a session that had the folder open before it must not
+  // serve a pre-write view of it.
   const { page, close } = await freshLogin(browser, peach);
   await openMyFiles(page);
   await navigateToView(page, "Recycle bin");
@@ -276,18 +285,83 @@ test("Restore does not overwrite a resource that now occupies the original URI",
   await expect(trashRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
 
   await trashRow.getByRole("button", { name: /^Restore/ }).click();
-  await expect(page.locator(".toast").last()).toContainText("A file already exists at the original location");
-  await shot(page, "restore blocked by occupied destination");
+  const dialog = page.locator(".odl-dialog--restore-conflict");
+  await expect(dialog).toBeVisible({ timeout: UI_TIMEOUTS.medium });
+  await expect(dialog).toContainText('"Holiday Snapshot" already exists');
 
-  // The trash copy is left in place, not silently dropped or overwritten.
+  return { page, close, trashRow };
+}
+
+test("Restore conflict: cancelling leaves both the trashed and the current version untouched", async ({ browser, peach }) => {
+  test.setTimeout(TEST_TIMEOUTS.medium);
+
+  const { page, close, trashRow } = await setUpRestoreConflict(browser, peach);
+  await shot(page, "restore conflict dialog");
+
+  await page.locator(".odl-dialog--restore-conflict").getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator(".odl-dialog--restore-conflict")).toHaveCount(0);
+
+  // Nothing moved: the trashed copy is still there, and My Files still
+  // shows exactly the one file that was already occupying the location.
   await expect(trashRow).toBeVisible({ timeout: UI_TIMEOUTS.medium });
-
-  // The resource that occupies the original location is untouched.
-  const occupyingResponse = await peach.authedFetch(seeded.instanceUri);
-  expect(occupyingResponse.ok).toBe(true);
-  expect(await occupyingResponse.text()).toBe(occupyingBody);
+  await navigateToView(page, "My Files");
+  await page.locator(".odl-files-row--folder").filter({ hasText: "my-solid-app" }).click();
+  await expect(page.locator(".odl-files-row--file").filter({ hasText: "Holiday Snapshot" })).toHaveCount(1, { timeout: UI_TIMEOUTS.medium });
+  await shot(page, "restore conflict cancelled");
 
   await close();
+});
+
+test("Restore conflict: keep both restores the trashed file alongside the current one", async ({ browser, peach }) => {
+  test.setTimeout(TEST_TIMEOUTS.long);
+
+  const { page, close, trashRow } = await setUpRestoreConflict(browser, peach);
+  await shot(page, "restore conflict dialog");
+
+  await page.locator(".odl-dialog--restore-conflict").getByRole("button", { name: "Keep both" }).click();
+  await expect(trashRow).toHaveCount(0, { timeout: UI_TIMEOUTS.medium });
+  await expect(page.locator(".toast").last()).toContainText("Holiday Snapshot");
+
+  await close();
+  const after = await freshLogin(browser, peach);
+  await openMyFiles(after.page);
+  await after.page.locator(".odl-files-row--folder").filter({ hasText: "my-solid-app" }).click();
+  await expect(
+    after.page.locator(".odl-files-row--file").filter({ hasText: "Holiday Snapshot" }),
+  ).toHaveCount(2, { timeout: UI_TIMEOUTS.medium });
+  await shot(after.page, "restore conflict kept both");
+
+  await after.close();
+});
+
+test("Restore conflict: replace moves the current file to the Recycle bin and restores the trashed one in its place", async ({ browser, peach }) => {
+  test.setTimeout(TEST_TIMEOUTS.long);
+
+  const { page, close } = await setUpRestoreConflict(browser, peach);
+  await shot(page, "restore conflict dialog");
+
+  await page.locator(".odl-dialog--restore-conflict").getByRole("button", { name: "Replace current version" }).click();
+  // Not asserting the trash row count here: the file being displaced also
+  // lands in the bin under the same name, so a name-filtered locator on
+  // "Holiday Snapshot" never actually reaches zero. The toast is the
+  // reliable signal that this particular restore finished.
+  await expect(page.locator(".toast").last()).toContainText("Holiday Snapshot", { timeout: UI_TIMEOUTS.medium });
+
+  await close();
+  const after = await freshLogin(browser, peach);
+  await openMyFiles(after.page);
+  await after.page.locator(".odl-files-row--folder").filter({ hasText: "my-solid-app" }).click();
+  await expect(
+    after.page.locator(".odl-files-row--file").filter({ hasText: "Holiday Snapshot" }),
+  ).toHaveCount(1, { timeout: UI_TIMEOUTS.medium });
+  await shot(after.page, "restore conflict replaced");
+
+  // The file that had been occupying the spot is the one now in the bin,
+  // not lost: exactly one trashed item remains.
+  await navigateToView(after.page, "Recycle bin");
+  await expect(after.page.locator("trash-row").filter({ hasText: "Holiday Snapshot" })).toHaveCount(1, { timeout: UI_TIMEOUTS.medium });
+
+  await after.close();
 });
 
 test("Restore succeeds for a resource with no ACL of its own, and does not create one", async ({ browser, peach }) => {
