@@ -16,7 +16,7 @@ import { readTrashFolderContents, type TrashFolderContents } from "@/infrastruct
 import { isExpired, readTombstone, type Tombstone } from "@/infrastructure/solid/tombstone";
 import { notifyCatalogChanged } from "@/shared/hooks/useCatalogVersion";
 import { deleteResource, type DeleteResourceResult } from "@/features/file-explorer/services/deleteResource";
-import { restoreTrashedFile, type RestoreTrashedFileResult } from "@/features/file-explorer/services/restoreTrashedFile";
+import { restoreTrashedFile, type RestoreResolution, type RestoreTrashedFileResult } from "@/features/file-explorer/services/restoreTrashedFile";
 import { restoreTrashedFolder, type RestoreTrashedFolderResult } from "@/features/file-explorer/services/restoreTrashedFolder";
 import type { CatalogEntry } from "@/types/catalog";
 import type { SharedEntry } from "@/types/sharing";
@@ -64,7 +64,7 @@ export interface UseTrashEntriesReturn {
   entries: TrashEntry[];
   loading: boolean;
   error: Error | null;
-  restore: (item: TrashEntry) => Promise<RestoreTrashedFileResult | RestoreTrashedFolderResult>;
+  restore: (item: TrashEntry, resolution?: RestoreResolution) => Promise<RestoreTrashedFileResult | RestoreTrashedFolderResult>;
   /**
    * Permanently deletes a trashed item using {@link deleteResource}
    * against its trash container and catalog entry.
@@ -175,13 +175,16 @@ export function useTrashEntries(storageRootUri: string | undefined): UseTrashEnt
   }, [rows, trashCatalogUri, solidFetch]);
 
   const restore = useCallback(
-    async (item: TrashEntry): Promise<RestoreTrashedFileResult | RestoreTrashedFolderResult> => {
+    async (item: TrashEntry, resolution?: RestoreResolution): Promise<RestoreTrashedFileResult | RestoreTrashedFolderResult> => {
       if (!storageRootUri) return { ok: false, reason: "failed", detail: "No storage root resolved yet" };
       if (item.kind === "folder") {
         return restoreTrashedFolder({
           trashItemContainerUri: item.containerUri,
           storageRootUri,
+          ownerWebId: session.webId,
           fetch: solidFetch,
+          resolution,
+          trashedModified: item.entry.modified,
         });
       }
       if (!session.webId) return { ok: false, reason: "failed", detail: "Not logged in" };
@@ -191,6 +194,7 @@ export function useTrashEntries(storageRootUri: string | undefined): UseTrashEnt
         entry: item.entry,
         ownerWebId: session.webId,
         fetch: solidFetch,
+        resolution,
       });
     },
     [storageRootUri, session.webId, solidFetch],

@@ -458,8 +458,8 @@
       },
       "toast": {
         "restoreSuccess": "„{{name}}\" wiederhergestellt",
-        "restoreOccupied": "Am ursprünglichen Ort existiert bereits eine Datei",
         "restoreFail": "Wiederherstellung fehlgeschlagen",
+        "restoreFailAfterReplace": "Wiederherstellung fehlgeschlagen, aber die Datei, die im Weg war, befindet sich jetzt im Papierkorb",
         "purgeSuccess": "„{{name}}\" endgültig gelöscht",
         "purgeFail": "Löschen fehlgeschlagen",
         "aclNotRestored": "Wiederhergestellt, aber die Freigabeberechtigungen konnten nicht wiederhergestellt werden",
@@ -473,6 +473,15 @@
       "expiresIn_other": "Läuft in {{count}} Tagen ab",
       "itemCount_one": "{{count}} Element",
       "itemCount_other": "{{count}} Elemente"
+    },
+    "restoreConflictDialog": {
+      "title": "„{{name}}\" existiert bereits",
+      "intro": "An diesem Ort liegt bereits eine andere Version. Wähle aus, welche behalten werden soll.",
+      "current": "Aktuelle Version",
+      "trashed": "Version aus dem Papierkorb",
+      "unknown": "Unbekannt",
+      "keepBoth": "Beide behalten",
+      "replace": "Aktuelle Version ersetzen"
     }
   },
   "auth": {

@@ -500,6 +500,7 @@ describe('useTrashEntries', () => {
       trashItemContainerUri: item.containerUri,
       storageRootUri,
       fetch: mockFetch,
+      trashedModified: '',
     });
     expect(mockRestoreTrashedFile).not.toHaveBeenCalled();
   });

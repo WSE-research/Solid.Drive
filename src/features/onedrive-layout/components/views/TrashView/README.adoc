@@ -11,7 +11,7 @@ Lists soft-deleted files through `useTrashEntries`, which purges expired rows be
 `TrashTable`:: Presentational: Name, Deleted, Expires, Size, Actions. Restore is disabled when a row has no readable tombstone (purge still works). Both actions disable for whichever row is mid-action, tracked via `busyContainerUri`. A folder's Size column shows its item count instead of a byte count, or an em-dash when the count couldn't be read.
 `formatExpiry`:: Buckets a tombstone's expiry into `expiryPast`, `expiresToday`, `expiresTomorrow`, or `expiresIn` with a day count.
 
-Restore reports success, occupied (something's already at the original location), or a generic failure. A restored file whose ACL snapshot didn't come back gets an extra warning toast alongside the success one.
+Restore reports success, occupied, or a generic failure. Occupied opens `RestoreConflictDialog` instead of a toast, comparing the current and trashed versions; the choice made there is what retries the restore, with `resolvingConflict` disabling the dialog's buttons while it's in flight. A restored file whose ACL snapshot didn't come back gets an extra warning toast alongside the success one.
 
 == Navigation
 

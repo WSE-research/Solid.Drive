@@ -17,6 +17,13 @@ import { useDriveInitialization } from '@/features/file-explorer/hooks/useDriveI
 import { useTrashEntries, type TrashEntry } from '@/features/file-explorer/hooks/useTrashEntries';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
 import { PurgeIcon } from '@/features/onedrive-layout/icons';
+import { RestoreConflictDialog } from '@/features/onedrive-layout/components/RestoreConflictDialog';
+import type {
+  RestoreConflict,
+  RestoreResolution,
+  RestoreTrashedFileResult,
+} from '@/features/file-explorer/services/restoreTrashedFile';
+import type { RestoreTrashedFolderResult } from '@/features/file-explorer/services/restoreTrashedFolder';
 import { TrashTable } from './TrashTable';
 
 /**
@@ -31,12 +38,11 @@ export const TrashView: FunctionComponent = () => {
   const { showSuccess, showError, confirm } = useNotifications();
   const [busyContainerUri, setBusyContainerUri] = useState<string | undefined>(undefined);
   const [emptying, setEmptying] = useState(false);
+  const [conflict, setConflict] = useState<{ item: TrashEntry; conflict: RestoreConflict } | null>(null);
+  const [resolvingConflict, setResolvingConflict] = useState(false);
 
-  const handleRestore = useCallback(
-    async (item: TrashEntry) => {
-      setBusyContainerUri(item.containerUri);
-      const result = await restore(item).finally(() => setBusyContainerUri(undefined));
-
+  const reportRestoreOutcome = useCallback(
+    (item: TrashEntry, result: RestoreTrashedFileResult | RestoreTrashedFolderResult) => {
       if (result.ok) {
         showSuccess(
           translate('oneDriveLayout.trashView.toast.restoreSuccess', {
@@ -54,18 +60,55 @@ export const TrashView: FunctionComponent = () => {
         }
         return;
       }
-
-      showError(
-        result.reason === 'occupied'
-          ? translate(
-              'oneDriveLayout.trashView.toast.restoreOccupied',
-              'A file already exists at the original location',
-            )
-          : translate('oneDriveLayout.trashView.toast.restoreFail', 'Restore failed'),
-      );
+      if (result.reason === 'occupied') return;
+      if (result.occupantMovedToTrash) {
+        showError(
+          translate(
+            'oneDriveLayout.trashView.toast.restoreFailAfterReplace',
+            'Restore failed, but the file that was in the way is now in the Recycle Bin',
+          ),
+        );
+        return;
+      }
+      showError(translate('oneDriveLayout.trashView.toast.restoreFail', 'Restore failed'));
     },
-    [restore, showSuccess, showError, translate],
+    [showSuccess, showError, translate],
   );
+
+  const handleRestore = useCallback(
+    async (item: TrashEntry) => {
+      setBusyContainerUri(item.containerUri);
+      const result = await restore(item).finally(() => setBusyContainerUri(undefined));
+
+      if (!result.ok && result.reason === 'occupied') {
+        setConflict({ item, conflict: result.conflict });
+        return;
+      }
+      reportRestoreOutcome(item, result);
+    },
+    [restore, reportRestoreOutcome],
+  );
+
+  const handleResolveConflict = useCallback(
+    async (resolution: RestoreResolution) => {
+      if (!conflict) return;
+      const { item } = conflict;
+      setResolvingConflict(true);
+      try {
+        const result = await restore(item, resolution);
+        setConflict(null);
+        reportRestoreOutcome(item, result);
+      } catch {
+        setConflict(null);
+        showError(translate('oneDriveLayout.trashView.toast.restoreFail', 'Restore failed'));
+      } finally {
+        setResolvingConflict(false);
+      }
+    },
+    [conflict, restore, reportRestoreOutcome, showError, translate],
+  );
+
+  const handleCancelConflict = useCallback(() => setConflict(null), []);
 
   const handlePurge = useCallback(
     async (item: TrashEntry) => {
@@ -158,27 +201,39 @@ export const TrashView: FunctionComponent = () => {
   );
 
   return (
-    <onedrive-view data-view-id="trash">
-      <trash-header>
-        <p className="odl-trash-retention-note">
-          {translate(
-            'oneDriveLayout.trashView.retentionNote',
-            'Items are permanently deleted after 30 days.',
+    <>
+      <onedrive-view data-view-id="trash">
+        <trash-header>
+          <p className="odl-trash-retention-note">
+            {translate(
+              'oneDriveLayout.trashView.retentionNote',
+              'Items are permanently deleted after 30 days.',
+            )}
+          </p>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              className="odl-trash-empty-button"
+              disabled={emptying}
+              onClick={handleEmptyTrash}
+            >
+              <PurgeIcon aria-hidden focusable={false} />
+              <span>{translate('oneDriveLayout.trashView.action.emptyTrash', 'Empty recycle bin')}</span>
+            </button>
           )}
-        </p>
-        {entries.length > 0 && (
-          <button
-            type="button"
-            className="odl-trash-empty-button"
-            disabled={emptying}
-            onClick={handleEmptyTrash}
-          >
-            <PurgeIcon aria-hidden focusable={false} />
-            <span>{translate('oneDriveLayout.trashView.action.emptyTrash', 'Empty recycle bin')}</span>
-          </button>
-        )}
-      </trash-header>
-      {body}
-    </onedrive-view>
+        </trash-header>
+        {body}
+      </onedrive-view>
+      {conflict && (
+        <RestoreConflictDialog
+          open
+          itemTitle={conflict.item.entry.title}
+          conflict={conflict.conflict}
+          isResolving={resolvingConflict}
+          onResolve={handleResolveConflict}
+          onCancel={handleCancelConflict}
+        />
+      )}
+    </>
   );
 };

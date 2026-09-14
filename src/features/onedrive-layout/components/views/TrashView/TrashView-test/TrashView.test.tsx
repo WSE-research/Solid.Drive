@@ -118,12 +118,93 @@ describe('TrashView', () => {
     expect(mockPurge).not.toHaveBeenCalled();
   });
 
-  it('shows a toast saying a file already exists when the original location is occupied', async () => {
-    mockRestore.mockResolvedValue({ ok: false, reason: 'occupied' });
+  const occupiedResult = {
+    ok: false as const,
+    reason: 'occupied' as const,
+    conflict: { current: { modified: '2026-02-01T00:00:00.000Z', byteSize: 2048 }, trashed: { modified: '2026-01-01T00:00:00.000Z', byteSize: 1024 } },
+  };
+
+  it('opens the restore-conflict dialog instead of restoring when the original location is occupied', async () => {
+    mockRestore.mockResolvedValue(occupiedResult);
     const user = userEvent.setup();
     render(<TrashView />);
     await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
-    expect(mockShowError).toHaveBeenCalledWith(expect.stringMatching(/already exists/i));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/"photo\.jpg" already exists/i)).toBeInTheDocument();
+    expect(mockShowError).not.toHaveBeenCalled();
+  });
+
+  it('restores with the chosen resolution and closes the dialog when a conflict is resolved', async () => {
+    mockRestore.mockResolvedValueOnce(occupiedResult);
+    const user = userEvent.setup();
+    render(<TrashView />);
+    await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
+
+    mockRestore.mockResolvedValueOnce({ ok: true, restoredContainerUri: 'x', aclRestored: true });
+    await user.click(screen.getByRole('button', { name: 'Keep both' }));
+
+    expect(mockRestore).toHaveBeenLastCalledWith(item, 'keepBoth');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockShowSuccess).toHaveBeenCalledWith(expect.stringMatching(/photo\.jpg.*restored/i));
+  });
+
+  it('leaves the trashed item alone and closes the dialog when the conflict is cancelled', async () => {
+    mockRestore.mockResolvedValueOnce(occupiedResult);
+    const user = userEvent.setup();
+    render(<TrashView />);
+    await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(mockRestore).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('warns that the displaced file is now in the Recycle Bin when a "replace" restore fails partway through', async () => {
+    mockRestore.mockResolvedValueOnce(occupiedResult);
+    const user = userEvent.setup();
+    render(<TrashView />);
+    await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
+
+    mockRestore.mockResolvedValueOnce({ ok: false, reason: 'failed', detail: 'catalog offline', occupantMovedToTrash: true });
+    await user.click(screen.getByRole('button', { name: 'Replace current version' }));
+
+    expect(mockShowError).toHaveBeenCalledWith(expect.stringMatching(/recycle bin/i));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('asks again, and allows a different choice, the next time the same item hits a conflict', async () => {
+    mockRestore.mockResolvedValueOnce(occupiedResult);
+    const user = userEvent.setup();
+    render(<TrashView />);
+
+    await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    mockRestore.mockResolvedValueOnce(occupiedResult);
+    await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    mockRestore.mockResolvedValueOnce({ ok: true, restoredContainerUri: 'x', aclRestored: true });
+    await user.click(screen.getByRole('button', { name: 'Replace current version' }));
+
+    expect(mockRestore).toHaveBeenNthCalledWith(1, item);
+    expect(mockRestore).toHaveBeenNthCalledWith(2, item);
+    expect(mockRestore).toHaveBeenNthCalledWith(3, item, 'replace');
+  });
+
+  it('closes the dialog and shows a failure toast instead of hanging open when resolving a conflict throws', async () => {
+    mockRestore.mockResolvedValueOnce(occupiedResult);
+    const user = userEvent.setup();
+    render(<TrashView />);
+    await user.click(screen.getByRole('button', { name: /restore: photo\.jpg/i }));
+
+    mockRestore.mockRejectedValueOnce(new Error('unexpected'));
+    await user.click(screen.getByRole('button', { name: 'Keep both' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockShowError).toHaveBeenCalledWith(expect.stringMatching(/restore failed/i));
   });
 
   it('shows a generic failure toast when restore fails for another reason', async () => {

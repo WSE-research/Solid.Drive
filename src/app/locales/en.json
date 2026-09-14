@@ -458,8 +458,8 @@
       },
       "toast": {
         "restoreSuccess": "\"{{name}}\" restored",
-        "restoreOccupied": "A file already exists at the original location",
         "restoreFail": "Restore failed",
+        "restoreFailAfterReplace": "Restore failed, but the file that was in the way is now in the Recycle Bin",
         "purgeSuccess": "\"{{name}}\" permanently deleted",
         "purgeFail": "Delete failed",
         "aclNotRestored": "Restored, but sharing permissions could not be restored",
@@ -473,6 +473,15 @@
       "expiresIn_other": "Expires in {{count}} days",
       "itemCount_one": "{{count}} item",
       "itemCount_other": "{{count}} items"
+    },
+    "restoreConflictDialog": {
+      "title": "\"{{name}}\" already exists",
+      "intro": "A different version is already there. Choose which one to keep.",
+      "current": "Current version",
+      "trashed": "Version from the Recycle Bin",
+      "unknown": "Unknown",
+      "keepBoth": "Keep both",
+      "replace": "Replace current version"
     }
   },
   "auth": {

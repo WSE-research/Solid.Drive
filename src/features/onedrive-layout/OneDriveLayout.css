@@ -1460,6 +1460,32 @@ selection-actions-kebab {
   font-size: var(--odl-font-size-sm);
 }
 
+.odl-restore-conflict__intro {
+  margin: 0 0 var(--odl-space-4);
+  color: var(--odl-text-muted);
+  font-size: var(--odl-font-size-md);
+}
+
+.odl-restore-conflict__versions {
+  display: grid;
+  gap: var(--odl-space-3);
+  margin: 0;
+}
+.odl-restore-conflict__version {
+  padding: var(--odl-space-3);
+  border: 1px solid var(--odl-border);
+  border-radius: var(--odl-radius-chip);
+}
+.odl-restore-conflict__version dt {
+  font-size: var(--odl-font-size-sm);
+  color: var(--odl-text-faint);
+}
+.odl-restore-conflict__version dd {
+  margin: var(--odl-space-1) 0 0;
+  color: var(--odl-text);
+  font-size: var(--odl-font-size-md);
+}
+
 .odl-dialog__footer {
   display: flex;
   justify-content: flex-end;

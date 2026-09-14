@@ -35,6 +35,11 @@ vi.mock('@/shared/hooks/useAclVersion', () => ({
   notifyAclChanged: (...args: unknown[]) => mockNotifyAclChanged(...args),
 }));
 
+const mockSoftDeleteFolder = vi.fn().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod.example/trash/occupant/' });
+vi.mock('@/features/file-explorer/services/softDeleteFolder', () => ({
+  softDeleteFolder: (...args: unknown[]) => mockSoftDeleteFolder(...args),
+}));
+
 const storageRootUri = 'https://pod.example/';
 const trashItemContainerUri = 'https://pod.example/trash/abc123/';
 const trashCatalogUri = 'https://pod.example/trash/catalog.ttl';
@@ -167,6 +172,7 @@ function restoreArgs(overrides: Partial<Parameters<typeof restoreTrashedFolder>[
   return {
     trashItemContainerUri,
     storageRootUri,
+    ownerWebId: 'https://owner.example/#me',
     fetch: makeFetch(),
     ...overrides,
   };
@@ -180,6 +186,7 @@ describe('restoreTrashedFolder', () => {
     mockDeleteResource.mockClear().mockResolvedValue({ ok: true });
     mockNotifyCatalogChanged.mockClear();
     mockNotifyAclChanged.mockClear();
+    mockSoftDeleteFolder.mockClear().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod.example/trash/occupant/' });
   });
 
   it('restores the folder to its original location and reports its ACL as restored', async () => {
@@ -291,9 +298,152 @@ describe('restoreTrashedFolder', () => {
     const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
     const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn }));
 
-    expect(result).toEqual({ ok: false, reason: 'occupied' });
+    expect(result.ok).toBe(false);
+    expect(result).toMatchObject({ reason: 'occupied' });
     expect(fetchFn.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')).toBe(false);
     expect(mockDeleteResource).not.toHaveBeenCalled();
+  });
+
+  it('describes the trashed folder\'s own modified time in the conflict, not just the current occupant\'s', async () => {
+    const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, trashedModified: '2026-01-05T00:00:00.000Z' }));
+
+    expect(result.ok).toBe(false);
+    if (result.ok || result.reason !== 'occupied') throw new Error('expected an occupied conflict');
+    expect(result.conflict.trashed).toEqual({ modified: '2026-01-05T00:00:00.000Z' });
+  });
+
+  it('describes the occupant from its own catalog row when it has one, instead of guessing from response headers', async () => {
+    const occupantCatalog = `
+      @prefix dcat: <http://www.w3.org/ns/dcat#> .
+      @prefix dcterms: <http://purl.org/dc/terms/> .
+      @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+      <${originalCatalogUri}> dcat:dataset <${originalContainerUri}> .
+      <${originalContainerUri}> a dcat:Dataset ;
+        dcterms:title "Occupant Folder" ;
+        dcterms:modified "2026-02-01T00:00:00.000Z"^^xsd:dateTime .
+    `.trim();
+    const fetchFn = makeFetch({
+      [`HEAD ${originalContainerUri}`]: okResponse(''),
+      [`GET ${originalCatalogUri}`]: okResponse(occupantCatalog, 'text/turtle'),
+    });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn }));
+
+    expect(result.ok).toBe(false);
+    if (result.ok || result.reason !== 'occupied') throw new Error('expected an occupied conflict');
+    expect(result.conflict.current).toEqual({ modified: '2026-02-01T00:00:00.000Z', byteSize: undefined });
+  });
+
+  it('falls back to the occupant\'s response headers for its date when it has no catalog row', async () => {
+    const fetchFn = makeFetch({
+      [`HEAD ${originalContainerUri}`]: new Response('', {
+        status: 200,
+        headers: { 'Last-Modified': 'Sun, 01 Feb 2026 00:00:00 GMT' },
+      }),
+    });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn }));
+
+    expect(result.ok).toBe(false);
+    if (result.ok || result.reason !== 'occupied') throw new Error('expected an occupied conflict');
+    expect(result.conflict.current).toEqual({ modified: new Date('Sun, 01 Feb 2026 00:00:00 GMT').toISOString() });
+  });
+
+  it('reports "Unknown error" when reading the tombstone rejects with a non-Error value', async () => {
+    const base = makeFetch();
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      if (String(input) === tombstoneUri) throw 'plain string failure';
+      return base(input, init);
+    });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn }));
+    expect(result).toEqual({ ok: false, reason: 'failed', detail: 'Unknown error' });
+  });
+
+  it('reports "Unknown error" when the occupancy check rejects with a non-Error value', async () => {
+    const base = makeFetch();
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'HEAD' && String(input) === originalContainerUri) throw 'plain string failure';
+      return base(input, init);
+    });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn }));
+    expect(result).toEqual({ ok: false, reason: 'failed', detail: 'Unknown error' });
+  });
+
+  it('keepBoth: rebases an entry with no parent and no access url without erroring', async () => {
+    const rootOnlySnapshot = `
+      @prefix dcat: <http://www.w3.org/ns/dcat#> .
+      @prefix dcterms: <http://purl.org/dc/terms/> .
+      @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+      <${snapshotUri}> dcat:dataset <${originalContainerUri}> .
+      <${originalContainerUri}> a dcat:Dataset ;
+        dcterms:conformsTo <${FOLDER_CLASS}> ;
+        dcterms:title "Photos" ;
+        dcterms:modified "2026-01-01T00:00:00.000Z"^^xsd:dateTime .
+    `.trim();
+    const fetchFn = makeFetch({
+      [`HEAD ${originalContainerUri}`]: okResponse(''),
+      [`GET ${snapshotUri}`]: okResponse(rootOnlySnapshot, 'text/turtle'),
+    });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, resolution: 'keepBoth' }));
+
+    expect(result.ok).toBe(true);
+    const [[rootCall]] = mockAppendFolderToCatalog.mock.calls;
+    expect(rootCall.parentUri).toBe('');
+  });
+
+  it('replace: moves the folder in the way to the Recycle Bin, then restores into the freed location', async () => {
+    const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, resolution: 'replace' }));
+
+    expect(mockSoftDeleteFolder).toHaveBeenCalledWith(
+      expect.objectContaining({ containerUri: originalContainerUri, catalogUri: originalCatalogUri }),
+    );
+    expect(result).toEqual({ ok: true, restoredContainerUri: originalContainerUri, aclRestored: true });
+  });
+
+  it('replace: reports failure instead of restoring when moving the folder in the way fails', async () => {
+    mockSoftDeleteFolder.mockResolvedValueOnce({ ok: false, reason: 'Missing permission' });
+    const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, resolution: 'replace' }));
+
+    expect(result).toEqual({ ok: false, reason: 'failed', detail: expect.stringContaining('Missing permission') });
+  });
+
+  it('replace: flags occupantMovedToTrash when the restore itself fails after the folder in the way was already moved', async () => {
+    mockAppendFolderToCatalog.mockRejectedValueOnce(new Error('catalog offline'));
+    const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, resolution: 'replace' }));
+
+    expect(mockSoftDeleteFolder).toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, reason: 'failed', detail: 'catalog offline', occupantMovedToTrash: true });
+  });
+
+  it('replace: reports failure without acting when no owner is given to attribute the move', async () => {
+    const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, resolution: 'replace', ownerWebId: undefined }));
+
+    expect(result).toEqual({ ok: false, reason: 'failed', detail: 'Not logged in' });
+    expect(mockSoftDeleteFolder).not.toHaveBeenCalled();
+  });
+
+  it('keepBoth: restores the folder and its whole subtree under a new location instead of replacing what is already there', async () => {
+    const fetchFn = makeFetch({ [`HEAD ${originalContainerUri}`]: okResponse('') });
+    const result = await restoreTrashedFolder(restoreArgs({ fetch: fetchFn, resolution: 'keepBoth' }));
+
+    expect(mockSoftDeleteFolder).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('expected the restore to succeed');
+    expect(result.restoredContainerUri).not.toBe(originalContainerUri);
+    expect(result.restoredContainerUri.startsWith(originalContainerUri.replace(/\/$/, ''))).toBe(true);
+    expect(result.restoredContainerUri).toBe('https://pod.example/my-solid-app/photos%20(restored)/');
+
+    const [rootCall] = mockAppendFolderToCatalog.mock.calls.map(([call]) => call);
+    expect(rootCall.folderUri).toBe(result.restoredContainerUri);
+    const subFolderCall = mockAppendFolderToCatalog.mock.calls.map(([call]) => call).find((call) => call.title === 'Vacation');
+    expect(subFolderCall.folderUri.startsWith(result.restoredContainerUri)).toBe(true);
+    expect(subFolderCall.parentUri).toBe(result.restoredContainerUri);
+    const fileCall = mockAppendToCatalog.mock.calls.map(([call]) => call).find((call) => call.title === 'beach.jpg');
+    expect(fileCall.instanceUri.startsWith(result.restoredContainerUri)).toBe(true);
   });
 
   it('bypasses cached responses when checking occupancy', async () => {

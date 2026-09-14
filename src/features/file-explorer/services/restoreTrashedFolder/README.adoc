@@ -6,17 +6,20 @@ Restores a soft-deleted folder to its original location. The folder equivalent o
 
 Reads the tombstone. Fails with `missing-tombstone` if it's absent or belongs to a file, since that's `restoreTrashedFile`'s job instead. Then checks the original location is free via a `HEAD` on the folder's container: unlike a file restore, this is safe here because `deleteResource` fully removes a folder's container on delete, so a live `HEAD` means something new occupies that path.
 
-Once clear, it copies the trash payload back, restores the ACL if one was snapshotted, and replays the catalog snapshot's entries (the folder and every descendant) into the original catalog. A missing snapshot just means nothing to replay. The trash copy is then removed, best-effort.
+If it's occupied and no resolution was given, nothing is written; the result names both folders being compared, for a caller to ask the person which to keep. Given a resolution instead: moving the current folder to the Recycle Bin first and restoring into the now-free spot, or restoring alongside it under the same naming Dropbox uses for a kept duplicate ("(restored)", "(restored 2)", and so on), with every descendant's URI in the replayed snapshot rewritten to live under that new location too.
 
-Any failure after the occupancy check rolls the restore back and leaves the trash copy in place so it can be retried. The rollback deletes through the original catalog too, not just the physical copy, since some entries may already have been replayed before the failure.
+Once the location is settled, it copies the trash payload back, restores the ACL if one was snapshotted, and replays the catalog snapshot's entries (the folder and every descendant) into the original catalog. A missing snapshot just means nothing to replay. The trash copy is then removed, best-effort.
+
+Any failure after the occupancy check rolls the restore back and leaves the trash copy in place so it can be retried. The rollback deletes through the original catalog too, not just the physical copy, since some entries may already have been replayed before the failure. If that failure comes after a "replace" already moved the folder that was in the way, that move isn't undone; the result carries `occupantMovedToTrash: true` so a caller can say so, since the folder is safe in the Recycle Bin but not where the person last saw it.
 
 == Reuse
 
-Shares its building blocks with the rest of the trash system instead of reimplementing them: `readTrashCatalogSnapshot`/`writeCatalogEntry` (link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]) for the snapshot, `copyContainerTree` (link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]) for the physical mirror, `deleteResource`/`deleteResourceQuietly` (link:../deleteResource/[deleteResource]) for cleanup and rollback, and `restoreAclFromSnapshot` (link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]) for the ACL.
+Shares its building blocks with the rest of the trash system instead of reimplementing them: `readTrashCatalogSnapshot`/`writeCatalogEntry` (link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]) for the snapshot, `copyContainerTree` (link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]) for the physical mirror, `deleteResource`/`deleteResourceQuietly` (link:../deleteResource/[deleteResource]) for cleanup and rollback, `restoreAclFromSnapshot` (link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]) for the ACL, and `softDeleteFolder` (link:../softDeleteFolder/[softDeleteFolder]) for replacing a conflicting folder.
 
 == Notes
 
-* No `ownerWebId`: each entry's publisher comes from the snapshot itself.
+* An owner is only needed to replace a conflicting folder, since that move has to be attributed to someone; every other path still gets each entry's publisher from the snapshot itself.
+* A conflict's trashed-side date has to be passed in, since it isn't stored on the tombstone; `useTrashEntries` supplies it from the trash catalog's own row for the folder.
 * Only the root folder's ACL is restorable. Descendant ACLs were never captured.
 
 == Navigation
@@ -26,11 +29,15 @@ link:../[file-explorer/services]
 
 .Uses
 * link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/catalogLookup/[catalogLookup]
 * link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]
 * link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]
 * link:../../../../infrastructure/solid/trashPaths/[trashPaths]
 * link:../../../../infrastructure/solid/tombstone/[tombstone]
 * link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]
 * link:../deleteResource/[deleteResource]
+* link:../keepBothLocation/[keepBothLocation]
+* link:../softDeleteFolder/[softDeleteFolder]
+* link:../restoreTrashedFile/[restoreTrashedFile]
 * link:../../../../shared/hooks/[shared/hooks]
 * link:../../../../types/[types]
