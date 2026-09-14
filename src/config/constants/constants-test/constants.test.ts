@@ -180,6 +180,10 @@ describe("SYSTEM_FILES", () => {
     expect(SYSTEM_FILES.has("catalog.ttl")).toBe(true);
   });
 
+  it("contains catalog-tombstones.ttl", () => {
+    expect(SYSTEM_FILES.has("catalog-tombstones.ttl")).toBe(true);
+  });
+
   it("contains .acl", () => {
     expect(SYSTEM_FILES.has(".acl")).toBe(true);
   });

@@ -258,6 +258,86 @@ describe("appendToCatalog", () => {
   });
 });
 
+// ─── appendToCatalog: OR-set tag ────────────────────────────────────────────
+
+describe("appendToCatalog: OR-set tag", () => {
+  const catalogUri = "https://pod.example/catalog.ttl";
+  const tombstoneLogUri = "https://pod.example/catalog-tombstones.ttl";
+  const instanceUri = "https://pod.example/my-app/photo/index.ttl";
+  const binaryUri = "https://pod.example/my-app/photo/photo.jpg";
+  const explicitTag = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+  const baseParams = {
+    catalogUri, instanceUri, binaryUri, classUri: "http://schema.org/ImageObject", parentUri: "",
+    mediaType: "image/jpeg", byteSize: 100, title: "Summer Photo",
+    description: "", modified: "2026-03-16T00:00:00.000Z", publisherWebId: "https://pod.example/profile/card#me",
+  };
+
+  /** A fetch mock keyed by URL, so a test can answer the catalog and the tombstone log differently. */
+  function mockByUrl(responses: Record<string, { status: number; body?: string }>) {
+    const calls: FetchCall[] = [];
+    const fetchFn = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      calls.push({ url: String(url), method, body: typeof init?.body === "string" ? init.body : undefined });
+      if (method === "PUT") return { ok: true, status: 200, statusText: "OK" } as Response;
+      const response = responses[String(url)] ?? { status: 404 };
+      return { ok: response.status < 400, status: response.status, statusText: response.status < 400 ? "OK" : "Error", text: async () => response.body ?? "" } as Response;
+    });
+    return { fetch: fetchFn, calls };
+  }
+
+  it("assigns a fresh tag to an entry added with no explicit one", async () => {
+    const { fetch, calls } = mockByUrl({ [catalogUri]: { status: 404 } });
+    await appendToCatalog({ ...baseParams, fetch });
+    const [entry] = parseCatalog(putBody(calls), catalogUri);
+    expect(entry.tag).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it("assigns a different tag to each entry added without one", async () => {
+    const { fetch, calls } = mockByUrl({ [catalogUri]: { status: 404 } });
+    await appendToCatalog({ ...baseParams, fetch });
+    await appendToCatalog({ ...baseParams, instanceUri: `${instanceUri}-2`, fetch });
+    const tags = calls
+      .filter((call) => call.method === "PUT")
+      .flatMap((call) => parseCatalog(call.body ?? "", catalogUri).map((entry) => entry.tag));
+    expect(new Set(tags).size).toBe(2);
+  });
+
+  it("does not check the tombstone log when no tag is given", async () => {
+    const { fetch, calls } = mockByUrl({ [catalogUri]: { status: 404 } });
+    await appendToCatalog({ ...baseParams, fetch });
+    expect(calls.some((call) => call.url === tombstoneLogUri)).toBe(false);
+  });
+
+  it("keeps a given tag unchanged when it isn't tombstoned", async () => {
+    const { fetch, calls } = mockByUrl({ [catalogUri]: { status: 404 }, [tombstoneLogUri]: { status: 404 } });
+    await appendToCatalog({ ...baseParams, tag: explicitTag, fetch });
+    const [entry] = parseCatalog(putBody(calls), catalogUri);
+    expect(entry.tag).toBe(explicitTag);
+  });
+
+  it("reports the entry as written when its tag isn't tombstoned", async () => {
+    const { fetch } = mockByUrl({ [catalogUri]: { status: 404 } });
+    const result = await appendToCatalog({ ...baseParams, fetch });
+    expect(result.suppressed).toBe(false);
+  });
+
+  it("suppresses the add instead of writing when the given tag is already tombstoned", async () => {
+    const tombstoneBody = `
+      @prefix as: <https://www.w3.org/ns/activitystreams#> .
+      <urn:uuid:${explicitTag}> as:deleted "2026-01-01T00:00:00.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+    `.trim();
+    const { fetch, calls } = mockByUrl({ [catalogUri]: { status: 404 }, [tombstoneLogUri]: { status: 200, body: tombstoneBody } });
+    const result = await appendToCatalog({ ...baseParams, tag: explicitTag, fetch });
+    expect(result.suppressed).toBe(true);
+    expect(calls.some((call) => call.method === "PUT")).toBe(false);
+  });
+
+  it("rejects a given tag that isn't shaped like a UUID", async () => {
+    const { fetch } = mockByUrl({ [catalogUri]: { status: 404 } });
+    await expect(appendToCatalog({ ...baseParams, tag: "not-a-uuid", fetch })).rejects.toThrow("not-a-uuid");
+  });
+});
+
 // ─── appendFolderToCatalog ──────────────────────────────────────────────────
 
 describe("appendFolderToCatalog", () => {
@@ -296,6 +376,13 @@ describe("appendFolderToCatalog", () => {
     await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
     const [entry] = parseCatalog(putBody(calls), catalogUri);
     expect(entry.parentUri).toBe(parentUri);
+  });
+
+  it("assigns a fresh tag to a folder added with no explicit one", async () => {
+    const { fetch, calls } = capturingMock({ status: 404 });
+    await appendFolderToCatalog({ catalogUri, folderUri, parentUri, title: "Documents", modified, publisherWebId, fetch });
+    const [entry] = parseCatalog(putBody(calls), catalogUri);
+    expect(entry.tag).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
   it("leaves out the parent-folder link for a folder with nothing above it, such as a trash item", async () => {
@@ -478,6 +565,68 @@ describe("concurrent writes to the same catalog", () => {
     const entries = parseCatalog(stored, catalogUri);
     expect(entries.map((entry) => entry.title)).toEqual(["second-attempt"]);
   });
+
+  it("does not resurrect an entry: a same-catalog add checking a tag mid-tombstone still sees it once its own turn comes up", async () => {
+    const tombstoneLogUri = "https://pod.example/catalog-tombstones.ttl";
+    const instanceUri = "https://pod.example/my-app/photo/index.ttl";
+    const tag = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+    let catalogBody = `
+      @prefix dcat: <http://www.w3.org/ns/dcat#> .
+      @prefix sdcat: <https://purl.org/solid-drive/catalog#> .
+      <${catalogUri}> dcat:dataset <${instanceUri}> .
+      <${instanceUri}> a dcat:Dataset ; sdcat:tag "${tag}" .
+    `.trim();
+    let tombstoneBody: string | null = null;
+    let tombstonePatchCount = 0;
+    let releaseTombstonePatch: (() => void) | undefined;
+    const tombstonePatchGate = new Promise<void>((resolve) => { releaseTombstonePatch = resolve; });
+
+    const fetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+      const key = String(url);
+      const method = init?.method ?? "GET";
+      const body = typeof init?.body === "string" ? init.body : "";
+
+      if (key === catalogUri) {
+        if (method === "HEAD") return { ok: true, status: 200 } as Response;
+        if (method === "PUT") { catalogBody = body; return { ok: true, status: 200 } as Response; }
+        return { ok: true, status: 200, statusText: "OK", text: async () => catalogBody } as Response;
+      }
+
+      if (key === tombstoneLogUri) {
+        if (method === "PATCH") {
+          tombstonePatchCount += 1;
+          await tombstonePatchGate;
+          if (tombstoneBody === null) return { ok: false, status: 404, statusText: "Not Found" } as Response;
+          const insertBlock = /solid:inserts\s*\{([\s\S]*?)\}\s*\.\s*$/.exec(body)?.[1] ?? "";
+          tombstoneBody = `${tombstoneBody}\n${insertBlock}`;
+          return { ok: true, status: 200, statusText: "OK" } as Response;
+        }
+        if (method === "PUT") { await tombstonePatchGate; tombstoneBody = body; return { ok: true, status: 201, statusText: "Created" } as Response; }
+        return tombstoneBody === null
+          ? ({ ok: false, status: 404, statusText: "Not Found" } as Response)
+          : ({ ok: true, status: 200, statusText: "OK", text: async () => tombstoneBody as string } as Response);
+      }
+
+      throw new Error(`Unexpected request in this test: ${method} ${key}`);
+    });
+
+    const removeCall = removeFromCatalog(catalogUri, instanceUri, fetch);
+    await waitUntil(() => tombstonePatchCount === 1);
+
+    const addCall = appendToCatalog({
+      catalogUri, instanceUri, binaryUri: "https://pod.example/my-app/photo/photo.jpg",
+      classUri: "http://schema.org/ImageObject", parentUri: "",
+      mediaType: "image/jpeg", byteSize: 100, title: "Summer Photo",
+      description: "", modified, publisherWebId, tag, fetch,
+    });
+
+    await flushMicrotasks(5);
+    releaseTombstonePatch?.();
+    const [, addResult] = await Promise.all([removeCall, addCall]);
+
+    expect(addResult.suppressed).toBe(true);
+    expect(parseCatalog(catalogBody, catalogUri)).toHaveLength(0);
+  });
 });
 
 // ─── isFolderEntry ──────────────────────────────────────────────────────────
@@ -596,6 +745,128 @@ describe("removeFromCatalog", () => {
       return { ok: true, status: 200, text: async () => turtleWithBoth } as Response;
     });
     await expect(removeFromCatalog(catalogUri, instanceUri, fetchFn)).rejects.toThrow(`Failed to write ${catalogUri}`);
+  });
+});
+
+// ─── removeFromCatalog: OR-set tombstoning ─────────────────────────────────
+
+describe("removeFromCatalog: OR-set tombstoning", () => {
+  const catalogUri = "https://pod.example/catalog.ttl";
+  const tombstoneLogUri = "https://pod.example/catalog-tombstones.ttl";
+  const instanceUri = "https://pod.example/my-app/photo/index.ttl";
+  const tag = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+
+  const turtleWithTag = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dcterms: <http://purl.org/dc/terms/> .
+    @prefix sdcat: <https://purl.org/solid-drive/catalog#> .
+    <${catalogUri}> dcat:dataset <${instanceUri}> .
+    <${instanceUri}> a dcat:Dataset ; dcterms:title "Gone" ; sdcat:tag "${tag}" .
+  `.trim();
+
+  const turtleWithoutTag = `
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    <${catalogUri}> dcat:dataset <${instanceUri}> .
+    <${instanceUri}> a dcat:Dataset .
+  `.trim();
+
+  function mockByUrl(catalogBody: string) {
+    const calls: FetchCall[] = [];
+    const fetchFn = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+      const key = String(url);
+      const method = init?.method ?? "GET";
+      calls.push({ url: key, method, body: typeof init?.body === "string" ? init.body : undefined });
+      if (method === "HEAD") return { ok: true, status: 200 } as Response;
+      if (method === "PUT" || method === "PATCH") return { ok: true, status: 200, statusText: "OK" } as Response;
+      if (key === catalogUri) return { ok: true, status: 200, text: async () => catalogBody } as Response;
+      return { ok: false, status: 404, statusText: "Not Found" } as Response;
+    });
+    return { fetch: fetchFn, calls };
+  }
+
+  it("tombstones the removed entry's tag", async () => {
+    const { fetch, calls } = mockByUrl(turtleWithTag);
+    await removeFromCatalog(catalogUri, instanceUri, fetch);
+    const patchCall = calls.find((call) => call.url === tombstoneLogUri && call.method === "PATCH");
+    expect(patchCall?.body).toContain(`urn:uuid:${tag}`);
+  });
+
+  it("does not touch the tombstone log for an entry that never had a tag", async () => {
+    const { fetch, calls } = mockByUrl(turtleWithoutTag);
+    await removeFromCatalog(catalogUri, instanceUri, fetch);
+    expect(calls.some((call) => call.url === tombstoneLogUri)).toBe(false);
+  });
+});
+
+// ─── OR-set resurrection prevention (end to end) ───────────────────────────
+
+describe("OR-set resurrection prevention (end to end)", () => {
+  /** A fake pod holding two documents by URL, with real GET/HEAD/PUT/PATCH semantics for both. */
+  function fakePod() {
+    const documents = new Map<string, string>();
+
+    function applyPatch(existing: string, patchBody: string): string {
+      const inserted = /solid:inserts\s*\{([\s\S]*?)\}\s*\.\s*$/.exec(patchBody)?.[1] ?? "";
+      return `${existing}\n${inserted}`;
+    }
+
+    const fetch = vi.fn(async (url: RequestInfo, init?: RequestInit) => {
+      const key = String(url);
+      const method = init?.method ?? "GET";
+      const body = typeof init?.body === "string" ? init.body : "";
+
+      if (method === "HEAD") {
+        return documents.has(key) ? ({ ok: true, status: 200 } as Response) : ({ ok: false, status: 404 } as Response);
+      }
+      if (method === "PUT") {
+        documents.set(key, body);
+        return { ok: true, status: 200, statusText: "OK" } as Response;
+      }
+      if (method === "PATCH") {
+        if (!documents.has(key)) return { ok: false, status: 404, statusText: "Not Found" } as Response;
+        documents.set(key, applyPatch(documents.get(key) ?? "", body));
+        return { ok: true, status: 200, statusText: "OK" } as Response;
+      }
+      return documents.has(key)
+        ? ({ ok: true, status: 200, statusText: "OK", text: async () => documents.get(key) ?? "" } as Response)
+        : ({ ok: false, status: 404, statusText: "Not Found", text: async () => "" } as Response);
+    });
+
+    return { fetch, document: (uri: string) => documents.get(uri) ?? "" };
+  }
+
+  it("suppresses a stale re-add of a file that was already deleted, but still allows a genuinely new file", async () => {
+    const catalogUri = "https://pod.example/catalog.ttl";
+    const instanceUri = "https://pod.example/my-app/photo/index.ttl";
+    const uploadArgs = {
+      catalogUri, instanceUri,
+      binaryUri: "https://pod.example/my-app/photo/photo.jpg",
+      classUri: "http://schema.org/ImageObject", parentUri: "",
+      mediaType: "image/jpeg", byteSize: 100, title: "Summer Photo",
+      description: "", modified: "2026-03-16T00:00:00.000Z",
+      publisherWebId: "https://pod.example/profile/card#me",
+    };
+
+    const { fetch, document } = fakePod();
+
+    // Device A uploads the file.
+    await appendToCatalog({ ...uploadArgs, fetch });
+    const [uploaded] = parseCatalog(document(catalogUri), catalogUri);
+    const originalTag = uploaded.tag as string;
+
+    // Device B goes offline holding a copy. Device A deletes the file.
+    await removeFromCatalog(catalogUri, instanceUri, fetch);
+    expect(parseCatalog(document(catalogUri), catalogUri)).toHaveLength(0);
+
+    // Device B reconnects and re-uploads its stale copy, carrying the original tag.
+    const staleReupload = await appendToCatalog({ ...uploadArgs, tag: originalTag, fetch });
+    expect(staleReupload.suppressed).toBe(true);
+    expect(parseCatalog(document(catalogUri), catalogUri)).toHaveLength(0);
+
+    // A genuinely new file, with its own tag, is unaffected.
+    const freshUpload = await appendToCatalog({ ...uploadArgs, instanceUri: `${instanceUri}-2`, fetch });
+    expect(freshUpload.suppressed).toBe(false);
+    expect(parseCatalog(document(catalogUri), catalogUri)).toHaveLength(1);
   });
 });
 

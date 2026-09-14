@@ -229,7 +229,10 @@ export async function readTrashFolderContents(
 /**
  * Writes one catalog entry into `targetCatalogUri`, branching on whether
  * it describes a folder or a file. Every field, including the entry's own
- * URI and parent, is carried over unchanged.
+ * URI and parent, is carried over unchanged, except its OR-set tag: this
+ * always assigns a fresh one, since a soft-deleted entry's tag is exactly
+ * what its removal already tombstoned, and restoring under that same tag
+ * would be suppressed as a stale re-add.
  *
  * @remarks
  * Used both directions: `softDeleteFolder` snapshots a subtree's live

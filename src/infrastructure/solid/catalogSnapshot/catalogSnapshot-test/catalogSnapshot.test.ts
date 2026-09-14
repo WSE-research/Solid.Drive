@@ -238,4 +238,21 @@ describe('writeCatalogEntry', () => {
     expect(written.accessURL).toBe(entry.accessURL);
     expect(written.byteSize).toBe(2048);
   });
+
+  it('assigns a fresh tag instead of the source entry\'s own, since a soft-deleted entry\'s tag is already tombstoned', async () => {
+    const { fetch, putBody } = capturingFetch();
+    const entry = makeEntry({
+      uri: 'https://pod.example/photos/beach.jpg/index.ttl',
+      tag: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      conformsTo: 'http://schema.org/ImageObject',
+      accessURL: 'https://pod.example/photos/beach.jpg/beach.jpg',
+      publisher: publisherWebId,
+      modified: '2026-01-01T00:00:00.000Z',
+    });
+
+    await writeCatalogEntry(targetCatalogUri, entry, fetch);
+
+    const [written] = parseCatalog(putBody(), targetCatalogUri);
+    expect(written.tag).not.toBe(entry.tag);
+  });
 });

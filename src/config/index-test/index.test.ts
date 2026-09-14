@@ -59,6 +59,8 @@ describe("config/index exports", () => {
     "TRASH_ACL_SNAPSHOT_FILE",
     "TRASH_RETENTION_DAYS",
     "TRASH_TERMS",
+    "CATALOG_TOMBSTONE_LOG_FILENAME",
+    "CATALOG_TOMBSTONE_RETENTION_DAYS",
   ] as const;
 
   it.each(expectedConstants)("exports %s", (name) => {
@@ -66,7 +68,7 @@ describe("config/index exports", () => {
   });
 
   it("exports exactly the expected number of runtime values", () => {
-    // 51 constants + ENV
-    expect(Object.keys(Config)).toHaveLength(52);
+    // 53 constants + ENV
+    expect(Object.keys(Config)).toHaveLength(54);
   });
 });

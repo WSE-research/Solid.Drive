@@ -16,6 +16,8 @@ import type { FetchFn, CatalogEntry } from "@/types";
 import type { SolidProfile } from "@/.ldo/solidProfile.typings";
 import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
 import { serializeTurtle } from "@/infrastructure/solid/rdfUtils";
+import { appendTombstones, readTombstonedTags } from "@/infrastructure/solid/catalogTombstones";
+import { generateEntryTag, isValidEntryTag } from "@/infrastructure/solid/entryTag";
 import {
   DEFAULT_CATALOG_FILENAME,
   RDF_NAMESPACES,
@@ -64,6 +66,7 @@ const DCTERMS_PUBLISHER = namedNode(`${RDF_NAMESPACES.DCTERMS}publisher`);
 const XSD_DATE_TIME = namedNode(`${RDF_NAMESPACES.XSD}dateTime`);
 const XSD_INTEGER = namedNode(`${RDF_NAMESPACES.XSD}integer`);
 const SD_HAS_PARENT = namedNode(`${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}hasParent`);
+const SD_TAG = namedNode(`${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}tag`);
 
 /**
  * Turtle for a new, empty catalog. Declares an explicit `@base` so the
@@ -159,10 +162,19 @@ export function resolveCatalogUri(
  */
 const catalogWriteQueues = new Map<string, Promise<void>>();
 
+/**
+ * A queued mutation. Returning false cancels the write instead of doing
+ * it, so a check made partway through the mutation still holds by the
+ * time the write would happen.
+ *
+ * @internal
+ */
+type CatalogMutation = (store: N3Store) => void | false | Promise<void | false>;
+
 async function withCatalogStore(
   catalogUri: string,
   fetch: FetchFn,
-  mutate: (store: N3Store) => void
+  mutate: CatalogMutation
 ): Promise<void> {
   const previous = catalogWriteQueues.get(catalogUri) ?? Promise.resolve();
   const queued = previous.catch(() => {}).then(() => performCatalogWrite(catalogUri, fetch, mutate));
@@ -187,7 +199,7 @@ async function withCatalogStore(
 async function performCatalogWrite(
   catalogUri: string,
   fetch: FetchFn,
-  mutate: (store: N3Store) => void
+  mutate: CatalogMutation
 ): Promise<void> {
   const getResponse = await fetch(catalogUri);
   if (!getResponse.ok && getResponse.status !== 404) {
@@ -214,7 +226,7 @@ async function performCatalogWrite(
     store.addQuad(quad(namedNode(catalogUri), RDF_TYPE, DCAT_CATALOG_CLASS));
   }
 
-  mutate(store);
+  if ((await mutate(store)) === false) return;
 
   const turtle = serializeTurtle(store.getQuads(null, null, null, null), CATALOG_PREFIXES);
   const putResponse = await fetch(catalogUri, {
@@ -257,6 +269,43 @@ export interface AppendFileEntryParams {
   publisherWebId: string;
   /** Authenticated fetch function */
   fetch: FetchFn;
+  /** Unique id for the entry; omit to mint a fresh one, or pass an existing one to check it against the tombstone log */
+  tag?: string;
+}
+
+/**
+ * Result of {@link appendToCatalog} and {@link appendFolderToCatalog}.
+ *
+ * @public
+ */
+export interface AppendEntryResult {
+  /** True when the given tag was already tombstoned and nothing was written */
+  suppressed: boolean;
+}
+
+/**
+ * Picks the tag a new entry gets written with, or says it should be
+ * suppressed instead. A fresh tag can't already be tombstoned, so only a
+ * caller-supplied tag is checked against the log.
+ *
+ * @remarks
+ * Called from inside a queued {@link withCatalogStore} mutation, so this
+ * check and the eventual write serialize against every other queued
+ * write to the same catalog, including whichever one tombstoned this
+ * exact tag.
+ *
+ * @internal
+ */
+async function resolveEntryTag(
+  catalogUri: string,
+  givenTag: string | undefined,
+  fetch: FetchFn,
+): Promise<{ tag: string } | { suppressed: true }> {
+  if (!givenTag) return { tag: generateEntryTag() };
+
+  const tombstones = await readTombstonedTags(catalogUri, fetch);
+  if (tombstones.has(givenTag)) return { suppressed: true };
+  return { tag: givenTag };
 }
 
 /**
@@ -264,13 +313,23 @@ export interface AppendFileEntryParams {
  *
  * @public
  */
-export async function appendToCatalog(params: AppendFileEntryParams): Promise<void> {
+export async function appendToCatalog(params: AppendFileEntryParams): Promise<AppendEntryResult> {
   const {
     catalogUri, instanceUri, binaryUri, classUri, parentUri,
-    mediaType, byteSize, title, description, modified, publisherWebId, fetch,
+    mediaType, byteSize, title, description, modified, publisherWebId, fetch, tag: givenTag,
   } = params;
+  if (givenTag !== undefined && !isValidEntryTag(givenTag)) {
+    throw new Error(`Invalid catalog entry tag: "${givenTag}"`);
+  }
 
-  await withCatalogStore(catalogUri, fetch, (store) => {
+  let suppressed = false;
+  await withCatalogStore(catalogUri, fetch, async (store) => {
+    const resolved = await resolveEntryTag(catalogUri, givenTag, fetch);
+    if ("suppressed" in resolved) {
+      suppressed = true;
+      return false;
+    }
+
     const catalog = namedNode(catalogUri);
     const instance = namedNode(instanceUri);
     const distribution = namedNode(`${instanceUri}${DISTRIBUTION_FRAGMENT}`);
@@ -289,12 +348,14 @@ export async function appendToCatalog(params: AppendFileEntryParams): Promise<vo
     if (parentUri) {
       store.addQuad(quad(instance, SD_HAS_PARENT, namedNode(parentUri)));
     }
+    store.addQuad(quad(instance, SD_TAG, literal(resolved.tag)));
     store.addQuad(quad(instance, DCAT_DISTRIBUTION, distribution));
     store.addQuad(quad(distribution, RDF_TYPE, DCAT_DISTRIBUTION_CLASS));
     store.addQuad(quad(distribution, DCAT_ACCESS_URL, namedNode(binaryUri)));
     store.addQuad(quad(distribution, DCAT_MEDIA_TYPE, literal(mediaType)));
     store.addQuad(quad(distribution, DCAT_BYTE_SIZE, literal(String(byteSize), XSD_INTEGER)));
   });
+  return { suppressed };
 }
 
 /**
@@ -317,6 +378,8 @@ export interface AppendFolderEntryParams {
   publisherWebId: string;
   /** Authenticated fetch function */
   fetch: FetchFn;
+  /** Unique id for the entry; omit to mint a fresh one, or pass an existing one to check it against the tombstone log */
+  tag?: string;
 }
 
 /**
@@ -333,10 +396,20 @@ export interface AppendFolderEntryParams {
  *
  * @public
  */
-export async function appendFolderToCatalog(params: AppendFolderEntryParams): Promise<void> {
-  const { catalogUri, folderUri, parentUri, title, modified, publisherWebId, fetch } = params;
+export async function appendFolderToCatalog(params: AppendFolderEntryParams): Promise<AppendEntryResult> {
+  const { catalogUri, folderUri, parentUri, title, modified, publisherWebId, fetch, tag: givenTag } = params;
+  if (givenTag !== undefined && !isValidEntryTag(givenTag)) {
+    throw new Error(`Invalid catalog entry tag: "${givenTag}"`);
+  }
 
-  await withCatalogStore(catalogUri, fetch, (store) => {
+  let suppressed = false;
+  await withCatalogStore(catalogUri, fetch, async (store) => {
+    const resolved = await resolveEntryTag(catalogUri, givenTag, fetch);
+    if ("suppressed" in resolved) {
+      suppressed = true;
+      return false;
+    }
+
     const catalog = namedNode(catalogUri);
     const folder = namedNode(folderUri);
     const folderClass = namedNode(FOLDER_CLASS_URI);
@@ -351,7 +424,9 @@ export async function appendFolderToCatalog(params: AppendFolderEntryParams): Pr
     if (parentUri) {
       store.addQuad(quad(folder, SD_HAS_PARENT, namedNode(parentUri)));
     }
+    store.addQuad(quad(folder, SD_TAG, literal(resolved.tag)));
   });
+  return { suppressed };
 }
 
 /**
@@ -403,7 +478,12 @@ export async function ensureCatalogRootEntry(params: EnsureCatalogRootEntryParam
  * @remarks
  * Returns without modification when the catalog is unavailable. The catalog
  * is updated through a single GET/PUT cycle, so all related triples are
- * removed together.
+ * removed together. If the entry carried an OR-set tag, that tag is
+ * tombstoned before the write completes, so a stale re-add of it gets
+ * suppressed instead of resurrecting the entry. Tombstoning happens
+ * inside the same queued write as the removal, so a concurrent add
+ * checking this exact tag either runs entirely before or entirely after
+ * it, never in between.
  *
  * @param catalogUri - URI of the catalog resource.
  * @param instanceUri - URI of the dataset to remove.
@@ -419,14 +499,19 @@ export async function removeFromCatalog(
   const headResponse = await fetch(catalogUri, { method: "HEAD" });
   if (!headResponse.ok) return;
 
-  await withCatalogStore(catalogUri, fetch, (store) => {
+  await withCatalogStore(catalogUri, fetch, async (store) => {
     const catalog = namedNode(catalogUri);
     const instance = namedNode(instanceUri);
     const distribution = namedNode(`${instanceUri}${DISTRIBUTION_FRAGMENT}`);
 
+    const removedTag = store.getObjects(instance, SD_TAG, null)[0]?.value ?? "";
     store.removeQuads(store.getQuads(catalog, DCAT_DATASET, instance, null));
     store.removeQuads(store.getQuads(instance, null, null, null));
     store.removeQuads(store.getQuads(distribution, null, null, null));
+
+    if (removedTag) {
+      await appendTombstones(catalogUri, [removedTag], fetch);
+    }
   });
 }
 
@@ -485,6 +570,7 @@ function entriesFromQuads(quads: Quad[]): CatalogEntry[] {
   const DCAT = RDF_NAMESPACES.DCAT;
   const DCTERMS = RDF_NAMESPACES.DCTERMS;
   const HAS_PARENT = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}hasParent`;
+  const TAG = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}tag`;
 
   const datasetUris = store
     .getObjects(null, `${DCAT}dataset`, null)
@@ -498,6 +584,7 @@ function entriesFromQuads(quads: Quad[]): CatalogEntry[] {
     const distUri = queryFirstValue(datasetUri, `${DCAT}distribution`);
     return {
       uri: datasetUri,
+      tag: queryFirstValue(datasetUri, TAG) || undefined,
       conformsTo: sanitizeClassUri(queryFirstValue(datasetUri, `${DCTERMS}conformsTo`)),
       title: queryFirstValue(datasetUri, `${DCTERMS}title`),
       description: queryFirstValue(datasetUri, `${DCTERMS}description`),

@@ -187,6 +187,7 @@ export const DEFAULT_CATALOG_FILENAME = "catalog.ttl";
  */
 export const SYSTEM_FILES = new Set([
   "catalog.ttl",
+  "catalog-tombstones.ttl",
   "robots.txt",
   "README",
   ".acl",
@@ -390,6 +391,31 @@ export const TRASH_TERMS = {
   /** Distinguishes a single trashed file from a whole trashed folder. */
   kind: `${RDF_NAMESPACES.TRASH}kind`,
 } as const;
+
+// ============================================================================
+// CATALOG TOMBSTONES (DELETE TRACKING)
+// ============================================================================
+
+/**
+ * Filename for a catalog's tombstone log, a sibling resource in the same
+ * container as the catalog itself.
+ *
+ * @public
+ */
+export const CATALOG_TOMBSTONE_LOG_FILENAME = "catalog-tombstones.ttl";
+
+/**
+ * How long a removed entry's tag is kept in the tombstone log before it's
+ * eligible for purge.
+ *
+ * @remarks
+ * Mirrors {@link TRASH_RETENTION_DAYS}: a device that stays offline longer
+ * than this can still resurrect a file it holds a stale copy of, the same
+ * trade-off the Recycle Bin already makes for restoring one.
+ *
+ * @public
+ */
+export const CATALOG_TOMBSTONE_RETENTION_DAYS = TRASH_RETENTION_DAYS;
 
 // ============================================================================
 // REQUEST NOTIFICATIONS

@@ -5,6 +5,8 @@
 
 export interface CatalogEntry {
   uri: string;
+  // Unique id assigned when the entry was added. Absent on entries written before this existed.
+  tag?: string;
   conformsTo: string;
   title: string;
   description: string;

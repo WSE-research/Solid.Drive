@@ -8,6 +8,8 @@ A malformed existing document (leftover from an earlier bad write) gets truncate
 
 Every mutating function is also queued per `catalogUri`: a plain GET/PUT has no server-side precondition, so two overlapping writes to the same document would otherwise silently discard one. See `catalogWriteQueues`'s comment in catalog.ts for the full reasoning.
 
+Every entry also carries a unique tag, minted automatically unless a caller supplies one it already has from elsewhere. A supplied tag is checked against the catalog's tombstone log, and the add is skipped if that tag was already tombstoned. Removing an entry tombstones its tag, and does so as part of the same queued write, so a same-catalog add checking that tag concurrently can't slip through with a stale answer. This is the piece a second client needs to avoid resurrecting a file it deleted here: nothing in this app re-adds an entry with a tag of its own yet, since nothing here keeps an offline copy to resupply one from. See link:../catalogTombstones/[catalogTombstones] and link:../entryTag/[entryTag].
+
 == Exports
 
 [cols="1,3", options="header"]
@@ -15,14 +17,14 @@ Every mutating function is also queued per `catalogUri`: a plain GET/PUT has no 
 | Name | Description
 
 | `resolveCatalogUri(profile, storageRoot)` | Returns `profile.catalog["@id"]` or falls back to `{storageRoot}catalog.ttl`
-| `appendToCatalog(params)` | Adds a file's dataset and distribution entry. Types it as `dcat:Dataset` and `sd:File`, and writes `sd:hasParent` when `parentUri` is set
-| `appendFolderToCatalog(params)` | Adds a folder's dataset entry (no distribution). Types it as `dcat:Dataset` and `sd:Folder`, and writes `sd:hasParent` when `parentUri` is set (omitted for a folder with nothing above it, e.g. a trash item)
+| `appendToCatalog(params)` | Adds a file's dataset and distribution entry. Types it as `dcat:Dataset` and `sd:File`, writes `sd:hasParent` when `parentUri` is set, and assigns `sd:tag`. Returns `{ suppressed }`, true when a given `tag` was already tombstoned and nothing was written
+| `appendFolderToCatalog(params)` | Adds a folder's dataset entry (no distribution). Types it as `dcat:Dataset` and `sd:Folder`, writes `sd:hasParent` when `parentUri` is set (omitted for a folder with nothing above it, e.g. a trash item), and assigns `sd:tag`. Same `{ suppressed }` result as `appendToCatalog`
 | `ensureCatalogRootEntry(params)` | Registers the pod's storage root as its own parentless entry, the terminator every folder path walk reaches. Safe to call repeatedly; duplicate triples are no-ops
 | `isFolderEntry(entry)` | True when a `CatalogEntry` is a folder, whether marked with the current `sd:Folder` class or the legacy `ldp:Container` marker
 | `FOLDER_CLASS_URI` | The `sd:Folder` class/`conformsTo` value marking a folder
 | `FILE_CLASS_URI` | The `sd:File` value files are typed with. Descriptive only, nothing routes on it
 | `LEGACY_FOLDER_CLASS_URI` | The `ldp:Container` marker folders were written with before `sd:Folder` existed; `isFolderEntry` still recognizes it
-| `removeFromCatalog(...)` | Removes a dataset entry; no-ops if the catalog isn't reachable (`HEAD` check first)
+| `removeFromCatalog(...)` | Removes a dataset entry and tombstones its `sd:tag`, if it had one; no-ops if the catalog isn't reachable (`HEAD` check first)
 | `parseCatalog(turtleText, baseUri?)` | Parses Turtle into `CatalogEntry[]`, including each entry's `parentUri` from `sd:hasParent`. Malformed Turtle comes back as `[]`, the same as a genuinely empty catalog
 | `parseCatalogRecovering(turtleText, baseUri)` | Same as `parseCatalog`, but salvages what it can from malformed Turtle and returns the parse error alongside the recovered entries, instead of discarding it. `useCatalog` uses this so a corrupt catalog still shows what could be read
 | `linkCatalogToProfile(catalogUri, webId, fetch)` | Adds a `dcat:catalog` triple to the user's profile document via SPARQL PATCH
@@ -30,7 +32,7 @@ Every mutating function is also queued per `catalogUri`: a plain GET/PUT has no 
 | `buildEmptyCatalogTurtle(catalogUri)` | Turtle template for a new, empty catalog with an explicit `@base`. Used directly by `useAccessRequests`, independent of `appendToCatalog`'s own 404 handling
 |===
 
-The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:deletedAt`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL. `sd:deletedAt` is defined there but not yet written by this module.
+The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:deletedAt`, `sd:tag`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL. `sd:deletedAt` is defined there but not yet written by this module.
 
 `appendToCatalog`/`removeFromCatalog`/`parseCatalog` are parameterised entirely by `catalogUri`, so `softDeleteFile` and `useTrashEntries` reuse them unmodified against `trash/catalog.ttl` instead of the main catalog; see link:../trashPaths/[trashPaths].
 
@@ -49,4 +51,6 @@ The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:
 link:../[infrastructure/solid]
 
 .Uses
+* link:../catalogTombstones/[catalogTombstones]
+* link:../entryTag/[entryTag]
 * link:../../../config/[config]
