@@ -1,0 +1,36 @@
+= catalogSnapshot
+
+Reads a trashed folder's catalog snapshot, summarizes what it contains, and writes catalog entries into it or back out of it. Everything both `softDeleteFolder` and `restoreTrashedFolder` need to move a subtree's catalog rows in and out of a snapshot.
+
+`readTrashCatalogSnapshot(trashItemContainerUri, fetch)` fetches `catalog-snapshot.ttl` and parses it. A missing or unreadable snapshot comes back as `[]`, not a thrown error, so a caller degrades to "nothing to show" rather than breaking the row.
+
+`summarizeTrashFolder(snapshotEntries, rootUri)` reuses `collectSubtreeCatalogEntries` to walk the snapshot from the folder's own row, drops that row, and counts the rest as files and folders. The snapshot is already scoped to one folder, so `rootUri` here just strips the root out, rather than selecting a subtree from a bigger catalog.
+
+`writeCatalogEntry(targetCatalogUri, entry, fetch)` writes one `CatalogEntry`, branching on `isFolderEntry` to call `appendFolderToCatalog` or `appendToCatalog`. Used both directions: `softDeleteFolder` snapshots live rows into it, and `restoreTrashedFolder` replays the snapshot back with the same function, only source and target differ.
+
+`readTrashFolderContents(trashItemContainerUri, originalContainerUri, fetch)` is what callers actually want. It reads the snapshot, then reconciles it against the live `trash/<id>/payload/` tree for anything the snapshot missed: an uncatalogued file or folder that was physically there at delete time but never got its own snapshot row. A full restore already recovers those from the physical copy regardless, so this just keeps the item count accurate instead of under-reporting. A container already covered by a snapshot entry is trusted and not walked into again; only unresolved containers get the extra listing needed to recurse into nested bare content. The payload walk is best-effort and degrades to the snapshot-only result on failure.
+
+A bare entry has no `conformsTo` for the UI to pick an icon by, so it's guessed from the file extension for common media types instead of an extra request per item. Anything else falls back to the generic document tile.
+
+== See also
+
+* link:../catalogSubtree/[catalogSubtree] provides the subtree walk `summarizeTrashFolder` reuses.
+* link:../catalog/[catalog] provides `parseCatalog`, `isFolderEntry`, `resourceFileName`, `appendFolderToCatalog`, and `appendToCatalog`.
+* link:../containerListing/[containerListing] provides `listContainerChildren`, which the payload reconciliation walks.
+* link:../trashPaths/[trashPaths] provides `getTrashCatalogSnapshotUri` and `getTrashFolderPayloadContainerUri`.
+* link:../../../features/file-explorer/hooks/useTrashEntries/[useTrashEntries] calls `readTrashFolderContents` to populate each folder entry's item count and contents.
+* link:../../../features/file-explorer/services/softDeleteFolder/[softDeleteFolder] and link:../../../features/file-explorer/services/restoreTrashedFolder/[restoreTrashedFolder] both call `writeCatalogEntry`.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../catalog/[catalog]
+* link:../catalogSubtree/[catalogSubtree]
+* link:../containerListing/[containerListing]
+* link:../sharedCatalog/[sharedCatalog]
+* link:../trashPaths/[trashPaths]
+* link:../../../config/[config]
+* link:../../../types/[types]

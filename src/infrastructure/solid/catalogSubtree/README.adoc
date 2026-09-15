@@ -1,0 +1,21 @@
+= catalogSubtree
+
+`collectSubtreeCatalogEntries(entries, rootUri)` returns a folder's own catalog entry, if it has one, followed by every entry nested under it at any depth, breadth-first.
+
+Walks `sd:hasParent` chains (`parentUri` on `CatalogEntry`) rather than URI prefixes, since that's how a folder and its contents are actually linked in the catalog, the same chain `folderIndex` walks for breadcrumbs. A folder with no catalog entry of its own still yields its descendants, so a bare, uncatalogued folder can still contain catalogued files.
+
+Pure and synchronous: callers fetch and `parseCatalog` the source catalog themselves, then hand the resulting `CatalogEntry[]` here.
+
+== See also
+
+* link:../../../features/file-explorer/services/softDeleteFolder/[softDeleteFolder] uses this to snapshot a folder's subtree into a trash catalog snapshot before deleting it.
+* link:../../../features/file-explorer/services/restoreTrashedFolder/[restoreTrashedFolder] replays a snapshot's entries back into the original catalog.
+* link:../catalog/[catalog] provides `parseCatalog`, `appendToCatalog`, and `appendFolderToCatalog`.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../../../types/[types]

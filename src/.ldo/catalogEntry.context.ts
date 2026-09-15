@@ -60,8 +60,8 @@ export const catalogEntryContext: LdoJsonldContext = {
       },
     },
   },
-  ImageFile: {
-    "@id": "https://w3id.org/solid-drive#ImageFile",
+  ImageObject: {
+    "@id": "http://schema.org/ImageObject",
     "@context": {
       type: {
         "@id": "@type",
@@ -110,8 +110,8 @@ export const catalogEntryContext: LdoJsonldContext = {
       },
     },
   },
-  VideoFile: {
-    "@id": "https://w3id.org/solid-drive#VideoFile",
+  VideoObject: {
+    "@id": "http://schema.org/VideoObject",
     "@context": {
       type: {
         "@id": "@type",
@@ -160,8 +160,8 @@ export const catalogEntryContext: LdoJsonldContext = {
       },
     },
   },
-  AudioFile: {
-    "@id": "https://w3id.org/solid-drive#AudioFile",
+  AudioObject: {
+    "@id": "http://schema.org/AudioObject",
     "@context": {
       type: {
         "@id": "@type",
@@ -210,8 +210,8 @@ export const catalogEntryContext: LdoJsonldContext = {
       },
     },
   },
-  TextDocument: {
-    "@id": "https://w3id.org/solid-drive#TextDocument",
+  TextDigitalDocument: {
+    "@id": "http://schema.org/TextDigitalDocument",
     "@context": {
       type: {
         "@id": "@type",
@@ -260,8 +260,8 @@ export const catalogEntryContext: LdoJsonldContext = {
       },
     },
   },
-  SpreadsheetDocument: {
-    "@id": "https://w3id.org/solid-drive#SpreadsheetDocument",
+  SpreadsheetDigitalDocument: {
+    "@id": "http://schema.org/SpreadsheetDigitalDocument",
     "@context": {
       type: {
         "@id": "@type",

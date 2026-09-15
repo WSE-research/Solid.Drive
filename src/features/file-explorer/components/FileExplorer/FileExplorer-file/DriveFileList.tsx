@@ -24,6 +24,9 @@ type DriveFileListProps = {
   catalogContainerUris: Set<string>;
   /** Folder container URI -> catalog title, for bare folder rows. */
   folderTitles?: Map<string, string>;
+  // Passed to bare folder rows so delete moves them to the Recycle bin.
+  storageRootUri?: string;
+  ownerWebId?: string;
   onNavigate: (uri: string) => void;
   onDownload: (entry: SolidLeaf, fileName: string) => void;
   onFolderDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
@@ -35,21 +38,23 @@ type FolderEntryRouterProps = {
   catalogUri: string;
   catalogContainerUris: Set<string>;
   folderTitles: Map<string, string>;
+  storageRootUri?: string;
+  ownerWebId?: string;
   onNavigate: (uri: string) => void;
   onFolderDrop?: (files: File[], targetUri: string, dataTransfer: DataTransfer | null) => void;
   onFolderDragOverChange?: (isOver: boolean) => void;
 };
 
 /**
- * Chooses how to show a folder: as a FileCard when it's really a file
- * (it has a catalog entry, or holds an index.ttl), otherwise as a plain
- * FolderEntry.
+ * Shows a folder as FileCard if it is really a file; otherwise FolderEntry.
  */
 const FolderEntryRouter: FunctionComponent<FolderEntryRouterProps> = ({
   entry,
   catalogUri,
   catalogContainerUris,
   folderTitles,
+  storageRootUri,
+  ownerWebId,
   onNavigate,
   onFolderDrop,
   onFolderDragOverChange,
@@ -73,6 +78,9 @@ const FolderEntryRouter: FunctionComponent<FolderEntryRouterProps> = ({
     <FolderEntry
       uri={entry.uri}
       title={folderTitles.get(entry.uri)}
+      catalogUri={catalogUri}
+      storageRootUri={storageRootUri}
+      ownerWebId={ownerWebId}
       onNavigate={onNavigate}
       onDrop={onFolderDrop}
       onDragOverChange={onFolderDragOverChange}
@@ -114,6 +122,8 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
   catalogUri,
   catalogContainerUris,
   folderTitles = new Map(),
+  storageRootUri,
+  ownerWebId,
   onNavigate,
   onDownload,
   onFolderDrop,
@@ -144,6 +154,8 @@ export const DriveFileList: FunctionComponent<DriveFileListProps> = ({
           catalogUri={catalogUri}
           catalogContainerUris={catalogContainerUris}
           folderTitles={folderTitles}
+          storageRootUri={storageRootUri}
+          ownerWebId={ownerWebId}
           onNavigate={onNavigate}
           onFolderDrop={onFolderDrop}
           onFolderDragOverChange={onFolderDragOverChange}

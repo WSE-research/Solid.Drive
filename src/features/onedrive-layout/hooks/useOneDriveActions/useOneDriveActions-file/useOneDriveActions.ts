@@ -1,20 +1,22 @@
 /**
- * Selection-aware action handlers (copy link, download, delete) for the
- * OneDrive layout shell. Owns the toast wiring and confirmation prompts
- * so the layout component is reduced to composition.
- *
  * @packageDocumentation
+ * Provides selection-aware actions for the OneDrive layout, including
+ * copy link, download, and delete. Handles confirmation prompts and
+ * notifications outside the layout component.
  */
 
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
+import { useGuardedSoftDelete } from '@/features/file-explorer/hooks/useGuardedSoftDelete';
 import { copyToClipboard } from '@/shared/utils/copyToClipboard';
 import { deleteResource } from '@/features/file-explorer/services/deleteResource';
+import { softDeleteFile } from '@/features/file-explorer/services/softDeleteFile';
+import { softDeleteFolder } from '@/features/file-explorer/services/softDeleteFolder';
 import { downloadResource } from '@/features/file-explorer/services/downloadResource';
 import { decodeUriTail } from '@/features/onedrive-layout/formatting';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
-import type { CatalogEntry } from '@/types';
+import type { CatalogEntry, SharedEntry } from '@/types';
 
 export interface UseOneDriveActionsArgs {
   selected: SelectedResource;
@@ -22,11 +24,18 @@ export interface UseOneDriveActionsArgs {
   catalogUri: string | null | undefined;
   solidFetch: typeof fetch;
   onAfterDelete: () => void;
+  /** Pod storage root. Required for soft delete; falls back to permanent deletion without it. */
+  storageRootUri?: string | null;
+  /** The selection's catalog-row payload, built by the caller (`OneDriveLayout`'s `sharedEntry` memo). Only files need this — a folder's soft delete reads its own catalog subtree directly. */
+  entry?: SharedEntry | null;
+  /** WebID used as the trash catalog entry's publisher. */
+  ownerWebId?: string;
 }
 
 export interface UseOneDriveActionsReturn {
   handleCopyLink: () => Promise<void>;
   handleDownload: () => Promise<void>;
+  /** Moves the selection to the Recycle bin, falling back to permanent deletion when required owner/catalog data isn't available. */
   handleDelete: () => Promise<void>;
 }
 
@@ -41,9 +50,13 @@ export function useOneDriveActions({
   catalogUri,
   solidFetch,
   onAfterDelete,
+  storageRootUri,
+  entry,
+  ownerWebId,
 }: UseOneDriveActionsArgs): UseOneDriveActionsReturn {
   const [translate] = useTranslation();
-  const { showSuccess, showError, confirm } = useNotifications();
+  const { showSuccess, showError } = useNotifications();
+  const { runGuardedDelete } = useGuardedSoftDelete();
 
   const handleCopyLink = useCallback(async () => {
     if (!selected) return;
@@ -64,7 +77,7 @@ export function useOneDriveActions({
 
   const handleDownload = useCallback(async () => {
     if (!selected || selected.kind !== 'file') return;
-    const binaryUri = catalogByContainer.get(selected.uri)?.accessURL || selected.uri;
+    const binaryUri = entry?.binaryUri ?? selected.uri;
     const fileName = decodeUriTail(binaryUri) || selected.name;
     const result = await downloadResource(binaryUri, fileName, solidFetch);
     if (!result.ok) {
@@ -72,45 +85,77 @@ export function useOneDriveActions({
         `${translate('oneDriveLayout.toast.downloadFail', 'Download failed')}: ${result.reason}`,
       );
     }
-  }, [selected, catalogByContainer, solidFetch, showError, translate]);
+  }, [selected, entry, solidFetch, showError, translate]);
 
-  const handleDelete = useCallback(async () => {
-    if (!selected) return;
-    const confirmed = await confirm(
-      translate('oneDriveLayout.toast.deleteConfirm', {
-        defaultValue: 'Delete "{{name}}"? This cannot be undone.',
-        name: selected.name,
-      }),
-    );
-    if (!confirmed) return;
-    const catalogEntry = catalogByContainer.get(selected.uri);
-    const result = await deleteResource({
-      containerUri: selected.uri,
-      metadataUri: catalogEntry?.uri,
-      catalogUri: catalogUri ?? undefined,
-      fetch: solidFetch,
+  const handleDelete = useCallback(() => {
+    if (!selected) return Promise.resolve();
+
+    // Soft-deletes when the owner and catalog data are available, otherwise
+    // falls back to a permanent delete. A file also needs its own catalog
+    // row (`entry`); a folder gets what it needs from its catalog subtree.
+    const canSoftDeleteFile = selected.kind === 'file' && !!storageRootUri && !!entry && !!catalogUri && !!ownerWebId;
+    const canSoftDeleteFolder = selected.kind === 'folder' && !!storageRootUri && !!catalogUri && !!ownerWebId;
+    const canSoftDelete = canSoftDeleteFile || canSoftDeleteFolder;
+
+    return runGuardedDelete({
+      resourceUri: selected.uri,
+      confirmMessage: canSoftDelete
+        ? translate('oneDriveLayout.toast.deleteConfirm', {
+            defaultValue: 'Move "{{name}}" to the Recycle bin?',
+            name: selected.name,
+          })
+        : translate('oneDriveLayout.toast.deleteConfirmPermanent', {
+            defaultValue: 'Delete "{{name}}"? This cannot be undone.',
+            name: selected.name,
+          }),
+      failedMessage: translate('oneDriveLayout.toast.deleteFail', 'Delete failed'),
+      successMessage: canSoftDelete
+        ? translate('oneDriveLayout.toast.deleteSuccess', {
+            defaultValue: '"{{name}}" moved to the Recycle bin',
+            name: selected.name,
+          })
+        : translate('oneDriveLayout.toast.deleteSuccessPermanent', {
+            defaultValue: '"{{name}}" deleted',
+            name: selected.name,
+          }),
+      onSuccess: onAfterDelete,
+      run: () => {
+        if (canSoftDeleteFile) {
+          return softDeleteFile({
+            containerUri: selected.uri,
+            storageRootUri: storageRootUri!,
+            catalogUri: catalogUri!,
+            entry: entry!,
+            ownerWebId: ownerWebId!,
+            fetch: solidFetch,
+          });
+        }
+        if (canSoftDeleteFolder) {
+          return softDeleteFolder({
+            containerUri: selected.uri,
+            storageRootUri: storageRootUri!,
+            catalogUri: catalogUri!,
+            ownerWebId: ownerWebId!,
+            fetch: solidFetch,
+          });
+        }
+        return deleteResource({
+          containerUri: selected.uri,
+          metadataUri: selected.kind === 'folder' ? selected.uri : catalogByContainer.get(selected.uri)?.uri,
+          catalogUri: catalogUri ?? undefined,
+          fetch: solidFetch,
+        });
+      },
     });
-    if (!result.ok) {
-      showError(
-        `${translate('oneDriveLayout.toast.deleteFail', 'Delete failed')}: ${result.reason}`,
-      );
-      return;
-    }
-    showSuccess(
-      translate('oneDriveLayout.toast.deleteSuccess', {
-        defaultValue: '"{{name}}" deleted',
-        name: selected.name,
-      }),
-    );
-    onAfterDelete();
   }, [
+    runGuardedDelete,
     selected,
-    catalogByContainer,
     catalogUri,
+    storageRootUri,
+    entry,
+    ownerWebId,
+    catalogByContainer,
     solidFetch,
-    confirm,
-    showSuccess,
-    showError,
     translate,
     onAfterDelete,
   ]);

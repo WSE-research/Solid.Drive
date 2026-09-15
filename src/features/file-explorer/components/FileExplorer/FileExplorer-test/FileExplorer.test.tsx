@@ -74,8 +74,16 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
   isReloadable: vi.fn((r: unknown) => !!(r as Record<string, unknown>)?.reload),
 }));
 
+const mockResolveCatalogUri = vi.fn(() => 'https://pod.example/my-solid-app/catalog.ttl');
+
+vi.mock('@/infrastructure/solid/catalog', () => ({
+  resolveCatalogUri: () => mockResolveCatalogUri(),
+}));
+
+const mockIsVisibleContainer = vi.fn<(entry: { uri: string }, storageRootUri: string) => boolean>(() => true);
 vi.mock('@/features/file-explorer/services/fileFilter', () => ({
   isVisibleLeaf: () => true,
+  isVisibleContainer: (entry: { uri: string }, storageRootUri: string) => mockIsVisibleContainer(entry, storageRootUri),
 }));
 
 vi.mock('@/features/file-explorer/components/SearchResults', () => ({
@@ -207,6 +215,20 @@ describe('FileExplorer', () => {
     render(<FileExplorer />);
     expect(screen.getByTestId('drive-file-list')).toBeInTheDocument();
     expect(screen.getByTestId('shared-section')).toBeInTheDocument();
+  });
+
+  it('excludes a container that isVisibleContainer marks hidden (the trash container)', () => {
+    const trashChild = { uri: 'https://pod.example/my-solid-app/trash/', children: () => [] };
+    const folderChild = { uri: 'https://pod.example/my-solid-app/photos/', children: () => [] };
+    vi.mocked(useResource).mockReturnValue(makeContainer([trashChild, folderChild]) as unknown as ReturnType<typeof useResource>);
+    mockIsVisibleContainer
+      .mockImplementationOnce((entry: { uri: string }) => !entry.uri.includes('/trash/'))
+      .mockImplementationOnce((entry: { uri: string }) => !entry.uri.includes('/trash/'));
+
+    render(<FileExplorer />);
+
+    const renderedFolders = capturedDriveFileListProps.folderEntries as Array<{ uri: string }>;
+    expect(renderedFolders.map((entry) => entry.uri)).toEqual([folderChild.uri]);
   });
 
   it('shows FileUpload after selecting Upload files from Add menu', () => {
@@ -475,6 +497,57 @@ describe('FileExplorer', () => {
     expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
   });
 
+  it('navigating to a different folder closes any open NewFolderInput/FileUpload/add-menu', () => {
+    const { rerender } = render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    fireEvent.click(screen.getByText('fileExplorer.newFolder'));
+    expect(screen.getByTestId('new-folder-input')).toBeInTheDocument();
+
+    mockUseDriveInit.currentUri = 'https://pod.example/my-solid-app/photos/' as SolidContainerUri;
+    rerender(<FileExplorer />);
+
+    expect(screen.queryByTestId('new-folder-input')).not.toBeInTheDocument();
+    expect(screen.queryByText('fileExplorer.newFolder')).not.toBeInTheDocument();
+  });
+
+  it('falls back to an empty storage root when filtering folders before it resolves', () => {
+    mockUseDriveInit.storageRootUri = undefined as unknown as string;
+    const folderChild = { uri: 'https://pod.example/my-solid-app/photos/', children: () => [] };
+    vi.mocked(useResource).mockReturnValue(makeContainer([folderChild]) as unknown as ReturnType<typeof useResource>);
+
+    render(<FileExplorer />);
+
+    expect(mockIsVisibleContainer).toHaveBeenCalledWith(folderChild, '');
+    mockUseDriveInit.storageRootUri = 'https://pod.example/';
+  });
+
+  it('falls back to "My Drive" as the drop destination label when there are no breadcrumbs', () => {
+    mockUseCatalogBreadcrumbs.mockImplementation(() => ({
+      ...useCatalogBreadcrumbsDefaults(),
+      breadcrumbs: [],
+    }));
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    fireEvent.dragEnter(main, { dataTransfer: { types: ['Files'] } });
+    expect(screen.getByTestId('drop-zone').getAttribute('data-destination')).toBe('fileExplorer.myDrive');
+  });
+
+  it('ignores a keypress other than Escape while the add-menu is open', () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    expect(screen.getByText('fileExplorer.newFolder')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'a' });
+    expect(screen.getByText('fileExplorer.newFolder')).toBeInTheDocument();
+  });
+
+  it('does not close the add-menu when the mousedown target is inside it', () => {
+    render(<FileExplorer />);
+    fireEvent.click(screen.getByRole('button', { name: /fileExplorer\.add/ }));
+    expect(screen.getByText('fileExplorer.newFolder')).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByText('fileExplorer.newFolder'));
+    expect(screen.getByText('fileExplorer.newFolder')).toBeInTheDocument();
+  });
+
   it('passes catalogContainerUris through to DriveFileList', () => {
     const reportContainerUri = 'https://pod.example/report/';
     mockUseCatalogBreadcrumbs.mockImplementation(() => ({
@@ -635,6 +708,48 @@ describe('FileExplorer drag-and-drop', () => {
     expect(mockEnqueueInstant.mock.calls[0][0]).toEqual(files);
     expect(mockEnqueueInstant.mock.calls[0][1]).toBe('https://pod.example/photos/');
     expect(mockEnqueueInstant.mock.calls[0][2]).toBe('photos');
+  });
+
+  it('preventDefaults a Files dragover but ignores one carrying no Files', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    const filesDragOver = fireEvent.dragOver(main, { dataTransfer: { types: ['Files'] } });
+    const textDragOver = fireEvent.dragOver(main, { dataTransfer: { types: ['text/plain'] } });
+    expect(filesDragOver).toBe(false);
+    expect(textDragOver).toBe(true);
+  });
+
+  it('only clears the drop state once every dragEnter has a matching dragLeave', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    fireEvent.dragEnter(main, { dataTransfer: { types: ['Files'] } });
+    fireEvent.dragEnter(main, { dataTransfer: { types: ['Files'] } });
+    fireEvent.dragLeave(main);
+    expect(screen.getByTestId('drop-zone')).toBeInTheDocument();
+    fireEvent.dragLeave(main);
+    expect(screen.queryByTestId('drop-zone')).toBeNull();
+  });
+
+  it('hovering a folder card during a drag hides the panel DropZone, and leaving the card restores it', () => {
+    render(<FileExplorer />);
+    const onFolderDragOverChange = capturedDriveFileListProps.onFolderDragOverChange as
+      | ((isOver: boolean) => void)
+      | undefined;
+    act(() => { onFolderDragOverChange?.(true); });
+    expect(screen.queryByTestId('drop-zone')).toBeNull();
+    act(() => { onFolderDragOverChange?.(false); });
+    expect(screen.getByTestId('drop-zone')).toBeInTheDocument();
+  });
+
+  it('a bubbling dragEnter while hovering a folder card does not downgrade back to the panel DropZone', () => {
+    render(<FileExplorer />);
+    const main = document.querySelector('main')!;
+    const onFolderDragOverChange = capturedDriveFileListProps.onFolderDragOverChange as
+      | ((isOver: boolean) => void)
+      | undefined;
+    act(() => { onFolderDragOverChange?.(true); });
+    fireEvent.dragEnter(main, { dataTransfer: { types: ['Files'] } });
+    expect(screen.queryByTestId('drop-zone')).toBeNull();
   });
 
   it('dropping a folder onto a folder card surfaces the unsupported-folder error and never calls enqueueInstant', () => {

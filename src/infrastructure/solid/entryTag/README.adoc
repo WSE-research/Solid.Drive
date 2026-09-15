@@ -1,0 +1,15 @@
+= entryTag
+
+Mints a unique tag for a new catalog entry, and checks that a tag someone else handed us is well-formed before we trust it.
+
+A tag is the unique element an OR-set needs: assigned once when an entry is added, never reused, and checked against the tombstone log before a re-add is accepted. A tag can arrive from another party's catalog entry rather than being minted locally, so it's validated before it's ever written into RDF or a patch document.
+
+== See also
+
+* link:../catalog/[catalog] assigns a tag to every new entry and validates one supplied by a caller.
+* link:../catalogTombstones/[catalogTombstones] validates a tag before recording or matching it against the tombstone log.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]

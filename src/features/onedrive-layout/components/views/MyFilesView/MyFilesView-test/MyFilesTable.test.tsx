@@ -397,3 +397,59 @@ describe('MyFilesTable — bare folder rows', () => {
     expect(prevented).toBe(false);
   });
 });
+
+describe('MyFilesTable — row checkbox selection', () => {
+  const folderUri = 'https://pod/app/photos/';
+
+  beforeEach(() => {
+    mockChildrenByUri.clear();
+    mockChildrenByUri.set(folderUri, []);
+    vi.clearAllMocks();
+  });
+
+  // Folders navigate on click, so the checkbox is the only way to select
+  // one without leaving it.
+  it('selects a bare folder via its checkbox, without navigating', () => {
+    const onSelect = vi.fn();
+    const onNavigate = vi.fn();
+    render(
+      <MyFilesTable
+        {...baseProps}
+        onSelect={onSelect}
+        onNavigate={onNavigate}
+        folderEntries={[makeContainer(folderUri)]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select' }));
+    expect(onSelect).toHaveBeenCalledWith({
+      kind: 'folder',
+      uri: folderUri,
+      name: 'photos',
+    });
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('renders the folder checkbox as checked once selected', () => {
+    render(
+      <MyFilesTable
+        {...baseProps}
+        folderEntries={[makeContainer(folderUri)]}
+        selectedUri={folderUri}
+      />,
+    );
+    expect(screen.getByRole('checkbox', { name: 'Select' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('selecting a leaf row via its checkbox does not double-toggle the selection', () => {
+    const onSelect = vi.fn();
+    render(
+      <MyFilesTable
+        {...baseProps}
+        onSelect={onSelect}
+        leafEntries={[makeLeaf('https://pod/app/notes.txt')]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select' }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+});

@@ -1,12 +1,10 @@
 = SelectionActions
 
-Action strip rendered in the page header when something is selected.
-Shows Share, Copy link, Delete, and Download, plus Move to and Rename stubs that are reserved for follow up work.
+Action strip rendered in the page header when something is selected. Shows Share, Copy link, Delete (relabeled "Move to bin" for both files and folders), and Download, plus Move to and Rename stubs reserved for follow-up work.
 
-A `ResizeObserver` watches the strip's width.
-Actions that no longer fit inline spill into a kebab dropdown on the right, so the row never wraps.
+A single `onDelete` action covers both kinds of selection, moving whichever one is selected to the Recycle bin. The "Move to bin" label reflects the common case, not a guarantee: `useOneDriveActions` falls back to a permanent delete when soft delete's prerequisites (storage root, catalog, owner) aren't resolved yet, something this component has no way to know ahead of the click. Permanently deleting on purpose happens from the Recycle bin instead. See link:../views/TrashView/[TrashView].
 
-Renders nothing when `selection` is `null`.
+A `ResizeObserver` watches the strip's width, and actions that no longer fit inline spill into a kebab dropdown on the right so the row never wraps. Renders nothing when `selection` is `null`.
 
 == Props
 
@@ -17,7 +15,7 @@ Renders nothing when `selection` is `null`.
 | `selection` | The current selected file or folder from link:../../hooks/useSelectedResource/[useSelectedResource]
 | `onShare` | Opens the ShareDialog
 | `onCopyLink` | Copies the resource URI to the clipboard
-| `onDelete` | Deletes the resource after a confirm prompt
+| `onDelete` | Moves the selection to the Recycle bin (or hard-deletes it, if soft delete isn't available), after a confirm prompt
 | `onDownload` | Downloads the binary
 | `onMoveTo` | Stub, reserved for follow up work
 | `onRename` | Stub, reserved for follow up work

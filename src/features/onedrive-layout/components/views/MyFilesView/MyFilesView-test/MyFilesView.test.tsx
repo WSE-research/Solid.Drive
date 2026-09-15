@@ -84,8 +84,10 @@ vi.mock('@/infrastructure/solid/resourceGuards', () => ({
     entry?.uri.endsWith('/') ?? false,
 }));
 
+const mockIsVisibleContainer = vi.fn<(entry: { uri: string }) => boolean>(() => true);
 vi.mock('@/features/file-explorer/services/fileFilter', () => ({
   isVisibleLeaf: () => true,
+  isVisibleContainer: (entry: { uri: string }) => mockIsVisibleContainer(entry),
 }));
 
 vi.mock('@/features/onedrive-layout/hooks/useSharingLabel', () => ({
@@ -244,6 +246,12 @@ describe('MyFilesView — file table', () => {
   it('renders a folder row for a bare folder child', () => {
     render(<MyFilesView {...renderProps} />);
     expect(screen.getByText('folder1')).toBeInTheDocument();
+  });
+
+  it('hides a folder when the visibility filter says it should be hidden', () => {
+    mockIsVisibleContainer.mockImplementationOnce((entry: { uri: string }) => !entry.uri.includes('/folder1/'));
+    render(<MyFilesView {...renderProps} />);
+    expect(screen.queryByText('folder1')).not.toBeInTheDocument();
   });
 
   it('renders a file row using the catalog entry title', () => {

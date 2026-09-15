@@ -5,7 +5,6 @@
  */
 
 import { useMemo } from "react";
-import type { SolidContainerUri } from "@ldo/connected-solid";
 import { buildFolderPath, FolderPathError } from "@/features/file-explorer/services/folderPath";
 import { buildDriveBreadcrumbs } from "@/features/file-explorer/services/driveUrl";
 import type { Breadcrumb } from "@/features/file-explorer/hooks/useNavigation";
@@ -30,16 +29,16 @@ interface UseFolderBreadcrumbsReturn {
 }
 
 /**
- * Builds `currentUri`'s breadcrumb trail by walking `sd:hasParent` links in
- * `folderIndex` up to `storageRootUri`.
+ * Builds the breadcrumb trail for `currentUri` by following `sd:hasParent`
+ * links in `folderIndex` up to `storageRootUri`.
  *
  * @remarks
- * A folder missing from the catalog entirely falls back to splitting its
- * URI. A folder that's in the catalog with a broken hasParent chain sets
- * `error` and falls back to just the root crumb. The storage root is an
- * exception: its entry is written on a separate round trip, so a missing
- * root is treated as a startup race, not a broken chain, until
- * `rootEntryFailed` confirms that write itself failed.
+ * If a folder is missing from the catalog, the trail falls back to its URI.
+ * If the folder is present but its parent chain is broken, `error` is set
+ * and the same URI-based fallback is used so navigation still works. The
+ * storage root is handled differently: its entry is written separately, so
+ * a missing root is treated as a startup race unless `rootEntryFailed`
+ * confirms the root entry write failed.
  *
  * @public
  */
@@ -67,7 +66,7 @@ export function useFolderBreadcrumbs({
         return { breadcrumbs: buildDriveBreadcrumbs(currentUri, storageRootUri, rootLabel, folderIndex), error: null };
       }
       return {
-        breadcrumbs: [{ label: rootLabel, uri: storageRootUri as SolidContainerUri }],
+        breadcrumbs: buildDriveBreadcrumbs(currentUri, storageRootUri, rootLabel, folderIndex),
         error,
       };
     }

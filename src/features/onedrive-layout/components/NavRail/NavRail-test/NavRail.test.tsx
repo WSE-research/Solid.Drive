@@ -18,6 +18,7 @@ vi.mock('react-i18next', () => ({
         'oneDriveLayout.shared': 'Shared',
         'oneDriveLayout.requests': 'Requests',
         'oneDriveLayout.people': 'People',
+        'oneDriveLayout.trash': 'Recycle bin',
       };
       return map[key] ?? fallback ?? key;
     },
@@ -44,18 +45,17 @@ describe('NavRail (expanded pane)', () => {
     expect(screen.getByText('Parnian Hajian')).toBeInTheDocument();
   });
 
-  it('renders all 5 view labels in expanded mode', () => {
+  it('renders all 6 view labels in expanded mode', () => {
     render(<NavRail accountName="Parnian" />);
-    for (const label of ['Home', 'My Files', 'Shared', 'Requests', 'People']) {
+    for (const label of ['Home', 'My Files', 'Shared', 'Requests', 'People', 'Recycle bin']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
   });
 
-  it('does not render a Recycle Bin entry', () => {
+  it('clicking the Recycle bin item writes ?view=trash to the URL', () => {
     render(<NavRail accountName="Parnian" />);
-    expect(
-      screen.queryByRole('button', { name: /recycle bin/i }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Recycle bin' }));
+    expect(window.location.search).toContain('view=trash');
   });
 
   it('renders a Collapse toggle that switches to icon-only rail', () => {
@@ -112,9 +112,9 @@ describe('NavRail (collapsed icon rail)', () => {
     expect(screen.queryByText('Create or upload')).not.toBeInTheDocument();
   });
 
-  it('renders all 5 view buttons as icon-only with aria-labels', () => {
+  it('renders all 6 view buttons as icon-only with aria-labels', () => {
     render(<NavRail />);
-    for (const label of ['Home', 'My Files', 'Shared', 'Requests', 'People']) {
+    for (const label of ['Home', 'My Files', 'Shared', 'Requests', 'People', 'Recycle bin']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
   });

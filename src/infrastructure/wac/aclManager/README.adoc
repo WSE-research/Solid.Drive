@@ -10,8 +10,10 @@ All ACL documents are serialized using N3 via `rdfUtils.serializeTurtle`.
 | Function | Description
 
 | `discoverAclUri(resourceUri, fetch)` | Reads the `Link` header for `rel="acl"` and returns the absolute ACL URI
+| `readAclDocument(aclUri, fetch)` | Returns an ACL document's raw Turtle text, or `null` on 404
+| `writeAclDocument(aclUri, turtle, fetch)` | PUTs raw Turtle to an ACL document
 | `readAclAgents(aclUri, fetch)` | Parses an ACL Turtle document and returns agent WebIDs with read (but not write) access
-| `writeAcl(aclUri, resourceUri, ownerWebId, grantees, fetch)` | Writes a full ACL: owner with Read/Write/Control + `acl:default`; grantees with Read + `acl:default`
+| `writeAcl(aclUri, containerUri, ownerWebId, agentWebIds, fetch)` | Writes a full ACL: owner with Read/Write/Control + `acl:default`; grantees with Read + `acl:default`
 | `writeListOnlyAcl(...)` | Writes an ACL where grantees can list the container but do not inherit access to child resources
 | `writeResourceAcl(...)` | Writes an ACL for a single resource (no `acl:default` propagation)
 | `grantContainerReadAccess(containerUri, owner, contact, fetch)` | Idempotently adds a contact to the container's ACL with read + `acl:default`

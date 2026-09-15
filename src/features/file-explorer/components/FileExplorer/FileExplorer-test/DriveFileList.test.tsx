@@ -22,8 +22,24 @@ vi.mock('@/features/file-explorer/components/FileCard', () => ({
 }));
 
 vi.mock('@/features/file-explorer/components/FolderEntry', () => ({
-  FolderEntry: ({ uri, title, onNavigate }: { uri: string; title?: string; onNavigate: (uri: string) => void }) => (
-    <div data-testid="folder-entry" data-uri={uri} data-title={title ?? ''} onClick={() => onNavigate(uri)} />
+  FolderEntry: ({
+    uri,
+    title,
+    catalogUri,
+    onNavigate,
+  }: {
+    uri: string;
+    title?: string;
+    catalogUri?: string;
+    onNavigate: (uri: string) => void;
+  }) => (
+    <div
+      data-testid="folder-entry"
+      data-uri={uri}
+      data-title={title ?? ''}
+      data-catalog={catalogUri ?? ''}
+      onClick={() => onNavigate(uri)}
+    />
   ),
 }));
 
@@ -133,6 +149,22 @@ describe('DriveFileList', () => {
     );
     const entries = screen.getAllByTestId('folder-entry');
     expect(entries).toHaveLength(2);
+  });
+
+  it('passes catalogUri to bare FolderEntry rows', () => {
+    const folders = makeFolders(['https://pod.example/public/']);
+    render(
+      <DriveFileList
+        folderEntries={folders}
+        leafEntries={[]}
+        isInAppFolder={false}
+        catalogUri="https://pod.example/catalog.ttl"
+        catalogContainerUris={new Set()}
+        onNavigate={mockOnNavigate}
+        onDownload={mockOnDownload}
+      />
+    );
+    expect(screen.getByTestId('folder-entry').getAttribute('data-catalog')).toBe('https://pod.example/catalog.ttl');
   });
 
   it('passes the matching catalog title to FolderEntry', () => {

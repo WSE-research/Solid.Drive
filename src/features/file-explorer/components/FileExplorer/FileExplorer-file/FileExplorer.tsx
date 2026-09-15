@@ -12,7 +12,7 @@ import { SolidProfileShapeType } from "@/.ldo/solidProfile.shapeTypes";
 import { isSolidContainer, isReloadable } from "@/infrastructure/solid/resourceGuards";
 import { SharedWithMeSection } from "@/features/file-explorer/components/SharedWithMeSection";
 import { FileUpload } from "@/features/file-explorer/components/FileUpload";
-import { isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
+import { isVisibleContainer, isVisibleLeaf } from "@/features/file-explorer/services/fileFilter";
 import { useNotifications } from "@/shared/contexts/NotificationContext";
 import { STORAGE_RETRY_DELAY_MS } from "@/config";
 import { useDriveInitialization } from "@/features/file-explorer/hooks/useDriveInitialization";
@@ -274,7 +274,9 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
 
   const isInAppFolder = currentUri === appContainerUri;
   const entries = isSolidContainer(currentContainer) ? currentContainer.children() : [];
-  const folderEntries = entries.filter(isSolidContainer);
+  const folderEntries = entries
+    .filter(isSolidContainer)
+    .filter((entry) => isVisibleContainer(entry, storageRootUri ?? ""));
   const leafEntries = entries.filter((entry) => !isSolidContainer(entry)).filter(isVisibleLeaf) as SolidLeaf[];
 
   return (
@@ -379,6 +381,8 @@ export const FileExplorer: FunctionComponent<FileExplorerProps> = ({
             catalogUri={catalogUri ?? ""}
             catalogContainerUris={catalogContainerUris}
             folderTitles={folderTitles}
+            storageRootUri={storageRootUri}
+            ownerWebId={session.webId}
             onNavigate={handleNavigate}
             onDownload={handleDownload}
             onFolderDrop={handleFolderDrop}
