@@ -40,6 +40,12 @@ export interface PodSession {
  * If `BENCH_ACCESS_TOKEN` is set, the supplied DPoP-bound token and key are
  * used directly. This mode does not support automatic token renewal.
  *
+ * With `BENCH_AUTH_SCHEME=Bearer` the token is sent as a plain Bearer instead,
+ * for php-solid-server, which has no DPoP. That branch also covers two more
+ * pdsinterop quirks: its HEAD is a 204 with no Content-Length, so HEAD is routed
+ * through GET, and it answers a PUT to an existing container with 400 rather than
+ * 409, so that case is normalised back to 409.
+ *
  * If `BENCH_CLIENT_ID` is set, the supplied client credentials, pod, and WebID
  * are used instead of provisioning a new account.
  *
@@ -50,12 +56,35 @@ export async function provisionSession(baseUrl: string, suffix: string): Promise
 
   const seededToken = process.env.BENCH_ACCESS_TOKEN;
   if (seededToken) {
-    const keys = await importKeys(JSON.parse(process.env.BENCH_DPOP_JWK ?? "{}"));
     const pod = (process.env.BENCH_POD ?? baseUrl).replace(/\/?$/, "/");
+    const webId = process.env.BENCH_WEBID ?? "";
+
+    if (process.env.BENCH_AUTH_SCHEME === "Bearer") {
+      const bearerFetch: AuthFetch = async (url, init = {}) => {
+        const requested = (init.method ?? "GET").toUpperCase();
+        const method = requested === "HEAD" ? "GET" : requested;
+        const headers: Record<string, string> = { ...(init.headers ?? {}), Authorization: `Bearer ${seededToken}` };
+        const body = init.body as BodyInit | null | undefined;
+        const isContainerPut = method === "PUT" && url.endsWith("/");
+        if (isContainerPut) {
+          headers.Link = '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"';
+        }
+
+        const response = await fetch(url, { method, headers, body });
+        if (isContainerPut && response.status === 400) {
+          const probe = await fetch(url, { method: "GET", headers: { Authorization: `Bearer ${seededToken}` } });
+          if (probe.ok) return new Response(null, { status: 409 });
+        }
+        return response;
+      };
+      return { authFetch: bearerFetch, pod, webId, serverHeader };
+    }
+
+    const keys = await importKeys(JSON.parse(process.env.BENCH_DPOP_JWK ?? "{}"));
     const onExpiry = (): Promise<string> => Promise.reject(
       new Error("seeded access token expired; re-mint it (see second-server runbook)"),
     );
-    return { authFetch: makeRefreshingAuthFetch(onExpiry, keys, seededToken), pod, webId: process.env.BENCH_WEBID ?? "", serverHeader };
+    return { authFetch: makeRefreshingAuthFetch(onExpiry, keys, seededToken), pod, webId, serverHeader };
   }
 
   const keys = await createKeys();

@@ -61,7 +61,7 @@ export function writeRawData<T extends Record<string, unknown>>(
   meta: RawDataMeta,
   columns: Array<Column<T>>,
   rows: T[],
-): { json: string; csv: string } {
+): { json: string; csv: string; samples?: string } {
   const rawDir = resolve(dirname(fileURLToPath(import.meta.url)), "../results/raw");
   mkdirSync(rawDir, { recursive: true });
 
@@ -70,11 +70,27 @@ export function writeRawData<T extends Record<string, unknown>>(
   const csvPath = resolve(rawDir, `${base}.csv`);
 
   const stamped = { ...meta, generatedUtc: new Date().toISOString() };
-  writeFileSync(jsonPath, `${JSON.stringify({ meta: stamped, rows }, null, 2)}\n`);
+
+  // The aggregate JSON/CSV never carries a row's raw samples. Those go to a
+  // separate .latencies.json for the stability test
+  const aggregateRows = rows.map((row) => {
+    const rest: Record<string, unknown> = { ...row };
+    delete rest.samples;
+    return rest;
+  });
+  writeFileSync(jsonPath, `${JSON.stringify({ meta: stamped, rows: aggregateRows }, null, 2)}\n`);
 
   const header = columns.map((column) => column.header).join(",");
-  const body = rows.map((row) => columns.map((column) => csvCell(row[column.key])).join(",")).join("\n");
+  const body = aggregateRows.map((row) => columns.map((column) => csvCell(row[column.key as string])).join(",")).join("\n");
   writeFileSync(csvPath, `${header}\n${body}\n`);
+
+  const dumpSamples = !!process.env.BENCH_DUMP_SAMPLES && process.env.BENCH_DUMP_SAMPLES !== "0";
+  const hasSamples = rows.some((row) => Array.isArray((row as { samples?: unknown }).samples));
+  if (dumpSamples && hasSamples) {
+    const samplesPath = resolve(rawDir, `${base}.latencies.json`);
+    writeFileSync(samplesPath, `${JSON.stringify({ meta: stamped, rows }, null, 2)}\n`);
+    return { json: jsonPath, csv: csvPath, samples: samplesPath };
+  }
 
   return { json: jsonPath, csv: csvPath };
 }
