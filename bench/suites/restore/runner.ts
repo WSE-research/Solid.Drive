@@ -63,6 +63,7 @@ interface Row {
   p99: number;
   meanRequests: number;
   meanKbReceived: number;
+  samples?: number[];
 }
 
 // One grid cell: for a fixed method, size, trash size, and client count, prepare fresh files each round, measure the op, and return the aggregates.
@@ -97,6 +98,7 @@ async function runCell(base: AuthFetch, pod: string, webId: string, method: stri
     meanMs: summary.mean, stddevMs: summary.stddev, p50: summary.p50, p95: summary.p95, p99: summary.p99,
     meanRequests: meanOf(samples.map((sample) => sample.requests)),
     meanKbReceived: meanOf(samples.map((sample) => sample.bytesReceived)) / 1024,
+    samples: samples.map((sample) => sample.latencyMs),
   };
 }
 

@@ -9,13 +9,20 @@
  * writer append once under a 30 s deadline. It reports the average, spread, and
  * percentiles of the appends that finished within the deadline.
  *
+ * With --shared-catalog every writer in a cell appends to the SAME catalog
+ * instead of its own
+ * The cell then counts how many appends actually
+ * landed, and reports successes-minus-landed as lost updates.
+ *
  * Known limitation: an append that misses its deadline can still land on
- * the server afterward, growing the catalog by an entry. 
+ * the server afterward, growing the catalog by an entry.
  */
 
 import { hostname } from "node:os";
+import { Parser } from "n3";
 import { provisionSession } from "../../lib/podSession.ts";
 import { patchAppend, putAppend, seedCatalog } from "../../lib/catalogWriteMethods.ts";
+import { DCAT_NS } from "../../lib/rdfNamespaces.ts";
 import { catalogEntryMaker } from "../../lib/catalogEntry.ts";
 import { stats } from "../../lib/stats.ts";
 import { writeRawData, type Column } from "../../lib/rawData.ts";
@@ -32,6 +39,7 @@ interface Args {
   byteSize: number;
   label: string;
   abortPct: number;
+  sharedCatalog: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -45,9 +53,12 @@ function parseArgs(argv: string[]): Args {
     byteSize: 64 * 1024,
     label: "",
     abortPct: 100,
+    sharedCatalog: false,
   };
-  for (let index = 0; index < argv.length; index += 2) {
-    const [flag, value] = [argv[index], argv[index + 1]];
+  for (let index = 0; index < argv.length; index++) {
+    const flag = argv[index];
+    if (flag === "--shared-catalog") { args.sharedCatalog = true; continue; }
+    const value = argv[++index];
     if (flag === "--base-url") args.baseUrl = value.endsWith("/") ? value : `${value}/`;
     else if (flag === "--catalog-sizes") args.catalogSizes = value.split(",").map(Number);
     else if (flag === "--client-levels") args.clientLevels = value.split(",").map(Number);
@@ -77,18 +88,23 @@ const makeEntry = catalogEntryMaker(ARGS.byteSize);
 
 const appendForMethod = (method: string) => (method === "n3patch" ? patchAppend : putAppend);
 
-type Outcome = { latencyMs: number } | { fail: "timeout" | "error" };
+type Outcome = { latencyMs: number } | { fail: "timeout" } | { fail: "error"; status: number };
+function statusOf(error: unknown): number {
+  const match = /-> (\d{3})/.exec(error instanceof Error ? error.message : String(error));
+  return match ? Number(match[1]) : 0;
+}
 
 // Times one append to a catalog, returning the latency or failure reason.
 async function timedAppend(append: typeof putAppend, authFetch: AuthFetch, catalogUri: string, entry: CatalogAppend, deadlineMs: number): Promise<Outcome> {
   const start = performance.now();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<"timeout">((resolve) => { timer = setTimeout(() => resolve("timeout"), deadlineMs); });
-  const op = append(authFetch, catalogUri, entry).then(() => "ok" as const).catch(() => "error" as const);
+  const op = append(authFetch, catalogUri, entry).then(() => "ok" as const).catch((error: unknown) => error);
   const outcome = await Promise.race([op, deadline]);
   clearTimeout(timer);
   if (outcome === "ok") return { latencyMs: performance.now() - start };
-  return { fail: outcome };
+  if (outcome === "timeout") return { fail: "timeout" };
+  return { fail: "error", status: statusOf(outcome) };
 }
 
 interface Row extends Record<string, unknown> {
@@ -107,23 +123,44 @@ interface Row extends Record<string, unknown> {
   p95Ms: number;
   p99Ms: number;
   throughputOpsPerSec: number;
+  errorStatuses?: string;
+  landed?: number;
+  lostUpdates?: number;
+  samples?: number[];
+}
+
+// Counts a catalog's entries by its dcat:dataset membership triples, to see how
+// many appends actually survived on a shared catalog.
+async function countEntries(authFetch: AuthFetch, catalogUri: string): Promise<number> {
+  const response = await authFetch(catalogUri);
+  if (!response.ok) return -1;
+  const quads = new Parser({ baseIRI: catalogUri }).parse(await response.text());
+  const datasetPredicate = `${DCAT_NS}dataset`;
+  return quads.filter((entry) => entry.predicate.value === datasetPredicate).length;
 }
 
 async function runCell(authFetch: AuthFetch, pod: string, webId: string, method: string, catalogEntries: number, clients: number): Promise<Row> {
   const append = appendForMethod(method);
   const cellTag = `${method}-s${catalogEntries}-c${clients}`;
+  const shared = ARGS.sharedCatalog;
 
-  // Seeds one catalog per writer to the target size, so each writer can append once.
-  const catalogs = Array.from({ length: clients }, (_unused, worker) => `${pod}bench-grid/cat-${cellTag}-w${worker}.ttl`);
-  await mapPool(catalogs, 16, (catalogUri) =>
+  // Isolated: one catalog per writer, so the cell measures pure server throughput.
+  // Shared: every writer appends to the same catalog, so concurrent GET+PUT can
+  // clobber one another ---> the point of this variant.
+  const catalogs = shared
+    ? Array.from({ length: clients }, () => `${pod}bench-grid/cat-${cellTag}-shared.ttl`)
+    : Array.from({ length: clients }, (_unused, worker) => `${pod}bench-grid/cat-${cellTag}-w${worker}.ttl`);
+  const seedTargets = shared ? [catalogs[0]] : catalogs;
+  await mapPool(seedTargets, 16, (catalogUri) =>
     seedCatalog(authFetch, catalogUri, catalogEntries, (index) => ({
-      ...makeEntry(pod, webId, `seed-${cellTag}-w-${index}`), catalogUri,
+      ...makeEntry(pod, webId, `seed-${cellTag}-${index}`), catalogUri,
     })),
   );
 
   const latencies: number[] = [];
   let timeouts = 0;
   let errors = 0;
+  const statusCounts = new Map<number, number>();
   const batches = Math.max(1, Math.ceil(ARGS.runsPerCell / clients));
   const measuredStart = performance.now();
   for (let batch = 0; batch < batches; batch++) {
@@ -136,30 +173,53 @@ async function runCell(authFetch: AuthFetch, pod: string, webId: string, method:
     for (const outcome of outcomes) {
       if ("latencyMs" in outcome) latencies.push(outcome.latencyMs);
       else if (outcome.fail === "timeout") timeouts += 1;
-      else errors += 1;
+      else {
+        errors += 1;
+        statusCounts.set(outcome.status, (statusCounts.get(outcome.status) ?? 0) + 1);
+      }
     }
   }
+  const errorStatuses = [...statusCounts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .map(([status, count]) => `${status}x${count}`)
+    .join(" ");
   const wallSeconds = (performance.now() - measuredStart) / 1000;
+  const successes = latencies.length;
 
-  await Promise.all(catalogs.map((catalogUri) => authFetch(catalogUri, { method: "DELETE" }).catch(() => undefined)));
+  // On a shared catalog, count what actually landed.
+  let landed: number | undefined;
+  let lostUpdates: number | undefined;
+  if (shared) {
+    const finalCount = await countEntries(authFetch, seedTargets[0]);
+    if (finalCount >= 0) {
+      landed = finalCount - catalogEntries;
+      lostUpdates = successes - landed;
+    }
+  }
+
+  await Promise.all(seedTargets.map((catalogUri) => authFetch(catalogUri, { method: "DELETE" }).catch(() => undefined)));
   const attempts = clients * batches;
   const summary = latencies.length ? stats(latencies) : { mean: 0, stddev: 0, p50: 0, p95: 0, p99: 0 };
   return {
     method, catalogEntries, clients, attempts,
-    successes: latencies.length, timeouts, errors,
+    successes, timeouts, errors,
     timeoutPct: (100 * timeouts) / attempts, errorPct: (100 * errors) / attempts,
     meanMs: summary.mean, sdMs: summary.stddev, p50Ms: summary.p50, p95Ms: summary.p95, p99Ms: summary.p99,
     throughputOpsPerSec: wallSeconds > 0 ? latencies.length / wallSeconds : 0,
+    errorStatuses,
+    landed, lostUpdates,
+    samples: latencies,
   };
 }
 
 function printTable(rows: Row[]): void {
-  console.log("\n| method | catalog | clients | ok | timeout% | err% | mean ms | SD | p95 | ops/s |");
-  console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+  console.log("\n| method | catalog | clients | ok | timeout% | err% | mean ms | SD | p95 | ops/s | landed | lost |");
+  console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const row of rows) {
     console.log(
       `| ${row.method} | ${row.catalogEntries} | ${row.clients} | ${row.successes} | ${row.timeoutPct.toFixed(1)} | ` +
-      `${row.errorPct.toFixed(1)} | ${row.meanMs.toFixed(1)} | ${row.sdMs.toFixed(1)} | ${row.p95Ms.toFixed(1)} | ${row.throughputOpsPerSec.toFixed(1)} |`,
+      `${row.errorPct.toFixed(1)} | ${row.meanMs.toFixed(1)} | ${row.sdMs.toFixed(1)} | ${row.p95Ms.toFixed(1)} | ${row.throughputOpsPerSec.toFixed(1)} | ` +
+      `${row.landed ?? "-"} | ${row.lostUpdates ?? "-"} |`,
     );
   }
 }
@@ -180,6 +240,9 @@ const COLUMNS: Array<Column<Row>> = [
   { key: "p95Ms", header: "p95_ms" },
   { key: "p99Ms", header: "p99_ms" },
   { key: "throughputOpsPerSec", header: "throughput_ops_per_s" },
+  { key: "errorStatuses", header: "error_statuses" },
+  { key: "landed", header: "landed" },
+  { key: "lostUpdates", header: "lost_updates" },
 ];
 
 async function main(): Promise<void> {
@@ -188,6 +251,7 @@ async function main(): Promise<void> {
   console.log(`catalog sizes ${ARGS.catalogSizes.join(", ")}`);
   console.log(`client levels ${ARGS.clientLevels.join(", ")}`);
   console.log(`runs/cell     ${ARGS.runsPerCell}   deadline ${ARGS.deadlineMs} ms   payload ${(ARGS.byteSize / 1024).toFixed(0)} KB`);
+  console.log(`catalog mode  ${ARGS.sharedCatalog ? "shared (lost-update check)" : "isolated per writer"}`);
 
   const suffix = `sg${Date.now().toString(36)}`;
   const { authFetch, pod: podUrl, webId, serverHeader } = await provisionSession(ARGS.baseUrl, suffix);
@@ -215,7 +279,11 @@ async function main(): Promise<void> {
             rows.push(failedRow(method, catalogEntries, clients));
             break;
           }
-          console.log(`${row.successes} ok, ${row.timeoutPct.toFixed(1)}% timeout, mean ${row.meanMs.toFixed(1)} ms`);
+          const integrity = ARGS.sharedCatalog && row.landed !== undefined
+            ? `, ${row.landed}/${row.successes} landed, ${row.lostUpdates} lost`
+            : "";
+          const errs = row.errorStatuses ? `, err ${row.errorStatuses}` : "";
+          console.log(`${row.successes} ok, ${row.timeoutPct.toFixed(1)}% timeout, mean ${row.meanMs.toFixed(1)} ms${integrity}${errs}`);
           rows.push(row);
           if (row.timeoutPct >= ARGS.abortPct) {
             console.log(`  saturated at clients=${clients} (${row.timeoutPct.toFixed(0)}% ≥ ${ARGS.abortPct}%); skipping higher client counts for catalog=${catalogEntries}.`);
@@ -236,7 +304,7 @@ async function main(): Promise<void> {
         commit: process.env.BENCH_COMMIT ?? "unknown",
         runsPerPoint: ARGS.runsPerCell,
         deadlineMs: ARGS.deadlineMs,
-        notes: `catalog-append ${ARGS.methods.join("+")}; ${(ARGS.byteSize / 1024).toFixed(0)} KB entry payload; mean over successful requests only`,
+        notes: `catalog-append ${ARGS.methods.join("+")}; ${(ARGS.byteSize / 1024).toFixed(0)} KB entry payload; ${ARGS.sharedCatalog ? "shared catalog (lost-update integrity)" : "isolated catalogs"}; mean over successful requests only`,
       }, COLUMNS, rows);
       console.log(`\nwrote ${paths.json}\n ${paths.csv}`);
     }

@@ -82,7 +82,9 @@ export function writeResults(name: string, suffix: string, payload: object): str
 
   const { server, args, rows } = payload as ResultsPayload;
   if (Array.isArray(rows) && rows.length > 0) {
-    const columns: Array<Column<Record<string, unknown>>> = Object.keys(rows[0]).map((key) => ({ key, header: toSnakeCase(key) }));
+    const columns: Array<Column<Record<string, unknown>>> = Object.keys(rows[0])
+      .filter((key) => key !== "samples")
+      .map((key) => ({ key, header: toSnakeCase(key) }));
     const label = process.env.BENCH_LABEL || (server ?? "server").split("/")[0] || "server";
     writeRawData<Record<string, unknown>>(label, {
       suite: name,

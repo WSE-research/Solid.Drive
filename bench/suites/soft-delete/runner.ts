@@ -63,6 +63,7 @@ interface Row {
   meanRequests: number;
   meanKbSent: number;
   meanKbReceived: number;
+  samples?: number[];
 }
 
 // Runs one benchmark cell for a method, file size, trash size, and concurrency level.
@@ -86,6 +87,7 @@ async function runCell(base: AuthFetch, pod: string, webId: string, method: stri
     meanRequests: meanOf(samples.map((sample) => sample.requests)),
     meanKbSent: meanOf(samples.map((sample) => sample.bytesSent)) / 1024,
     meanKbReceived: meanOf(samples.map((sample) => sample.bytesReceived)) / 1024,
+    samples: samples.map((sample) => sample.latencyMs),
   };
 }
 

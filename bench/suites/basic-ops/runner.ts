@@ -44,6 +44,17 @@ const ARGS = parseGridArgs(process.argv.slice(2), {
 const OPS = ["get", "put", "patch", "delete", "acl-delete"] as const;
 type Op = (typeof OPS)[number];
 
+// Lets a run skip operations a given server can't do. The PHP server rejects N3
+// Patch, so its basic-ops run passes --ops get,put,delete,acl-delete.
+function selectedOps(argv: string[]): readonly Op[] {
+  const index = argv.indexOf("--ops");
+  if (index < 0) return OPS;
+  const requested = (argv[index + 1] ?? "").split(",").map((op) => op.trim());
+  const chosen = OPS.filter((op) => requested.includes(op));
+  if (chosen.length === 0) throw new Error(`--ops matched none of: ${OPS.join(", ")}`);
+  return chosen;
+}
+
 // Operations whose cost scales with the file payload. 
 const SIZE_DEPENDENT = new Set<Op>(["get", "put", "delete"]);
 
@@ -169,6 +180,7 @@ interface Row {
   meanRequests: number;
   meanBytesSent: number;
   meanBytesReceived: number;
+  samples?: number[];
 }
 
 async function runCell(session: PodSession, inst: InstrumentedFetch, op: Op, sizeKb: number): Promise<Row> {
@@ -185,6 +197,7 @@ async function runCell(session: PodSession, inst: InstrumentedFetch, op: Op, siz
     meanRequests: meanOf(samples.map((sample) => sample.requests)),
     meanBytesSent: meanOf(samples.map((sample) => sample.bytesSent)),
     meanBytesReceived: meanOf(samples.map((sample) => sample.bytesReceived)),
+    samples: samples.map((sample) => sample.latencyMs),
   };
 }
 
@@ -203,8 +216,9 @@ function printTable(rows: Row[]): void {
 }
 
 async function main(): Promise<void> {
+  const ops = selectedOps(process.argv.slice(2));
   console.log(`base URL     ${ARGS.baseUrl}`);
-  console.log(`ops          ${OPS.join(", ")}`);
+  console.log(`ops          ${ops.join(", ")}`);
   console.log(`sizes(KB)    ${ARGS.sizesKb.join(", ")}   repeats ${ARGS.repeats}`);
 
   const suffix = `bo${Date.now().toString(36)}`;
@@ -214,7 +228,7 @@ async function main(): Promise<void> {
   console.log(`pod          ${session.pod}\n`);
 
   const rows: Row[] = [];
-  for (const op of OPS) {
+  for (const op of ops) {
     const sizes = SIZE_DEPENDENT.has(op) ? ARGS.sizesKb : [ARGS.sizesKb[0]];
     for (const sizeKb of sizes) {
       process.stdout.write(`running ${op} size=${sizeKb}KB ... `);

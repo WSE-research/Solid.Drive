@@ -78,6 +78,7 @@ interface Row {
   p95: number;
   p99: number;
   throughput: number;
+  samples?: number[];
 }
 
 // Runs a single level of the load test, returning a Row with the results.
@@ -99,6 +100,7 @@ async function runLevel(authFetch: AuthFetch, pod: string, level: number): Promi
     level, successes: latencies.length, failures, failurePct: (100 * failures) / total,
     meanMs: summary.mean, p50: summary.p50, p95: summary.p95, p99: summary.p99,
     throughput: latencies.length / wallSeconds,
+    samples: latencies,
   };
 }
 

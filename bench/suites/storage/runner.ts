@@ -7,7 +7,8 @@
  * a tombstone, a snapshot of the file's ACL, and a copy of the folder index.
  * This runner deletes a file and then reads the real on server size of every
  * artifact left behind (payload, tombstone, ACL snapshot, index copy, and the
- * shared trash-catalog document) with a HEAD request on Content-Length.
+ * shared trash-catalog document) from Content-Length, falling back to the GET
+ * body length on servers that omit that header.
  *
  * The obvious objection to any trash feature is that it quietly doubles storage
  * by keeping a second full copy of whatever was deleted. 
@@ -44,13 +45,17 @@ const ARGS = parseGridArgs(process.argv.slice(2), {
 
 let uniqueCounter = 0;
 
-/// Measure the size of a resource by issuing a HEAD request 
-// and reading the Content-Length header.
+// Reads a resource's on-server byte size. Prefers Content-Length from a HEAD;
+// when the server omits it (pdsinterop sends none for any resource), counts the
+// GET body instead, so the size is real on both servers.
 async function resourceSize(fetch: AuthFetch, uri: string): Promise<number> {
-  const response = await fetch(uri, { method: "HEAD" });
+  const head = await fetch(uri, { method: "HEAD" });
+  const declared = head.ok ? head.headers.get("content-length") : null;
+  if (declared) return Number(declared);
+
+  const response = await fetch(uri, { method: "GET" });
   if (!response.ok) return 0;
-  const contentLength = response.headers.get("content-length");
-  return contentLength ? Number(contentLength) : 0;
+  return (await response.arrayBuffer()).byteLength;
 }
 
 interface Measurement {
