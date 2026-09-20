@@ -1,0 +1,202 @@
+= Raw benchmark data (data dictionary)
+
+This is the raw measurement data behind the thesis _"Soft Deletion Processes of
+File-based Web Resources in Solid Pods"_. The thesis adds a
+recycle bin (a soft delete you can undo with a restore) to files kept in a Solid
+pod, and these files are the timings and pass/fail results that show what it
+costs and that it works.
+
+The data is split into two folders by which server was tested. `css-raws/` holds
+the runs against the Community Solid Server, the main Solid server and the one
+the thesis reports on. `php-raws/` holds a second set against an unrelated server
+(php-solid-server), used to confirm the results are not specific to one server.
+Each folder has its own README.
+
+Every experiment writes a `.json` that holds the full record of the run and its numbers
+and a `.csv` with the same numbers as a plain table; some also write a
+`.latencies.json` with every individual timing. What each field means is in the
+field glossary further down.
+
+== Folder layout
+
+Two folders, split by server. Each holds one base run per suite (the run the thesis
+figures and tables read), flat, with its own README listing what's inside.
+
+----
+raw/
+  css-raws/   # Community Solid Server (the primary SUT) + scaling + memory runs
+  php-raws/   # php-solid-server (the independent-implementation cross-check)
+----
+
+== Cross-checking the two servers
+
+[cols="2,1,3,2",options="header"]
+|===
+| Experiment | On CSS | On php-solid-server (why not, if not) | Stability test?
+
+| basic-ops | yes | yes | both servers
+| soft-delete | yes | yes | both servers
+| restore | yes | yes | both servers
+| write-method | yes | PUT only (pdsinterop speaks SPARQL Update, not N3 Patch, so the put-vs-patch comparison stays CSS-only) | both servers
+| storage | yes | yes | no (byte count, nothing to test)
+| trash-listing | yes | yes | no (no per-request timings saved)
+| correctness | yes | yes | no (pass/fail, nothing to test)
+| failure-atomicity | yes | yes | no (pass/fail, nothing to test)
+| acl-preservation | yes | yes | no (pass/fail, nothing to test)
+| load | yes | no (Apache runs one process per request, so a concurrency test hits the worker cap, not the server's real scaling) | CSS only
+| scaling-grid | yes | no (same Apache one-process-per-request limit) | CSS only
+| memory-cost | yes | no (measures the client's memory, which is the same on any server) | no (client memory, not a timed run)
+| memory-rss | yes (CSV only) | no (measures the client's memory, which is the same on any server) | no (client memory, not a timed run)
+|===
+
+Everything measured on both servers is the cross-check: the invariants hold and
+the timing shapes match on a second, unrelated server, so the results are not a
+quirk of CSS.
+
+[NOTE]
+====
+*Why `soft-delete` and `restore` on CSS have a second file.* Their summary was
+measured before the harness could save individual timings; a later run added the
+`_stability` file with those timings for the stability check, so the two sit side
+by side. The charts use the earlier summary run.
+====
+
+== File naming
+
+Every file is `<suite>_<server>` plus an optional variant suffix:
+
+----
+<suite>_<server>[_<variant>].{csv,json,latencies.json}
+----
+
+`suite`::
+Experiment name (e.g. `scaling-grid`, `basic-ops`).
+
+`server`::
+Which server the run targeted: `css` (Community Solid Server) or `php`
+(php-solid-server).
+
+`variant`::
+Only when a suite has more than one file. `_stability` is the later run that saved
+every timing for the H-test; `_shared` is the shared-catalog concurrency run.
+
+== JSON structure
+
+[source,jsonc]
+----
+{
+  "meta": {
+    "suite":        "scaling-grid",
+    "server":       "<HTTP Server: header of the target>",
+    "baseUrl":      "https://.../",
+    "commit":       "<git HEAD of the harness + app under test>",
+    "runsPerPoint": 1000,          // samples aggregated into each data point
+    "deadlineMs":   30000,         // per-request timeout, when enforced
+    "notes":        "...",
+    "generatedUtc": "2026-...Z"
+  },
+  "rows": [ { ...one object per data point... } ]
+}
+----
+
+*Provenance is mandatory.* `commit` comes from the `BENCH_COMMIT` env var, which
+`run-full-sweep.sh` sets to `git rev-parse HEAD`. Never publish a run whose
+`commit` is `unknown`.
+
+== Units and column conventions
+
+Times are in milliseconds, sizes in KB. The CSV writes field names like
+`mean_ms`; the JSON writes the same field as `meanMs`, the same thing. Averages and
+percentiles count only the requests that finished in time; the ones that ran out
+of time are reported separately as `timeout_pct`.
+
+=== What each field means
+
+[cols="1,2",options="header"]
+|===
+| Field | Meaning
+
+| `op` | Which request was timed: GET, PUT, PATCH, DELETE (or `acl-delete` = deleting a permissions file).
+| `method` | Which side of a comparison: `soft` vs `hard` delete, `restore` vs `read`, or `put` vs `n3patch`.
+| `size_kb` | How big the file was, in KB.
+| `catalog_entries` | How many items the catalog already held before the write.
+| `clients` | How many users hit the server at once (1 = just one).
+| `count` | How many times this was measured.
+| `mean_ms` | Average time it took.
+| `sd_ms` / `stddev` | How much that time varied.
+| `p50` / `p95` / `p99` | The middle time, the slow 5% time, and the slowest 1% time.
+| `mean_requests` | How many web requests one action needed (a read is 1; a soft-delete about 24).
+| `mean_bytes_sent` / `mean_bytes_received` | How much data went up / came back per action.
+| `attempts` / `successes` / `timeouts` / `errors` | How many actions were tried, finished in time, ran out of time, or failed.
+| `timeout_pct` / `error_pct` / `failure_pct` | The same, as a percentage.
+| `throughput` | Actions finished per second.
+| `landed` / `lost_updates` | Shared catalog only: writes that stuck, and writes silently lost.
+| `source` | Which run this row came from (see the `scaling-grid` table below).
+|===
+
+=== scaling-grid
+
+Catalog-append latency across the `(clients x catalog-size)` plane under a 30 s
+per-request timeout. One row per `(method, catalog_entries, clients)` cell.
+
+[cols="1,2",options="header"]
+|===
+| Column | Meaning
+
+| `method` | Write method: `put` (whole-document GET+PUT) or `n3patch` (delta PATCH).
+| `catalog_entries` | Catalog size before the measured append, in entries.
+| `clients` | Concurrent clients appending at once in each batch.
+| `attempts` | Total append attempts in the cell (`clients x batches`).
+| `successes` | Attempts that completed within the deadline.
+| `timeouts` | Attempts that missed the 30 s deadline.
+| `errors` | Attempts that failed for a non-timeout reason.
+| `timeout_pct` | `100 x timeouts / attempts`, the timeout-share axis.
+| `error_pct` | `100 x errors / attempts`.
+| `mean_ms`, `sd_ms` | Mean and standard deviation of successful-append latency.
+| `p50_ms`, `p95_ms`, `p99_ms` | Latency percentiles (nearest-rank) of successes.
+| `throughput_ops_per_s` | Successful appends per second over the cell's measured wall time.
+| `source` | Which run the cell came from. Blank columns mean only a summary was salvaged for that cell.
+|===
+
+`scaling-grid_css` is the consolidated isolated-writer dataset: every isolated-writer
+run merged into one complete row per `(method, catalog_entries, clients)` cell (151 cells).
+Where runs overlap a cell, the most complete / highest-repetition measurement is kept, and
+`source` names which run it came from. See its `meta.notes` for the full provenance chain.
+`scaling-grid_css_shared` is kept separate: the shared-catalog concurrency run behind the
+lost-update result.
+
+[NOTE]
+====
+*Known limitation.* An append whose deadline elapsed may still complete on the
+server and add one entry to its catalog, drifting the effective catalog size up
+by at most one entry per batch per catalog (< 1 % over a cell). This is left
+uncorrected rather than re-seeding every batch, which is prohibitive at 1000
+samples per point.
+====
+
+=== write-method
+
+Single-client catalog-append latency, `put` (whole-document) vs `n3patch`
+(delta), across catalog size. Columns: `method`, `catalog_entries`, `clients`
+(always 1 here), `successes`, `mean_ms`, `sd_ms`, `p50_ms`, `p95_ms`, `p99_ms`,
+`throughput_ops_per_s`, the same header vocabulary as the grid.
+
+=== Other measured suites
+
+`basic-ops`, `soft-delete`, `restore`, `storage`, `trash-listing`, and `load`
+emit their CSV columns directly from each result row, with headers as the row
+keys in `snake_case`. The unit suffix conventions above still hold, with two
+notes: latency percentile columns `p50`, `p95`, `p99` are in *milliseconds*,
+and `mean_kb_sent` / `mean_kb_received` are in *kilobytes*. A few highlights:
+
+[cols="1,3",options="header"]
+|===
+| Suite | Key columns
+
+| `basic-ops` | `op` (`get`/`put`/`patch`/`delete`/`acl-delete`), `size_kb`, `mean_ms`, `stddev`, `p50`/`p95`/`p99`, `mean_requests`, `mean_bytes_sent`, `mean_bytes_received`. The `acl-delete` vs `delete` rows at `size_kb = 1` are the "delete a 1 KB ACL == delete a 1 KB file" comparison.
+| `soft-delete` | `method` (`soft`/`hard`), `size_kb`, `trash_size`, `concurrency`, `mean_ms`, `stddev_ms`, `p50`/`p95`/`p99`, `mean_requests`, `mean_kb_sent`, `mean_kb_received`.
+| `restore` | `method` (`restore`/`read`), `size_kb`, `concurrency`, latency aggregates + request/byte means.
+| `storage` | `size_kb`, `payload_bytes`, `overhead_bytes`, the flat metadata overhead per deleted file.
+| `trash-listing` | `item_count`, `items`, `mean_ms`, `p50`/`p95`/`p99`, `mean_requests`, the O(items) listing cost.
+| `load` | `level` (clients), `successes`, `failures`, `failure_pct`, `mean_ms`, `p50`/`p95`/`p99`, `throughput`. Mean is over successful requests only.
+|===

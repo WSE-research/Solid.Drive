@@ -1,0 +1,22 @@
+= css-raws
+
+Raw measurements taken against the Community Solid Server (CSS). Each suite has a
+`.csv` and a `.json` (the same numbers, plus a record of how the run was made);
+some also have a `.latencies.json` with every per-request timing, used by the
+stability check. Column definitions are in link:../README.adoc[../README.adoc].
+
+== Runs here
+
+`acl-preservation`:: ACLs survive a delete and restore. (`_css`: json, csv)
+`basic-ops`:: Base HTTP operations per file size. (`_css`: json, csv, latencies.json)
+`correctness`:: Delete/restore invariants, pass or fail. (`_css`: json, csv)
+`failure-atomicity`:: A failure injected at each soft-delete step. (`_css`: json, csv)
+`load`:: Concurrent creates into one container, rising until timeouts dominate. (`_css`: json, csv, latencies.json)
+`memory-cost`:: Client resident-memory cost. (`_css`: json, csv)
+`memory-rss`:: Merged client RSS. (`_css`: csv)
+`restore`:: Restore versus an ordinary read. (`restore_css`: json, csv; `restore_css_stability`: latencies.json)
+`scaling-grid`:: Catalog-append latency across clients x catalog size on isolated catalogs, consolidated into `scaling-grid_css` (json, csv, latencies.json); this is the scaling figure and the collapse frontier. `scaling-grid_css_shared` (json, csv, latencies.json) is the shared-catalog concurrency run behind the lost-update result.
+`soft-delete`:: Soft versus hard delete. (`soft-delete_css`: json, csv; `soft-delete_css_stability`: latencies.json)
+`storage`:: Bytes retained per soft-deleted file. (`_css`: json, csv)
+`trash-listing`:: Cost of opening the trash as it fills. (`_css`: json, csv)
+`write-method`:: Single-client catalog append, GET+PUT versus N3 Patch, across catalog size. (`_css`: json, csv, latencies.json)

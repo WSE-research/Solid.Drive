@@ -1,0 +1,6 @@
+check,passed,detail
+"owner-only",1,"restored ACL triple-identical"
+"public-read",1,"restored ACL triple-identical"
+"group-access",1,"restored ACL triple-identical"
+"origin-restricted",1,"restored ACL triple-identical"
+"mixed-authorizations",1,"restored ACL triple-identical"
