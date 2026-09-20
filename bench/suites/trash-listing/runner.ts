@@ -92,6 +92,7 @@ interface Row {
   p95: number;
   p99: number;
   meanRequests: number;
+  samples: number[];
 }
 
 
@@ -114,6 +115,7 @@ async function runCount(base: AuthFetch, pod: string, webId: string, count: numb
     itemCount: count, items: samples[0].items,
     meanMs: summary.mean, p50: summary.p50, p95: summary.p95, p99: summary.p99,
     meanRequests: meanOf(samples.map((sample) => sample.requests)),
+    samples: samples.map((sample) => sample.latencyMs),
   };
 }
 
