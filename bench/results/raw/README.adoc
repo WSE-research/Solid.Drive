@@ -39,7 +39,7 @@ raw/
 | restore | yes | yes | both servers
 | write-method | yes | PUT only (pdsinterop speaks SPARQL Update, not N3 Patch, so the put-vs-patch comparison stays CSS-only) | both servers
 | storage | yes | yes | no (byte count, nothing to test)
-| trash-listing | yes | yes | no (no per-request timings saved)
+| trash-listing | yes | yes | CSS only
 | correctness | yes | yes | no (pass/fail, nothing to test)
 | failure-atomicity | yes | yes | no (pass/fail, nothing to test)
 | acl-preservation | yes | yes | no (pass/fail, nothing to test)

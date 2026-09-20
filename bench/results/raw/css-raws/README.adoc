@@ -18,5 +18,5 @@ stability check. Column definitions are in link:../README.adoc[../README.adoc].
 `scaling-grid`:: Catalog-append latency across clients x catalog size on isolated catalogs, consolidated into `scaling-grid_css` (json, csv, latencies.json); this is the scaling figure and the collapse frontier. `scaling-grid_css_shared` (json, csv, latencies.json) is the shared-catalog concurrency run behind the lost-update result.
 `soft-delete`:: Soft versus hard delete. (`soft-delete_css`: json, csv; `soft-delete_css_stability`: latencies.json)
 `storage`:: Bytes retained per soft-deleted file. (`_css`: json, csv)
-`trash-listing`:: Cost of opening the trash as it fills. (`_css`: json, csv)
+`trash-listing`:: Cost of opening the trash as it fills. (`_css`: json, csv, latencies.json)
 `write-method`:: Single-client catalog append, GET+PUT versus N3 Patch, across catalog size. (`_css`: json, csv, latencies.json)
