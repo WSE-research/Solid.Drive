@@ -70,8 +70,7 @@ run trash-listing npx vite-node bench/suites/trash-listing/runner.ts -- \
 # PUT vs N3 Patch for one catalog append, across catalog size, single client.
 run write-method  bash -c \
   "NODE_OPTIONS=--max-old-space-size=8192 npx tsx bench/suites/write-method/runner.ts \
-    --base-url '$BASE_URL' --catalog-sizes 8,16,32,64,128,256,512,1024,2048,4096,8192,16384 
-    --levels 1 --repeats $REPEATS"
+    --base-url '$BASE_URL' --catalog-sizes 8,16,32,64,128,256,512,1024,2048,4096,8192,16384 --levels 1 --repeats $REPEATS"
 
 # --- Load / saturation ladder ---
 # Concurrent 1-byte creates into one container, the concurrency climbing until
