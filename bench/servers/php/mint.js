@@ -51,7 +51,9 @@ function sendRequest(method, url, { headers = {}, body = null } = {}) {
         path: parsedUrl.pathname + parsedUrl.search,
         method,
         headers,
-        rejectUnauthorized: false,
+        // The server's certificate names the host IP, not localhost, so Node rejects
+        // it here. For a local run only, add `rejectUnauthorized: false` to these
+        // options. Never keep it enabled in committed code.
       },
       (response) => {
         let responseBody = "";
