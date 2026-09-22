@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "suite": "storage",
+    "server": "Apache/2.4.52 (Debian)",
+    "baseUrl": "https://141.57.8.250:8443/",
+    "commit": "a92da3128956663a30c0e796c973a7ee29ebb34a",
+    "runsPerPoint": 1000,
+    "generatedUtc": "2026-09-07T17:47:47.798Z"
+  },
+  "rows": [
+    {
+      "sizeKb": 16,
+      "payloadBytes": 51,
+      "tombstoneBytes": 1007.974,
+      "aclBytes": 0,
+      "indexBytes": 379.45,
+      "catalogBytes": 1192.39,
+      "overheadBytes": 1387.424
+    },
+    {
+      "sizeKb": 256,
+      "payloadBytes": 289,
+      "tombstoneBytes": 1018.374,
+      "aclBytes": 0,
+      "indexBytes": 385.78,
+      "catalogBytes": 1210.86,
+      "overheadBytes": 1404.154
+    },
+    {
+      "sizeKb": 4096,
+      "payloadBytes": 4098,
+      "tombstoneBytes": 1021.67,
+      "aclBytes": 0,
+      "indexBytes": 388.78,
+      "catalogBytes": 1219.34,
+      "overheadBytes": 1410.4499999999998
+    },
+    {
+      "sizeKb": 8192,
+      "payloadBytes": 8162,
+      "tombstoneBytes": 1021.67,
+      "aclBytes": 0,
+      "indexBytes": 388.78,
+      "catalogBytes": 1219.34,
+      "overheadBytes": 1410.4499999999998
+    },
+    {
+      "sizeKb": 16384,
+      "payloadBytes": 16777216,
+      "tombstoneBytes": 1024.67,
+      "aclBytes": 0,
+      "indexBytes": 391.78,
+      "catalogBytes": 1226.34,
+      "overheadBytes": 1416.45
+    }
+  ]
+}

@@ -7,11 +7,12 @@
  */
 
 import { memo, useMemo } from 'react';
-import type { DragEvent, FunctionComponent } from 'react';
+import type { DragEvent, FunctionComponent, MouseEvent } from 'react';
 import { useResource } from '@ldo/solid-react';
 import { useTranslation } from 'react-i18next';
 import { isSolidContainer } from '@/infrastructure/solid/resourceGuards';
 import { useResourceModified } from '@/features/onedrive-layout/hooks/useResourceModified';
+import { CheckmarkIcon } from '@/features/onedrive-layout/icons';
 import { INDEX_FILE } from '@/config';
 import type { CatalogEntry } from '@/types';
 import type { SolidContainer, SolidLeaf } from '@ldo/connected-solid';
@@ -57,6 +58,35 @@ const RowIcon: FunctionComponent<{
     <Icon width={ROW_ICON_PX} height={ROW_ICON_PX} />
   </span>
 );
+
+/**
+ * Hover checkbox for selecting a row. Folders open on click, so this is
+ * the only way to select one for Delete, Share, or Download.
+ *
+ * @internal
+ */
+const RowCheckbox: FunctionComponent<{
+  checked: boolean;
+  label: string;
+  onSelect: () => void;
+}> = ({ checked, label, onSelect }) => {
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onSelect();
+  };
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      className={`odl-row-checkbox${checked ? ' odl-row-checkbox--checked' : ''}`}
+      onClick={handleClick}
+    >
+      {checked && <CheckmarkIcon aria-hidden focusable={false} />}
+    </button>
+  );
+};
 
 interface MyFilesTableProps {
   folderEntries: SolidContainer[];
@@ -111,6 +141,7 @@ const CatalogFileRow = memo<CatalogFileRowProps>(({
   selected,
   onSelect,
 }) => {
+  const [translate] = useTranslation();
   const title = catalogEntry?.title ?? decodeUriTail(uri);
   const modified = formatModifiedDate(catalogEntry?.modified);
   const size = formatCatalogSize(catalogEntry?.byteSize);
@@ -135,6 +166,11 @@ const CatalogFileRow = memo<CatalogFileRowProps>(({
       }}
     >
       <span role="cell" className="odl-files-cell odl-files-cell--name">
+        <RowCheckbox
+          checked={selected}
+          label={translate('oneDriveLayout.action.select', 'Select')}
+          onSelect={handleSelect}
+        />
         <RowIcon Icon={fileIcon.Icon} />
         <span className="odl-files-row__title">{title}</span>
       </span>
@@ -199,6 +235,8 @@ const FolderRow = memo<FolderRowProps>(({
     resource && isSolidContainer(resource) ? resource.children().length : 0;
   const folderIcon = pickFolderIcon();
   const handleNavigate = () => onNavigate(entry.uri, name);
+  const handleSelect = () => onSelect({ kind: 'folder', uri: entry.uri, name });
+
   const dropHandlers =
     onFolderDrop && onFolderDragOverChange
       ? {
@@ -238,6 +276,11 @@ const FolderRow = memo<FolderRowProps>(({
       {...dropHandlers}
     >
       <span role="cell" className="odl-files-cell odl-files-cell--name">
+        <RowCheckbox
+          checked={selected}
+          label={translate('oneDriveLayout.action.select', 'Select')}
+          onSelect={handleSelect}
+        />
         <RowIcon Icon={folderIcon.Icon} />
         <span className="odl-files-row__title">{name}</span>
       </span>
@@ -264,6 +307,7 @@ interface LeafRowProps {
 }
 
 const LeafRow = memo<LeafRowProps>(({ entry, selected, onSelect }) => {
+  const [translate] = useTranslation();
   const name = decodeUriTail(entry.uri);
   const fileIcon = pickFileIcon({ name });
   const handleSelect = () => onSelect({ kind: 'file', uri: entry.uri, name });
@@ -282,6 +326,11 @@ const LeafRow = memo<LeafRowProps>(({ entry, selected, onSelect }) => {
       }}
     >
       <span role="cell" className="odl-files-cell odl-files-cell--name">
+        <RowCheckbox
+          checked={selected}
+          label={translate('oneDriveLayout.action.select', 'Select')}
+          onSelect={handleSelect}
+        />
         <RowIcon Icon={fileIcon.Icon} />
         <span className="odl-files-row__title">{name}</span>
       </span>

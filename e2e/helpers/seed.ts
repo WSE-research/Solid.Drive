@@ -52,22 +52,9 @@ function buildEmptyCatalogTurtle(catalogUri: string): string {
 `;
 }
 
-const SD_NAMESPACE = "https://w3id.org/solid-drive#";
 const SDCAT_NAMESPACE = "https://purl.org/solid-drive/catalog#";
 const FOLDER_CLASS_URI = `${SDCAT_NAMESPACE}Folder`;
 
-/**
- * Maps a schema.org dataset class (used in the catalog's dcterms:conformsTo)
- * to the corresponding solid-drive file type used in the per-file index.ttl.
- */
-function inferSolidDriveType(schemaClassUri: string): string {
-  if (schemaClassUri.endsWith("ImageObject")) return `${SD_NAMESPACE}ImageFile`;
-  if (schemaClassUri.endsWith("VideoObject")) return `${SD_NAMESPACE}VideoFile`;
-  if (schemaClassUri.endsWith("AudioObject")) return `${SD_NAMESPACE}AudioFile`;
-  if (schemaClassUri.endsWith("SpreadsheetDigitalDocument")) return `${SD_NAMESPACE}SpreadsheetDocument`;
-  if (schemaClassUri.endsWith("TextDigitalDocument")) return `${SD_NAMESPACE}TextDocument`;
-  return "http://schema.org/DigitalDocument";
-}
 
 async function listContainerChildren(authedFetch: typeof fetch, containerUri: string): Promise<string[]> {
   const response = await authedFetch(containerUri, { headers: { Accept: TURTLE } });
@@ -159,9 +146,6 @@ async function ensureCatalogExists(authedFetch: typeof fetch, pod: PodIdentity):
     }
   }
 
-  // Mirrors ensureCatalogRootEntry: the storage root's own parentless entry,
-  // the terminator every hasParent walk in the app reaches. No title or
-  // modified date, so re-inserting on every seed run is a true no-op.
   const rootSparql = `PREFIX dcat: <http://www.w3.org/ns/dcat#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX sd: <${SDCAT_NAMESPACE}>
@@ -237,13 +221,13 @@ export async function seedFile(args: SeedFileArgs): Promise<SeededFile> {
 
   // Mirror production layout: each file gets a per-file container with an
   // index.ttl carrying the dataset metadata using the CatalogEntrySh shape
-  // (schema:name etc.). FileCard reads these fields via LDO.
-  const sdType = inferSolidDriveType(classUri);
+  // (schema:name etc.). FileCard reads these fields via LDO. The `a` value
+  // reuses the same schema.org class as the catalog's dcterms:conformsTo —
+  // the CatalogEntrySh shape accepts exactly this set of classes.
   const indexTtl = `@prefix schema: <http://schema.org/> .
-@prefix sd: <https://w3id.org/solid-drive#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<> a <${sdType}> ;
+<> a <${classUri}> ;
   schema:name "${title.replace(/"/g, '\\"')}" ;
   schema:encodingFormat "${mediaType}" ;
   schema:contentSize "${body.byteLength}" ;

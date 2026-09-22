@@ -8,6 +8,8 @@ The link:../../features/sharing/hooks/useAclManager/[useAclManager] hook in `fea
 == Contents
 
 link:aclManager/[aclManager]:: Discover ACL document URIs from `Link` headers, read current agents, and write new ACL documents
+link:aclSnapshot/[aclSnapshot]:: Copy an ACL document verbatim to a snapshot URI and restore it later, for soft delete/restore
+link:wacAllow/[wacAllow]:: Parse the `WAC-Allow` response header to preflight-check delete permission
 
 == Navigation
 

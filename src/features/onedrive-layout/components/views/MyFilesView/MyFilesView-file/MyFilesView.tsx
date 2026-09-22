@@ -37,7 +37,7 @@ import { FileUpload } from '@/features/file-explorer/components/FileUpload';
 import { hasUnsupportedFolderDrop } from '@/features/file-explorer/services/dragAndDrop';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
 import { isSolidContainer } from '@/infrastructure/solid/resourceGuards';
-import { isVisibleLeaf } from '@/features/file-explorer/services/fileFilter';
+import { isVisibleContainer, isVisibleLeaf } from '@/features/file-explorer/services/fileFilter';
 import type { SolidLeaf } from '@ldo/connected-solid';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
 import type { SortState } from '@/features/onedrive-layout/hooks/useMyFilesSort';
@@ -301,7 +301,9 @@ export const MyFilesView: FunctionComponent<MyFilesViewProps> = ({
 
   const containerIsContainer = isSolidContainer(currentContainer);
   const entries = containerIsContainer ? currentContainer.children() : [];
-  const folderEntries = entries.filter(isSolidContainer);
+  const folderEntries = entries
+    .filter(isSolidContainer)
+    .filter((entry) => isVisibleContainer(entry, storageRootUri ?? ""));
   const leafEntries = entries
     .filter((entry) => !isSolidContainer(entry))
     .filter(isVisibleLeaf) as SolidLeaf[];

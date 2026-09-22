@@ -17,10 +17,10 @@
   rdfs:comment "Terms describing storage-object containment in a Solid.Drive catalog: which dataset entries represent folders or files, and which folder each entry lives in."@en, "Begriffe zur Beschreibung der Speicherobjekt-Zugehörigkeit in einem Solid.Drive-Katalog: welche Dataset-Einträge Ordner oder Dateien darstellen und in welchem Ordner sich jeder Eintrag befindet."@de ;
   vann:preferredNamespacePrefix "sdcat" ;
   vann:preferredNamespaceUri "https://purl.org/solid-drive/catalog#" ;
-  owl:versionInfo "1.1.0" ;
-  owl:versionIRI <https://purl.org/solid-drive/catalog/1.1.0> ;
+  owl:versionInfo "1.2.0" ;
+  owl:versionIRI <https://purl.org/solid-drive/catalog/1.2.0> ;
   dcterms:created "2026-08-23"^^xsd:date ;
-  dcterms:modified "2026-08-27"^^xsd:date ;
+  dcterms:modified "2026-09-13"^^xsd:date ;
   dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
   rdfs:seeAlso <https://github.com/WSE-research/Solid-Hello-World-Frontend-React> .
 
@@ -66,3 +66,11 @@
   rdfs:label "deleted at"@en, "gelöscht am"@de ;
   rdfs:comment "When a storage object was soft-deleted: moved to trash, not removed from the Pod. Makes the deleted state visible on the entry itself, so a consumer doesn't need to recognize the name of whatever container holds trashed items. No value means live. At most one value."@en, "Wann ein Speicherobjekt soft-gelöscht wurde: in den Papierkorb verschoben, nicht aus dem Pod entfernt. Macht den Löschzustand am Eintrag selbst sichtbar, sodass ein Konsument nicht den Namen des Papierkorb-Containers erkennen muss. Kein Wert bedeutet aktiv. Höchstens ein Wert."@de ;
   rdfs:seeAlso <https://www.w3.org/ns/activitystreams#deleted>, <https://specifications.freedesktop.org/trash-spec/latest/> .
+
+:tag
+  a rdf:Property, owl:DatatypeProperty, owl:FunctionalProperty ;
+  rdfs:domain :StorageObject ;
+  rdfs:range xsd:string ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
+  rdfs:label "tag"@en, "Kennzeichen"@de ;
+  rdfs:comment "A UUID assigned once when a storage object's catalog entry is first added, and never changed afterwards. Lets two clients sharing a Pod tell a genuinely new entry apart from a stale re-add of one that was already deleted elsewhere. At most one value."@en, "Eine UUID, die einmalig beim ersten Anlegen des Katalogeintrags eines Speicherobjekts vergeben und danach nie geändert wird. Ermöglicht es zwei Clients, die sich einen Pod teilen, einen wirklich neuen Eintrag von einem veralteten, erneut hinzugefügten Eintrag zu unterscheiden, der andernorts bereits gelöscht wurde. Höchstens ein Wert."@de .

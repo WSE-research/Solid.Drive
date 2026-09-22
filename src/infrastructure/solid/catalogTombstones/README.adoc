@@ -1,0 +1,20 @@
+= catalogTombstones
+
+Keeps a log, next to a catalog, of which entry tags were removed and when. A stale device re-uploading its old copy of a deleted file carries a tag already in this log and gets suppressed; a genuinely new file always gets a fresh tag, so it can never collide with a tombstoned one.
+
+Appending and purging go through N3 Patch rather than the whole-document GET/PUT the rest of the catalog uses, so two devices removing different entries at the same time never race on the same document. A tag stays in the log until it passes its retention window, after which it can be purged; a device that stays offline longer than that can still bring a deleted file back, the same trade-off object storage services like S3 and GCS accept for their own delete markers.
+
+== See also
+
+* link:../catalog/[catalog] tombstones an entry's tag when it's removed, and checks an incoming tag against this log before accepting it.
+* link:../entryTag/[entryTag] mints and validates the tags this log stores.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../entryTag/[entryTag]
+* link:../../../config/[config]
+* link:../../../types/[types]

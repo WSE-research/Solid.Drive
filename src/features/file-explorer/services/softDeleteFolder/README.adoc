@@ -1,0 +1,42 @@
+= softDeleteFolder
+
+Moves a whole folder to the trash instead of deleting it outright. The folder equivalent of link:../softDeleteFile/[softDeleteFile].
+
+== Sequence
+
+Checks the agent has write+control on the folder and write on its parent, derived lexically so it works even for a folder with no catalog entry of its own.
+
+Collects the folder's own catalog entry (if any) plus every entry nested under it, via link:../../../../infrastructure/solid/catalogSubtree/[catalogSubtree]. That subtree list, not the physical pod tree, is what gets replayed into the trash snapshot; see Notes for why the physical copy is a separate step.
+
+Then, after a best-effort ACL snapshot (a failure just records `hasAclSnapshot: false`): mirrors the subtree into `trash/<id>/payload/` via `copyContainerTree`, replays every collected entry into `trash/<id>/catalog-snapshot.ttl`, and writes a `tombstone.ttl` with `kind: "folder"` and an empty `originalBinaryName` (a folder's payload is a tree, not one named file).
+
+Finally appends a folder-shaped row to the trash catalog and removes the original via `deleteResource`, using the folder's own URI as both the container and the catalog key.
+
+Any failure before the trash catalog append rolls the trash copy back and leaves the original untouched. If the final delete fails, the trash copy stays in place on purpose, same as `softDeleteFile`.
+
+== Reuse
+
+Nothing here is new. `appendFolderToCatalog` and `writeCatalogEntry` (link:../../../../infrastructure/solid/catalog/[catalog], link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]) write the trash catalog row and the snapshot entries, the same `writeCatalogEntry` `restoreTrashedFolder` uses in reverse. `copyContainerTree` (link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]) does the physical mirror. `deleteResource`/`deleteResourceQuietly` (link:../deleteResource/[deleteResource]) handle the real delete and the rollback. `snapshotAcl` (link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]) takes the ACL copy. `checkHasPermission` (link:../../../../infrastructure/wac/wacAllow/[wacAllow]) does the preflight check, treating the folder as both the resource and its own parent's child, the same way it treats a file.
+
+== Notes
+
+* The snapshot and the physical copy are independent on purpose. The copy walks the live pod tree, so uncatalogued files and subfolders come along even without a snapshot row; the snapshot just restores nicer metadata for whatever was catalogued.
+* Only the root folder's ACL is captured. Restoring per-descendant sharing grants is out of scope, the same limitation `softDeleteFile` accepts for a single file.
+* `trash/` isn't dot-prefixed, so any generic pod browser can see it. It's hidden from My Files at the application level (`isVisibleContainer` in link:../fileFilter/[fileFilter]), not by naming convention.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]
+
+.Uses
+* link:../../../../infrastructure/solid/catalog/[catalog]
+* link:../../../../infrastructure/solid/catalogSubtree/[catalogSubtree]
+* link:../../../../infrastructure/solid/catalogSnapshot/[catalogSnapshot]
+* link:../../../../infrastructure/solid/resourceCopy/[resourceCopy]
+* link:../../../../infrastructure/solid/trashPaths/[trashPaths]
+* link:../../../../infrastructure/solid/tombstone/[tombstone]
+* link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]
+* link:../../../../infrastructure/wac/wacAllow/[wacAllow]
+* link:../deleteResource/[deleteResource]
+* link:../../../../types/[types]

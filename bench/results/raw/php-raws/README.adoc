@@ -1,0 +1,26 @@
+= php-raws
+
+The counterpart to `css-raws/`: the same experiments run against a second,
+unrelated Solid server, php-solid-server (pdsinterop, PHP behind Apache), to
+check that the results are not specific to one implementation. The application
+code and the tests are identical to the CSS runs; only the server changes.
+
+Files work as in `css-raws/`: a `.csv` and a `.json`, and sometimes a
+`.latencies.json`. Column definitions are in link:../README.adoc[../README.adoc].
+
+Two suites differ by necessity. php-solid-server does not support N3 Patch, so
+`write-method` has the GET+PUT side only; and `load` and `scaling-grid` are
+CSS-only, because this server runs one process per request and does not scale the
+same way.
+
+== Runs here
+
+`acl-preservation`:: ACLs survive a delete and restore. (`_php`: json, csv)
+`basic-ops`:: Base HTTP operations per file size. (`_php`: json, csv, latencies.json)
+`correctness`:: Delete/restore invariants, pass or fail. (`_php`: json, csv)
+`failure-atomicity`:: A failure injected at each soft-delete step. (`_php`: json, csv)
+`restore`:: Restore versus an ordinary read. (`_php`: json, csv, latencies.json)
+`soft-delete`:: Soft versus hard delete. (`_php`: json, csv, latencies.json)
+`storage`:: Bytes retained per soft-deleted file. (`_php`: json, csv)
+`trash-listing`:: Cost of opening the trash as it fills. (`_php`: json, csv)
+`write-method`:: Single-client catalog append, GET+PUT only. (`_php`: json, csv, latencies.json)

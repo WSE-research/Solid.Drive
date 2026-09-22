@@ -9,7 +9,9 @@ import {
   ensureDiscoveryAccess,
   grantContainerReadAccess,
   readAclAgents,
+  readAclDocument,
   writeAcl,
+  writeAclDocument,
   writeListOnlyAcl,
   writeResourceAcl,
 } from '../aclManager-file/aclManager';
@@ -83,6 +85,41 @@ describe("discoverAclUri", () => {
   it("throws when HEAD request fails with non-2xx", async () => {
     const mockFetch = makeFetch({ "HEAD https://pod.example/file/": { status: 403 } });
     await expect(discoverAclUri("https://pod.example/file/", mockFetch)).rejects.toThrow("403");
+  });
+});
+
+describe("readAclDocument", () => {
+  it("returns the raw turtle text on 200", async () => {
+    const turtle = buildAclTurtle("https://pod.example/file/", "https://owner.example/#me", []);
+    const mockFetch = makeFetch({ "https://pod.example/file/.acl": { status: 200, body: turtle } });
+    expect(await readAclDocument("https://pod.example/file/.acl", mockFetch)).toBe(turtle);
+  });
+
+  it("returns null on 404", async () => {
+    const mockFetch = makeFetch({ "https://pod.example/file/.acl": { status: 404 } });
+    expect(await readAclDocument("https://pod.example/file/.acl", mockFetch)).toBeNull();
+  });
+
+  it("throws on a non-404 error", async () => {
+    const mockFetch = makeFetch({ "https://pod.example/file/.acl": { status: 500 } });
+    await expect(readAclDocument("https://pod.example/file/.acl", mockFetch)).rejects.toThrow("500");
+  });
+});
+
+describe("writeAclDocument", () => {
+  it("PUTs the turtle with a text/turtle content type", async () => {
+    const mockFetch = makeFetch({ "PUT https://pod.example/file/.acl": { status: 201 } });
+    await writeAclDocument("https://pod.example/file/.acl", "<> a <#Foo> .", mockFetch);
+    expect(mockFetch).toHaveBeenCalledWith("https://pod.example/file/.acl", {
+      method: "PUT",
+      headers: { "Content-Type": "text/turtle" },
+      body: "<> a <#Foo> .",
+    });
+  });
+
+  it("throws when the PUT fails", async () => {
+    const mockFetch = makeFetch({ "PUT https://pod.example/file/.acl": { status: 403 } });
+    await expect(writeAclDocument("https://pod.example/file/.acl", "", mockFetch)).rejects.toThrow("403");
   });
 });
 
@@ -190,10 +227,10 @@ describe("writeResourceAcl", () => {
 // ─── discoverAclUri (additional cases) ───────────────────────────────────────
 
 describe("discoverAclUri – additional cases", () => {
-  it("throws when the container URI is not an absolute URL", async () => {
+  it("throws when the resource URI is not an absolute URL", async () => {
     const mockFetch = makeFetch({});
     await expect(discoverAclUri("not-a-url", mockFetch)).rejects.toThrow(
-      "ACL discovery requires an absolute container URI"
+      "ACL discovery requires an absolute resource URI"
     );
   });
 });

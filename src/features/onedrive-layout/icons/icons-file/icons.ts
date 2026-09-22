@@ -40,6 +40,9 @@ export {
   PanelLeftExpandRegular    as NavRailExpandIcon,
   AlertRegular              as BellIcon,
   DesktopArrowDownRegular   as InstallIcon,
+  BinRecycleRegular         as TrashIcon,
+  ArrowUndoRegular          as RestoreIcon,
+  DeleteDismissRegular      as PurgeIcon,
 } from '@fluentui/react-icons';
 
 export {
@@ -49,4 +52,5 @@ export {
   MailInboxFilled  as RequestsIconActive,
   PersonFilled     as PeopleIconActive,
   AlertFilled      as BellIconActive,
+  BinRecycleFilled as TrashIconActive,
 } from '@fluentui/react-icons';

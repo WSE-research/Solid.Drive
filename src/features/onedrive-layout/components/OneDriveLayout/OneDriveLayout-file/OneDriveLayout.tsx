@@ -39,6 +39,7 @@ import { MyFilesView } from '@/features/onedrive-layout/components/views/MyFiles
 import { SharedView } from '@/features/onedrive-layout/components/views/SharedView';
 import { RequestsView } from '@/features/onedrive-layout/components/views/RequestsView';
 import { PeopleView } from '@/features/onedrive-layout/components/views/PeopleView';
+import { TrashView } from '@/features/onedrive-layout/components/views/TrashView';
 import { containerUriFromCatalogUri } from '@/features/onedrive-layout/formatting';
 import { useViewParam, type ViewId } from '@/features/onedrive-layout/hooks/useViewParam';
 import { useMyFilesSort } from '@/features/onedrive-layout/hooks/useMyFilesSort';
@@ -65,6 +66,7 @@ const VIEW_TITLE_KEYS: Record<ViewId, string> = {
   shared: 'oneDriveLayout.viewTitle.shared',
   requests: 'oneDriveLayout.viewTitle.requests',
   people: 'oneDriveLayout.viewTitle.people',
+  trash: 'oneDriveLayout.viewTitle.trash',
 };
 
 /**
@@ -87,6 +89,7 @@ const buildSharedEntry = (
   title: entry?.title ?? selection.name,
   description: entry?.description ?? '',
   modified: entry?.modified ?? '',
+  parentUri: entry?.parentUri ?? '',
 });
 
 /**
@@ -135,14 +138,33 @@ export const OneDriveLayout: FunctionComponent = () => {
     return map;
   }, [catalogEntries]);
 
+  const appContainerUri = useMemo(
+    () => (storageRootUri ? getAppContainerUri(storageRootUri) : undefined),
+    [storageRootUri],
+  );
+
   const details = useResourceDetails({
     selection: selected,
     catalogByContainer,
   });
+  // Gets a new Map on every refetch, even with no real changes.
+  const matchedCatalogEntry = selected ? catalogByContainer.get(selected.uri) : undefined;
   const sharedEntry = useMemo(
-    () =>
-      selected ? buildSharedEntry(selected, catalogByContainer.get(selected.uri)) : null,
-    [selected, catalogByContainer],
+    () => (selected ? buildSharedEntry(selected, matchedCatalogEntry) : null),
+    // Deliberately depending on matchedCatalogEntry's fields instead of the
+    // object itself; see the comment above for why.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      selected,
+      matchedCatalogEntry?.accessURL,
+      matchedCatalogEntry?.conformsTo,
+      matchedCatalogEntry?.mediaType,
+      matchedCatalogEntry?.byteSize,
+      matchedCatalogEntry?.title,
+      matchedCatalogEntry?.description,
+      matchedCatalogEntry?.modified,
+      matchedCatalogEntry?.parentUri,
+    ],
   );
 
   const handleAfterDelete = useCallback(() => {
@@ -157,6 +179,9 @@ export const OneDriveLayout: FunctionComponent = () => {
     catalogUri,
     solidFetch,
     onAfterDelete: handleAfterDelete,
+    storageRootUri,
+    entry: sharedEntry,
+    ownerWebId: webId,
   });
 
   const requestNewFolder = useCallback(() => {
@@ -291,6 +316,7 @@ export const OneDriveLayout: FunctionComponent = () => {
             {view === 'recent' && <RecentView />}
             {view === 'requests' && <RequestsView />}
             {view === 'people' && <PeopleView />}
+            {view === 'trash' && <TrashView />}
           </main>
         </>
       )}
@@ -302,13 +328,13 @@ export const OneDriveLayout: FunctionComponent = () => {
           onClose={handleDetailsClose}
         />
       )}
-      {selected && catalogUri && storageRootUri && sharedEntry && (
+      {selected && catalogUri && appContainerUri && sharedEntry && (
         <ShareDialog
           open={shareOpen}
           onOpenChange={setShareOpen}
           containerUri={selected.uri}
           catalogUri={catalogUri}
-          appContainerUri={getAppContainerUri(storageRootUri)}
+          appContainerUri={appContainerUri}
           contacts={contacts}
           sharedEntry={sharedEntry}
         />

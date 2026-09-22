@@ -100,4 +100,35 @@ describe('useCatalogRootEntry', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockNotifyCatalogChanged).toHaveBeenCalledWith(catalogUri);
   });
+
+  it('does not re-register when rootAlreadyPresent flips back to false after a success, e.g. during an unrelated catalog refetch', async () => {
+    const { result, rerender } = renderHook(
+      ({ present }: { present: boolean }) => useCatalogRootEntry(catalogUri, storageRootUri, present),
+      { initialProps: { present: false } },
+    );
+    await waitFor(() => expect(result.current).toBe('succeeded'));
+    expect(mockEnsureCatalogRootEntry).toHaveBeenCalledTimes(1);
+
+    // Simulates useCatalog's `loading` flag toggling true then false again
+    // for an unrelated write (an upload, a delete elsewhere in the app).
+    rerender({ present: true });
+    rerender({ present: false });
+    expect(mockEnsureCatalogRootEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries on the next flip after a failed attempt', async () => {
+    mockEnsureCatalogRootEntry.mockRejectedValueOnce(new Error('boom'));
+    const { result, rerender } = renderHook(
+      ({ present }: { present: boolean }) => useCatalogRootEntry(catalogUri, storageRootUri, present),
+      { initialProps: { present: false } },
+    );
+    await waitFor(() => expect(result.current).toBe('failed'));
+    expect(mockEnsureCatalogRootEntry).toHaveBeenCalledTimes(1);
+
+    mockEnsureCatalogRootEntry.mockResolvedValueOnce(undefined);
+    rerender({ present: true });
+    rerender({ present: false });
+    await waitFor(() => expect(result.current).toBe('succeeded'));
+    expect(mockEnsureCatalogRootEntry).toHaveBeenCalledTimes(2);
+  });
 });

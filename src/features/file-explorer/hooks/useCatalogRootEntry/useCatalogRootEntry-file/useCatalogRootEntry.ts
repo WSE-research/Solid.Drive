@@ -42,9 +42,11 @@ export function useCatalogRootEntry(
     ? `${catalogUri}#${storageRootUri}#${publisherWebId}`
     : undefined;
   const [settledAttempt, setSettledAttempt] = useState<{ key: string; status: "succeeded" | "failed" } | undefined>(undefined);
+  const alreadySucceeded = settledAttempt?.key === attemptKey && settledAttempt?.status === "succeeded";
 
   useEffect(() => {
-    if (!catalogUri || !storageRootUri || !publisherWebId || !attemptKey || rootAlreadyPresent) return;
+    if (!catalogUri || !storageRootUri || !publisherWebId || !attemptKey) return;
+    if (rootAlreadyPresent || alreadySucceeded) return;
     const key = attemptKey;
 
     let cancelled = false;
@@ -65,7 +67,7 @@ export function useCatalogRootEntry(
     return () => {
       cancelled = true;
     };
-  }, [catalogUri, storageRootUri, publisherWebId, solidFetch, rootAlreadyPresent, attemptKey]);
+  }, [catalogUri, storageRootUri, publisherWebId, solidFetch, rootAlreadyPresent, alreadySucceeded, attemptKey]);
 
   if (rootAlreadyPresent) return "succeeded";
   if (settledAttempt && settledAttempt.key === attemptKey) return settledAttempt.status;

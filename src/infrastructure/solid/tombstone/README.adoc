@@ -1,0 +1,22 @@
+= tombstone
+
+Records where a soft-deleted file came from and when it expires: `originalContainerUri`, `originalCatalogUri`, `originalInstanceUri`, `originalBinaryName`, `originalClassUri`, `hasAclSnapshot`, `deletedAt`, `expiresAt`.
+
+One tombstone per trashed item, stored as `tombstone.ttl` inside its trash item container (see link:../trashPaths/[trashPaths]). Its class and two predicates reuse Activity Streams 2.0 verbatim — `as:Tombstone` is defined for exactly this ("represents a content object that has been deleted"), `as:formerType` records the deleted resource's schema.org class, and `as:deleted` its removal timestamp. The rest have no standard equivalent — there is no vocabulary for a *restorable* soft-delete's original location, ACL snapshot flag, or retention expiry — and live under this project's own `trash:` vocabulary instead of being bolted onto something that doesn't fit (e.g. `dcterms:created` would misdescribe a deletion timestamp).
+
+`parseTombstone` returns `null` rather than a partially populated object when any required predicate is missing, so a corrupt or truncated tombstone can never be restored from.
+
+== See also
+
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] writes the tombstone.
+* link:../../../features/file-explorer/services/restoreTrashedFile/[restoreTrashedFile] and link:../../../features/file-explorer/hooks/useTrashEntries/[useTrashEntries] read it, the latter to judge expiry via `isExpired`.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../rdfUtils/[rdfUtils]
+* link:../trashPaths/[trashPaths]
+* link:../../../config/[config]

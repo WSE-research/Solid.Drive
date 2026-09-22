@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "suite": "restore",
+    "server": "CSS 7.2.0 (HTTPS)",
+    "baseUrl": "https://141.57.8.250:3000/",
+    "commit": "a92da3128956663a30c0e796c973a7ee29ebb34a",
+    "runsPerPoint": 1000,
+    "generatedUtc": "2026-08-30T07:48:47.516Z"
+  },
+  "rows": [
+    {
+      "arm": "restore",
+      "sizeKb": 16,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 803.4675178040042,
+      "stddevMs": 380.4488988800045,
+      "p50": 721.7819809999783,
+      "p95": 815.4115969999984,
+      "p99": 2855.1306090001017,
+      "meanRequests": 22,
+      "meanKbReceived": 19.94794921875
+    },
+    {
+      "arm": "restore",
+      "sizeKb": 256,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 792.0609251720114,
+      "stddevMs": 363.2513300771527,
+      "p50": 723.0688079996035,
+      "p95": 797.3113760007545,
+      "p99": 2833.545650999993,
+      "meanRequests": 22,
+      "meanKbReceived": 259.98275390625
+    },
+    {
+      "arm": "restore",
+      "sizeKb": 4096,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 829.416924103993,
+      "stddevMs": 114.68771437857586,
+      "p50": 814.6607799995691,
+      "p95": 886.681981000118,
+      "p99": 1274.8619379997253,
+      "meanRequests": 22,
+      "meanKbReceived": 4099.99154296875
+    },
+    {
+      "arm": "restore",
+      "sizeKb": 8192,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 931.5167737109978,
+      "stddevMs": 100.15879330119328,
+      "p50": 919.2813149997965,
+      "p95": 981.7505279993638,
+      "p99": 1416.523796000518,
+      "meanRequests": 22,
+      "meanKbReceived": 8195.99154296875
+    },
+    {
+      "arm": "restore",
+      "sizeKb": 16384,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 1114.6608846749962,
+      "stddevMs": 69.64977406330576,
+      "p50": 1106.3408519998193,
+      "p95": 1189.2824370004237,
+      "p99": 1340.5737219993025,
+      "meanRequests": 22,
+      "meanKbReceived": 16388.00033203125
+    },
+    {
+      "arm": "read",
+      "sizeKb": 16,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 40.228446247993034,
+      "stddevMs": 20.00878849647299,
+      "p50": 36.42007900029421,
+      "p95": 41.41408400051296,
+      "p99": 160.71090999990702,
+      "meanRequests": 1,
+      "meanKbReceived": 16
+    },
+    {
+      "arm": "read",
+      "sizeKb": 256,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 44.807935094984245,
+      "stddevMs": 24.778342374727547,
+      "p50": 38.85237400047481,
+      "p95": 120.33244399912655,
+      "p99": 160.02507799863815,
+      "meanRequests": 1,
+      "meanKbReceived": 256
+    },
+    {
+      "arm": "read",
+      "sizeKb": 4096,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 71.73622025202401,
+      "stddevMs": 12.612830764851616,
+      "p50": 69.97843699902296,
+      "p95": 79.56235199980438,
+      "p99": 98.76402799971402,
+      "meanRequests": 1,
+      "meanKbReceived": 4096
+    },
+    {
+      "arm": "read",
+      "sizeKb": 8192,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 109.01588592599892,
+      "stddevMs": 13.137968342460379,
+      "p50": 107.42809700034559,
+      "p95": 121.10109299980104,
+      "p99": 138.4255459997803,
+      "meanRequests": 1,
+      "meanKbReceived": 8192
+    },
+    {
+      "arm": "read",
+      "sizeKb": 16384,
+      "trashSize": 0,
+      "concurrency": 1,
+      "meanMs": 190.16545047100632,
+      "stddevMs": 26.62779062569857,
+      "p50": 188.4819919988513,
+      "p95": 213.2978879995644,
+      "p99": 237.49737000092864,
+      "meanRequests": 1,
+      "meanKbReceived": 16384
+    }
+  ]
+}

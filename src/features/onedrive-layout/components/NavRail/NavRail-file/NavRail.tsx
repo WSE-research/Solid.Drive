@@ -15,11 +15,13 @@ import {
   SharedIcon,
   RequestsIcon,
   PeopleIcon,
+  TrashIcon,
   HomeIconActive,
   MyFilesIconActive,
   SharedIconActive,
   RequestsIconActive,
   PeopleIconActive,
+  TrashIconActive,
   ChevronDownIcon,
   ChevronUpIcon,
   PlusIcon,
@@ -46,6 +48,7 @@ const TOP_ITEMS: readonly RailItem[] = [
   { id: 'recent',   Icon: HomeIcon,    ActiveIcon: HomeIconActive,    i18nKey: 'oneDriveLayout.recent' },
   { id: 'my-files', Icon: MyFilesIcon, ActiveIcon: MyFilesIconActive, i18nKey: 'oneDriveLayout.myFiles' },
   { id: 'shared',   Icon: SharedIcon,  ActiveIcon: SharedIconActive,  i18nKey: 'oneDriveLayout.shared' },
+  { id: 'trash',    Icon: TrashIcon,   ActiveIcon: TrashIconActive,   i18nKey: 'oneDriveLayout.trash' },
 ];
 
 const BOTTOM_ITEMS: readonly RailItem[] = [

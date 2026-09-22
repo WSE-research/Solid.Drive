@@ -19,7 +19,7 @@ describe('useViewParam', () => {
   });
 
   it('reads each known view id from the URL', () => {
-    const ids = ['recent', 'my-files', 'shared', 'requests', 'people'] as const;
+    const ids = ['recent', 'my-files', 'shared', 'requests', 'people', 'trash'] as const;
     for (const id of ids) {
       setUrl(`/?view=${id}`);
       const { result } = renderHook(() => useViewParam());

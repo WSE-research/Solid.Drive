@@ -1,0 +1,65 @@
+= Benchmark server targets
+
+The benchmark requires a running Solid server for `--base-url` to point at. The
+evaluation uses two, for two distinct purposes, and each server's setup lives in
+its own subfolder: `css/` and `php/`.
+
+== Primary target: Community Solid Server (CSS)
+
+The reported measurements are taken against CSS, run locally in Docker so that
+the full run reproduces on any machine, with no shared infrastructure and no
+reverse proxy in the request path that could distort latency or cap the request
+size.
+
+[source,sh]
+----
+docker compose -f bench/servers/css/docker-compose.yml up -d
+----
+
+This starts CSS at `http://localhost:3000/`, the `--base-url` the full run
+expects. Pod data persists in `bench/servers/css/data`.
+
+CSS is the primary implementation, not the independent one; that role belongs to
+php-solid-server, below.
+
+== Second target: php-solid-server (pdsinterop)
+
+A result observed only on CSS could be an artifact of CSS. php-solid-server is a
+separate Solid implementation (PHP behind Apache), so a result that also holds on
+it is not tied to a single codebase. Standing it up and obtaining a token is
+described in link:php/README.adoc[php/README.adoc].
+
+`bench/run-second-server.sh` drives it against a pre-provisioned pod using a
+seeded Bearer token (`BENCH_ACCESS_TOKEN`, `BENCH_POD`, `BENCH_WEBID`, and
+`BENCH_AUTH_SCHEME=Bearer`), rather than the account-provisioning flow used for
+CSS.
+
+php-solid-server makes different protocol choices. `podSession.ts` accommodates
+them at the network layer and leaves the shipped soft-delete code untouched, so
+both servers run byte-identical application code:
+
+* Bearer tokens instead of DPoP, which it does not implement.
+* HEAD requests routed through GET, because its HEAD returns 204 with no
+  Content-Length, leaving existence and size checks nothing to read. The measured
+  callers inspect only the response status, so no body is transferred.
+* The LDP `BasicContainer` type header on container PUTs, which it requires in
+  order to create a container rather than a plain file.
+* A synthesized 409 where it answers a PUT to an existing container with 400.
+
+The correctness tests confirm that the design's guarantees carry over: faithful
+restore, no-resurrection, purge, ACL preservation across five shapes, and the
+1000-trial fault-injection loops all pass. Two capability gaps are reported
+rather than concealed: php-solid-server implements SPARQL Update but not N3
+Patch, so the write-method comparison runs PUT-only, and it omits Content-Length,
+so the storage suite measures the GET body instead.
+
+The load and scaling-grid suites are excluded deliberately. Under mod_php's
+prefork model each request is bound to its own process, so these suites saturate
+at the worker limit instead of revealing how the server scales; measuring them
+fairly would require a php-fpm configuration. This target therefore runs the
+correctness tests and the single-client latency suites at 1000 repetitions.
+
+One caveat when reading the two side by side: each server is exercised as it
+actually operates, so CSS requests carry DPoP's per-request proof signing while
+php-solid-server's Bearer requests do not. This is a small, constant, client-side
+cost on the CSS figures.

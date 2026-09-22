@@ -57,7 +57,7 @@ export default defineConfig({
   base: BASE_PATH,
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': resolve(import.meta.dirname, 'src'),
     },
   },
   plugins: [

@@ -1,0 +1,30 @@
+# php-solid-server (pdsinterop), the second server used in the evaluation. It
+# provides an independent implementation: a result that also reproduces here is
+# attributable to the design rather than to CSS alone. Run ./setup.sh first to
+# download and patch the source into ./server, then:
+#
+#   HOST_IP=<your-host-ip> docker compose up -d --build
+#
+# Two changes from the upstream configuration. The publish-subscribe (live-update)
+# service is omitted, since the benchmark does not use it and web/index.php is
+# patched to disable it; and the host ports are above 1024, so the container runs
+# without root. Set LONG_TOKEN=1 to build with 24-hour login tokens for runs that
+# exceed the one-hour default.
+
+services:
+  php-solid-server:
+    build:
+      context: ./server
+      args:
+        HOST_IP: "${HOST_IP:-141.57.8.250}"
+        LONG_TOKEN: "${LONG_TOKEN:-0}"
+    container_name: php-solid-server
+    environment:
+      USERNAME: peach
+      PASSWORD: peach123
+    ports:
+      - "8443:443"
+      - "8080:80"
+    volumes:
+      - ./zz-benchmark-tuning.ini:/usr/local/etc/php/conf.d/zz-benchmark-tuning.ini:ro
+    restart: unless-stopped
