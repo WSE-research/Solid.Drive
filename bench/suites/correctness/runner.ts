@@ -14,12 +14,13 @@
  * This runs next to the Playwright UI test, not in place of it.
  */
 
+import { Parser, termToId, type Quad } from "n3";
 import type { FetchFn } from "@/types/solid";
 import { softDeleteFile } from "@/features/file-explorer/services/softDeleteFile";
 import { restoreTrashedFile } from "@/features/file-explorer/services/restoreTrashedFile";
 import { deleteResource } from "@/features/file-explorer/services/deleteResource";
 import { provisionSession, type PodSession } from "../../lib/podSession";
-import { toFetchFn } from "../../lib/auth";
+import { toFetchFn, type AuthFetch } from "../../lib/auth";
 import { sharedEntry } from "../soft-delete/fileFixture";
 import { prepareFile, MEDIA_TYPE, type PreparedFile } from "../soft-delete/prepareFile";
 import { writeResults } from "../soft-delete/runnerShared";
@@ -48,6 +49,31 @@ function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
     if (left[index] !== right[index]) return false;
   }
   return true;
+}
+
+// Reads a resource as text, or null when it could not be fetched.
+async function readText(base: AuthFetch, uri: string): Promise<string | null> {
+  const response = await base(uri, { method: "GET" });
+  if (!response.ok) return null;
+  return response.text();
+}
+
+// Turns an RDF quad into a comparable string, keeping datatypes and language tags.
+function quadToKey(quad: Quad): string {
+  return `${termToId(quad.subject)} ${termToId(quad.predicate)} ${termToId(quad.object)}`;
+}
+
+// Parses Turtle into a sorted list of triple strings, so two documents compare
+// regardless of statement order or the server's chosen serialization.
+function quadKeys(turtle: string, baseIRI: string): string[] {
+  return new Parser({ baseIRI }).parse(turtle).map(quadToKey).sort();
+}
+
+// Checks whether two RDF documents hold the same set of triples. 
+function sameGraph(left: string, right: string, baseIRI: string): boolean {
+  const leftKeys = quadKeys(left, baseIRI);
+  const rightKeys = quadKeys(right, baseIRI);
+  return leftKeys.length === rightKeys.length && leftKeys.every((key, index) => key === rightKeys[index]);
 }
 
 interface Check {
@@ -82,21 +108,37 @@ function restoreMarked(file: PreparedFile, trashItemContainerUri: string, webId:
   });
 }
 
-async function checkFaithfulRestore(session: PodSession): Promise<Check> {
+// Verifies both halves of a faithful restore: the binary payload comes back
+// byte-identical, and the index comes back with the same triples.
+async function checkFaithfulRestore(session: PodSession): Promise<Check[]> {
   const { authFetch: base, webId } = session;
   const { file, payload } = await prepareMarkedFile(session, "fr4");
   const appFetch = toFetchFn(base);
+  const indexUri = file.descriptor.layout.indexUri;
+
+  // Capture the index as written before deletion, to compare after restore.
+  const indexBefore = await readText(base, indexUri);
+
+  const fail = (detail: string): Check[] => [{ name: "FR4 faithful restore", ok: false, detail }];
+
   const del = await softDeleteMarked(file, webId, appFetch);
-  if (!del.ok) return { name: "FR4 faithful restore", ok: false, detail: `soft-delete failed: ${del.reason}` };
+  if (!del.ok) return fail(`soft-delete failed: ${del.reason}`);
 
   const restored = await restoreMarked(file, del.trashItemContainerUri, webId, appFetch);
-  if (!restored.ok) return { name: "FR4 faithful restore", ok: false, detail: `restore failed: ${restored.reason}` };
+  if (!restored.ok) return fail(`restore failed: ${restored.reason}`);
 
   const response = await base(file.descriptor.layout.binaryUri, { method: "GET" });
-  if (!response.ok) return { name: "FR4 faithful restore", ok: false, detail: `restored binary GET ${response.status}` };
+  if (!response.ok) return fail(`restored binary GET ${response.status}`);
   const restoredBytes = new Uint8Array(await response.arrayBuffer());
-  const identical = bytesEqual(restoredBytes, payload);
-  return { name: "FR4 faithful restore", ok: identical, detail: identical ? "restored payload byte-identical" : `byte mismatch (${restoredBytes.byteLength} vs ${payload.byteLength})` };
+  const payloadOk = bytesEqual(restoredBytes, payload);
+
+  const indexAfter = await readText(base, indexUri);
+  const indexOk = indexBefore !== null && indexAfter !== null && sameGraph(indexBefore, indexAfter, indexUri);
+
+  return [
+    { name: "FR4 payload restore", ok: payloadOk, detail: payloadOk ? "restored payload byte-identical" : `byte mismatch (${restoredBytes.byteLength} vs ${payload.byteLength})` },
+    { name: "FR4 index restore", ok: indexOk, detail: indexOk ? "restored index graph-identical" : "index mismatch or unreadable" },
+  ];
 }
 
 async function checkNoResurrection(session: PodSession): Promise<Check> {
@@ -138,10 +180,13 @@ async function main(): Promise<void> {
   console.log(`pod          ${session.pod}\n`);
 
   const checks: Check[] = [];
-  for (const check of [checkFaithfulRestore, checkNoResurrection, checkPurgeIrreversible]) {
+  const suite: Array<(s: PodSession) => Promise<Check | Check[]>> = [checkFaithfulRestore, checkNoResurrection, checkPurgeIrreversible];
+  for (const check of suite) {
     const result = await check(session);
-    console.log(`${result.ok ? "PASS" : "FAIL"}  ${result.name} — ${result.detail}`);
-    checks.push(result);
+    for (const row of Array.isArray(result) ? result : [result]) {
+      console.log(`${row.ok ? "PASS" : "FAIL"}  ${row.name} — ${row.detail}`);
+      checks.push(row);
+    }
   }
 
   const rows = checks.map((check) => ({ check: check.name, passed: check.ok ? 1 : 0, detail: check.detail }));

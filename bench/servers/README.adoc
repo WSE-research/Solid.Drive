@@ -6,18 +6,32 @@ its own subfolder: `css/` and `php/`.
 
 == Primary target: Community Solid Server (CSS)
 
-The reported measurements are taken against CSS, run locally in Docker so that
-the full run reproduces on any machine, with no shared infrastructure and no
-reverse proxy in the request path that could distort latency or cap the request
-size.
+The reported measurements are taken against CSS run directly with Node, the
+reference way the project documents deploying it, with the file backend so pod
+data persists on disk. Nothing sits in the request path (no shared
+infrastructure, no reverse proxy) to distort latency or cap the request size.
+
+[source,sh]
+----
+npx @solid/community-server -c @css:config/file.json -f data/
+----
+
+This starts CSS at `http://localhost:3000/`, the `--base-url` the full run
+expects, and persists pod data under `data/`.
+
+A containerized CSS is also provided, for reproducibility on a machine without a
+Node toolchain:
 
 [source,sh]
 ----
 docker compose -f bench/servers/css/docker-compose.yml up -d
 ----
 
-This starts CSS at `http://localhost:3000/`, the `--base-url` the full run
-expects. Pod data persists in `bench/servers/css/data`.
+It reproduces the single-client latency and storage results within measurement
+noise, but under concurrent load it adds an overhead independent of the server
+and the soft-delete process, unchanged by host networking. The reported load and
+scaling-grid numbers therefore use the direct Node deployment; the container is a
+portability aid, not the measured setup.
 
 CSS is the primary implementation, not the independent one; that role belongs to
 php-solid-server, below.
