@@ -67,6 +67,7 @@
     "globals": "^17.11.0",
     "jsdom": "^30.0.1",
     "n3": "^2.2.5",
+    "rdf-validate-shacl": "^0.4.5",
     "sharp": "^0.35.3",
     "tsx": "^4.23.12",
     "typescript": "~6.0.3",

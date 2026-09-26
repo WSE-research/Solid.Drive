@@ -279,6 +279,8 @@ export const RDF_NAMESPACES = {
   PIM: "http://www.w3.org/ns/pim/space#",
   /** POSIX stat namespace (file system metadata such as mtime/size) */
   POSIX: "http://www.w3.org/ns/posix/stat#",
+  /** PROV Ontology namespace (W3C Recommendation), used for a tombstone's `prov:Entity` type and deletion time */
+  PROV: "http://www.w3.org/ns/prov#",
   /** RDF syntax namespace */
   RDF: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
   /** RDF Schema namespace */
@@ -372,8 +374,8 @@ export const TRASH_RETENTION_DAYS = 30;
  * RDF terms used for trash tombstones and restoration metadata.
  *
  * @remarks
- * Standard deletion terms reuse Activity Streams 2.0.
- * Trash-specific metadata uses the project's `trash:` vocabulary.
+ * Standard deletion terms reuse Activity Streams 2.0. The project's `trash:`
+ * vocabulary records where an item sat in this app's catalog.
  *
  * @public
  */
@@ -381,13 +383,9 @@ export const TRASH_TERMS = {
   Tombstone: `${RDF_NAMESPACES.ACTIVITY_STREAMS}Tombstone`,
   formerType: `${RDF_NAMESPACES.ACTIVITY_STREAMS}formerType`,
   deletedAt: `${RDF_NAMESPACES.ACTIVITY_STREAMS}deleted`,
-  originalContainer: `${RDF_NAMESPACES.TRASH}originalContainer`,
   originalParent: `${RDF_NAMESPACES.TRASH}originalParent`,
   originalCatalog: `${RDF_NAMESPACES.TRASH}originalCatalog`,
   originalInstance: `${RDF_NAMESPACES.TRASH}originalInstance`,
-  originalBinaryName: `${RDF_NAMESPACES.TRASH}originalBinaryName`,
-  hasAclSnapshot: `${RDF_NAMESPACES.TRASH}hasAclSnapshot`,
-  expiresAt: `${RDF_NAMESPACES.TRASH}expiresAt`,
   /** Distinguishes a single trashed file from a whole trashed folder. */
   kind: `${RDF_NAMESPACES.TRASH}kind`,
 } as const;

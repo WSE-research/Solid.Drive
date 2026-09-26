@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { softDeleteFile } from '../softDeleteFile-file/softDeleteFile';
+import { parseTombstone } from '@/infrastructure/solid/tombstone';
 import type { FetchFn } from '@/types/solid';
 import type { SharedEntry } from '@/types/sharing';
 
@@ -226,8 +227,8 @@ describe('softDeleteFile', () => {
     const tombstonePut = fetchFn.mock.calls.find(
       ([url, init]) => url === `${trashItemContainerUri}tombstone.ttl` && (init as RequestInit | undefined)?.method === 'PUT',
     );
-    // N3's Writer emits xsd:boolean in its canonical unquoted form (`false`, not `"false"`).
-    expect(String((tombstonePut![1] as RequestInit).body)).toContain('hasAclSnapshot> false');
+    const tombstone = parseTombstone(String((tombstonePut![1] as RequestInit).body), `${trashItemContainerUri}tombstone.ttl`);
+    expect(tombstone?.hasAclSnapshot).toBe(false);
   });
 
   it('still succeeds and records no ACL snapshot when reading the ACL fails', async () => {

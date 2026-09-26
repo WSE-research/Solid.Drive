@@ -32,7 +32,7 @@ Every entry also carries a unique tag, minted automatically unless a caller supp
 | `buildEmptyCatalogTurtle(catalogUri)` | Turtle template for a new, empty catalog with an explicit `@base`. Used directly by `useAccessRequests`, independent of `appendToCatalog`'s own 404 handling
 |===
 
-The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:deletedAt`, `sd:tag`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL. `sd:deletedAt` is defined there but not yet written by this module.
+The vocabulary (`sd:StorageObject`, `sd:Folder`, `sd:File`, `sd:hasParent`, `sd:tag`) is defined in `public/vocab/solid-drive-catalog.ttl`, published under the `https://purl.org/solid-drive/catalog#` PURL.
 
 `appendToCatalog`/`removeFromCatalog`/`parseCatalog` are parameterised entirely by `catalogUri`, so `softDeleteFile` and `useTrashEntries` reuse them unmodified against `trash/catalog.ttl` instead of the main catalog; see link:../trashPaths/[trashPaths].
 

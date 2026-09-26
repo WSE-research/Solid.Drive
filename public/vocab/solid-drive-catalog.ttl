@@ -20,7 +20,7 @@
   owl:versionInfo "1.2.0" ;
   owl:versionIRI <https://purl.org/solid-drive/catalog/1.2.0> ;
   dcterms:created "2026-08-23"^^xsd:date ;
-  dcterms:modified "2026-09-13"^^xsd:date ;
+  dcterms:modified "2026-09-26"^^xsd:date ;
   dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
   rdfs:seeAlso <https://github.com/WSE-research/Solid-Hello-World-Frontend-React> .
 
@@ -29,7 +29,7 @@
   rdfs:subClassOf dcat:Dataset ;
   rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
   rdfs:label "Storage object"@en, "Speicherobjekt"@de ;
-  rdfs:comment "A catalog entry that represents something stored in the Pod: a Folder or a File. Holds the properties every stored thing shares (hasParent, deletedAt), so Folder and File don't each define them separately."@en, "Ein Katalogeintrag, der etwas im Pod Gespeichertes darstellt: einen Ordner oder eine Datei. Enthält die Eigenschaften, die alle gespeicherten Dinge gemeinsam haben (hasParent, deletedAt), damit Ordner und Datei sie nicht jeweils einzeln definieren müssen."@de .
+  rdfs:comment "A catalog entry that represents something stored in the Pod: a Folder or a File. Holds the properties every stored thing shares (hasParent, tag), so Folder and File don't each define them separately."@en, "Ein Katalogeintrag, der etwas im Pod Gespeichertes darstellt: einen Ordner oder eine Datei. Enthält die Eigenschaften, die alle gespeicherten Dinge gemeinsam haben (hasParent, tag), damit Ordner und Datei sie nicht jeweils einzeln definieren müssen."@de .
 
 :Folder
   a rdfs:Class, owl:Class ;
@@ -57,15 +57,6 @@
   rdfs:label "has parent"@en, "hat übergeordneten Ordner"@de ;
   rdfs:comment "Points to the folder a catalog entry lives in: the real parent container for a folder, or the folder shown to the user for a file, which may not be its literal immediate container. At most one value; the top storage container has none, marking the end of every path."@en, "Verweist auf den Ordner, in dem sich ein Katalogeintrag befindet: der tatsächliche übergeordnete Container für einen Ordner, oder der dem Nutzer angezeigte Ordner für eine Datei, der nicht zwingend ihr unmittelbarer Container ist. Höchstens ein Wert; der oberste Speichercontainer hat keinen, was das Ende jedes Pfads markiert."@de ;
   rdfs:seeAlso <http://www.w3.org/ns/ldp#contains>, <http://tracker.api.gnome.org/ontology/v3/nfo#belongsToContainer> .
-
-:deletedAt
-  a rdf:Property, owl:DatatypeProperty, owl:FunctionalProperty ;
-  rdfs:domain :StorageObject ;
-  rdfs:range xsd:dateTime ;
-  rdfs:isDefinedBy <https://purl.org/solid-drive/catalog> ;
-  rdfs:label "deleted at"@en, "gelöscht am"@de ;
-  rdfs:comment "When a storage object was soft-deleted: moved to trash, not removed from the Pod. Makes the deleted state visible on the entry itself, so a consumer doesn't need to recognize the name of whatever container holds trashed items. No value means live. At most one value."@en, "Wann ein Speicherobjekt soft-gelöscht wurde: in den Papierkorb verschoben, nicht aus dem Pod entfernt. Macht den Löschzustand am Eintrag selbst sichtbar, sodass ein Konsument nicht den Namen des Papierkorb-Containers erkennen muss. Kein Wert bedeutet aktiv. Höchstens ein Wert."@de ;
-  rdfs:seeAlso <https://www.w3.org/ns/activitystreams#deleted>, <https://specifications.freedesktop.org/trash-spec/latest/> .
 
 :tag
   a rdf:Property, owl:DatatypeProperty, owl:FunctionalProperty ;

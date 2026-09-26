@@ -5,18 +5,43 @@
  * @remarks
  * Tombstones preserve the original location, catalog metadata, deletion
  * time, and retention expiry needed for restore and lazy purge operations.
- * Standard deletion terms reuse Activity Streams 2.0 where applicable.
+ * Everything another Solid application needs is written in standard terms:
+ * Activity Streams 2.0 and PROV-O for the deletion, Dublin Core for the name,
+ * former location, retention deadline, and preserved parts. The project's
+ * own `trash:` vocabulary only records where the item sat in this app's
+ * catalog, which no standard vocabulary describes.
  */
 
 import { DataFactory, Parser as N3Parser, Store as N3Store } from "n3";
 import type { FetchFn } from "@/types";
-import { CONTENT_TYPES, RDF_NAMESPACES, RDF_TYPE_URI, TRASH_TERMS } from "@/config";
+import { CONTENT_TYPES, INDEX_FILE, RDF_NAMESPACES, RDF_TYPE_URI, TRASH_TERMS } from "@/config";
 import { serializeTurtle } from "@/infrastructure/solid/rdfUtils";
+import { getAclSnapshotUri, getTrashCatalogSnapshotUri, getTrashFolderPayloadContainerUri, getTrashPayloadUri } from "@/infrastructure/solid/trashPaths";
 
 const { namedNode, literal } = DataFactory;
-const XSD_BOOLEAN = namedNode(`${RDF_NAMESPACES.XSD}boolean`);
 const XSD_DATE_TIME = namedNode(`${RDF_NAMESPACES.XSD}dateTime`);
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Dublin Core terms for the item's name, former location, retention deadline,
+ * and preserved parts.
+ */
+const DCTERMS = {
+  title: `${RDF_NAMESPACES.DCTERMS}title`,
+  source: `${RDF_NAMESPACES.DCTERMS}source`,
+  valid: `${RDF_NAMESPACES.DCTERMS}valid`,
+  hasPart: `${RDF_NAMESPACES.DCTERMS}hasPart`,
+} as const;
+
+/**
+ * PROV terms the thesis's tombstone shape requires: the tombstone is also a
+ * `prov:Entity`, and its deletion time is repeated as `prov:invalidatedAtTime`
+ * next to Activity Streams' `as:deleted`.
+ */
+const PROV = {
+  Entity: `${RDF_NAMESPACES.PROV}Entity`,
+  invalidatedAtTime: `${RDF_NAMESPACES.PROV}invalidatedAtTime`,
+} as const;
 
 /**
  * Metadata required to restore a soft-deleted file and determine its expiry.
@@ -54,7 +79,9 @@ export interface Tombstone {
 }
 
 /**
- * Serializes a tombstone to Turtle.
+ * Serializes a tombstone to Turtle. Everything another application needs is
+ * written in standard terms; the project's `trash:` terms only record where
+ * the item sat in this app's catalog.
  *
  * @public
  */
@@ -62,21 +89,53 @@ export function buildTombstoneTurtle(tombstoneUri: string, tombstone: Tombstone)
   const subject = namedNode(tombstoneUri);
   return serializeTurtle([
     DataFactory.quad(subject, namedNode(RDF_TYPE_URI), namedNode(TRASH_TERMS.Tombstone)),
+    DataFactory.quad(subject, namedNode(RDF_TYPE_URI), namedNode(PROV.Entity)),
+    DataFactory.quad(subject, namedNode(TRASH_TERMS.deletedAt), literal(tombstone.deletedAt, XSD_DATE_TIME)),
+    DataFactory.quad(subject, namedNode(PROV.invalidatedAtTime), literal(tombstone.deletedAt, XSD_DATE_TIME)),
+    DataFactory.quad(subject, namedNode(TRASH_TERMS.formerType), namedNode(tombstone.originalClassUri)),
+    DataFactory.quad(subject, namedNode(DCTERMS.title), literal(displayName(tombstone))),
+    DataFactory.quad(subject, namedNode(DCTERMS.source), namedNode(tombstone.originalContainerUri)),
+    DataFactory.quad(subject, namedNode(DCTERMS.valid), literal(tombstone.expiresAt, XSD_DATE_TIME)),
+    ...preservedPartUris(tombstoneUri, tombstone).map((partUri) =>
+      DataFactory.quad(subject, namedNode(DCTERMS.hasPart), namedNode(partUri)),
+    ),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.kind), literal(tombstone.kind)),
-    DataFactory.quad(subject, namedNode(TRASH_TERMS.originalContainer), namedNode(tombstone.originalContainerUri)),
     ...(tombstone.originalParentUri
       ? [DataFactory.quad(subject, namedNode(TRASH_TERMS.originalParent), namedNode(tombstone.originalParentUri))]
       : []),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalCatalog), namedNode(tombstone.originalCatalogUri)),
     DataFactory.quad(subject, namedNode(TRASH_TERMS.originalInstance), namedNode(tombstone.originalInstanceUri)),
-    ...(tombstone.originalBinaryName
-      ? [DataFactory.quad(subject, namedNode(TRASH_TERMS.originalBinaryName), literal(tombstone.originalBinaryName))]
-      : []),
-    DataFactory.quad(subject, namedNode(TRASH_TERMS.formerType), namedNode(tombstone.originalClassUri)),
-    DataFactory.quad(subject, namedNode(TRASH_TERMS.hasAclSnapshot), literal(String(tombstone.hasAclSnapshot), XSD_BOOLEAN)),
-    DataFactory.quad(subject, namedNode(TRASH_TERMS.deletedAt), literal(tombstone.deletedAt, XSD_DATE_TIME)),
-    DataFactory.quad(subject, namedNode(TRASH_TERMS.expiresAt), literal(tombstone.expiresAt, XSD_DATE_TIME)),
   ]);
+}
+
+/** Returns the trash item container a tombstone lives in. */
+function trashItemContainerOf(tombstoneUri: string): string {
+  return tombstoneUri.slice(0, tombstoneUri.lastIndexOf("/") + 1);
+}
+
+/**
+ * Returns the name the user knew the item by: the file name for a file,
+ * the last path segment for a folder.
+ */
+function displayName(tombstone: Tombstone): string {
+  if (tombstone.kind === "file") return tombstone.originalBinaryName;
+  const segments = tombstone.originalContainerUri.replace(/\/$/, "").split("/");
+  return decodeURIComponent(segments[segments.length - 1] ?? "");
+}
+
+/**
+ * Lists the resources in the trash entry that hold the preserved content,
+ * its metadata, and the access-control snapshot if one was taken. Linking
+ * them from the tombstone lets another application find them for a restore
+ * without knowing how this app lays out a trash entry.
+ */
+function preservedPartUris(tombstoneUri: string, tombstone: Tombstone): string[] {
+  const trashItemContainerUri = trashItemContainerOf(tombstoneUri);
+  const contentParts =
+    tombstone.kind === "file"
+      ? [getTrashPayloadUri(trashItemContainerUri), `${trashItemContainerUri}${INDEX_FILE}`]
+      : [getTrashFolderPayloadContainerUri(trashItemContainerUri), getTrashCatalogSnapshotUri(trashItemContainerUri)];
+  return tombstone.hasAclSnapshot ? [...contentParts, getAclSnapshotUri(trashItemContainerUri)] : contentParts;
 }
 
 /**
@@ -101,22 +160,22 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
   }
 
   const store = new N3Store(quads);
-  const value = (predicate: string) => store.getObjects(baseUri, predicate, null)[0]?.value;
+  const firstValue = (...predicates: string[]) =>
+    predicates.map((predicate) => store.getObjects(baseUri, predicate, null)[0]?.value).find((found) => found !== undefined);
 
   // Absent on a tombstone written before folders could be soft-deleted;
   // every such tombstone is, by definition, for a file.
-  const kindRaw = value(TRASH_TERMS.kind);
-  const kind = kindRaw === "folder" ? "folder" : "file";
-  const originalContainerUri = value(TRASH_TERMS.originalContainer);
-  const originalParentUri = value(TRASH_TERMS.originalParent) ?? "";
-  const originalCatalogUri = value(TRASH_TERMS.originalCatalog);
-  const originalInstanceUri = value(TRASH_TERMS.originalInstance);
-  // Only a file's payload has an original filename to restore under.
-  const originalBinaryName = value(TRASH_TERMS.originalBinaryName) ?? "";
-  const originalClassUri = value(TRASH_TERMS.formerType);
-  const hasAclSnapshotRaw = value(TRASH_TERMS.hasAclSnapshot);
-  const deletedAt = value(TRASH_TERMS.deletedAt);
-  const expiresAt = value(TRASH_TERMS.expiresAt);
+  const kind = firstValue(TRASH_TERMS.kind) === "folder" ? "folder" : "file";
+  const originalContainerUri = firstValue(DCTERMS.source);
+  const originalParentUri = firstValue(TRASH_TERMS.originalParent) ?? "";
+  const originalCatalogUri = firstValue(TRASH_TERMS.originalCatalog);
+  const originalInstanceUri = firstValue(TRASH_TERMS.originalInstance);
+  // Only a file's payload has an original filename to restore under; a
+  // folder's title is its name, not a payload filename.
+  const originalBinaryName = kind === "file" ? (firstValue(DCTERMS.title) ?? "") : "";
+  const originalClassUri = firstValue(TRASH_TERMS.formerType);
+  const deletedAt = firstValue(TRASH_TERMS.deletedAt, PROV.invalidatedAtTime);
+  const expiresAt = firstValue(DCTERMS.valid);
 
   if (
     !originalContainerUri ||
@@ -124,7 +183,6 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
     !originalInstanceUri ||
     (kind === "file" && !originalBinaryName) ||
     !originalClassUri ||
-    hasAclSnapshotRaw === undefined ||
     !deletedAt ||
     !expiresAt
   ) {
@@ -139,10 +197,16 @@ export function parseTombstone(turtleText: string, baseUri: string): Tombstone |
     originalInstanceUri,
     originalBinaryName,
     originalClassUri,
-    hasAclSnapshot: hasAclSnapshotRaw === "true",
+    hasAclSnapshot: readHasAclSnapshot(store, baseUri),
     deletedAt,
     expiresAt,
   };
+}
+
+/** Tells whether the tombstone links an access-control snapshot as one of its parts. */
+function readHasAclSnapshot(store: N3Store, tombstoneUri: string): boolean {
+  const snapshotUri = getAclSnapshotUri(trashItemContainerOf(tombstoneUri));
+  return store.getObjects(tombstoneUri, DCTERMS.hasPart, null).some((part) => part.value === snapshotUri);
 }
 
 /**

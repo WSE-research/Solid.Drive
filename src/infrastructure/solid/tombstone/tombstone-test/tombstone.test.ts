@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Parser as N3Parser, Store as N3Store } from 'n3';
 import {
   buildTombstoneTurtle,
   parseTombstone,
@@ -11,20 +12,22 @@ import {
 import type { FetchFn } from '@/types/solid';
 import { TRASH_TERMS } from '@/config';
 
-// originalParentUri is intentionally absent: it's allowed to be empty
-// (an item at the storage root has no parent), so it's not one of the
-// required fields exercised by the "returns null when missing" cases below.
-// kind is absent too: a tombstone without one predates folder soft-delete
-// and defaults to "file" rather than failing to parse.
-const PREDICATE_BY_FIELD: Record<Exclude<keyof Tombstone, 'originalParentUri' | 'kind'>, string> = {
-  originalContainerUri: TRASH_TERMS.originalContainer,
-  originalCatalogUri: TRASH_TERMS.originalCatalog,
-  originalInstanceUri: TRASH_TERMS.originalInstance,
-  originalBinaryName: TRASH_TERMS.originalBinaryName,
-  originalClassUri: TRASH_TERMS.formerType,
-  hasAclSnapshot: TRASH_TERMS.hasAclSnapshot,
-  deletedAt: TRASH_TERMS.deletedAt,
-  expiresAt: TRASH_TERMS.expiresAt,
+const DCTERMS = 'http://purl.org/dc/terms/';
+const PROV_INVALIDATED_AT = 'http://www.w3.org/ns/prov#invalidatedAtTime';
+
+// Every predicate a field can be read from; removing all of them must make
+// the tombstone unreadable. Left out on purpose: originalParentUri may be
+// empty for an item at the storage root, kind defaults to "file" on a
+// tombstone older than folder soft-delete, and hasAclSnapshot is derived
+// from whether the tombstone links an access-control snapshot.
+const PREDICATES_BY_FIELD: Record<Exclude<keyof Tombstone, 'originalParentUri' | 'kind' | 'hasAclSnapshot'>, string[]> = {
+  originalContainerUri: [`${DCTERMS}source`],
+  originalCatalogUri: [TRASH_TERMS.originalCatalog],
+  originalInstanceUri: [TRASH_TERMS.originalInstance],
+  originalBinaryName: [`${DCTERMS}title`],
+  originalClassUri: [TRASH_TERMS.formerType],
+  deletedAt: [TRASH_TERMS.deletedAt, PROV_INVALIDATED_AT],
+  expiresAt: [`${DCTERMS}valid`],
 };
 
 const tombstoneUri = 'https://pod.example/trash/photo-abc123/tombstone.ttl';
@@ -77,14 +80,14 @@ describe('buildTombstoneTurtle / parseTombstone', () => {
     expect(parseTombstone('this is not turtle {{{', tombstoneUri)).toBeNull();
   });
 
-  it.each(Object.keys(PREDICATE_BY_FIELD) as (keyof typeof PREDICATE_BY_FIELD)[])(
+  it.each(Object.keys(PREDICATES_BY_FIELD) as (keyof typeof PREDICATES_BY_FIELD)[])(
     'returns null when %s is missing',
     (missingField) => {
       const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
-      const predicate = PREDICATE_BY_FIELD[missingField];
+      const predicates = PREDICATES_BY_FIELD[missingField];
       const withoutField = turtle
         .split('\n')
-        .filter((line) => !line.includes(predicate))
+        .filter((line) => !predicates.some((predicate) => line.includes(predicate)))
         .join('\n');
       expect(parseTombstone(withoutField, tombstoneUri)).toBeNull();
     },
@@ -105,8 +108,67 @@ describe('buildTombstoneTurtle / parseTombstone', () => {
 
   it('does not require originalBinaryName for a folder tombstone', () => {
     const turtle = buildTombstoneTurtle(tombstoneUri, sampleFolderTombstone);
-    expect(turtle).not.toContain(TRASH_TERMS.originalBinaryName);
     expect(parseTombstone(turtle, tombstoneUri)).not.toBeNull();
+  });
+});
+
+describe('buildTombstoneTurtle standard terms for other applications', () => {
+  const trashItemUri = 'https://pod.example/trash/photo-abc123/';
+
+  function objectsOf(turtle: string, predicate: string): string[] {
+    const store = new N3Store(new N3Parser({ baseIRI: tombstoneUri }).parse(turtle));
+    return store.getObjects(tombstoneUri, predicate, null).map((term) => term.value);
+  }
+
+  it('types the tombstone as a PROV entity as well as an Activity Streams tombstone', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
+    expect(objectsOf(turtle, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type').sort()).toEqual(
+      ['http://www.w3.org/ns/prov#Entity', 'https://www.w3.org/ns/activitystreams#Tombstone'].sort(),
+    );
+  });
+
+  it('records the deletion time as prov:invalidatedAtTime', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
+    expect(objectsOf(turtle, 'http://www.w3.org/ns/prov#invalidatedAtTime')).toEqual([sampleTombstone.deletedAt]);
+  });
+
+  it('records the original location as dcterms:source', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
+    expect(objectsOf(turtle, `${DCTERMS}source`)).toEqual([sampleTombstone.originalContainerUri]);
+  });
+
+  it('records the retention deadline as dcterms:valid', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
+    expect(objectsOf(turtle, `${DCTERMS}valid`)).toEqual([sampleTombstone.expiresAt]);
+  });
+
+  it('records a file name as dcterms:title', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
+    expect(objectsOf(turtle, `${DCTERMS}title`)).toEqual(['photo.jpg']);
+  });
+
+  it('records a folder name as dcterms:title', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleFolderTombstone);
+    expect(objectsOf(turtle, `${DCTERMS}title`)).toEqual(['photos']);
+  });
+
+  it('links a file tombstone to its preserved payload, metadata, and access-control snapshot', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleTombstone);
+    expect(objectsOf(turtle, `${DCTERMS}hasPart`).sort()).toEqual(
+      [`${trashItemUri}payload`, `${trashItemUri}index.ttl`, `${trashItemUri}acl-snapshot.ttl`].sort(),
+    );
+  });
+
+  it('links a folder tombstone to its payload container and catalog snapshot', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, sampleFolderTombstone);
+    expect(objectsOf(turtle, `${DCTERMS}hasPart`).sort()).toEqual(
+      [`${trashItemUri}payload/`, `${trashItemUri}catalog-snapshot.ttl`, `${trashItemUri}acl-snapshot.ttl`].sort(),
+    );
+  });
+
+  it('does not link an access-control snapshot that was never captured', () => {
+    const turtle = buildTombstoneTurtle(tombstoneUri, { ...sampleTombstone, hasAclSnapshot: false });
+    expect(objectsOf(turtle, `${DCTERMS}hasPart`)).not.toContain(`${trashItemUri}acl-snapshot.ttl`);
   });
 });
 

@@ -1,10 +1,10 @@
 = tombstone
 
-Records where a soft-deleted file came from and when it expires: `originalContainerUri`, `originalCatalogUri`, `originalInstanceUri`, `originalBinaryName`, `originalClassUri`, `hasAclSnapshot`, `deletedAt`, `expiresAt`.
+Records where a soft-deleted file or folder came from, when it was deleted, and when it expires. There is one tombstone per trashed item, stored as `tombstone.ttl` inside its trash item container (see link:../trashPaths/[trashPaths]).
 
-One tombstone per trashed item, stored as `tombstone.ttl` inside its trash item container (see link:../trashPaths/[trashPaths]). Its class and two predicates reuse Activity Streams 2.0 verbatim — `as:Tombstone` is defined for exactly this ("represents a content object that has been deleted"), `as:formerType` records the deleted resource's schema.org class, and `as:deleted` its removal timestamp. The rest have no standard equivalent — there is no vocabulary for a *restorable* soft-delete's original location, ACL snapshot flag, or retention expiry — and live under this project's own `trash:` vocabulary instead of being bolted onto something that doesn't fit (e.g. `dcterms:created` would misdescribe a deletion timestamp).
+The tombstone uses standard vocabularies so other Solid applications can read it. Activity Streams 2.0 gives the type `as:Tombstone`, the deletion time `as:deleted`, and the item's former class `as:formerType`. PROV-O types the same node as a `prov:Entity` and repeats the deletion time as `prov:invalidatedAtTime`, which the thesis's tombstone shape requires. Dublin Core gives what another application needs for a restore: the name (`dcterms:title`), the former location (`dcterms:source`), the retention deadline (`dcterms:valid`), and links to the preserved copies (`dcterms:hasPart`). The project's own `trash:` terms hold the extra details this app needs to put an item back exactly, such as its catalog entry and whether an access-control snapshot exists. Restore reads the `trash:` terms, and tombstones written before the Dublin Core terms were added carry only those.
 
-`parseTombstone` returns `null` rather than a partially populated object when any required predicate is missing, so a corrupt or truncated tombstone can never be restored from.
+`parseTombstone` returns `null` when any required field is missing, so a corrupt or truncated tombstone is never restored from.
 
 == See also
 

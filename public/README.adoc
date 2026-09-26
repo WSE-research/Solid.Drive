@@ -15,7 +15,7 @@ node scripts/extract-tbox.mjs
 ----
 
 `vocab/solid-drive-catalog.ttl`::
-This project's own vocabulary: `StorageObject`, `Folder`, `File`, and `hasParent` describe a catalog's folder structure; `deletedAt` marks a soft-deleted entry, not yet written by this app.
+This project's own vocabulary: `StorageObject`, `Folder`, `File`, and `hasParent` describe a catalog's folder structure, and `tag` identifies an entry across clients.
 Writing and editing are done manually; there is no automated generation.
 Identified by the `https://purl.org/solid-drive/catalog#` PURL, which is meant to redirect here once registered.
 
