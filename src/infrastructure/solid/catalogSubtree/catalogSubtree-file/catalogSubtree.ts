@@ -20,6 +20,11 @@ import type { CatalogEntry } from "@/types";
  * still yields its descendants: a bare, uncatalogued folder can still
  * contain catalogued files.
  *
+ * An entry stored under `rootUri` is also collected when the `parentUri`
+ * chain never reaches it, for example below a folder that has no entry of
+ * its own. Deleting the folder removes those entries from the catalog by
+ * location, so the snapshot has to keep them too or a restore loses them.
+ *
  * A `parentUri` cycle (malformed data — a folder that is, directly or
  * transitively, its own ancestor) is broken rather than followed
  * forever: each URI is only ever visited once.
@@ -54,6 +59,12 @@ export function collectSubtreeCatalogEntries(entries: CatalogEntry[], rootUri: s
       collected.push(child);
       queue.push(child.uri);
     }
+  }
+
+  for (const entry of entries) {
+    if (visited.has(entry.uri) || !entry.uri.startsWith(rootUri)) continue;
+    visited.add(entry.uri);
+    collected.push(entry);
   }
   return collected;
 }

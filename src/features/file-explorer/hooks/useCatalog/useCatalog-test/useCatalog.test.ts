@@ -88,7 +88,7 @@ describe('useCatalog', () => {
     ]));
     const { result } = renderHook(() => useCatalog(CATALOG_URI));
     await waitFor(() => expect(result.current.entries).toHaveLength(2));
-    expect(mockFetch).toHaveBeenCalledWith(CATALOG_URI);
+    expect(mockFetch).toHaveBeenCalledWith(CATALOG_URI, { cache: "no-store" });
     expect(result.current.containerUris).toEqual(
       new Set(['https://pod.example/report/', 'https://pod.example/invoice/'])
     );
@@ -126,9 +126,9 @@ describe('useCatalog', () => {
       ({ currentCatalogUri }: { currentCatalogUri: string }) => useCatalog(currentCatalogUri),
       { initialProps: { currentCatalogUri: CATALOG_URI } },
     );
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(CATALOG_URI));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(CATALOG_URI, { cache: "no-store" }));
     rerender({ currentCatalogUri: OTHER_CATALOG_URI });
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(OTHER_CATALOG_URI));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(OTHER_CATALOG_URI, { cache: "no-store" }));
   });
 
   it('exposes errors thrown by fetch without crashing', async () => {

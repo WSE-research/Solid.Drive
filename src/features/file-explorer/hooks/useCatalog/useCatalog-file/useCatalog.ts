@@ -125,7 +125,7 @@ export function useCatalog(catalogUri: string | undefined): UseCatalogReturn {
     if (!promise) {
       promise = (async () => {
         try {
-          const response = await solidFetch(catalogUri);
+          const response = await solidFetch(catalogUri, { cache: "no-store" });
           if (!response.ok) {
             const empty: CatalogCacheEntry = { signal: signalKey, ...EMPTY_RESULT };
             catalogCache.set(catalogUri, empty);

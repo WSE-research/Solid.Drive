@@ -44,7 +44,7 @@ export function parseWacAllowModes(header: string | null): Set<WacAccessMode> {
  * @internal
  */
 async function fetchWacAllowModes(uri: string, fetch: FetchFn): Promise<Set<WacAccessMode>> {
-  const response = await fetch(uri, { method: "HEAD" });
+  const response = await fetch(uri, { method: "HEAD", cache: "no-store" });
   return parseWacAllowModes(response.headers.get("WAC-Allow"));
 }
 

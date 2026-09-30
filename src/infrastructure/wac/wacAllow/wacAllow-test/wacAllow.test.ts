@@ -66,7 +66,7 @@ describe('checkHasPermission', () => {
     const fetchFn = makeFetch('user="read write control"', 'user="read write"');
     await checkHasPermission(resourceUri, containerUri, fetchFn);
 
-    expect(fetchFn).toHaveBeenCalledWith(resourceUri, { method: 'HEAD' });
-    expect(fetchFn).toHaveBeenCalledWith(containerUri, { method: 'HEAD' });
+    expect(fetchFn).toHaveBeenCalledWith(resourceUri, { method: 'HEAD', cache: 'no-store' });
+    expect(fetchFn).toHaveBeenCalledWith(containerUri, { method: 'HEAD', cache: 'no-store' });
   });
 });

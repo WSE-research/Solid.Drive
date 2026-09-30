@@ -201,7 +201,7 @@ async function performCatalogWrite(
   fetch: FetchFn,
   mutate: CatalogMutation
 ): Promise<void> {
-  const getResponse = await fetch(catalogUri);
+  const getResponse = await fetch(catalogUri, { cache: "no-store" });
   if (!getResponse.ok && getResponse.status !== 404) {
     throw new Error(`Failed to read ${catalogUri}: ${getResponse.status} ${getResponse.statusText}`);
   }

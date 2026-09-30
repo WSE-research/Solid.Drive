@@ -107,7 +107,7 @@ export async function appendTombstones(
  */
 export async function readTombstonedTags(catalogUri: string, fetch: FetchFn): Promise<ReadonlyMap<string, string>> {
   const tombstoneLogUri = resolveTombstoneLogUri(catalogUri);
-  const response = await fetch(tombstoneLogUri, { headers: { Accept: CONTENT_TYPES.TURTLE } });
+  const response = await fetch(tombstoneLogUri, { headers: { Accept: CONTENT_TYPES.TURTLE }, cache: "no-store" });
   if (response.status === 404) return new Map();
   if (!response.ok) {
     throw new Error(`Failed to read tombstone log at ${tombstoneLogUri}: ${response.status} ${response.statusText}`);

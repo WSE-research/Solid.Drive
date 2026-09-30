@@ -31,6 +31,19 @@ describe('collectSubtreeCatalogEntries', () => {
     expect(collectSubtreeCatalogEntries(entries, root)).toEqual([entries[0], entries[1]]);
   });
 
+  it('keeps entries stored under the folder even when a folder between them has no catalog entry', () => {
+    const uncatalogued = 'https://pod.example/app/photos/vacation/';
+    const nested = 'https://pod.example/app/photos/vacation/day1/';
+    const nestedFile = 'https://pod.example/app/photos/vacation/day1/sunset.jpg/index.ttl';
+    const entries = [
+      makeEntry({ uri: root, title: 'Photos' }),
+      makeEntry({ uri: nested, title: 'Day 1', parentUri: uncatalogued }),
+      makeEntry({ uri: nestedFile, title: 'sunset.jpg', parentUri: nested }),
+    ];
+
+    expect(collectSubtreeCatalogEntries(entries, root).map((entry) => entry.uri)).toEqual([root, nested, nestedFile]);
+  });
+
   it('walks nested folders to any depth, breadth-first', () => {
     const entries = [
       makeEntry({ uri: root, title: 'Photos' }),
