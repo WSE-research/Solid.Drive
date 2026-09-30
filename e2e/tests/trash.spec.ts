@@ -521,9 +521,10 @@ test("An item past its retention window is purged the moment the Recycle bin is 
   const currentTombstone = await tombstoneResponse.text();
   const pastExpiry = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const expiredTombstone = currentTombstone.replace(
-    /#expiresAt> "[^"]+"/,
-    `#expiresAt> "${pastExpiry}"`,
+    /(<http:\/\/purl\.org\/dc\/terms\/valid>\s+)"[^"]+"/,
+    `$1"${pastExpiry}"`,
   );
+  expect(expiredTombstone).not.toBe(currentTombstone);
   const putResponse = await peach.authedFetch(tombstoneUri, {
     method: "PUT",
     headers: { "Content-Type": "text/turtle" },
