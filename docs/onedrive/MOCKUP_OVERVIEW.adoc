@@ -4,12 +4,6 @@
 :toclevels: 2
 :imagesdir: images
 
-++++
-<style>
-.imageblock img { width:100%; height:340px; object-fit:contain; background:#1a1a1a; }
-</style>
-++++
-
 toc::[]
 
 This document presents the UI mockup for Solid.drive, designed with inspiration from Microsoft OneDrive. Each section places the OneDrive reference and the Solid.drive mockup side by side, followed by callouts explaining each numbered element in the Solid.drive design.
@@ -22,11 +16,11 @@ The left sidebar is present in every view and provides global navigation through
 |===
 a| *OneDrive*
 
-image::Onedrive_Homepage.png[OneDrive Sidebar, 520]
++++<img src="images/Onedrive_Homepage.png" alt="OneDrive Sidebar" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_Homepage.png[Solid.drive Sidebar, 520]
++++<img src="images/Solid.drive_Homepage.png" alt="Solid.drive Sidebar" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 [NOTE]
@@ -79,11 +73,11 @@ The homepage greets the user with a list of recently opened files. OneDrive show
 |===
 a| *OneDrive*
 
-image::Onedrive_Homepage.png[OneDrive Homepage, 520]
++++<img src="images/Onedrive_Homepage.png" alt="OneDrive Homepage" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_Homepage.png[Solid.drive Homepage, 520]
++++<img src="images/Solid.drive_Homepage.png" alt="Solid.drive Homepage" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 [NOTE]
@@ -118,11 +112,11 @@ The ➕ New button opens a creation menu that lets the user upload a file or cre
 |===
 a| *OneDrive*
 
-image::Onedrive_create_selected.png[OneDrive Create, 520]
++++<img src="images/Onedrive_create_selected.png" alt="OneDrive Create" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_create_selected.png[Solid.drive Create, 520]
++++<img src="images/Solid.drive_create_selected.png" alt="Solid.drive Create" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *➕ Creation*: This is the main action button at the top of the sidebar. When you click it, a small dropdown opens with the available options: create a folder or upload files. This menu can expand later to include more features.
@@ -139,11 +133,11 @@ The _My Files_ view shows the root of the user's Solid Pod. Folders and files ar
 |===
 a| *OneDrive*
 
-image::Onedrive_Myfiles_selected.png[OneDrive My Files, 520]
++++<img src="images/Onedrive_Myfiles_selected.png" alt="OneDrive My Files" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_MyFiles_selected.png[Solid.drive My Files, 520]
++++<img src="images/Solid.drive_MyFiles_selected.png" alt="Solid.drive My Files" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 [NOTE]
@@ -184,11 +178,11 @@ Navigating into a folder shows its contents within the same file browser layout.
 |===
 a| *OneDrive*
 
-image::Onedrive_inside_a_folder.png[OneDrive Inside a Folder, 520]
++++<img src="images/Onedrive_inside_a_folder.png" alt="OneDrive Inside a Folder" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_inside_a_folder.png[Solid.drive Inside a Folder, 520]
++++<img src="images/Solid.drive_inside_a_folder.png" alt="Solid.drive Inside a Folder" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 [NOTE]
@@ -217,11 +211,11 @@ When a single file is selected, the toolbar at the top reveals contextual action
 |===
 a| *OneDrive*
 
-image::Onedrive_single_file_selected.png[OneDrive File Selected, 520]
++++<img src="images/Onedrive_single_file_selected.png" alt="OneDrive File Selected" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_single_file_selected.png[Solid.drive File Selected, 520]
++++<img src="images/Solid.drive_single_file_selected.png" alt="Solid.drive File Selected" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *Selected file*: When you click a file in the list and open the details view, a side panel appears with all relevant information about the selected file.
@@ -240,11 +234,11 @@ Selecting a folder surfaces the same toolbar actions as file selection. The deta
 |===
 a| *OneDrive*
 
-image::Onedrive_folder_selected.png[OneDrive Folder Selected, 520]
++++<img src="images/Onedrive_folder_selected.png" alt="OneDrive Folder Selected" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_folder_selected.png[Solid.drive Folder Selected, 520]
++++<img src="images/Solid.drive_folder_selected.png" alt="Solid.drive Folder Selected" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *Move To*: Moves the selected folder to a different container in the Pod. Also available for a single file.
@@ -277,11 +271,11 @@ The Shared view is split into two tabs. "With you" lists files that other users 
 |===
 a| *OneDrive*
 
-image::Onedrive_shared_selected.png[OneDrive Shared, 520]
++++<img src="images/Onedrive_shared_selected.png" alt="OneDrive Shared" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_shared_selected.png[Solid.drive Shared, 520]
++++<img src="images/Solid.drive_shared_selected.png" alt="Solid.drive Shared" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *Shared section*: Shows the list of shared resources. The "With you" tab is selected by default, showing resources from other Pods shared with your WebID. Switching to "By you" lists resources from your own Pod that you have shared with others.
@@ -296,11 +290,11 @@ The Recycle Bin shows deleted resources. In OneDrive this is a server managed fe
 |===
 a| *OneDrive*
 
-image::Onedrive_bin_selected.png[OneDrive Recycle Bin, 520]
++++<img src="images/Onedrive_bin_selected.png" alt="OneDrive Recycle Bin" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_bin_selected.png[Solid.drive Recycle Bin, 520]
++++<img src="images/Solid.drive_bin_selected.png" alt="Solid.drive Recycle Bin" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *Recycle bin section*: The view lists deleted resources with their name, deletion date, who deleted them, and file size.
@@ -315,11 +309,11 @@ When a deleted item is selected, two action buttons appear in the top toolbar.
 |===
 a| *OneDrive*
 
-image::Onedrive_deleted_file_selected.png[OneDrive Deleted File Selected, 520]
++++<img src="images/Onedrive_deleted_file_selected.png" alt="OneDrive Deleted File Selected" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_deleted_file_selected.png[Solid.drive Deleted File Selected, 520]
++++<img src="images/Solid.drive_deleted_file_selected.png" alt="Solid.drive Deleted File Selected" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *Action toolbar*: Appears when a deleted item is selected, revealing two buttons. *Restore* reuploads the resource to its original Pod location. *Delete* permanently removes the record from the application's deleted items tracking state.
@@ -332,11 +326,11 @@ The People view groups your contacts by their WebID profiles and shows the files
 |===
 a| *OneDrive*
 
-image::Onedrive_people_selected.png[OneDrive People, 520]
++++<img src="images/Onedrive_people_selected.png" alt="OneDrive People" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 
 a| *Solid.drive*
 
-image::Solid.drive_people_selected.png[Solid.drive People, 520]
++++<img src="images/Solid.drive_people_selected.png" alt="Solid.drive People" style="width:100%; height:340px; object-fit:contain; background:#1a1a1a;">+++
 |===
 
 . *Expanded sidebar section*: The chevron arrow expands the lower part of the sidebar to reveal additional icons. The People icon opens a view of your contacts and the files they have shared with you.
