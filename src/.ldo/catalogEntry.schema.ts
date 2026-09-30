@@ -9,7 +9,7 @@ export const catalogEntrySchema: Schema = {
   type: "Schema",
   shapes: [
     {
-      id: "https://w3id.org/solid-drive#CatalogEntrySh",
+      id: "https://w3id.org/catalog-entry#CatalogEntrySh",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -21,7 +21,14 @@ export const catalogEntrySchema: Schema = {
               predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
               valueExpr: {
                 type: "NodeConstraint",
-                nodeKind: "iri",
+                values: [
+                  "http://schema.org/DigitalDocument",
+                  "http://schema.org/ImageObject",
+                  "http://schema.org/VideoObject",
+                  "http://schema.org/AudioObject",
+                  "http://schema.org/TextDigitalDocument",
+                  "http://schema.org/SpreadsheetDigitalDocument",
+                ],
               },
             },
             {

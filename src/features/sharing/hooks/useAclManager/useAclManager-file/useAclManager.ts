@@ -114,8 +114,14 @@ export function useAclManager(
       setAclUri(discoveredAclUri);
       setGrantees(currentGrantees);
       for (const contactWebId of currentGrantees) {
-        await writeSharedEntry(contactWebId);
-        await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
+        try {
+          await writeSharedEntry(contactWebId);
+          await ensureDiscoveryAccess(catalogUri, appContainerUri, ownerWebId, contactWebId, solidFetch);
+        } catch {
+          // Best-effort: keeping one grantee's convenience catalog in sync
+          // must not hide the access list already read above, or block the
+          // resync of the other grantees.
+        }
       }
     } catch (err) {
       setError(toErrorMessage(err));

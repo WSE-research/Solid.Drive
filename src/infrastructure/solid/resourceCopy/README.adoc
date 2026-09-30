@@ -1,0 +1,24 @@
+= resourceCopy
+
+GET-then-PUT copy of a single Solid resource (`copyResource`), tolerant container creation (`ensureContainer`), and a recursive whole-tree copy (`copyContainerTree`). One implementation for both binaries and Turtle documents.
+
+`copyResource` takes the target's content type from the source response's `Content-Type` header, falling back to a caller-supplied default, then `application/octet-stream`.
+
+`ensureContainer` PUTs an empty Turtle body and treats 409 (already exists) as success, matching how Community Solid Server creates containers.
+
+`copyContainerTree` mirrors a source container's whole subtree to the same relative paths under a target root, reading the live pod tree rather than catalog data, so uncatalogued files and subfolders come along too. It throws instead of trusting a malformed listing: a child outside its own container, or a container that lists itself again.
+
+== See also
+
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] copies the payload, `index.ttl`, and ACL snapshot from the original location into `trash/`.
+* link:../../../features/file-explorer/services/restoreTrashedFile/[restoreTrashedFile] copies them back.
+* link:../../../features/file-explorer/services/softDeleteFolder/[softDeleteFolder] and link:../../../features/file-explorer/services/restoreTrashedFolder/[restoreTrashedFolder] use `copyContainerTree` to move a whole folder into `trash/` and back.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../../../config/[config]
+* link:../../../types/[types]

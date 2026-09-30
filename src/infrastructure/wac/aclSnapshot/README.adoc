@@ -1,0 +1,21 @@
+= aclSnapshot
+
+Copies a resource's ACL document verbatim to a snapshot URI (`snapshotAcl`), and PUTs it back later (`restoreAclFromSnapshot`).
+
+Deliberately does not go through `readAclAgents` + `buildAclTurtle`: that pair filters to read-only agents by design and would silently drop `acl:Write`/`acl:Control` grants, `acl:agentClass foaf:Agent` public grants, `acl:agentGroup`, and `acl:origin`. Storing the raw bytes and restoring them to the exact same ACL URI also keeps any relative IRIs inside the document resolving the way they did before deletion.
+
+Both functions return `false` (rather than throwing) when there is simply nothing to copy: no ACL on the resource, or no snapshot at the given URI. A thrown error means something the caller asked for could not be done.
+
+== See also
+
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] snapshots the ACL as part of moving a file to trash. It's best-effort, so a snapshot failure does not block the delete.
+* link:../../../features/file-explorer/services/restoreTrashedFile/[restoreTrashedFile] restores it, also best-effort. A restore failure brings the file back without its sharing grants rather than failing the whole restore.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/wac]
+
+.Uses
+* link:../aclManager/[aclManager]
+* link:../../../types/[types]

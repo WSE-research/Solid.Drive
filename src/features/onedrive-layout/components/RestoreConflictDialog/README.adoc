@@ -1,0 +1,15 @@
+= RestoreConflictDialog
+
+Shown when restoring a trashed item finds a different version already at its original location. Compares the two by date and size and offers a choice: keep both, replace the current one, or cancel, the same pattern OneDrive and Dropbox use for a restore conflict.
+
+Purely presentational: it takes the conflict and a callback for the choice made, and knows nothing about how a restore is actually retried.
+
+== Navigation
+
+.Parent
+link:../[onedrive-layout/components]
+
+.Uses
+* link:../../../file-explorer/services/restoreTrashedFile/[restoreTrashedFile]
+* link:../../../../shared/utils/[shared/utils]
+* link:../../../../config/[config]

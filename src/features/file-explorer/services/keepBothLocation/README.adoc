@@ -1,0 +1,14 @@
+= keepBothLocation
+
+Picks where a "keep both" restore lands: the original spot with "(restored)" appended, or "(restored 2)", "(restored 3)", and so on if an earlier one is already taken. Same naming Dropbox uses for a kept duplicate.
+
+Takes a check for "is this candidate occupied" as a callback, so it stays agnostic to whether the caller is restoring a file or a folder.
+
+== See also
+
+* link:../restoreTrashedFile/[restoreTrashedFile] and link:../restoreTrashedFolder/[restoreTrashedFolder] both use this for their "keep both" resolution.
+
+== Navigation
+
+.Parent
+link:../[file-explorer/services]

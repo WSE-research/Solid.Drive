@@ -12,7 +12,26 @@ import type { LdoJsonldContext, LdSet } from "@ldo/ldo";
 export interface CatalogEntrySh {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
-  type: LdSet<{ "@id": string }>;
+  type: LdSet<
+    | {
+        "@id": "DigitalDocument";
+      }
+    | {
+        "@id": "ImageObject";
+      }
+    | {
+        "@id": "VideoObject";
+      }
+    | {
+        "@id": "AudioObject";
+      }
+    | {
+        "@id": "TextDigitalDocument";
+      }
+    | {
+        "@id": "SpreadsheetDigitalDocument";
+      }
+  >;
   name?: string;
   description?: string;
   encodingFormat?: string;

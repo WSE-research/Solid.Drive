@@ -15,10 +15,12 @@ link:useFileSharing/[useFileSharing]:: Checks if a resource has been shared (has
 link:useFileTypes/[useFileTypes]:: Loads and caches file type definitions from `tbox.ttl`
 link:useFileUpload/[useFileUpload]:: Executes the full upload sequence (container, binary, metadata, catalog)
 link:useFileValidation/[useFileValidation]:: Validates upload form fields against SHACL shapes
+link:useGuardedSoftDelete/[useGuardedSoftDelete]:: Shared guard, confirm prompt, and toast reporting for a soft-delete-with-hard-delete-fallback flow
 link:useNavigation/[useNavigation]:: Manages current folder URI and breadcrumb trail
 link:useUploadQueue/[useUploadQueue]:: Drives the multi-file upload tray with progress and retry
 link:usePodDiscovery/[usePodDiscovery]:: Finds `pim:storage` in the user's profile
 link:useSharedCatalog/[useSharedCatalog]:: Resolves shared files from a contact's Pod
+link:useTrashEntries/[useTrashEntries]:: Lists soft-deleted files from the trash catalog and exposes restore/purge
 
 == Navigation
 

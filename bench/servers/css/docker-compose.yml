@@ -1,0 +1,23 @@
+# Community Solid Server (CSS), the primary server used in the evaluation.
+# Running it in a container allows the same server to be reproduced with a single
+# command:
+#   docker compose -f bench/servers/css/docker-compose.yml up -d
+#
+# The base URL (-b below) must be an address the benchmark can reach in order to
+# authenticate. Authentication uses DPoP, which accepts a user identity (WebID)
+# only when it is served over https:// or over http://localhost. localhost
+# suffices for a local run; for a run from another machine, serve CSS over HTTPS
+# at its actual address.
+services:
+  css:
+    image: solidproject/community-server:7
+    container_name: bench-css
+    # config/file.json configures CSS with a file-based store and the account and
+    # client-credentials API the benchmark uses to provision its test pods.
+    # -b sets the base URL and must match the --base-url the benchmark points at.
+    command: ["-c", "config/file.json", "-f", "/data", "-p", "3000", "-b", "http://localhost:3000/", "-l", "info"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

@@ -1,0 +1,4 @@
+check,passed,detail
+"FR4 faithful restore",1,"restored payload byte-identical"
+"NFR1 no resurrection",1,"restore correctly refused (occupied)"
+"Purge irreversibility",1,"restore blocked (missing-tombstone)"

@@ -1,0 +1,230 @@
+{
+  "meta": {
+    "suite": "memory-cost",
+    "server": "CSS 7.2.0 (HTTPS)",
+    "baseUrl": "https://141.57.8.250:3000/",
+    "commit": "a92da3128956663a30c0e796c973a7ee29ebb34a",
+    "runsPerPoint": 1000,
+    "deadlineMs": 0,
+    "notes": "client heap to load a catalog for a whole-document PUT append vs to build an N3 Patch; median over reps; body is bytes on the wire",
+    "generatedUtc": "2026-09-03T09:40:10.783Z"
+  },
+  "rows": [
+    {
+      "method": "put",
+      "catalogEntries": 8,
+      "heapBytes": 306560,
+      "heapKiB": 299,
+      "bodyBytes": 5983,
+      "bodyKiB": 6,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 8,
+      "heapBytes": 6008,
+      "heapKiB": 6,
+      "bodyBytes": 1725,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 16,
+      "heapBytes": 611408,
+      "heapKiB": 597,
+      "bodyBytes": 11860,
+      "bodyKiB": 12,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 16,
+      "heapBytes": 5928,
+      "heapKiB": 6,
+      "bodyBytes": 1741,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 32,
+      "heapBytes": 1356296,
+      "heapKiB": 1325,
+      "bodyBytes": 23540,
+      "bodyKiB": 23,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 32,
+      "heapBytes": 5928,
+      "heapKiB": 6,
+      "bodyBytes": 1741,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 64,
+      "heapBytes": 3474524,
+      "heapKiB": 3393,
+      "bodyBytes": 46900,
+      "bodyKiB": 46,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 64,
+      "heapBytes": 5768,
+      "heapKiB": 6,
+      "bodyBytes": 1741,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 128,
+      "heapBytes": 10039120,
+      "heapKiB": 9804,
+      "bodyBytes": 94557,
+      "bodyKiB": 92,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 128,
+      "heapBytes": 5784,
+      "heapKiB": 6,
+      "bodyBytes": 1757,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 256,
+      "heapBytes": 28577304,
+      "heapKiB": 27908,
+      "bodyBytes": 189533,
+      "bodyKiB": 185,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 256,
+      "heapBytes": 5048,
+      "heapKiB": 5,
+      "bodyBytes": 1757,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 512,
+      "heapBytes": 75786616,
+      "heapKiB": 74010,
+      "bodyBytes": 379485,
+      "bodyKiB": 371,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 512,
+      "heapBytes": 5048,
+      "heapKiB": 5,
+      "bodyBytes": 1757,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 1024,
+      "heapBytes": 61873296,
+      "heapKiB": 60423,
+      "bodyBytes": 765678,
+      "bodyKiB": 748,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 1024,
+      "heapBytes": 5064,
+      "heapKiB": 5,
+      "bodyBytes": 1773,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 2048,
+      "heapBytes": 54713780,
+      "heapKiB": 53431,
+      "bodyBytes": 1537774,
+      "bodyKiB": 1502,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 2048,
+      "heapBytes": 5064,
+      "heapKiB": 5,
+      "bodyBytes": 1773,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 4096,
+      "heapBytes": 70861436,
+      "heapKiB": 69201,
+      "bodyBytes": 3081966,
+      "bodyKiB": 3010,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 4096,
+      "heapBytes": 5064,
+      "heapKiB": 5,
+      "bodyBytes": 1773,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 8192,
+      "heapBytes": 120303512,
+      "heapKiB": 117484,
+      "bodyBytes": 6170350,
+      "bodyKiB": 6026,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 8192,
+      "heapBytes": 5224,
+      "heapKiB": 5,
+      "bodyBytes": 1773,
+      "bodyKiB": 2,
+      "reps": 1000
+    },
+    {
+      "method": "put",
+      "catalogEntries": 16384,
+      "heapBytes": 265725056,
+      "heapKiB": 259497,
+      "bodyBytes": 12483727,
+      "bodyKiB": 12191,
+      "reps": 1000
+    },
+    {
+      "method": "n3patch",
+      "catalogEntries": 16384,
+      "heapBytes": 5240,
+      "heapKiB": 5,
+      "bodyBytes": 1789,
+      "bodyKiB": 2,
+      "reps": 1000
+    }
+  ]
+}

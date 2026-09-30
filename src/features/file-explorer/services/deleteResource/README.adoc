@@ -1,17 +1,20 @@
 = deleteResource
 
 Recursively deletes a Solid resource, container or leaf.
-Most Solid pods reject `DELETE` on a non empty container, so the service walks `ldp:contains`, deletes every descendant, then deletes the container itself.
+Most Solid pods reject `DELETE` on a non-empty container, so the service walks `ldp:contains`, deletes every descendant, then deletes the container itself.
 
-When `catalogUri` and `metadataUri` are both supplied, the matching DCAT entry is removed before the container is deleted.
-Catalog cleanup is best effort.
-A stale or already removed catalog entry never fails the user facing delete.
+When `catalogUri` and `metadataUri` are both provided, the service removes the matching DCAT entry after the container delete succeeds.
+
+The same cleanup runs for descendant containers during recursion. Because a container may be cataloged either as a folder, keyed by its own URI, or as a file, keyed by its `index.ttl`, the service tries both forms. Cleanup only happens after that specific container has been deleted successfully. If a nested delete fails, anything still left on the pod keeps its catalog entry too.
+Catalog cleanup is non-blocking: a stale or already removed entry does not fail the user-facing delete.
 
 Returns a `{ ok: true } | { ok: false; reason }` envelope rather than throwing, so callers can show the server message in a toast.
 
+`deleteResourceQuietly` wraps `deleteResource` for rollback paths. It swallows both a rejected promise and an `{ ok: false }` result, since the caller is already reporting a different failure and leaving a stray resource behind is an acceptable, non-blocking side effect. `softDeleteFile` and `restoreTrashedFile` both use it in their own rollback helpers.
+
 == See also
 
-* link:../../../../infrastructure/solid/catalog/[catalog] provides `removeFromCatalog`, which this service calls before the container delete.
+* link:../../../../infrastructure/solid/catalog/[catalog] provides `removeFromCatalog`, which this service calls once the container delete succeeds.
 * link:../downloadResource/[downloadResource] is the read side counterpart to this service.
 
 == Navigation

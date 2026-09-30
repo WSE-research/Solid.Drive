@@ -7,10 +7,10 @@ vi.mock('@ldo/solid-react', () => ({
 }));
 
 const FOLDER_CLASS_URI = 'http://www.w3.org/ns/ldp#Container';
-const mockParseCatalog = vi.fn();
+const mockParseCatalogRecovering = vi.fn();
 vi.mock('@/infrastructure/solid/catalog', () => ({
   isFolderEntry: (entry: { conformsTo: string }) => entry.conformsTo === FOLDER_CLASS_URI,
-  parseCatalog: (...args: unknown[]) => mockParseCatalog(...args),
+  parseCatalogRecovering: (...args: unknown[]) => mockParseCatalogRecovering(...args),
 }));
 
 vi.mock('@/infrastructure/solid/sharedCatalog', () => ({
@@ -28,13 +28,16 @@ import {
 
 const CATALOG_URI = 'https://pod.example/catalog.ttl';
 
+// `parseCatalogRecovering` never throws; a clean parse reports error: null.
+const entries = (parsed: unknown[]) => ({ entries: parsed, error: null });
+
 describe('useCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     __resetCatalogCacheForTests();
     __resetCatalogVersionsForTests();
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('TTL') });
-    mockParseCatalog.mockReturnValue([]);
+    mockParseCatalogRecovering.mockReturnValue(entries([]));
   });
 
   it('returns empty state when catalogUri is undefined', () => {
@@ -45,27 +48,44 @@ describe('useCatalog', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('puts folder entries in folderTitles and leaves them out of entries and containerUris', async () => {
+  it('puts folder entries in folderTitles and folderEntries, leaving them out of entries and containerUris', async () => {
     const reportEntryUri = 'https://pod.example/report/index.ttl';
     const folderUri = 'https://pod.example/documents/';
-    mockParseCatalog.mockReturnValue([
+    const folderEntry = { uri: folderUri, title: 'Documents', conformsTo: FOLDER_CLASS_URI };
+    mockParseCatalogRecovering.mockReturnValue(entries([
       { uri: reportEntryUri, title: 'Report', conformsTo: '' },
-      { uri: folderUri, title: 'Documents', conformsTo: FOLDER_CLASS_URI },
-    ]);
+      folderEntry,
+    ]));
     const { result } = renderHook(() => useCatalog(CATALOG_URI));
     await waitFor(() => expect(result.current.entries).toHaveLength(1));
     expect(result.current.entries).toEqual([{ uri: reportEntryUri, title: 'Report', conformsTo: '' }]);
     expect(result.current.containerUris).toEqual(new Set(['https://pod.example/report/']));
     expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
+    // A caller that needs the full folder rows themselves, not just the
+    // trimmed folderIndex shape, reads them from here (useTrashEntries,
+    // since the trash catalog is flat and has no use for the split).
+    expect(result.current.folderEntries).toEqual([folderEntry]);
+  });
+
+  it('keeps the same folderEntries array reference across re-renders when the catalog has not changed', async () => {
+    mockParseCatalogRecovering.mockReturnValue(entries([
+      { uri: 'https://pod.example/documents/', title: 'Documents', conformsTo: FOLDER_CLASS_URI },
+    ]));
+    const { result, rerender } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.folderEntries).toHaveLength(1));
+    const firstFolderEntries = result.current.folderEntries;
+
+    rerender();
+    expect(result.current.folderEntries).toBe(firstFolderEntries);
   });
 
   it('fetches the catalog and returns the parsed entries and containerUris', async () => {
     const reportEntryUri = 'https://pod.example/report/index.ttl';
     const invoiceEntryUri = 'https://pod.example/invoice/index.ttl';
-    mockParseCatalog.mockReturnValue([
+    mockParseCatalogRecovering.mockReturnValue(entries([
       { uri: reportEntryUri, title: 'Report' },
       { uri: invoiceEntryUri, title: 'Invoice' },
-    ]);
+    ]));
     const { result } = renderHook(() => useCatalog(CATALOG_URI));
     await waitFor(() => expect(result.current.entries).toHaveLength(2));
     expect(mockFetch).toHaveBeenCalledWith(CATALOG_URI);
@@ -81,6 +101,7 @@ describe('useCatalog', () => {
     expect(mockFetch).toHaveBeenCalled();
     expect(result.current.entries).toEqual([]);
     expect(result.current.containerUris).toEqual(new Set());
+    expect(result.current.error).toBeNull();
   });
 
   it('does not update state after unmount', async () => {
@@ -89,7 +110,7 @@ describe('useCatalog', () => {
       ok: true,
       text: () => new Promise<string>((resolve) => { resolveTurtleText = resolve; }),
     });
-    mockParseCatalog.mockReturnValue([{ uri: 'https://pod.example/report/index.ttl' }]);
+    mockParseCatalogRecovering.mockReturnValue(entries([{ uri: 'https://pod.example/report/index.ttl' }]));
     const { result, unmount } = renderHook(() => useCatalog(CATALOG_URI));
     // Allow the fetch microtask to flush so response.text() is invoked and captures resolveTurtleText.
     await waitFor(() => expect(resolveTurtleText).toBeDefined());
@@ -125,6 +146,30 @@ describe('useCatalog', () => {
     expect(result.current.entries).toEqual([]);
   });
 
+  it('surfaces a malformed catalog as an error, with no entries, when nothing could be recovered', async () => {
+    mockParseCatalogRecovering.mockReturnValue({
+      entries: [],
+      error: new Error(`${CATALOG_URI} contains invalid Turtle and could not be read.`),
+    });
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+    expect(result.current.error?.message).toContain('invalid Turtle');
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('shows the entries recovered from a partially corrupted catalog alongside the error', async () => {
+    const goodEntryUri = 'https://pod.example/report/index.ttl';
+    mockParseCatalogRecovering.mockReturnValue({
+      entries: [{ uri: goodEntryUri, title: 'Report', conformsTo: '' }],
+      error: new Error(`${CATALOG_URI} contains invalid Turtle and could not be read.`),
+    });
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+    expect(result.current.entries).toEqual([{ uri: goodEntryUri, title: 'Report', conformsTo: '' }]);
+    expect(result.current.error).toBeInstanceOf(Error);
+  });
+
   it('reports loading as true while fetching and false once it settles', async () => {
     let resolveFetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
     mockFetch.mockReturnValue(new Promise((resolve) => { resolveFetch = resolve; }));
@@ -135,9 +180,9 @@ describe('useCatalog', () => {
   });
 
   it('keeps serving the last-known entries while re-fetching the same catalog', async () => {
-    mockParseCatalog.mockReturnValueOnce([
+    mockParseCatalogRecovering.mockReturnValueOnce(entries([
       { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
-    ]);
+    ]));
     const { result } = renderHook(() => useCatalog(CATALOG_URI));
     await waitFor(() => expect(result.current.entries).toHaveLength(1));
 
@@ -155,10 +200,32 @@ describe('useCatalog', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
+  it('keeps serving the last-known folder titles while re-fetching the same catalog', async () => {
+    const folderUri = 'https://pod.example/documents/';
+    // Returned on both the initial fetch and the refetch below, so the final
+    // assertion confirms the titles are still correct, not just unchanged.
+    mockParseCatalogRecovering.mockReturnValue(entries([
+      { uri: folderUri, title: 'Documents', conformsTo: FOLDER_CLASS_URI },
+    ]));
+    const { result } = renderHook(() => useCatalog(CATALOG_URI));
+    await waitFor(() => expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']])));
+
+    let resolveRefetch: ((value: { ok: boolean; text: () => Promise<string> }) => void) | undefined;
+    mockFetch.mockReturnValueOnce(new Promise((resolve) => { resolveRefetch = resolve; }));
+    act(() => notifyCatalogChanged(CATALOG_URI));
+
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
+
+    resolveRefetch?.({ ok: true, text: () => Promise.resolve('TTL') });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.folderTitles).toEqual(new Map([[folderUri, 'Documents']]));
+  });
+
   it('does not re-fetch on its own — only catalogUri changing or notifyCatalogChanged does', async () => {
-    mockParseCatalog.mockReturnValueOnce([
+    mockParseCatalogRecovering.mockReturnValueOnce(entries([
       { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
-    ]);
+    ]));
     const { result, rerender } = renderHook(() => useCatalog(CATALOG_URI));
     await waitFor(() => expect(result.current.entries).toHaveLength(1));
     const fetchCountAfterFirst = mockFetch.mock.calls.length;
@@ -173,9 +240,9 @@ describe('useCatalog', () => {
   });
 
   it('serves a second hook instance from the cache instead of fetching again', async () => {
-    mockParseCatalog.mockReturnValue([
+    mockParseCatalogRecovering.mockReturnValue(entries([
       { uri: 'https://pod.example/report/index.ttl', title: 'Report' },
-    ]);
+    ]));
     const { result: first } = renderHook(() => useCatalog(CATALOG_URI));
     await waitFor(() => expect(first.current.entries).toHaveLength(1));
     const fetchCountAfterFirst = mockFetch.mock.calls.length;

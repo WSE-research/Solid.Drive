@@ -16,7 +16,8 @@ export type ViewId =
   | 'my-files'
   | 'shared'
   | 'requests'
-  | 'people';
+  | 'people'
+  | 'trash';
 
 const VIEW_IDS: readonly ViewId[] = [
   'recent',
@@ -24,6 +25,7 @@ const VIEW_IDS: readonly ViewId[] = [
   'shared',
   'requests',
   'people',
+  'trash',
 ] as const;
 
 const DEFAULT_VIEW: ViewId = 'recent';

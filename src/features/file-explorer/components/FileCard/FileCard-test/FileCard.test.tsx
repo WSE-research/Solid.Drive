@@ -27,6 +27,10 @@ vi.mock('@/features/file-explorer/services/deleteResource', () => ({
   deleteResource: vi.fn(() => Promise.resolve({ ok: true })),
 }));
 
+vi.mock('@/features/file-explorer/services/softDeleteFile', () => ({
+  softDeleteFile: vi.fn(() => Promise.resolve({ ok: true, trashItemContainerUri: 'https://me.example/trash/doc1/' })),
+}));
+
 vi.mock('@/infrastructure/validation/fileTypeRegistry', () => ({
   getFileTypeInfo: vi.fn(() => ({ label: 'PDF', icon: 'ðŸ”„' })),
   resolveClass: vi.fn(() => 'https://schema.org/DigitalDocument'),
@@ -70,6 +74,7 @@ import { useFileSharing } from '@/features/file-explorer/hooks/useFileSharing';
 import { useFilePreview } from '@/features/file-explorer/hooks/useFilePreview';
 import { useNotifications } from '@/shared/contexts/NotificationContext';
 import { deleteResource } from '@/features/file-explorer/services/deleteResource';
+import { softDeleteFile } from '@/features/file-explorer/services/softDeleteFile';
 import { resolveClass } from '@/infrastructure/validation/fileTypeRegistry';
 
 // ── shared constants ──────────────────────────────────────────────────────────
@@ -129,6 +134,7 @@ beforeEach(() => {
   mockConfirm.mockResolvedValue(false);
   mockShowError.mockClear();
   vi.mocked(deleteResource).mockResolvedValue({ ok: true });
+  vi.mocked(softDeleteFile).mockResolvedValue({ ok: true, trashItemContainerUri: 'https://me.example/trash/doc1/' });
 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -374,15 +380,47 @@ describe('FileCard — delete button', () => {
 describe('FileCard — delete action', () => {
   beforeEach(() => withFileMeta());
 
-  it('does not call deleteResource when the user cancels the confirmation', async () => {
+  it('does not call softDeleteFile when the user cancels the confirmation', async () => {
     mockConfirm.mockResolvedValue(false);
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
     await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
+    expect(softDeleteFile).not.toHaveBeenCalled();
     expect(deleteResource).not.toHaveBeenCalled();
   });
 
-  it('invokes deleteResource with the container/metadata/catalog URIs when confirmed', async () => {
+  it('soft-deletes with the built catalog row when confirmed and a storage root is resolved', async () => {
+    mockConfirm.mockResolvedValue(true);
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() =>
+      expect(softDeleteFile).toHaveBeenCalledWith({
+        containerUri: CONTAINER_URI,
+        storageRootUri: OWNER_STORAGE_ROOT,
+        catalogUri: CATALOG_URI,
+        entry: {
+          metadataUri: METADATA_URI,
+          binaryUri: METADATA_URI,
+          classUri: 'https://schema.org/DigitalDocument',
+          mediaType: baseFileMeta.encodingFormat,
+          byteSize: 12345,
+          title: baseFileMeta.name,
+          description: baseFileMeta.description,
+          modified: baseFileMeta.dateModified,
+        },
+        ownerWebId: OWNER_WEB_ID,
+        fetch: expect.any(Function),
+      }),
+    );
+    expect(deleteResource).not.toHaveBeenCalled();
+  });
+
+  it('falls back to deleteResource when no storage root can be resolved', async () => {
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri?: unknown) => {
+      if (uri === METADATA_URI) return { ...baseFileMeta };
+      if (uri === OWNER_WEB_ID) return { storage: { toArray: () => [] } };
+      return undefined;
+    });
     mockConfirm.mockResolvedValue(true);
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
@@ -394,15 +432,149 @@ describe('FileCard — delete action', () => {
         fetch: expect.any(Function),
       }),
     );
+    expect(softDeleteFile).not.toHaveBeenCalled();
   });
 
-  it('surfaces a showError toast when the delete fails', async () => {
+  it('shows the permanent-delete confirm copy when falling back to hard delete', async () => {
+    vi.mocked(useSubject).mockImplementation((_shapeType: unknown, uri?: unknown) => {
+      if (uri === METADATA_URI) return { ...baseFileMeta };
+      if (uri === OWNER_WEB_ID) return { storage: { toArray: () => [] } };
+      return undefined;
+    });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledWith('fileCard.deleteConfirmPermanent'));
+  });
+
+  it('shows the Recycle-bin confirm copy when soft-deleting', async () => {
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledWith('fileCard.deleteConfirm'));
+  });
+
+  it('surfaces a showError toast when the soft delete fails', async () => {
     mockConfirm.mockResolvedValue(true);
-    vi.mocked(deleteResource).mockResolvedValueOnce({ ok: false, reason: '500 Server Error' });
+    vi.mocked(softDeleteFile).mockResolvedValueOnce({ ok: false, reason: '500 Server Error' });
     renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
     await waitFor(() => expect(mockShowError).toHaveBeenCalled());
     expect(mockShowError.mock.calls[0][0]).toContain('500 Server Error');
+  });
+
+  it('surfaces the permission-denied reason when the soft delete is denied by WAC', async () => {
+    mockConfirm.mockResolvedValue(true);
+    vi.mocked(softDeleteFile).mockResolvedValueOnce({ ok: false, reason: 'Missing permission to delete this file' });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(mockShowError.mock.calls[0][0]).toContain('Missing permission to delete this file');
+  });
+
+  it('surfaces a showError toast and still releases the guard when softDeleteFile rejects unexpectedly', async () => {
+    mockConfirm.mockResolvedValue(true);
+    vi.mocked(softDeleteFile).mockRejectedValueOnce(new Error('network down'));
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(mockShowError.mock.calls[0][0]).toContain('network down');
+
+    vi.mocked(softDeleteFile).mockResolvedValueOnce({ ok: true, trashItemContainerUri: 'https://me.example/trash/doc1/' });
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    await waitFor(() => expect(softDeleteFile).toHaveBeenCalledTimes(2));
+  });
+
+  it('ignores a second click fired while the first soft delete is still in flight', async () => {
+    mockConfirm.mockResolvedValue(true);
+    let resolveSoftDelete: ((value: { ok: true; trashItemContainerUri: string }) => void) | undefined;
+    vi.mocked(softDeleteFile).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSoftDelete = resolve;
+      }),
+    );
+    renderCard();
+
+    const deleteButton = screen.getByRole('button', { name: 'fileCard.delete' });
+    fireEvent.click(deleteButton);
+    fireEvent.click(deleteButton);
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
+
+    resolveSoftDelete!({ ok: true, trashItemContainerUri: 'https://me.example/trash/doc1/' });
+    await waitFor(() => expect(softDeleteFile).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('FileCard — delete permanently action', () => {
+  beforeEach(() => withFileMeta());
+
+  it('does not call deleteResource when the user cancels the confirmation', async () => {
+    mockConfirm.mockResolvedValue(false);
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.deletePermanently' }));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
+    expect(deleteResource).not.toHaveBeenCalled();
+    expect(softDeleteFile).not.toHaveBeenCalled();
+  });
+
+  it('always hard-deletes via deleteResource, bypassing softDeleteFile entirely', async () => {
+    mockConfirm.mockResolvedValue(true);
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.deletePermanently' }));
+    await waitFor(() =>
+      expect(deleteResource).toHaveBeenCalledWith({
+        containerUri: CONTAINER_URI,
+        metadataUri: METADATA_URI,
+        catalogUri: CATALOG_URI,
+        fetch: expect.any(Function),
+      }),
+    );
+    expect(softDeleteFile).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a showError toast when the permanent delete fails', async () => {
+    mockConfirm.mockResolvedValue(true);
+    vi.mocked(deleteResource).mockResolvedValueOnce({ ok: false, reason: '500 Server Error' });
+    renderCard();
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.deletePermanently' }));
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(mockShowError.mock.calls[0][0]).toContain('500 Server Error');
+  });
+
+  it('ignores a second click fired while the first permanent delete is still in flight', async () => {
+    mockConfirm.mockResolvedValue(true);
+    let resolveDelete: ((value: { ok: true }) => void) | undefined;
+    vi.mocked(deleteResource).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveDelete = resolve;
+      }),
+    );
+    renderCard();
+
+    const purgeButton = screen.getByRole('button', { name: 'fileCard.deletePermanently' });
+    fireEvent.click(purgeButton);
+    fireEvent.click(purgeButton);
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
+
+    resolveDelete!({ ok: true });
+    await waitFor(() => expect(deleteResource).toHaveBeenCalledTimes(1));
+  });
+
+  it('a soft delete and a permanent delete on the same card do not race each other', async () => {
+    mockConfirm.mockResolvedValue(true);
+    let resolveSoftDelete: ((value: { ok: true; trashItemContainerUri: string }) => void) | undefined;
+    vi.mocked(softDeleteFile).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSoftDelete = resolve;
+      }),
+    );
+    renderCard();
+
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'fileCard.deletePermanently' }));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
+    expect(deleteResource).not.toHaveBeenCalled();
+
+    resolveSoftDelete!({ ok: true, trashItemContainerUri: 'https://me.example/trash/doc1/' });
+    await waitFor(() => expect(softDeleteFile).toHaveBeenCalledTimes(1));
   });
 });
 
@@ -438,8 +610,7 @@ describe('FileCard — SharePanel props fallback branches', () => {
   });
 
   it('falls back binaryUri to metadataUri when name is missing', () => {
-    // binaryUri = undefined (no container children) → binaryUri ?? metadataUri (line 207)
-    // Also name is undefined → metadataUri.split("/").pop() (line 211)
+    // Without a binary URI or filename, both values fall back to metadataUri.
     withFileMeta({
       name: undefined,
       description: undefined,

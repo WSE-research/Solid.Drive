@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "suite": "correctness",
+    "server": "Apache/2.4.52 (Debian)",
+    "baseUrl": "https://141.57.8.250:8443/",
+    "commit": "a92da3128956663a30c0e796c973a7ee29ebb34a",
+    "runsPerPoint": 1,
+    "generatedUtc": "2026-09-06T19:29:40.592Z"
+  },
+  "rows": [
+    {
+      "check": "FR4 faithful restore",
+      "passed": 1,
+      "detail": "restored payload byte-identical"
+    },
+    {
+      "check": "NFR1 no resurrection",
+      "passed": 1,
+      "detail": "restore correctly refused (occupied)"
+    },
+    {
+      "check": "Purge irreversibility",
+      "passed": 1,
+      "detail": "restore blocked (missing-tombstone)"
+    }
+  ]
+}

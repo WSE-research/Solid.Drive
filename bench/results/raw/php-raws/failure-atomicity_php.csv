@@ -1,0 +1,4 @@
+fault_point,trials,recoverable,not_recoverable,transient_duplicates,errors,first_failure
+"trash payload copy",1000,1000,0,0,0,""
+"tombstone write",1000,1000,0,0,0,""
+"original delete",1000,1000,0,1000,0,""

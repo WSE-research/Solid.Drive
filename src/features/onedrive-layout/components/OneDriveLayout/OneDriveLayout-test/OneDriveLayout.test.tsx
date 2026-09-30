@@ -186,6 +186,16 @@ vi.mock('@/features/file-explorer/services/deleteResource', () => ({
   deleteResource: (...args: unknown[]) => mockDeleteResource(...args),
 }));
 
+const mockSoftDeleteFile = vi.fn().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/doc/' });
+vi.mock('@/features/file-explorer/services/softDeleteFile', () => ({
+  softDeleteFile: (...args: unknown[]) => mockSoftDeleteFile(...args),
+}));
+
+const mockSoftDeleteFolder = vi.fn().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/folder/' });
+vi.mock('@/features/file-explorer/services/softDeleteFolder', () => ({
+  softDeleteFolder: (...args: unknown[]) => mockSoftDeleteFolder(...args),
+}));
+
 vi.mock('@/features/file-explorer/hooks/useDriveInitialization', () => ({
   useDriveInitialization: () => ({
     storageRootUri: 'https://pod/',
@@ -339,7 +349,7 @@ describe('OneDriveLayout', () => {
     }
   });
 
-  it('renders the SharedView siblings (no page-header) when ?view=shared', () => {
+  it('renders Shared\'s own toolbar and body instead of the page header when ?view=shared', () => {
     window.history.replaceState({}, '', '/?view=shared');
     const { container } = render(<OneDriveLayout />);
     expect(container.querySelector('shared-toolbar')).not.toBeNull();
@@ -361,7 +371,7 @@ describe('OneDriveLayout', () => {
     ).not.toBeNull();
   });
 
-  it('picking files from the rail switches to my-files and seeds pickedFile + showUpload', () => {
+  it('picking files from the rail switches to My Files and opens the upload form pre-filled with them', () => {
     render(<OneDriveLayout />);
 
     act(() => {
@@ -378,7 +388,7 @@ describe('OneDriveLayout', () => {
     expect(lastProps.pickedFile?.name).toBe('pick.txt');
   });
 
-  it('clicking new folder switches to my-files and sets showNewFolder', () => {
+  it('clicking New Folder in the rail switches to My Files and opens the new-folder form', () => {
     render(<OneDriveLayout />);
 
     act(() => {
@@ -393,7 +403,7 @@ describe('OneDriveLayout', () => {
     expect(lastProps.showNewFolder).toBe(true);
   });
 
-  it('upload-done clears both showUpload and pickedFile', () => {
+  it('finishing an upload closes the upload form and clears the picked file', () => {
     render(<OneDriveLayout />);
     act(() => {
       screen.getByTestId('nav-pick-files').click();
@@ -452,7 +462,7 @@ describe('OneDriveLayout', () => {
     );
   });
 
-  it('onRequestUpload from MyFilesView opens the upload form', () => {
+  it('opens the upload form when My Files asks the layout to open it', () => {
     window.history.replaceState({}, '', '/?view=my-files');
     render(<OneDriveLayout />);
     act(() => {
@@ -465,7 +475,7 @@ describe('OneDriveLayout', () => {
     expect(lastProps.showUpload).toBe(true);
   });
 
-  it('onNewFolderDone from MyFilesView clears showNewFolder', () => {
+  it('closes the new-folder form once My Files reports it\'s finished', () => {
     render(<OneDriveLayout />);
     act(() => {
       screen.getByTestId('nav-new-folder').click();
@@ -485,7 +495,7 @@ describe('OneDriveLayout', () => {
     ).toBe(false);
   });
 
-  it('selecting a row in MyFilesView writes selectedUri into the layout state', () => {
+  it('selecting a row in My Files marks that file as the current selection', () => {
     window.history.replaceState({}, '', '/?view=my-files');
     render(<OneDriveLayout />);
     act(() => {
@@ -518,7 +528,7 @@ describe('OneDriveLayout — selection actions', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the 5 action buttons when a file is selected', () => {
+  it('renders the 6 action buttons when a file is selected', () => {
     mockSelected.current = {
       kind: 'file',
       uri: 'https://pod/app/doc/',
@@ -526,14 +536,18 @@ describe('OneDriveLayout — selection actions', () => {
     };
     window.history.replaceState({}, '', '/?view=my-files');
     render(<OneDriveLayout />);
-    for (const label of ['share', 'copy link', 'download', 'move to', 'rename']) {
+    for (const label of ['share', 'copy link', 'download', 'rename']) {
       expect(
         screen.getByRole('button', { name: new RegExp(label, 'i') }),
       ).toBeInTheDocument();
     }
+    // "Move to bin" and "Move to" (stub) collide under substring/regex
+    // matching, so these use exact accessible names.
+    expect(screen.getByRole('button', { name: 'Move to bin' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Move to' })).toBeInTheDocument();
   });
 
-  it('clicking Copy link calls copyToClipboard with the selected URI', async () => {
+  it('copies the selected file\'s URI to the clipboard when Copy link is clicked', async () => {
     const user = userEvent.setup();
     mockSelected.current = {
       kind: 'file',
@@ -588,6 +602,8 @@ describe('OneDriveLayout — handler outcomes', () => {
     mockCopyToClipboard.mockClear().mockResolvedValue(true);
     mockDownloadResource.mockClear().mockResolvedValue({ ok: true });
     mockDeleteResource.mockClear().mockResolvedValue({ ok: true });
+    mockSoftDeleteFile.mockClear().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/doc/' });
+    mockSoftDeleteFolder.mockClear().mockResolvedValue({ ok: true, trashItemContainerUri: 'https://pod/trash/folder/' });
     mockClear.mockClear();
     mockMyFilesViewProps.mockClear();
     window.history.replaceState({}, '', '/?view=my-files');
@@ -642,55 +658,84 @@ describe('OneDriveLayout — handler outcomes', () => {
     expect(mockDownloadResource).not.toHaveBeenCalled();
   });
 
-  it('deletes the resource and clears the selection when Delete is confirmed', async () => {
+  it('soft-deletes a file selection and clears the selection when Delete is confirmed', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
     expect(mockConfirm).toHaveBeenCalled();
-    expect(mockDeleteResource).toHaveBeenCalledWith(
-      expect.objectContaining({ containerUri: 'https://pod/app/doc/' }),
+    expect(mockSoftDeleteFile).toHaveBeenCalledWith(
+      expect.objectContaining({ containerUri: 'https://pod/app/doc/', storageRootUri: 'https://pod/' }),
     );
+    expect(mockDeleteResource).not.toHaveBeenCalled();
     expect(mockShowSuccess).toHaveBeenCalled();
     expect(mockClear).toHaveBeenCalled();
+  });
+
+  it('soft-deletes a folder selection and clears the selection when Delete is confirmed', async () => {
+    mockSelected.current = { kind: 'folder', uri: 'https://pod/app/folder/', name: 'folder' };
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
+    expect(mockSoftDeleteFolder).toHaveBeenCalledWith(
+      expect.objectContaining({ containerUri: 'https://pod/app/folder/', storageRootUri: 'https://pod/' }),
+    );
+    expect(mockDeleteResource).not.toHaveBeenCalled();
+    expect(mockSoftDeleteFile).not.toHaveBeenCalled();
+    expect(mockShowSuccess).toHaveBeenCalled();
+    expect(mockClear).toHaveBeenCalled();
+  });
+
+  it('falls back to hard-deleting a folder, using its own URI as the catalog key, when no owner webId is resolved', async () => {
+    mockSelected.current = { kind: 'folder', uri: 'https://pod/app/folder/', name: 'folder' };
+    mockSession.current = { webId: undefined, isActive: true };
+    const user = userEvent.setup();
+    render(<OneDriveLayout />);
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
+    expect(mockDeleteResource).toHaveBeenCalledWith(
+      expect.objectContaining({ containerUri: 'https://pod/app/folder/', metadataUri: 'https://pod/app/folder/' }),
+    );
+    expect(mockSoftDeleteFolder).not.toHaveBeenCalled();
+    mockSession.current = { webId: 'https://owner/me', isActive: true };
   });
 
   it('skips the delete when the user cancels the confirmation', async () => {
     mockConfirm.mockResolvedValueOnce(false);
     const user = userEvent.setup();
     render(<OneDriveLayout />);
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
+    expect(mockSoftDeleteFile).not.toHaveBeenCalled();
     expect(mockDeleteResource).not.toHaveBeenCalled();
     expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 
   it('shows an error toast and keeps the selection when Delete fails', async () => {
-    mockDeleteResource.mockResolvedValueOnce({ ok: false, reason: '500' });
+    mockSoftDeleteFile.mockResolvedValueOnce({ ok: false, reason: '500' });
     const user = userEvent.setup();
     render(<OneDriveLayout />);
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
     expect(mockShowError).toHaveBeenCalled();
     expect(mockShowSuccess).not.toHaveBeenCalled();
     expect(mockClear).not.toHaveBeenCalled();
   });
 
-  it('bumps the MyFilesView refreshNonce after a successful delete so the listing re-reads', async () => {
+  it('tells My Files to re-read the folder listing after a successful delete', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     const nonceBefore =
       mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
     const nonceAfter =
       mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
     expect(nonceAfter).toBeGreaterThan(nonceBefore);
   });
 
-  it('does not bump the refreshNonce when Delete fails', async () => {
-    mockDeleteResource.mockResolvedValueOnce({ ok: false, reason: '500' });
+  it('does not tell My Files to re-read the listing when Delete fails', async () => {
+    mockSoftDeleteFile.mockResolvedValueOnce({ ok: false, reason: '500' });
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     const nonceBefore =
       mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: 'Move to bin' }));
     const nonceAfter =
       mockMyFilesViewProps.mock.lastCall?.[0]?.refreshNonce ?? 0;
     expect(nonceAfter).toBe(nonceBefore);
@@ -699,11 +744,13 @@ describe('OneDriveLayout — handler outcomes', () => {
   it('Move To and Rename are present but inert (no notifications, no service calls)', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
-    await user.click(screen.getByRole('button', { name: /move to/i }));
+    // Exact name — "Move to" (stub) and "Move to bin" (soft-delete) collide under regex matching.
+    await user.click(screen.getByRole('button', { name: 'Move to' }));
     await user.click(screen.getByRole('button', { name: /rename/i }));
     expect(mockShowSuccess).not.toHaveBeenCalled();
     expect(mockShowError).not.toHaveBeenCalled();
     expect(mockDeleteResource).not.toHaveBeenCalled();
+    expect(mockSoftDeleteFile).not.toHaveBeenCalled();
     expect(mockDownloadResource).not.toHaveBeenCalled();
   });
 });
@@ -714,7 +761,7 @@ describe('OneDriveLayout — NavRail integration', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('clicking the rail "new folder" action switches to my-files and signals the view', async () => {
+  it('clicking the rail "new folder" action switches to My Files and tells it to open the new-folder form', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     await user.click(screen.getByTestId('nav-rail-new-folder'));
@@ -722,7 +769,7 @@ describe('OneDriveLayout — NavRail integration', () => {
     expect(view).toHaveAttribute('data-show-new-folder', 'true');
   });
 
-  it('clicking the rail upload action switches to my-files and signals the view', async () => {
+  it('clicking the rail upload action switches to My Files and tells it to open the upload form', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     await user.click(screen.getByTestId('nav-rail-upload'));
@@ -737,7 +784,7 @@ describe('OneDriveLayout — MyFilesView callbacks', () => {
     window.history.replaceState({}, '', '/?view=my-files');
   });
 
-  it('clears showNewFolder after MyFilesView reports the new folder is done', async () => {
+  it('closes the new-folder form once My Files reports the new folder is done', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     await user.click(screen.getByTestId('nav-rail-new-folder'));
@@ -749,7 +796,7 @@ describe('OneDriveLayout — MyFilesView callbacks', () => {
     expect(view).toHaveAttribute('data-show-new-folder', 'false');
   });
 
-  it('clears showUpload after MyFilesView reports the upload is done', async () => {
+  it('closes the upload form once My Files reports the upload is done', async () => {
     const user = userEvent.setup();
     render(<OneDriveLayout />);
     await user.click(screen.getByTestId('nav-rail-upload'));
@@ -769,7 +816,7 @@ describe('OneDriveLayout — MyFilesView callbacks', () => {
     expect(view).toHaveAttribute('data-show-upload', 'true');
   });
 
-  it('toggling the details button twice flips state both ways via the updater function', async () => {
+  it('toggling the details button twice opens then closes the details panel', async () => {
     mockSelected.current = {
       kind: 'file',
       uri: 'https://pod/app/doc/',
@@ -801,7 +848,7 @@ describe('OneDriveLayout — extra branch coverage', () => {
     window.history.replaceState({}, '', '/?view=my-files');
   });
 
-  it('uses selected.name as filename when decodeUriTail returns empty string', async () => {
+  it('falls back to the selected file\'s display name when its URI has no usable filename segment', async () => {
     // 'https://' strips to '' from split('/').pop() → fallback to name
     mockSelected.current = {
       kind: 'file',
@@ -818,7 +865,7 @@ describe('OneDriveLayout — extra branch coverage', () => {
     );
   });
 
-  it('does not render the ShareDialog when catalogUri is null', () => {
+  it('does not render the ShareDialog before anything is selected', () => {
     // We cannot easily make resolveCatalogUri return null in isolation since
     // it's already mocked at module level. This test verifies the
     // conditional render guard (selected && catalogUri && sharedEntry) by

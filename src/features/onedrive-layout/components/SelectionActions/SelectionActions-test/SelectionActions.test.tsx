@@ -44,6 +44,12 @@ const fileSelection: NonNullable<SelectedResource> = {
   name: 'doc.pdf',
 };
 
+const folderSelection: NonNullable<SelectedResource> = {
+  kind: 'folder',
+  uri: 'https://pod/app/folder/',
+  name: 'folder',
+};
+
 const baseHandlers = {
   onShare: vi.fn(),
   onCopyLink: vi.fn(),
@@ -53,31 +59,29 @@ const baseHandlers = {
   onRename: vi.fn(),
 };
 
-const ALL_ACTION_LABELS = [
-  'share',
-  'copy link',
-  'delete',
-  'download',
-  'move to',
-  'rename',
-] as const;
+// Exact accessible names — "Move to bin" and "Move to" collide under
+// substring/regex matching, so every lookup here uses an exact string.
+const ACTION_LABELS = ['Share', 'Copy link', 'Move to bin', 'Download', 'Move to', 'Rename'];
 
 describe('SelectionActions', () => {
   it('renders no action buttons when nothing is selected', () => {
     render(<SelectionActions selection={null} {...baseHandlers} />);
-    for (const label of ALL_ACTION_LABELS) {
-      expect(
-        screen.queryByRole('button', { name: new RegExp(label, 'i') }),
-      ).not.toBeInTheDocument();
+    for (const label of ACTION_LABELS) {
+      expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument();
     }
   });
 
-  it('renders all six action buttons when a file is selected', () => {
+  it('renders all six action buttons for a file selection, delete relabeled "Move to bin"', () => {
     render(<SelectionActions selection={fileSelection} {...baseHandlers} />);
-    for (const label of ALL_ACTION_LABELS) {
-      expect(
-        screen.getByRole('button', { name: new RegExp(label, 'i') }),
-      ).toBeInTheDocument();
+    for (const label of ACTION_LABELS) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it('renders all six action buttons for a folder selection, delete also relabeled "Move to bin"', () => {
+    render(<SelectionActions selection={folderSelection} {...baseHandlers} />);
+    for (const label of ACTION_LABELS) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
   });
 
@@ -123,7 +127,7 @@ describe('SelectionActions', () => {
     expect(onDownload).toHaveBeenCalledOnce();
   });
 
-  it('clicking Delete fires onDelete (not stubbed — wired in OneDriveLayout)', async () => {
+  it('clicking Move to bin fires onDelete for a file selection (not stubbed)', async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(
@@ -133,7 +137,23 @@ describe('SelectionActions', () => {
         onDelete={onDelete}
       />,
     );
-    const deleteBtn = screen.getByRole('button', { name: /delete/i });
+    const moveToBinBtn = screen.getByRole('button', { name: 'Move to bin' });
+    expect(moveToBinBtn).not.toHaveAttribute('data-stub');
+    await user.click(moveToBinBtn);
+    expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it('clicking Move to bin fires onDelete for a folder selection (not stubbed)', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(
+      <SelectionActions
+        {...baseHandlers}
+        selection={folderSelection}
+        onDelete={onDelete}
+      />,
+    );
+    const deleteBtn = screen.getByRole('button', { name: 'Move to bin' });
     expect(deleteBtn).not.toHaveAttribute('data-stub');
     await user.click(deleteBtn);
     expect(onDelete).toHaveBeenCalledOnce();
@@ -151,8 +171,8 @@ describe('SelectionActions', () => {
         onRename={onRename}
       />,
     );
-    const moveBtn = screen.getByRole('button', { name: /move to/i });
-    const renameBtn = screen.getByRole('button', { name: /rename/i });
+    const moveBtn = screen.getByRole('button', { name: 'Move to' });
+    const renameBtn = screen.getByRole('button', { name: 'Rename' });
     expect(moveBtn).toHaveAttribute('data-stub', 'true');
     expect(renameBtn).toHaveAttribute('data-stub', 'true');
     await user.click(moveBtn);
@@ -178,23 +198,23 @@ describe('SelectionActions', () => {
       expect(
         screen.queryByRole('button', { name: /more actions/i }),
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /share/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /rename/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Rename' })).toBeInTheDocument();
     });
 
     it('shows the kebab and pushes overflow into it when the container shrinks', () => {
       restore = installResizeObserverStub();
       render(<SelectionActions selection={fileSelection} {...baseHandlers} />);
-      // Width 300 - 44 (kebab) = 256 ÷ 110 ≈ 2 inline → 4 in kebab.
+      // Width 300 - 44 (kebab) = 256 ÷ 110 ≈ 2 inline → the rest in kebab.
       act(() => triggerResize?.(300));
       expect(
         screen.getByRole('button', { name: /more actions/i }),
       ).toBeInTheDocument();
       // Share + Copy link survive inline; the rest are not visible
       // until the kebab opens.
-      expect(screen.getByRole('button', { name: /share/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', { name: /rename/i }),
+        screen.queryByRole('button', { name: 'Rename' }),
       ).not.toBeInTheDocument();
     });
 
@@ -206,10 +226,10 @@ describe('SelectionActions', () => {
       expect(
         screen.getByRole('button', { name: /more actions/i }),
       ).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /share/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
     });
 
-    it('forwards a click on a kebab menu item back to the matching handler', async () => {
+    it('forwards a click on a kebab menu item to that action\'s own click handler', async () => {
       restore = installResizeObserverStub();
       const user = userEvent.setup();
       const onRename = vi.fn();
@@ -223,12 +243,12 @@ describe('SelectionActions', () => {
       // Force every action into the kebab so Rename lives in the menu.
       act(() => triggerResize?.(80));
       await user.click(screen.getByRole('button', { name: /more actions/i }));
-      const renameItem = await screen.findByRole('menuitem', { name: /rename/i });
+      const renameItem = await screen.findByRole('menuitem', { name: 'Rename' });
       await user.click(renameItem);
       expect(onRename).toHaveBeenCalledOnce();
     });
 
-    it('ignores ResizeObserver entries with no first entry', () => {
+    it('ignores a ResizeObserver callback that fires with an empty entry list', () => {
       // Drives the `if (!entry) return;` guard inside the observer
       // callback when ResizeObserver fires with an empty entry list.
       const noopRO: ResizeCallback[] = [];
@@ -244,8 +264,8 @@ describe('SelectionActions', () => {
         render(<SelectionActions selection={fileSelection} {...baseHandlers} />);
         act(() => noopRO[0]?.([]));
         // All six actions stay inline because containerWidth never updates.
-        expect(screen.getByRole('button', { name: /share/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /rename/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Rename' })).toBeInTheDocument();
         expect(
           screen.queryByRole('button', { name: /more actions/i }),
         ).not.toBeInTheDocument();

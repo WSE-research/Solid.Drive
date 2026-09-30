@@ -1,0 +1,19 @@
+= wacAllow
+
+Reads the `WAC-Allow` response header to check whether the current agent holds the access modes a soft delete needs, without a separate ACL read.
+
+`parseWacAllowModes` parses the header's `user` group (e.g. `WAC-Allow: user="read write",public="read"`) into a `Set<WacAccessMode>`. `checkHasPermission` issues a `HEAD` to both the file's binary and its container and requires Write + Control on the resource (needed to read and later remove its ACL) and Write on the container (needed to remove the resource's directory entry).
+
+A missing header, or one with no `user` group, resolves to an empty set rather than throwing. A server that doesn't advertise `WAC-Allow` is treated as "permission not confirmed", not an error.
+
+== See also
+
+* link:../../../features/file-explorer/services/softDeleteFile/[softDeleteFile] runs this as a preflight check before touching anything, so a permission problem fails fast with a clear reason instead of a partial write.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/wac]
+
+.Uses
+* link:../../../types/[types]

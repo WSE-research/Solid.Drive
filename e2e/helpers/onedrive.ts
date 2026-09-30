@@ -2,8 +2,8 @@ import { expect, type Page } from "@playwright/test";
 import { APP_EVENTS, STORAGE_KEYS, UI_TIMEOUTS } from "../config";
 import { shot } from "./screenshots";
 
-/** One of the five OneDriveLayout views. Mirrors `ViewId` in useViewParam. */
-export type ViewId = "recent" | "my-files" | "shared" | "requests" | "people";
+/** One of the six OneDriveLayout views. Mirrors `ViewId` in useViewParam. */
+export type ViewId = "recent" | "my-files" | "shared" | "requests" | "people" | "trash";
 
 /**
  * Switches an already-authenticated page into the OneDrive shell and

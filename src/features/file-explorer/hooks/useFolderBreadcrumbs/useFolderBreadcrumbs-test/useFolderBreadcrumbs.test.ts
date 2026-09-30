@@ -84,7 +84,7 @@ describe('useFolderBreadcrumbs', () => {
     expect(result.current.breadcrumbs).toContainEqual({ label: 'My App', uri: app });
   });
 
-  it('reports a FolderPathError when a current sd:Folder entry has a broken chain', () => {
+  it('reports a FolderPathError when a current sd:Folder entry has a broken chain, but still rebuilds a navigable trail from the URI', () => {
     const orphan = 'https://pod.example/my-solid-app/orphan/';
     const folderIndex = indexOf(node({ uri: orphan, title: 'Orphan', parentUri: '' }));
     const { result } = renderHook(() =>
@@ -98,7 +98,8 @@ describe('useFolderBreadcrumbs', () => {
     );
     expect(result.current.error).not.toBeNull();
     expect(result.current.error?.reason).toBe('missing-parent');
-    expect(result.current.breadcrumbs).toEqual([{ label: 'My Pod', uri: STORAGE_ROOT }]);
+    expect(result.current.breadcrumbs.at(-1)).toMatchObject({ uri: orphan });
+    expect(result.current.breadcrumbs.length).toBeGreaterThan(1);
   });
 
   it('falls back to splitting the URI, without reporting an error, when the root entry has not loaded yet', () => {
@@ -125,7 +126,7 @@ describe('useFolderBreadcrumbs', () => {
     expect(result.current.breadcrumbs.at(-1)).toMatchObject({ uri: photos });
   });
 
-  it('reports a FolderPathError for a missing root once the registration write is confirmed failed', () => {
+  it('reports a FolderPathError for a missing root once the registration write is confirmed failed, but still rebuilds a navigable trail from the URI', () => {
     const photos = 'https://pod.example/my-solid-app/photos/';
     const app = 'https://pod.example/my-solid-app/';
     const folderIndex = indexOf(
@@ -143,7 +144,8 @@ describe('useFolderBreadcrumbs', () => {
     );
     expect(result.current.error?.reason).toBe('missing-entry');
     expect(result.current.error?.atUri).toBe(STORAGE_ROOT);
-    expect(result.current.breadcrumbs).toEqual([{ label: 'My Pod', uri: STORAGE_ROOT }]);
+    expect(result.current.breadcrumbs.at(-1)).toMatchObject({ uri: photos });
+    expect(result.current.breadcrumbs.length).toBeGreaterThan(1);
   });
 
   it('shows the trail up to a legacy folder with no hasParent, without reporting an error', () => {

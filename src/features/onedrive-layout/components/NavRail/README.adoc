@@ -2,7 +2,7 @@
 
 Left navigation pane for the OneDrive layout. Two states driven by `useNavRailExpanded`:
 
-Expanded:: Wide pane. Gradient `+ Create or upload` pill, account header with the user's name and a collapse toggle, then five view rows (Home, My Files, Shared, Requests, People) as icon + label. Requests and People sit under a foldable "Browse files by" header.
+Expanded:: Wide pane. Gradient `+ Create or upload` pill, account header with the user's name and a collapse toggle, then six view rows as icon + label: Home, My Files, Shared, and Trash always visible, with Requests and People below them under a foldable "Browse files by" header.
 
 Collapsed:: Icon-only rail. `+` button, expand toggle, one icon per view. Each icon has a tooltip.
 

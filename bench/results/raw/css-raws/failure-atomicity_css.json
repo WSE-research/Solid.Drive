@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "suite": "failure-atomicity",
+    "server": "CSS 7.2.0 (HTTPS)",
+    "baseUrl": "https://141.57.8.250:3000/",
+    "commit": "a92da3128956663a30c0e796c973a7ee29ebb34a",
+    "runsPerPoint": 1000,
+    "generatedUtc": "2026-09-06T13:46:42.722Z"
+  },
+  "rows": [
+    {
+      "faultPoint": "trash payload copy",
+      "trials": 1000,
+      "recoverable": 1000,
+      "notRecoverable": 0,
+      "transientDuplicates": 0,
+      "errors": 0,
+      "firstFailure": ""
+    },
+    {
+      "faultPoint": "tombstone write",
+      "trials": 1000,
+      "recoverable": 1000,
+      "notRecoverable": 0,
+      "transientDuplicates": 0,
+      "errors": 0,
+      "firstFailure": ""
+    },
+    {
+      "faultPoint": "original delete",
+      "trials": 1000,
+      "recoverable": 1000,
+      "notRecoverable": 0,
+      "transientDuplicates": 1000,
+      "errors": 0,
+      "firstFailure": ""
+    }
+  ]
+}

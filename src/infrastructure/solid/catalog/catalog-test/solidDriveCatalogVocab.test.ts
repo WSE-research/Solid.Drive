@@ -17,7 +17,7 @@ const STORAGE_OBJECT_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}StorageObject`;
 const FOLDER_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}Folder`;
 const FILE_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}File`;
 const HAS_PARENT_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}hasParent`;
-const DELETED_AT_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}deletedAt`;
+const TAG_URI = `${RDF_NAMESPACES.SOLID_DRIVE_CATALOG}tag`;
 const OWL_DISJOINT_WITH = "http://www.w3.org/2002/07/owl#disjointWith";
 
 describe("solid-drive-catalog.ttl", () => {
@@ -60,9 +60,9 @@ describe("solid-drive-catalog.ttl", () => {
     expect(store.countQuads(HAS_PARENT_URI, RDFS_RANGE, FOLDER_URI, null)).toBe(1);
   });
 
-  it("restricts deletedAt to files and folders, with a date and time as its value", () => {
-    expect(store.countQuads(DELETED_AT_URI, RDFS_DOMAIN, STORAGE_OBJECT_URI, null)).toBe(1);
-    expect(store.countQuads(DELETED_AT_URI, RDFS_RANGE, `${RDF_NAMESPACES.XSD}dateTime`, null)).toBe(1);
+  it("restricts tag to files and folders, with a string as its value", () => {
+    expect(store.countQuads(TAG_URI, RDFS_DOMAIN, STORAGE_OBJECT_URI, null)).toBe(1);
+    expect(store.countQuads(TAG_URI, RDFS_RANGE, `${RDF_NAMESPACES.XSD}string`, null)).toBe(1);
   });
 
   it("gives every term in the vocabulary a proper type, either a class or a property", () => {
@@ -70,12 +70,12 @@ describe("solid-drive-catalog.ttl", () => {
     expect(store.getQuads(FOLDER_URI, RDF_TYPE_URI, null, null).length).toBeGreaterThan(0);
     expect(store.getQuads(FILE_URI, RDF_TYPE_URI, null, null).length).toBeGreaterThan(0);
     expect(store.getQuads(HAS_PARENT_URI, RDF_TYPE_URI, null, null).length).toBeGreaterThan(0);
-    expect(store.getQuads(DELETED_AT_URI, RDF_TYPE_URI, null, null).length).toBeGreaterThan(0);
+    expect(store.getQuads(TAG_URI, RDF_TYPE_URI, null, null).length).toBeGreaterThan(0);
   });
 
-  it("lets hasParent and deletedAt each hold at most one value per entry", () => {
+  it("lets hasParent and tag each hold at most one value per entry", () => {
     expect(store.countQuads(HAS_PARENT_URI, RDF_TYPE_URI, OWL_FUNCTIONAL_PROPERTY, null)).toBe(1);
-    expect(store.countQuads(DELETED_AT_URI, RDF_TYPE_URI, OWL_FUNCTIONAL_PROPERTY, null)).toBe(1);
+    expect(store.countQuads(TAG_URI, RDF_TYPE_URI, OWL_FUNCTIONAL_PROPERTY, null)).toBe(1);
   });
 
   it("uses its own short prefix, sdcat, kept separate from an unrelated prefix this project already uses elsewhere for file metadata", () => {
@@ -94,11 +94,11 @@ describe("solid-drive-catalog.ttl", () => {
 
   it("carries a version number and a versioned link, so a reader can cite the exact revision they used", () => {
     expect(store.getObjects(ONTOLOGY_URI, "http://www.w3.org/2002/07/owl#versionInfo", null)[0]?.value).toBe(
-      "1.1.0"
+      "1.2.0"
     );
     expect(
       store.getObjects(ONTOLOGY_URI, "http://www.w3.org/2002/07/owl#versionIRI", null)[0]?.value
-    ).toBe("https://purl.org/solid-drive/catalog/1.1.0");
+    ).toBe("https://purl.org/solid-drive/catalog/1.2.0");
   });
 
   it("points to the closest related terms in other vocabularies without claiming equivalence", () => {
@@ -117,12 +117,6 @@ describe("solid-drive-catalog.ttl", () => {
     ).toBe(1);
     expect(
       store.countQuads(FILE_URI, seeAlso, "http://tracker.api.gnome.org/ontology/v3/nfo#FileDataObject", null)
-    ).toBe(1);
-    expect(
-      store.countQuads(DELETED_AT_URI, seeAlso, "https://www.w3.org/ns/activitystreams#deleted", null)
-    ).toBe(1);
-    expect(
-      store.countQuads(DELETED_AT_URI, seeAlso, "https://specifications.freedesktop.org/trash-spec/latest/", null)
     ).toBe(1);
   });
 });

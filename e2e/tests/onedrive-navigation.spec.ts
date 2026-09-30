@@ -13,9 +13,9 @@ import { TEST_TIMEOUTS } from "../config";
  * survival lives in the useViewParam unit tests.
  */
 
-// The five rail views: the label on the NavRail button, the value the
+// The six rail views: the label on the NavRail button, the value the
 // view writes into the ?view= param, and a per-view identity assertion.
-// My Files and Requests render the standard page-header with an
+// My Files, Requests, and Trash render the standard page-header with an
 // `.odl-page-title` heading. Recent, Shared, and People each render
 // their own toolbar inline, so the page-header is suppressed and the
 // title lives in a view-specific element.
@@ -25,14 +25,15 @@ const VIEWS: ReadonlyArray<{
   identityLocator: string;
   identityText: string;
 }> = [
-  { label: "Home",     view: "recent",   identityLocator: ".odl-recent__heading",       identityText: "Recent" },
-  { label: "My Files", view: "my-files", identityLocator: ".odl-page-title",            identityText: "My Files" },
-  { label: "Shared",   view: "shared",   identityLocator: "shared-toolbar-tabs",        identityText: "With you" },
-  { label: "Requests", view: "requests", identityLocator: ".odl-page-title",            identityText: "Requests" },
-  { label: "People",   view: "people",   identityLocator: ".odl-people-list__heading",  identityText: "People" },
+  { label: "Home",         view: "recent",   identityLocator: ".odl-recent__heading",       identityText: "Recent" },
+  { label: "My Files",     view: "my-files", identityLocator: ".odl-page-title",            identityText: "My Files" },
+  { label: "Shared",       view: "shared",   identityLocator: "shared-toolbar-tabs",        identityText: "With you" },
+  { label: "Requests",     view: "requests", identityLocator: ".odl-page-title",            identityText: "Requests" },
+  { label: "People",       view: "people",   identityLocator: ".odl-people-list__heading",  identityText: "People" },
+  { label: "Recycle bin",  view: "trash",    identityLocator: ".odl-page-title",            identityText: "Recycle bin" },
 ];
 
-test("the NavRail switches between all five views", async ({ browser, parni }) => {
+test("the NavRail switches between all six views", async ({ browser, parni }) => {
   test.setTimeout(TEST_TIMEOUTS.short);
 
   const { page, close } = await freshLogin(browser, parni);
@@ -50,9 +51,9 @@ test("the NavRail switches between all five views", async ({ browser, parni }) =
     await expect(page.locator(identityLocator).first()).toContainText(identityText);
   }
 
-  // People does not touch the URL itself, so the NavRail's ?view= write
-  // is still there to assert on.
-  await expect(page).toHaveURL(/[?&]view=people/);
+  // Recycle bin (the last view visited) does not touch the URL itself,
+  // so the NavRail's ?view= write is still there to assert on.
+  await expect(page).toHaveURL(/[?&]view=trash/);
 
   await close();
 });

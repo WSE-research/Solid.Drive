@@ -1,0 +1,16 @@
+= catalogLookup
+
+Looks up a single catalog entry by its URI, for a caller that already knows which one it wants instead of the whole list.
+
+== See also
+
+* link:../../../features/file-explorer/services/restoreTrashedFile/[restoreTrashedFile] uses this to describe whatever currently occupies a restore's original location.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Uses
+* link:../catalog/[catalog]
+* link:../../../types/[types]

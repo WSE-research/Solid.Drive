@@ -30,6 +30,8 @@ declare module "react" {
       "empty-state": El;
       "empty-state-icon": El;
       "file-entry": El;
+      // FolderEntry
+      "folder-entry": El;
       // FileExplorer
       "drive-gate": El;
       "drive-gate-icon": El;
@@ -230,6 +232,15 @@ declare module "react" {
       "recent-files-row": El;
       "recent-files-cell": El;
       "recent-files-name": El;
+      // OneDriveLayout — TrashView (Recycle bin)
+      "trash-header": El;
+      "trash-table": El;
+      "trash-table-head": El;
+      "trash-table-body": El;
+      "trash-row": El;
+      "trash-cell": El;
+      "trash-row-actions": El;
+      "trash-empty": El;
     }
   }
 }

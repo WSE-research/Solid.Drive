@@ -16,11 +16,11 @@ import { useTranslation } from 'react-i18next';
 import {
   ShareIcon,
   LinkIcon,
-  DeleteIcon,
   DownloadIcon,
   MoveToIcon,
   RenameIcon,
   MoreHorizontalIcon,
+  TrashIcon,
 } from '@/features/onedrive-layout/icons';
 import type { SelectedResource } from '@/features/onedrive-layout/hooks/useSelectedResource';
 
@@ -28,6 +28,9 @@ interface SelectionActionsProps {
   selection: SelectedResource;
   onShare: () => void;
   onCopyLink: () => void;
+  // Moves the selection to the Recycle Bin, falling back to a hard delete
+  // when soft-delete's prerequisites (storage root, catalog, owner) aren't
+  // resolved yet — see useOneDriveActions.
   onDelete: () => void;
   onDownload: () => void;
   onMoveTo: () => void;
@@ -41,9 +44,7 @@ interface ActionDef {
   stub?: boolean;
 }
 
-// Approximate rendered width of an inline action button including icon,
-// label, padding, and gap. Doesn't need to be exact, just an upper bound
-// that keeps the strip from overflowing.
+// Approximate width of a single action button, used to determine how many fit inline.
 const ACTION_BUTTON_WIDTH = 110;
 const KEBAB_WIDTH = 44;
 
@@ -74,8 +75,8 @@ export const SelectionActions: FunctionComponent<SelectionActionsProps> = ({
 }) => {
   const [translate] = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  // null until the ResizeObserver fires once; render everything inline
-  // in the meantime, then the first measurement re-renders with overflow.
+  // Render all items inline until the first width measurement is available,
+  // then re-render with overflow handling.
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
   useEffect(() => {
@@ -90,16 +91,20 @@ export const SelectionActions: FunctionComponent<SelectionActionsProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  // Always labeled "Move to bin": this component has no way to tell
+  // whether useOneDriveActions will end up doing a soft or hard delete.
+  const deleteLabel = translate('oneDriveLayout.action.moveToTrash', 'Move to bin');
+
   const actions = useMemo<ActionDef[]>(
     () => [
       { Icon: ShareIcon,    label: translate('oneDriveLayout.action.share',    'Share'),     onClick: onShare },
       { Icon: LinkIcon,     label: translate('oneDriveLayout.action.link',     'Copy link'), onClick: onCopyLink },
-      { Icon: DeleteIcon,   label: translate('oneDriveLayout.action.delete',   'Delete'),    onClick: onDelete },
+      { Icon: TrashIcon,    label: deleteLabel,                                              onClick: onDelete },
       { Icon: DownloadIcon, label: translate('oneDriveLayout.action.download', 'Download'),  onClick: onDownload },
       { Icon: MoveToIcon,   label: translate('oneDriveLayout.action.moveTo',   'Move to'),   onClick: onMoveTo,   stub: true },
       { Icon: RenameIcon,   label: translate('oneDriveLayout.action.rename',   'Rename'),    onClick: onRename,   stub: true },
     ],
-    [translate, onShare, onCopyLink, onDelete, onDownload, onMoveTo, onRename],
+    [translate, onShare, onCopyLink, deleteLabel, onDelete, onDownload, onMoveTo, onRename],
   );
 
   // Reserve KEBAB_WIDTH only when overflow is actually needed, so the

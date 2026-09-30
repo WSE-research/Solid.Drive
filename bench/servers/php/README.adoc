@@ -1,0 +1,91 @@
+= php-solid-server (pdsinterop): the second evaluation target
+
+This directory configures the second Solid server used in the evaluation,
+php-solid-server (pdsinterop). It serves as an independent implementation against
+which the benchmark is replicated: a result that reproduces here as well as on
+the Community Solid Server (CSS) can be attributed to the design rather than to a
+single server. The server runs as a single container, without the
+publish-subscribe (live-update) component, on unprivileged ports so that it
+requires no root privileges.
+
+== Stand it up
+
+[source,sh]
+----
+./setup.sh
+HOST_IP=<your-host-ip> docker compose up -d --build
+----
+
+`setup.sh` retrieves php-solid-server at a pinned revision and disables the
+publish-subscribe component. The image build enables opcache (PHP's
+compiled-bytecode cache), embeds `HOST_IP` in the server's self-signed
+certificate so that a remote client accepts the HTTPS connection, and can extend
+the access-token lifetime. The server becomes available at
+`https://localhost:8443/` with a preconfigured account (username `peach`,
+password `peach123`).
+
+A 1000-repetition run exceeds the default one-hour token lifetime, so build the
+image with 24-hour tokens instead:
+
+[source,sh]
+----
+HOST_IP=<your-host-ip> LONG_TOKEN=1 docker compose up -d --build
+----
+
+== Obtain a token
+
+php-solid-server exposes no account or client-credentials API for issuing
+tokens. `mint.js` therefore completes the Solid-OIDC login and consent flow
+programmatically and records the access token, its signing key, and the
+account's WebID (its identity URL) in `~/php-seed.json`:
+
+[source,sh]
+----
+node mint.js
+----
+
+== Point the benchmark at it
+
+The certificate is self-signed and is not trusted by Node by default. Export it
+from the container and register it with Node:
+
+[source,sh]
+----
+docker cp php-solid-server:/tls/server.cert ./php-sut-cert.pem
+export NODE_EXTRA_CA_CERTS="$PWD/php-sut-cert.pem"
+----
+
+Then, from the repository root, load the stored credentials and run the
+second-server suite:
+
+[source,sh]
+----
+export SUT=https://<your-host-ip>:8443/
+export BENCH_AUTH_SCHEME=Bearer
+export BENCH_ACCESS_TOKEN=$(node -e 'console.log(require(process.env.HOME+"/php-seed.json").token)')
+export BENCH_WEBID=$(node -e 'console.log(require(process.env.HOME+"/php-seed.json").webid)')
+export BENCH_POD="${SUT}storage/"
+bench/run-second-server.sh "$SUT"
+----
+
+`podSession.ts` reconciles the ways in which php-solid-server departs from CSS:
+it authenticates with a plain Bearer token rather than DPoP, rewrites HEAD
+requests as GET, and supplies the LDP `BasicContainer` type header that the
+server requires to create a container. See link:../README.adoc[../README.adoc]
+(the second-server section) for the complete list and the rationale for each.
+
+== What is patched, and why
+
+`Dockerfile`::
+Enables opcache (`zz-benchmark-tuning.ini` activates it) and embeds the host IP
+in the certificate. With `LONG_TOKEN=1`, a build step additionally modifies a
+bundled dependency (`ConfigFactory.php`) to extend the access-token lifetime from
+one hour to 24.
+
+`web/index.php`::
+Sets `setPubSubUrl("")` so that the server omits publish-subscribe. Without that
+component running, the default URL resolves to an unavailable endpoint and every
+write returns HTTP 500.
+
+`zz-benchmark-tuning.ini`::
+PHP memory, upload-size, and opcache settings for the benchmark run.

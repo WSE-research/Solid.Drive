@@ -1,10 +1,9 @@
 PREFIX schema: <http://schema.org/>
-PREFIX sd: <https://w3id.org/solid-drive#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-<https://w3id.org/solid-drive#CatalogEntrySh> {
-	a [schema:DigitalDocument sd:ImageFile sd:VideoFile sd:AudioFile sd:TextDocument sd:SpreadsheetDocument] ;
+<https://w3id.org/catalog-entry#CatalogEntrySh> {
+	a [schema:DigitalDocument schema:ImageObject schema:VideoObject schema:AudioObject schema:TextDigitalDocument schema:SpreadsheetDigitalDocument] ;
 	schema:name xsd:string ? ;
 	schema:description xsd:string ? ;
 	schema:encodingFormat xsd:string ? ;
