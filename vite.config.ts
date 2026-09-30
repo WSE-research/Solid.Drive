@@ -72,6 +72,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 4_000_000,
         navigateFallback: `${BASE_PATH}index.html`,
+        navigateFallbackDenylist: [/\/vocab\//, /\.ttl$/],
       },
       devOptions: {
         enabled: false,
