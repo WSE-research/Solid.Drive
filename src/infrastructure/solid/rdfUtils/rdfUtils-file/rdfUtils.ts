@@ -18,8 +18,9 @@ export function serializeTurtle(quads: Quad[], prefixes: Record<string, string> 
   let turtle = "";
   const writer = new Writer({ prefixes });
   writer.addQuads(quads);
-  writer.end((_err, result) => {
-    turtle = result;
+  writer.end((error, result) => {
+    if (error) throw error;
+    turtle = result ?? "";
   });
   return turtle;
 }
