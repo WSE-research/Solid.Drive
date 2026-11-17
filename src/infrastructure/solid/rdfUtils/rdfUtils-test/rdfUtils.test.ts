@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { DataFactory } from "n3";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { DataFactory, Writer } from "n3";
 import { serializeTurtle } from '../rdfUtils-file/rdfUtils';
 
 const { quad, namedNode, literal } = DataFactory;
@@ -106,6 +106,29 @@ describe("rdfUtils", () => {
       expect(result).toContain("30");
       expect(result).toContain("http://example.org/person");
       expect(result).toContain("http://example.org/age");
+    });
+
+    describe("when the writer misbehaves", () => {
+      afterEach(() => {
+        vi.restoreAllMocks();
+      });
+
+      it("returns an empty string when the writer finishes without a result", () => {
+        vi.spyOn(Writer.prototype, "end").mockImplementation((done) => {
+          done?.(null, undefined as unknown as string);
+        });
+
+        expect(serializeTurtle([])).toBe("");
+      });
+
+      it("throws the error the writer reports", () => {
+        const writerError = new Error("serialization failed");
+        vi.spyOn(Writer.prototype, "end").mockImplementation((done) => {
+          done?.(writerError, "");
+        });
+
+        expect(() => serializeTurtle([])).toThrow(writerError);
+      });
     });
   });
 });
