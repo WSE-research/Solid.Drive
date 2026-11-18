@@ -15,7 +15,7 @@ import { TEST_TIMEOUTS, UI_TIMEOUTS } from "../config";
 
 // Vite `base` from vite.config.ts. The app is served under this prefix
 // and every PWA asset must resolve beneath it.
-const BASE_PATH = "/solid-hello-world-frontend-react/";
+const BASE_PATH = "/solid.drive/";
 
 test.describe("PWA installability assets", () => {
   test("links a manifest under BASE_URL declaring the required install fields", async ({ page }) => {

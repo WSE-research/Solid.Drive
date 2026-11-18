@@ -4,7 +4,7 @@
  * Called once from the application entry point. Both the worker script
  * URL and the registration scope are derived from {@link ENV.baseUrl}
  * so the worker controls exactly the pages served under Vite's `base`
- * (e.g. `/solid-hello-world-frontend-react/`) and nothing above it.
+ * (e.g. `/solid.drive/`) and nothing above it.
  *
  * @packageDocumentation
  */

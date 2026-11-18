@@ -116,7 +116,7 @@ export const EXTERNAL_LINKS = {
   /** Fallback URL for pod registration when no provider-specific URL is available */
   defaultGetPod: "https://solidproject.org/users/get-a-pod",
   /** Public GitHub repository for the project */
-  githubRepo: "https://github.com/WSE-research/Solid-Hello-World-Frontend-React",
+  githubRepo: "https://github.com/WSE-research/Solid.Drive",
 } as const;
 
 // ============================================================================
@@ -587,7 +587,7 @@ export const DOCUMENT_MIME_TYPES = [
  *
  * @remarks
  * Prefixed with Vite's BASE_URL so the path resolves under the
- * configured `base` (e.g. `/solid-hello-world-frontend-react/`).
+ * configured `base` (e.g. `/solid.drive/`).
  * Using a bare `/tbox.ttl` would 404 because Vite serves
  * `public/tbox.ttl` at `${BASE_URL}tbox.ttl`, not at the origin root.
  *

@@ -3,7 +3,7 @@
     {
       "mode": "dockerfile",
       "port": "40211:80",
-      "image": "wseresearch/solid-hello-world-frontend-react",
+      "image": "wseresearch/solid.drive",
       "tag": "latest"
     },
     {

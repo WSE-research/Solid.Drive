@@ -42,7 +42,7 @@ export const ENV = {
   prod: import.meta.env.PROD as boolean,
   /**
    * Public base path the app is served from, as configured by Vite's
-   * `base` (e.g. `/solid-hello-world-frontend-react/`). Always ends with
+   * `base` (e.g. `/solid.drive/`). Always ends with
    * a trailing slash. Used to resolve runtime-fetched assets such as the
    * service worker so they land under the same path prefix.
    */

@@ -5,7 +5,7 @@
  * BASE_URL scope. Everything below resolves against the worker's own
  * location, so the very same file works whether the app is served at
  * '/' (tests / a bare deployment) or under the WSE reverse proxy at
- * '/solid-hello-world-frontend-react/'.
+ * '/solid.drive/'.
  *
  * Strategy: network-first. Online requests always hit the network, so
  * Vite's dev HMR and fresh production assets are never served stale;
