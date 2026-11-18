@@ -16,13 +16,13 @@ describe('copyResource', () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const fetchFn = vi.fn<FetchFn>(async (input, init) => {
       calls.push({ url: String(input), init });
-      if (!init) return new Response('binary-data', { status: 200, headers: { 'Content-Type': 'image/jpeg' } });
+      if ((init?.method ?? 'GET') === 'GET') return new Response('binary-data', { status: 200, headers: { 'Content-Type': 'image/jpeg' } });
       return new Response('', { status: 201 });
     });
 
     await copyResource(sourceUri, targetUri, fetchFn);
 
-    expect(calls[0]).toEqual({ url: sourceUri, init: undefined });
+    expect(calls[0]).toEqual({ url: sourceUri, init: { cache: 'no-store' } });
     expect(calls[1].url).toBe(targetUri);
     expect(calls[1].init?.method).toBe('PUT');
     expect((calls[1].init?.headers as Record<string, string>)['Content-Type']).toBe('image/jpeg');
@@ -34,7 +34,7 @@ describe('copyResource', () => {
 
   it('falls back to the provided content type when the source has none', async () => {
     const fetchFn = vi.fn<FetchFn>(async (_input, init) => {
-      if (!init) return responseWithNoContentType();
+      if ((init?.method ?? 'GET') === 'GET') return responseWithNoContentType();
       return new Response('', { status: 201 });
     });
 
@@ -46,7 +46,7 @@ describe('copyResource', () => {
 
   it('falls back to octet-stream when neither the source header nor a fallback is available', async () => {
     const fetchFn = vi.fn<FetchFn>(async (_input, init) => {
-      if (!init) return responseWithNoContentType();
+      if ((init?.method ?? 'GET') === 'GET') return responseWithNoContentType();
       return new Response('', { status: 201 });
     });
 
@@ -63,7 +63,7 @@ describe('copyResource', () => {
 
   it('throws when the PUT fails', async () => {
     const fetchFn = vi.fn<FetchFn>(async (_input, init) => {
-      if (!init) return new Response('data', { status: 200 });
+      if ((init?.method ?? 'GET') === 'GET') return new Response('data', { status: 200 });
       return new Response('', { status: 403, statusText: 'Forbidden' });
     });
     await expect(copyResource(sourceUri, targetUri, fetchFn)).rejects.toThrow('403');

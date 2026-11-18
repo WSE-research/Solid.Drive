@@ -19,8 +19,12 @@ class FakePod {
   private readonly resources = new Map<string, { body: string; contentType: string; version: number; modified: number }>();
   private readonly containers = new Set<string>();
   private clock = Date.UTC(2026, 0, 1);
-  readonly requests: { method: string; url: string; headers: Record<string, string> }[] = [];
+  readonly requests: { method: string; url: string; headers: Record<string, string>; cache?: RequestCache }[] = [];
   afterRequest: (method: string, url: string) => void = () => {};
+  /** Answers (or fails) a request before the pod handles it, when it returns something. */
+  intercept: (method: string, url: string) => Response | Error | undefined = () => undefined;
+  /** Simulates content coding: `Content-Length` is the length on the wire, not the decoded size. */
+  wireLength: (body: string) => number = (body) => new Blob([body]).size;
 
   private readonly tagKind: 'strong' | 'weak';
 
@@ -39,6 +43,11 @@ class FakePod {
 
   has(url: string): boolean {
     return this.resources.has(url) || this.containers.has(url);
+  }
+
+  /** Another client deletes a resource. */
+  remove(url: string): void {
+    this.resources.delete(url);
   }
 
   write(url: string, body: string, contentType = 'text/plain'): void {
@@ -82,8 +91,11 @@ class FakePod {
     const url = String(input);
     const method = init?.method ?? 'GET';
     const headers = { ...((init?.headers as Record<string, string> | undefined) ?? {}) };
-    this.requests.push({ method, url, headers });
+    this.requests.push({ method, url, headers, cache: init?.cache });
     try {
+      const injected = this.intercept(method, url);
+      if (injected instanceof Error) throw injected;
+      if (injected) return injected;
       return await this.handle(url, method, headers, init);
     } finally {
       this.afterRequest(method, url);
@@ -102,7 +114,7 @@ class FakePod {
         status: 200,
         headers: {
           'Content-Type': resource.contentType,
-          'Content-Length': String(new Blob([resource.body]).size),
+          'Content-Length': String(this.wireLength(resource.body)),
           ETag: this.etagOf(url),
           'Last-Modified': new Date(resource.modified).toUTCString(),
         },
@@ -228,6 +240,42 @@ describe.each(['strong', 'weak'] as const)('softDeleteFile against a server with
     expect(pod.body(`${trashItemContainerUri}payload`)).toBe('version 1');
     expect(trashRows(pod).map((row) => row.uri)).toEqual([`${trashItemContainerUri}index.ttl`]);
   });
+
+  it('keeps the trash copy when another client deletes the original between the copy and the delete', async () => {
+    const pod = await seededPod(tagKind);
+    let fired = false;
+    pod.afterRequest = (method, url) => {
+      if (!fired && method === 'PUT' && url === `${trashItemContainerUri}tombstone.ttl`) {
+        fired = true;
+        pod.remove(binaryUri);
+      }
+    };
+
+    const result = await runSoftDelete(pod);
+
+    expect(result).toEqual({ ok: true, trashItemContainerUri });
+    expect(pod.body(`${trashItemContainerUri}payload`)).toBe('version 1');
+    expect(trashRows(pod).map((row) => row.uri)).toEqual([`${trashItemContainerUri}index.ttl`]);
+  });
+
+  it('stops, and keeps the new file, when another client re-creates it right after the delete', async () => {
+    const pod = await seededPod(tagKind);
+    let fired = false;
+    pod.afterRequest = (method, url) => {
+      if (!fired && method === 'DELETE' && url === binaryUri) {
+        fired = true;
+        pod.write(binaryUri, 'version 2, saved by another client');
+      }
+    };
+
+    const result = await runSoftDelete(pod);
+
+    expect(result).toEqual({ ok: false, reason: FILE_CHANGED_DURING_DELETE });
+    expect(pod.body(binaryUri)).toBe('version 2, saved by another client');
+    expect(pod.has(metadataUri)).toBe(true);
+    expect(activeRows(pod).map((row) => row.uri)).toContain(metadataUri);
+    expect(pod.body(`${trashItemContainerUri}payload`)).toBe('version 1');
+  });
 });
 
 describe('softDeleteFile: the conditional delete', () => {
@@ -251,5 +299,47 @@ describe('softDeleteFile: the conditional delete', () => {
     expect(binaryDelete?.headers['If-Unmodified-Since']).toBeDefined();
     const binaryRequests = pod.requests.filter((request) => request.url === binaryUri).map((request) => request.method);
     expect(binaryRequests.slice(-2)).toEqual(['HEAD', 'DELETE']);
+  });
+
+  it('reads the version it copies uncached, so the tag is the server\'s current one', async () => {
+    const pod = await seededPod('strong');
+
+    await runSoftDelete(pod);
+
+    const binaryGet = pod.requests.find((request) => request.method === 'GET' && request.url === binaryUri);
+    expect(binaryGet?.cache).toBe('no-store');
+  });
+
+  it('does not mistake a content-coded length for a change on the weak-tag path', async () => {
+    const pod = await seededPod('weak');
+    pod.wireLength = (body) => Math.ceil(body.length / 2);
+
+    const result = await runSoftDelete(pod);
+
+    expect(result).toEqual({ ok: true, trashItemContainerUri });
+    expect(pod.has(binaryUri)).toBe(false);
+  });
+
+  it('removes the trash copy when the server refuses the delete, since the original is still there', async () => {
+    const pod = await seededPod('strong');
+    pod.intercept = (method, url) =>
+      method === 'DELETE' && url === binaryUri ? new Response(null, { status: 403, statusText: 'Forbidden' }) : undefined;
+
+    const result = await runSoftDelete(pod);
+
+    expect(result).toEqual({ ok: false, reason: `${binaryUri}: 403 Forbidden` });
+    expect(pod.body(binaryUri)).toBe('version 1');
+    expect(pod.has(trashItemContainerUri)).toBe(false);
+    expect(trashRows(pod)).toEqual([]);
+  });
+
+  it('returns a failure instead of throwing when the delete hits a network error, and keeps the trash copy', async () => {
+    const pod = await seededPod('strong');
+    pod.intercept = (method, url) => (method === 'DELETE' && url === binaryUri ? new TypeError('Failed to fetch') : undefined);
+
+    const result = await runSoftDelete(pod);
+
+    expect(result).toEqual({ ok: false, reason: 'Failed to fetch' });
+    expect(pod.body(`${trashItemContainerUri}payload`)).toBe('version 1');
   });
 });

@@ -10,6 +10,8 @@ Catalog cleanup is non-blocking: a stale or already removed entry does not fail 
 
 Returns a `{ ok: true } | { ok: false; reason }` envelope rather than throwing, so callers can show the server message in a toast.
 
+`abortIfListed` names a direct child the caller already deleted on purpose, for example with a precondition. If the container listing shows it again, another client re-created it, so nothing is deleted and the result is `{ ok: false, reason: RESOURCE_RECREATED_DURING_DELETE }`. `softDeleteFile` passes the binary it has just deleted with `If-Match`.
+
 `deleteResourceQuietly` wraps `deleteResource` for rollback paths. It swallows both a rejected promise and an `{ ok: false }` result, since the caller is already reporting a different failure and leaving a stray resource behind is an acceptable, non-blocking side effect. `softDeleteFile` and `restoreTrashedFile` both use it in their own rollback helpers.
 
 == See also

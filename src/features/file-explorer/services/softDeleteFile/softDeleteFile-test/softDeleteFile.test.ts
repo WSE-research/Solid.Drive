@@ -24,6 +24,7 @@ const mockDeleteResource = vi.fn().mockResolvedValue({ ok: true });
 vi.mock('@/features/file-explorer/services/deleteResource', () => ({
   deleteResource: (...args: unknown[]) => mockDeleteResource(...args),
   deleteResourceQuietly: (...args: unknown[]) => mockDeleteResource(...args).catch(() => {}),
+  RESOURCE_RECREATED_DURING_DELETE: 'recreated',
 }));
 
 const mockNotifyCatalogChanged = vi.fn();
@@ -181,6 +182,7 @@ describe('softDeleteFile', () => {
       metadataUri: baseEntry.metadataUri,
       catalogUri,
       fetch: expect.any(Function),
+      abortIfListed: sourceBinaryUri,
     });
   });
 

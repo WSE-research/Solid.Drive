@@ -22,8 +22,12 @@ export interface CopiedRepresentation {
   etag: string | null;
   /** The source's `Last-Modified` header, or null when absent. */
   lastModified: string | null;
-  /** Size in bytes of the body that was copied. */
-  size: number;
+  /**
+   * The source's `Content-Length` header as sent, or null when absent. It
+   * is the length on the wire, so compare it with another response's
+   * header, never with the decoded body size.
+   */
+  contentLength: string | null;
 }
 
 /**
@@ -42,7 +46,9 @@ export async function copyResource(
   fetch: FetchFn,
   fallbackContentType: string = CONTENT_TYPES.OCTET_STREAM,
 ): Promise<CopiedRepresentation> {
-  const getResponse = await fetch(sourceUri);
+  // no-store: the returned validators may guard a later write or delete,
+  // so they must describe the server's current version, not a cached one.
+  const getResponse = await fetch(sourceUri, { cache: "no-store" });
   if (!getResponse.ok) {
     throw new Error(`Failed to read ${sourceUri}: ${getResponse.status} ${getResponse.statusText}`);
   }
@@ -60,7 +66,7 @@ export async function copyResource(
   return {
     etag: getResponse.headers.get("ETag"),
     lastModified: getResponse.headers.get("Last-Modified"),
-    size: body.size,
+    contentLength: getResponse.headers.get("Content-Length"),
   };
 }
 
