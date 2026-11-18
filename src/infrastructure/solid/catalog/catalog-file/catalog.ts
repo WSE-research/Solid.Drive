@@ -5,9 +5,13 @@
  * Provides CRUD operations for DCAT catalogs stored as Turtle documents.
  *
  * @remarks
- * Catalog mutations use a GET/PUT round trip: the document is loaded into
- * an N3 store, updated in memory, and written back in full. This avoids
- * relying on SPARQL Update support, which varies across Solid servers.
+ * Catalog mutations load the document into an N3 store and update it in
+ * memory. The change is written with `updateRdfDocument`: as an N3 Patch
+ * naming only the added and removed statements when the server supports
+ * it, otherwise as a whole-document PUT conditioned on the ETag (or on
+ * `If-None-Match: *` for a new catalog) that re-reads, re-applies, and
+ * retries on 412. Either way a concurrent writer's rows are neither lost
+ * nor brought back.
  */
 
 import { Parser as N3Parser, Store as N3Store, DataFactory } from "n3";
@@ -17,6 +21,8 @@ import type { SolidProfile } from "@/.ldo/solidProfile.typings";
 import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
 import { serializeTurtle } from "@/infrastructure/solid/rdfUtils";
 import { appendTombstones, readTombstonedTags } from "@/infrastructure/solid/catalogTombstones";
+import { updateRdfDocument } from "@/infrastructure/solid/rdfDocumentUpdate";
+import type { ParsedRdfDocument } from "@/infrastructure/solid/rdfDocumentUpdate";
 import { generateEntryTag, isValidEntryTag } from "@/infrastructure/solid/entryTag";
 import {
   DEFAULT_CATALOG_FILENAME,
@@ -154,9 +160,9 @@ export function resolveCatalogUri(
  * per `catalogUri` closes that gap for every writer this client issues:
  * the next GET only starts once the previous PUT has landed.
  *
- * This only covers writers within this client. A genuinely concurrent
- * writer elsewhere (another tab, another device) still needs server-side
- * conditional PUT support to be safe, which is a separate, bigger change.
+ * This only covers writers within this client. Writers elsewhere (another
+ * tab, another device, another app such as Solid.Sync) are covered by
+ * {@link performCatalogWrite}, which patches or writes conditionally.
  *
  * @internal
  */
@@ -189,9 +195,27 @@ async function withCatalogStore(
 }
 
 /**
- * Reads a Turtle document into an N3 store, mutates it, and PUTs the whole
- * document back. A 404 GET starts from an empty store, so this doubles as
- * "create the catalog if it doesn't exist yet". Only ever called through
+ * Parses a catalog for a write. A totally unparseable document has to
+ * fail the write, or we'd PUT back an empty catalog and lose everything
+ * in it. A partial parse is still a real prefix of the content, so it's
+ * safe to write from, and it heals the document once the next write
+ * replaces it in full, dropping the bad tail.
+ *
+ * @internal
+ */
+function parseCatalogForWrite(turtleText: string, catalogUri: string): ParsedRdfDocument {
+  const recovered = parseQuadsRecovering(turtleText, catalogUri);
+  if (recovered.error && recovered.quads.length === 0) {
+    throw recovered.error;
+  }
+  return { quads: recovered.quads, damaged: recovered.error !== null };
+}
+
+/**
+ * Reads a Turtle document into an N3 store, mutates it, and writes the
+ * change back through {@link updateRdfDocument}. A 404 GET starts from an
+ * empty store declared as a `dcat:Catalog`, so this doubles as "create the
+ * catalog if it doesn't exist yet". Only ever called through
  * {@link withCatalogStore}'s queue, never directly.
  *
  * @internal
@@ -201,42 +225,20 @@ async function performCatalogWrite(
   fetch: FetchFn,
   mutate: CatalogMutation
 ): Promise<void> {
-  const getResponse = await fetch(catalogUri, { cache: "no-store" });
-  if (!getResponse.ok && getResponse.status !== 404) {
-    throw new Error(`Failed to read ${catalogUri}: ${getResponse.status} ${getResponse.statusText}`);
-  }
-
-  const isNewCatalog = getResponse.status === 404;
-  let quads: Quad[];
-  if (isNewCatalog) {
-    quads = [];
-  } else {
-    // A totally unparseable document has to fail the write, or we'd PUT
-    // back an empty catalog and lose everything in it. A partial parse is
-    // still a real prefix of the content, so it's safe to write from, and
-    // it heals the document once the next write drops the bad tail.
-    const recovered = parseQuadsRecovering(await getResponse.text(), catalogUri);
-    if (recovered.error && recovered.quads.length === 0) {
-      throw recovered.error;
-    }
-    quads = recovered.quads;
-  }
-  const store = new N3Store(quads);
-  if (isNewCatalog) {
-    store.addQuad(quad(namedNode(catalogUri), RDF_TYPE, DCAT_CATALOG_CLASS));
-  }
-
-  if ((await mutate(store)) === false) return;
-
-  const turtle = serializeTurtle(store.getQuads(null, null, null, null), CATALOG_PREFIXES);
-  const putResponse = await fetch(catalogUri, {
-    method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-    body: turtle,
-  });
-  if (!putResponse.ok) {
-    throw new Error(`Failed to write ${catalogUri}: ${putResponse.status} ${putResponse.statusText}`);
-  }
+  await updateRdfDocument(
+    catalogUri,
+    fetch,
+    async (store, { exists }) => {
+      if (!exists) {
+        store.addQuad(quad(namedNode(catalogUri), RDF_TYPE, DCAT_CATALOG_CLASS));
+      }
+      return mutate(store);
+    },
+    {
+      parse: parseCatalogForWrite,
+      serialize: (quads) => serializeTurtle(quads, CATALOG_PREFIXES),
+    },
+  );
 }
 
 /**
@@ -477,7 +479,7 @@ export async function ensureCatalogRootEntry(params: EnsureCatalogRootEntryParam
  *
  * @remarks
  * Returns without modification when the catalog is unavailable. The catalog
- * is updated through a single GET/PUT cycle, so all related triples are
+ * is updated through a single read and write, so all related triples are
  * removed together. If the entry carried an OR-set tag, that tag is
  * tombstoned before the write completes, so a stale re-add of it gets
  * suppressed instead of resurrecting the entry. Tombstoning happens

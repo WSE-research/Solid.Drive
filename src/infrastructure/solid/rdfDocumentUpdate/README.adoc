@@ -1,0 +1,21 @@
+= rdfDocumentUpdate
+
+Read-modify-write of a whole RDF document (catalog, trash catalog, deletion log) that does not lose rows written or removed by other clients in the meantime.
+
+`updateRdfDocument` reads the document, runs the caller's mutation on an N3 store, and writes back only the difference when the server advertises N3 Patch (`Accept-Patch: text/n3`). The server applies a `solid:InsertDeletePatch` atomically, so an appended row cannot overwrite another client's row, and a removal cannot bring back a row someone else removed. A 409 (a statement to delete is already gone) re-reads and retries.
+
+Servers without N3 Patch (the PHP Solid Server, for example), a 405, 415, or 501 answer to the patch, and a damaged document that should be healed by a full rewrite take the fallback: a whole-document `PUT` with `If-Match: <ETag>`, or `If-None-Match: *` when the document does not exist yet. On `412` the document is read again, the mutation is applied again, and the write is retried, up to `DEFAULT_MAX_UPDATE_ATTEMPTS` attempts with a short random back-off; after that the write fails with an error instead of overwriting.
+
+Residual risk: an existing document served without a strong ETag gets an unconditional `PUT`, because `If-Match` uses strong comparison (RFC 9110) and there is nothing else to condition on.
+
+== Navigation
+
+.Parent
+link:../[infrastructure/solid]
+
+.Used by
+* link:../catalog/[catalog]
+* link:../catalogTombstones/[catalogTombstones]
+
+.Uses
+* link:../../../config/[config]

@@ -53,11 +53,14 @@ function dedupeAccessRequests(requests: readonly AccessRequest[]): AccessRequest
 async function ensureEmptySharedCatalog(uri: string, fetch: FetchFn): Promise<void> {
   const check = await fetch(uri, { method: "HEAD" });
   if (check.ok) return;
+  // If-None-Match: * so a catalog another client created (and maybe
+  // already wrote rows to) since the HEAD is never replaced by an empty one.
   const response = await fetch(uri, {
     method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
+    headers: { "Content-Type": CONTENT_TYPES.TURTLE, "If-None-Match": "*" },
     body: buildEmptyCatalogTurtle(uri),
   });
+  if (response.status === 412) return;
   if (!response.ok) {
     throw new Error(
       `Failed to create shared catalog at ${uri}: ${response.status} ${response.statusText}`,
