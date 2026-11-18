@@ -6,19 +6,42 @@
  *
  * If preparation fails, the partial trash copy is rolled back and the
  * original remains untouched.
+ *
+ * The original binary is only deleted if it is still the version that was
+ * copied. With a strong entity tag, the `DELETE` carries `If-Match`, so the
+ * server refuses it (412) when another client wrote the file in between.
+ * A 412 is followed by a `HEAD`: if the binary is gone (another client
+ * deleted it), the trash copy is the only copy left and is kept.
+ * RFC 9110 compares `If-Match` strongly, so a weak or missing tag cannot
+ * guard the delete; then the binary is re-checked with `HEAD` (tag by weak
+ * comparison, `Last-Modified`, and `Content-Length` against the copy's
+ * `GET`) right before the `DELETE`, which also carries
+ * `If-Unmodified-Since`. That fallback leaves a residual window: a write
+ * landing between the re-check and the `DELETE`, within the same second as
+ * the copied `Last-Modified` (or with no `Last-Modified` at all), with the
+ * same length and weak tag, is still lost. Either way, a detected change
+ * keeps the original, removes the trash copy and its trash catalog row,
+ * and reports {@link FILE_CHANGED_DURING_DELETE}.
+ *
+ * After the binary is deleted, the rest of the container goes through
+ * `deleteResource`, which stops before deleting anything if the binary is
+ * listed again (another client re-created it). A re-creation after that
+ * listing makes the container `DELETE` fail on a non-empty container, so
+ * the new binary survives, though its `index.ttl` may already be gone.
  */
 
 import { CONTENT_TYPES, DEFAULT_FILE_TYPE_URI, INDEX_FILE, SYSTEM_FILES, TRASH_RETENTION_DAYS } from "@/config";
-import { appendToCatalog, resourceFileName } from "@/infrastructure/solid/catalog";
+import { appendToCatalog, removeFromCatalog, resourceFileName } from "@/infrastructure/solid/catalog";
 import { listContainerChildren } from "@/infrastructure/solid/containerListing";
 import { copyResource, ensureContainer } from "@/infrastructure/solid/resourceCopy";
+import type { CopiedRepresentation } from "@/infrastructure/solid/resourceCopy";
 import { getAclSnapshotUri, getTombstoneUri, getTrashCatalogUri, getTrashContainerUri, getTrashItemContainerUri, getTrashPayloadUri } from "@/infrastructure/solid/trashPaths";
 import { computeExpiry, writeTombstone } from "@/infrastructure/solid/tombstone";
 import { snapshotAcl } from "@/infrastructure/wac/aclSnapshot";
 import { checkHasPermission } from "@/infrastructure/wac/wacAllow";
 import { isSharedCatalogFile } from "@/infrastructure/solid/sharedCatalog";
 import { notifyCatalogChanged } from "@/shared/hooks/useCatalogVersion";
-import { deleteResource, deleteResourceQuietly } from "@/features/file-explorer/services/deleteResource";
+import { deleteResource, deleteResourceQuietly, RESOURCE_RECREATED_DURING_DELETE } from "@/features/file-explorer/services/deleteResource";
 import type { FetchFn } from "@/types/solid";
 import type { SharedEntry } from "@/types/sharing";
 
@@ -56,6 +79,15 @@ export interface SoftDeleteFileArgs {
 export type SoftDeleteFileResult =
   | { ok: true; trashItemContainerUri: string }
   | { ok: false; reason: string };
+
+/**
+ * Failure reason when the original was written by someone else between
+ * the copy into the trash and the delete. The original is kept.
+ *
+ * @public
+ */
+export const FILE_CHANGED_DURING_DELETE =
+  "Someone else changed the file while it was being moved to the Recycle Bin, so it was kept. Check the current version.";
 
 /**
  * Checks whether a container child can represent the file's binary payload.
@@ -113,6 +145,118 @@ function rollbackTrashCopy(trashItemContainerUri: string, fetch: FetchFn): Promi
   return deleteResourceQuietly({ containerUri: trashItemContainerUri, fetch });
 }
 
+/** Opaque part of an entity tag, for weak comparison (RFC 9110, 8.8.3.2). */
+function opaqueTag(etag: string): string {
+  return etag.startsWith("W/") ? etag.slice(2) : etag;
+}
+
+/** A weak or missing tag cannot be used with `If-Match` (strong comparison). */
+function isStrongEtag(etag: string | null): etag is string {
+  return !!etag && !etag.startsWith("W/");
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
+/** The binary right now, compared with the copied version. */
+type BinaryState = "unchanged" | "changed" | "gone";
+
+/**
+ * Reads the binary's current validators with `HEAD` and compares them
+ * with the copied version: tag by weak comparison, `Last-Modified`, and
+ * `Content-Length` (both as sent on the wire, so content coding does not
+ * matter).
+ *
+ * @throws Error when the `HEAD` fails with anything but 404 or 410.
+ * @internal
+ */
+async function binaryStateSinceCopy(binaryUri: string, copied: CopiedRepresentation, fetch: FetchFn): Promise<BinaryState> {
+  const response = await fetch(binaryUri, { method: "HEAD", cache: "no-store" });
+  if (response.status === 404 || response.status === 410) return "gone";
+  if (!response.ok) throw new Error(`${binaryUri}: ${response.status} ${response.statusText}`);
+  const etag = response.headers.get("ETag");
+  if (copied.etag && etag && opaqueTag(copied.etag) !== opaqueTag(etag)) return "changed";
+  const lastModified = response.headers.get("Last-Modified");
+  if (copied.lastModified && lastModified && copied.lastModified !== lastModified) return "changed";
+  const contentLength = response.headers.get("Content-Length");
+  if (copied.contentLength !== null && contentLength !== null && copied.contentLength !== contentLength) return "changed";
+  return "unchanged";
+}
+
+/**
+ * Outcome of the conditional delete of the binary:
+ * - `deleted`: the binary is gone, deleted here or already by someone else.
+ * - `changed`: someone else wrote it since the copy; it was kept.
+ * - `kept`: it was not deleted for another reason (a refusal, a failed
+ *   re-check), so it is certainly still in place.
+ * - `uncertain`: the `DELETE` failed in a way that leaves its effect
+ *   unknown (5xx, network error).
+ */
+type BinaryDeleteOutcome =
+  | { kind: "deleted" }
+  | { kind: "changed" }
+  | { kind: "kept"; reason: string }
+  | { kind: "uncertain"; reason: string };
+
+/**
+ * Deletes the original binary only if it is still the copied version.
+ * See the file docs for the strong-tag path and the weak-tag fallback.
+ * Never throws.
+ *
+ * @internal
+ */
+async function deleteBinaryIfUnchanged(binaryUri: string, copied: CopiedRepresentation, fetch: FetchFn): Promise<BinaryDeleteOutcome> {
+  const headers: Record<string, string> = {};
+  if (isStrongEtag(copied.etag)) {
+    headers["If-Match"] = copied.etag;
+  } else {
+    let state: BinaryState;
+    try {
+      state = await binaryStateSinceCopy(binaryUri, copied, fetch);
+    } catch (error) {
+      return { kind: "kept", reason: errorMessage(error) };
+    }
+    if (state === "gone") return { kind: "deleted" };
+    if (state === "changed") return { kind: "changed" };
+    if (copied.lastModified) headers["If-Unmodified-Since"] = copied.lastModified;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(binaryUri, { method: "DELETE", headers });
+  } catch (error) {
+    return { kind: "uncertain", reason: errorMessage(error) };
+  }
+  if (response.status === 412) {
+    // Some servers answer 412 rather than 404 when the resource is gone.
+    try {
+      const state = await binaryStateSinceCopy(binaryUri, copied, fetch);
+      return state === "gone" ? { kind: "deleted" } : { kind: "changed" };
+    } catch (error) {
+      return { kind: "uncertain", reason: errorMessage(error) };
+    }
+  }
+  if (response.ok || response.status === 404 || response.status === 410) {
+    await fetch(`${binaryUri}.acl`, { method: "DELETE" }).catch(() => {});
+    return { kind: "deleted" };
+  }
+  const reason = `${binaryUri}: ${response.status} ${response.statusText}`;
+  return response.status < 500 ? { kind: "kept", reason } : { kind: "uncertain", reason };
+}
+
+/**
+ * Undoes the trash side of a soft delete whose original stayed in place:
+ * the trash catalog row and the trash copy. Best-effort.
+ *
+ * @internal
+ */
+async function undoTrashEntry(trashCatalogUri: string, trashIndexUri: string, trashItemContainerUri: string, fetch: FetchFn): Promise<void> {
+  await removeFromCatalog(trashCatalogUri, trashIndexUri, fetch).catch(() => {});
+  await rollbackTrashCopy(trashItemContainerUri, fetch);
+  notifyCatalogChanged(trashCatalogUri);
+}
+
 /**
  * Soft-deletes a file by moving a restorable copy to the Recycle Bin
  * before removing the original resource.
@@ -144,6 +288,9 @@ export async function softDeleteFile(args: SoftDeleteFileArgs): Promise<SoftDele
   const trashContainerUri = getTrashContainerUri(storageRootUri);
   const trashItemContainerUri = getTrashItemContainerUri(storageRootUri, trashItemId);
   const trashCatalogUri = getTrashCatalogUri(storageRootUri);
+  const trashPayloadUri = getTrashPayloadUri(trashItemContainerUri);
+  const trashIndexUri = `${trashItemContainerUri}${INDEX_FILE}`;
+  let copied: CopiedRepresentation;
 
   try {
     await ensureContainer(trashContainerUri, fetch);
@@ -157,9 +304,7 @@ export async function softDeleteFile(args: SoftDeleteFileArgs): Promise<SoftDele
       hasAclSnapshot = false;
     }
 
-    const trashPayloadUri = getTrashPayloadUri(trashItemContainerUri);
-    const trashIndexUri = `${trashItemContainerUri}${INDEX_FILE}`;
-    await copyResource(sourceBinaryUri, trashPayloadUri, fetch, entry.mediaType);
+    copied = await copyResource(sourceBinaryUri, trashPayloadUri, fetch, entry.mediaType);
     await copyResource(`${containerUri}${INDEX_FILE}`, trashIndexUri, fetch, CONTENT_TYPES.TURTLE);
 
     await writeTombstone(
@@ -198,8 +343,36 @@ export async function softDeleteFile(args: SoftDeleteFileArgs): Promise<SoftDele
     return { ok: false, reason: error instanceof Error ? error.message : "Unknown error" };
   }
 
-  const deleteResult = await deleteResource({ containerUri, metadataUri: entry.metadataUri, catalogUri, fetch });
-  if (!deleteResult.ok) return deleteResult;
+  // The pivot: delete the binary first, and only if nobody wrote it since
+  // the copy. The rest of the container (index.ttl) goes afterwards.
+  const binaryDelete = await deleteBinaryIfUnchanged(sourceBinaryUri, copied, fetch);
+  if (binaryDelete.kind === "changed") {
+    await undoTrashEntry(trashCatalogUri, trashIndexUri, trashItemContainerUri, fetch);
+    return { ok: false, reason: FILE_CHANGED_DURING_DELETE };
+  }
+  if (binaryDelete.kind === "kept") {
+    await undoTrashEntry(trashCatalogUri, trashIndexUri, trashItemContainerUri, fetch);
+    return { ok: false, reason: binaryDelete.reason };
+  }
+  // The delete may have happened, so the trash copy stays: a stale trash
+  // copy is a safe failure, a lost file is not.
+  if (binaryDelete.kind === "uncertain") return { ok: false, reason: binaryDelete.reason };
+
+  const deleteResult = await deleteResource({
+    containerUri,
+    metadataUri: entry.metadataUri,
+    catalogUri,
+    fetch,
+    abortIfListed: sourceBinaryUri,
+  });
+  if (!deleteResult.ok) {
+    // The copied version was deleted, so its trash copy stays either way.
+    if (deleteResult.reason === RESOURCE_RECREATED_DURING_DELETE) {
+      notifyCatalogChanged(trashCatalogUri);
+      return { ok: false, reason: FILE_CHANGED_DURING_DELETE };
+    }
+    return deleteResult;
+  }
 
   notifyCatalogChanged(trashCatalogUri);
   return { ok: true, trashItemContainerUri };

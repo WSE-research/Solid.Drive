@@ -11,10 +11,31 @@ import { CONTENT_TYPES } from "@/config";
 import { listContainerChildren } from "@/infrastructure/solid/containerListing";
 
 /**
+ * Validators of the source representation that {@link copyResource}
+ * copied, so a caller can later check that the source is still that
+ * exact version (for example with `If-Match`) before acting on it.
+ *
+ * @public
+ */
+export interface CopiedRepresentation {
+  /** The source's `ETag` header as sent, possibly weak (`W/"…"`), or null when absent. */
+  etag: string | null;
+  /** The source's `Last-Modified` header, or null when absent. */
+  lastModified: string | null;
+  /**
+   * The source's `Content-Length` header as sent, or null when absent. It
+   * is the length on the wire, so compare it with another response's
+   * header, never with the decoded body size.
+   */
+  contentLength: string | null;
+}
+
+/**
  * Copies a resource from `sourceUri` to `targetUri` via GET then PUT.
  *
  * @param fallbackContentType - Used when the source response carries no
  * `Content-Type` header.
+ * @returns The validators of the representation that was copied.
  * @throws Error if the GET or the PUT fails.
  *
  * @public
@@ -24,8 +45,10 @@ export async function copyResource(
   targetUri: string,
   fetch: FetchFn,
   fallbackContentType: string = CONTENT_TYPES.OCTET_STREAM,
-): Promise<void> {
-  const getResponse = await fetch(sourceUri);
+): Promise<CopiedRepresentation> {
+  // no-store: the returned validators may guard a later write or delete,
+  // so they must describe the server's current version, not a cached one.
+  const getResponse = await fetch(sourceUri, { cache: "no-store" });
   if (!getResponse.ok) {
     throw new Error(`Failed to read ${sourceUri}: ${getResponse.status} ${getResponse.statusText}`);
   }
@@ -40,6 +63,11 @@ export async function copyResource(
   if (!putResponse.ok) {
     throw new Error(`Failed to write ${targetUri}: ${putResponse.status} ${putResponse.statusText}`);
   }
+  return {
+    etag: getResponse.headers.get("ETag"),
+    lastModified: getResponse.headers.get("Last-Modified"),
+    contentLength: getResponse.headers.get("Content-Length"),
+  };
 }
 
 /**

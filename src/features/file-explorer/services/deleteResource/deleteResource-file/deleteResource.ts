@@ -44,7 +44,23 @@ export interface DeleteResourceArgs {
   catalogUri?: string;
   // Metadata URI for catalog removal.
   metadataUri?: string;
+  /**
+   * A direct child the caller already deleted on purpose, for example
+   * with a precondition. If the listing shows it again, another client
+   * re-created it in the meantime: nothing is deleted, and the result is
+   * `{ ok: false, reason: RESOURCE_RECREATED_DURING_DELETE }`.
+   */
+  abortIfListed?: string;
 }
+
+/**
+ * Failure reason when {@link DeleteResourceArgs.abortIfListed} is listed
+ * again, so the delete stopped before removing anything.
+ *
+ * @public
+ */
+export const RESOURCE_RECREATED_DURING_DELETE =
+  'A resource was re-created by someone else while it was being deleted, so it was kept.';
 
 /**
  * Drops the companion `.acl` resource before deleting its resource.
@@ -94,6 +110,9 @@ export async function deleteResource(
 ): Promise<DeleteResourceResult> {
   try {
     const children = await listContainerChildren(args.containerUri, args.fetch);
+    if (args.abortIfListed && children.includes(args.abortIfListed)) {
+      return { ok: false, reason: RESOURCE_RECREATED_DURING_DELETE };
+    }
     for (const childUri of children) {
       const isContainer = childUri.endsWith('/');
       if (isContainer) {

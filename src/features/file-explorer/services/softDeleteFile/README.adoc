@@ -8,16 +8,24 @@ Resolves the source binary (`entry.binaryUri`, falling back to listing the conta
 
 It ensures the trash container exists, takes a best-effort ACL snapshot (a failure just records `hasAclSnapshot: false` rather than blocking the delete), then copies the binary into `trash/<id>/` under the fixed name `payload`, alongside `index.ttl` and a `tombstone.ttl` recording where it came from and when it expires.
 
-A row is appended to the trash catalog, and the original is removed via `deleteResource`, unmodified.
+A row is appended to the trash catalog. Then the original binary is deleted only if it is still the version that was copied, and the rest of the container is removed via `deleteResource`.
 
-Any failure before the trash catalog append rolls the trash copy back; the original is untouched unless the copy fully completed. If the final delete fails, the trash copy is left in place on purpose: a stale trash copy is a safe failure mode, never data loss.
+== Conditional delete
+
+The copy's `GET` (sent with `cache: "no-store"`, so the tag is the server's current one) yields the binary's entity tag, and the binary's `DELETE` carries `If-Match: <that tag>`. If another client wrote the file between the copy and the delete, the server answers `412`: the original stays, the trash copy and its trash catalog row are removed, and the caller gets `FILE_CHANGED_DURING_DELETE` as the failure reason, which the existing delete-failure toast shows. A `412` is followed by a `HEAD`, because some servers answer `412` rather than `404` when the resource is gone: if another client deleted the original, the trash copy is the only copy left and is kept.
+
+RFC 9110 compares `If-Match` strongly, so a weak (`W/"…"`) or missing tag cannot guard the delete. For such servers the binary is re-checked with `HEAD` right before the `DELETE` (tag by weak comparison, `Last-Modified`, and `Content-Length` against the copy's `GET` header, so content coding does not matter), and the `DELETE` carries `If-Unmodified-Since`. A `404` on that `HEAD` means the original is already gone, which is treated like a successful delete. Residual window of this fallback: a write that lands between the re-check and the `DELETE`, within the same second as the copied `Last-Modified` (or on a server without `Last-Modified`), and keeps the same length and weak tag, is still lost.
+
+After the binary is deleted, `deleteResource` removes the rest of the container with `abortIfListed` set to the binary: if another client re-created the binary in the meantime, nothing more is deleted and the caller gets `FILE_CHANGED_DURING_DELETE`, while the trash copy of the deleted version stays. A re-creation after that listing makes the container `DELETE` fail on a non-empty container, so the new binary survives, though its `index.ttl` may already be gone.
+
+Any failure before the trash catalog append rolls the trash copy back; the original is untouched unless the copy fully completed. If the binary's `DELETE` is refused (`4xx`) or its re-check fails, the original is certainly still in place, so the trash copy and its trash catalog row are removed as for a detected change. If the delete fails in a way that leaves its effect unknown (`5xx`, network error) or fails after the binary is gone, the trash copy is left in place on purpose: a stale trash copy is a safe failure mode, never data loss.
 
 == Reuse
 
-No new delete or catalog logic exists in this module. It reuses, unmodified:
+Apart from the conditional delete of the binary, no new delete or catalog logic exists in this module. It reuses:
 
 * `appendToCatalog` (link:../../../../infrastructure/solid/catalog/[catalog]) for the trash catalog row.
-* `deleteResource` and `deleteResourceQuietly` (link:../deleteResource/[deleteResource]) for the real delete and the rollback delete, respectively.
+* `deleteResource` and `deleteResourceQuietly` (link:../deleteResource/[deleteResource]) for the real delete (with `abortIfListed`) and the rollback delete, respectively.
 * `snapshotAcl` (link:../../../../infrastructure/wac/aclSnapshot/[aclSnapshot]) for the ACL copy.
 * `checkHasPermission` (link:../../../../infrastructure/wac/wacAllow/[wacAllow]) for the preflight permission check.
 

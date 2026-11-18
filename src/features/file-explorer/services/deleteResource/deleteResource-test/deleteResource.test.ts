@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { deleteResource, deleteResourceQuietly } from '../deleteResource-file/deleteResource';
+import { deleteResource, deleteResourceQuietly, RESOURCE_RECREATED_DURING_DELETE } from '../deleteResource-file/deleteResource';
 import type { FetchFn } from '@/types/solid';
 
 const mockRemoveFromCatalog = vi.fn().mockResolvedValue(undefined);
@@ -52,6 +52,39 @@ describe('deleteResource', () => {
       `${containerUri}.acl`,
       containerUri,
     ]);
+  });
+
+  it('deletes nothing when the child named in abortIfListed is listed again', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const childBinary = 'https://pod/app/file/binary.pdf';
+    const childIndex = 'https://pod/app/file/index.ttl';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      if (init?.method === 'DELETE') return okResponse();
+      if (String(input) === containerUri) return okResponse(turtleWithChildren(containerUri, [childBinary, childIndex]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    const result = await deleteResource({
+      containerUri, catalogUri: 'https://pod/catalog.ttl', metadataUri: childIndex, fetch: fetchFn, abortIfListed: childBinary,
+    });
+
+    expect(result).toEqual({ ok: false, reason: RESOURCE_RECREATED_DURING_DELETE });
+    expect(fetchFn.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toEqual([]);
+    expect(mockRemoveFromCatalog).not.toHaveBeenCalled();
+  });
+
+  it('deletes as usual when the child named in abortIfListed is not listed', async () => {
+    const containerUri = 'https://pod/app/file/';
+    const childIndex = 'https://pod/app/file/index.ttl';
+    const fetchFn = vi.fn<FetchFn>(async (input, init) => {
+      if (init?.method === 'DELETE') return okResponse();
+      if (String(input) === containerUri) return okResponse(turtleWithChildren(containerUri, [childIndex]));
+      return errorResponse(404, 'Not Found');
+    });
+
+    const result = await deleteResource({ containerUri, fetch: fetchFn, abortIfListed: 'https://pod/app/file/binary.pdf' });
+
+    expect(result).toEqual({ ok: true });
   });
 
   it('drops the companion .acl before the container DELETE', async () => {
