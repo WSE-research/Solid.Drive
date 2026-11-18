@@ -1,7 +1,7 @@
-# Fails: as:deleted and prov:invalidatedAtTime state different deletion times.
+# Fails: as:deleted and prov:invalidatedAtTime state different instants (a rule checked in code, section 10).
 # role: tombstone
 # document: https://pod.example/alice/trash/dddddddd-dddd-4ddd-8ddd-dddddddddddd/tombstone.ttl
-# expect: sdsh:Tombstone-deleted EqualsConstraintComponent
+# expect: spec:deletionTimesEqual
 @prefix as: <https://www.w3.org/ns/activitystreams#> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .

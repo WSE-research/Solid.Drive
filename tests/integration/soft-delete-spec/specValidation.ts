@@ -23,6 +23,7 @@ const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const SCHEMA = "http://schema.org/";
 const DCTERMS = "http://purl.org/dc/terms/";
 const AS_DELETED = "https://www.w3.org/ns/activitystreams#deleted";
+const PROV_INVALIDATED = "http://www.w3.org/ns/prov#invalidatedAtTime";
 
 /** The four kinds of documents the specification gives shapes for. */
 export type DocumentRole = "resource-description" | "catalog" | "tombstone" | "deletion-log";
@@ -72,7 +73,12 @@ const short = (term: Term | null | undefined): string => {
   return term.value.startsWith(SHAPES_NS) ? `sdsh:${term.value.slice(SHAPES_NS.length)}` : term.value;
 };
 
-/** The subjects a role's main shape is applied to, so that a document without its main statements cannot pass. */
+/**
+ * The subjects a role's main shape is applied to, so that a document
+ * without its main statements cannot pass. A deletion log needs none: its
+ * entries are exactly the subjects with `as:deleted`, which the shapes
+ * target themselves, and an empty log is a valid one.
+ */
 function focusTargets(role: DocumentRole, url: string, data: N3Store): Quad[] {
   const target = (shape: string, node: string) => quad(namedNode(`${SHAPES_NS}${shape}`), namedNode(`${SH}targetNode`), namedNode(node));
   switch (role) {
@@ -87,7 +93,7 @@ function focusTargets(role: DocumentRole, url: string, data: N3Store): Quad[] {
       return [target("ResourceDescriptionShape", subject)];
     }
     case "deletion-log":
-      return data.getSubjects(null, null, null).filter((s) => s.termType === "NamedNode").map((s) => target("DeletionRecordShape", s.value));
+      return [];
   }
 }
 
@@ -116,6 +122,12 @@ function codeChecks(role: DocumentRole, data: N3Store): Finding[] {
           findings.push(codeFinding("partInEntry", tombstone.value, `${DCTERMS}hasPart`, part.value,
             "Every dcterms:hasPart of a tombstone lies in the tombstone's own trash entry."));
         }
+      }
+      const deleted = data.getObjects(tombstone, AS_DELETED, null).map((time) => Date.parse(time.value));
+      const invalidated = data.getObjects(tombstone, PROV_INVALIDATED, null).map((time) => Date.parse(time.value));
+      if (deleted.length === 1 && invalidated.length === 1 && deleted[0] !== invalidated[0]) {
+        findings.push(codeFinding("deletionTimesEqual", tombstone.value, PROV_INVALIDATED, String(invalidated[0]),
+          "prov:invalidatedAtTime is the same instant as as:deleted."));
       }
       const kind = data.getObjects(tombstone, `${TRASH_NS}kind`, null)[0] ?? data.getObjects(tombstone, `${LEGACY_TRASH_NS}kind`, null)[0];
       const source = data.getObjects(tombstone, `${DCTERMS}source`, null)[0];

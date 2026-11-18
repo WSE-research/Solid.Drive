@@ -9,7 +9,8 @@
  * `linkCatalogToProfile` send it). Every resource has a strong entity tag,
  * and `If-Match`, `If-None-Match: *`, and `If-Unmodified-Since` are applied
  * as RFC 9110 describes. A PATCH creates a missing resource, as the
- * Community Solid Server does. With `n3Patch: false` the server neither
+ * Community Solid Server does, and like it, a listing leaves out auxiliary
+ * `.acl` resources, and deleting a resource deletes its `.acl`. With `n3Patch: false` the server neither
  * advertises nor accepts N3 Patch, like the PHP Solid Server, so the
  * clients take their conditional-PUT paths.
  */
@@ -136,9 +137,10 @@ export class MemoryPod {
     }
   }
 
+  /** Direct children, without auxiliary `.acl` resources, which a listing does not show. */
   private children(containerUrl: string): string[] {
     return [...this.resources.keys(), ...this.containers]
-      .filter((url) => url !== containerUrl && url.startsWith(containerUrl))
+      .filter((url) => url !== containerUrl && url.startsWith(containerUrl) && !url.endsWith(".acl"))
       .filter((url) => !url.slice(containerUrl.length).replace(/\/$/, "").includes("/"))
       .sort();
   }
@@ -235,10 +237,12 @@ export class MemoryPod {
         if (this.children(url).length > 0) return new Response(null, { status: 409, statusText: "Conflict" });
         if (url === this.options.root) return new Response(null, { status: 405, statusText: "Method Not Allowed" });
         this.containers.delete(url);
+        this.resources.delete(`${url}.acl`);
         return new Response(null, { status: 205 });
       }
       if (!resource) return new Response(null, { status: 404, statusText: "Not Found" });
       this.resources.delete(url);
+      this.resources.delete(`${url}.acl`);
       return new Response(null, { status: 205 });
     }
 

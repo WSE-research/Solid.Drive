@@ -261,7 +261,7 @@
   sh:targetClass sd:Folder ;
   sh:pattern "/$" ;
   sh:or ( :TaggedFolderRowShape :StorageRootRowShape ) ;
-  sh:message "A folder row is a container IRI and has sd:tag, dcterms:title, and dcterms:modified, unless it is the row of the storage root, which has neither sd:hasParent nor sd:tag."@en .
+  sh:message "A folder row is a container IRI and has sd:tag, dcterms:title, and dcterms:modified, unless it is the row of the storage root, which has neither sd:hasParent nor sd:tag and is not a trash entry."@en .
 
 :TaggedFolderRowShape
   a sh:NodeShape ;
@@ -269,6 +269,8 @@
 
 :StorageRootRowShape
   a sh:NodeShape ;
+  rdfs:comment "SHACL Core cannot compare a row with the storage root, so this accepts any untagged folder row without a parent outside the trash."@en ;
+  sh:not [ sh:pattern "/trash/[^/]+/$" ] ;
   sh:property [ sh:path sd:hasParent ; sh:maxCount 0 ] , [ sh:path sd:tag ; sh:maxCount 0 ] .
 
 # ---------------------------------------------------------------------------
@@ -297,9 +299,8 @@
 :Tombstone-deleted a sh:PropertyShape ;
   sh:path as:deleted ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
   sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
-  sh:equals prov:invalidatedAtTime ;
   sh:lessThanOrEquals dcterms:valid ;
-  sh:message "as:deleted is one xsd:dateTime with a time zone, equal to prov:invalidatedAtTime and not after dcterms:valid."@en .
+  sh:message "as:deleted is one xsd:dateTime with a time zone, not after dcterms:valid. (That it is the same instant as prov:invalidatedAtTime is checked in code, spec:deletionTimesEqual.)"@en .
 
 :Tombstone-invalidatedAtTime a sh:PropertyShape ;
   sh:path prov:invalidatedAtTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;

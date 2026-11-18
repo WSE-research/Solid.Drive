@@ -9,11 +9,12 @@
  *   findings their header names (invalid/),
  *
  * and keeps the vocabulary, the shapes, and the specification text at the
- * same version. Violations in Solid.Drive's own output must be known gaps
- * of the specification (section 11); a fixed gap fails this test until it
- * is removed from KNOWN_GAPS and from the specification.
+ * same version. Every violation in Solid.Drive's own output must be a known
+ * gap of the specification (section 11) in a document where that gap can
+ * occur, and the counts must equal the table in section 10; a fixed gap
+ * fails this test until KNOWN_GAPS and the specification are updated.
  *
- * `SPEC_REPORT=1` prints the counts the specification reports in section 10.
+ * `SPEC_REPORT=1` prints the counts and every document's result.
  * `SPEC_EXAMPLES_UPDATE=1` rewrites docs/spec/examples/generated/.
  */
 
@@ -24,21 +25,51 @@ import { Parser as N3Parser, Store as N3Store, Writer as N3Writer } from "n3";
 import type { Quad } from "n3";
 import { RDF_NAMESPACES } from "@/config";
 import { checkDocument, LEGACY_TRASH_NS, roleOf, SPEC_DIR, TRASH_NS, type DocumentReport, type DocumentRole } from "./specValidation";
-import { CATALOG, generateDocuments, REPORT_NAME, ROOT, TRASH_CATALOG, TRASH_IDS, type GeneratedDocument } from "./generateDocuments";
+import {
+  canonical, CATALOG, generateDocuments, REPORT_NAME, ROOT, TRASH_CATALOG, TRASH_IDS,
+  type GeneratedDocument, type GeneratedScenario,
+} from "./generateDocuments";
 
 vi.mock("@ldo/solid-react", async () => (await import("./ldoBinding")).solidReactStub);
 
 const EXAMPLES = resolve(SPEC_DIR, "examples");
 const OWL = "http://www.w3.org/2002/07/owl#";
 const RDFS = "http://www.w3.org/2000/01/rdf-schema#";
+const SPEC_TEXT = readFileSync(resolve(SPEC_DIR, "soft-delete.md"), "utf8");
 
-/** Violations Solid.Drive's own output shows at this commit, with their entry in section 11 of the specification. */
-const KNOWN_GAPS: Record<string, string> = {
-  "sdsh:ResourceDescription-type MinCountConstraintComponent": "KG4: index.ttl without rdf:type",
-  "sdsh:ResourceDescription-typeKnown QualifiedMinCountConstraintComponent": "KG4: index.ttl without rdf:type",
-  "sdsh:ResourceDescription-encodingFormat MinCountConstraintComponent": "KG5: no media type for an unrecognized file",
-  "sdsh:Distribution-mediaType PatternConstraintComponent": "KG5: no media type for an unrecognized file",
-};
+/** The step of the scenario that uploads a file the browser gives no media type. */
+const UNTYPED_UPLOAD_STEP = "upload data.bin (no media type)";
+
+/** One result: a document of the scenario, its role, and what checking it found. */
+interface CheckedDocument {
+  document: GeneratedDocument;
+  role: DocumentRole;
+  result: DocumentReport;
+}
+
+/**
+ * Violations Solid.Drive's own output shows at this commit, with their entry
+ * in section 11 of the specification and the documents they may occur in.
+ */
+const KNOWN_GAPS: { key: string; gap: string; occursIn: (checked: CheckedDocument, all: CheckedDocument[]) => boolean }[] = [
+  ...["sdsh:ResourceDescription-type MinCountConstraintComponent", "sdsh:ResourceDescription-typeKnown QualifiedMinCountConstraintComponent"].map((key) => ({
+    key,
+    gap: "KG4: index.ttl without rdf:type",
+    occursIn: ({ role }: CheckedDocument) => role === "resource-description",
+  })),
+  {
+    key: "sdsh:ResourceDescription-encodingFormat MinCountConstraintComponent",
+    gap: "KG5: no media type for an unrecognized file",
+    occursIn: ({ document }) => document.url === `${ROOT}data.bin/index.ttl`,
+  },
+  {
+    key: "sdsh:Distribution-mediaType PatternConstraintComponent",
+    gap: "KG5: no media type for an unrecognized file",
+    // The row stays in the main catalog from the upload on.
+    occursIn: (checked, all) =>
+      checked.document.url === CATALOG && all.indexOf(checked) >= all.findIndex((other) => other.document.step === UNTYPED_UPLOAD_STEP),
+  },
+];
 
 const keyOf = (finding: { shape: string; component: string }) =>
   finding.component.startsWith("spec:") ? finding.component : `${finding.shape} ${finding.component}`;
@@ -79,7 +110,12 @@ function toTurtle(quads: Quad[], prefixes: Record<string, string>): string {
   return turtle;
 }
 
-const sortedTriples = (quads: Quad[]) => new N3Writer({ format: "N-Triples" }).quadsToString(quads).split("\n").filter(Boolean).sort();
+/** The scenario runs once per kind of Pod; every test that needs it shares the run. */
+const scenarios = new Map<boolean, Promise<GeneratedScenario>>();
+function scenario(n3Patch: boolean): Promise<GeneratedScenario> {
+  if (!scenarios.has(n3Patch)) scenarios.set(n3Patch, generateDocuments(n3Patch));
+  return scenarios.get(n3Patch)!;
+}
 
 /** The Solid.Sync golden fixtures (Solid.Drive v2.1.0), with the URL each document has on the fixture's Pod. */
 function goldenDocuments(): { source: string; url: string; body: string }[] {
@@ -102,25 +138,36 @@ function goldenDocuments(): { source: string; url: string; body: string }[] {
   return documents;
 }
 
-/** Prints what section 10 of the specification reports, when SPEC_REPORT is set. */
+/** The counts of one row of the results table, in the form section 10 of the specification shows them. */
+function tableRow(rows: { role: DocumentRole; result: DocumentReport }[]): string[] {
+  const count = (role?: DocumentRole) => {
+    const selected = rows.filter((row) => !role || row.role === role);
+    return [selected.filter((row) => row.result.conforms).length, selected.length];
+  };
+  const [conforming, total] = count();
+  const cell = (role: DocumentRole) => count(role).join(" of ");
+  return [String(total), String(conforming), cell("catalog"), cell("resource-description"), cell("tombstone"), cell("deletion-log")];
+}
+
+/** The cells after the first of the row of section 10's results table that starts with `label`. */
+function specTableRow(label: string): string[] {
+  const line = SPEC_TEXT.split("\n").find((candidate) => candidate.startsWith(`| ${label} |`));
+  if (!line) throw new Error(`Section 10 has no row "${label}"`);
+  return line.split("|").slice(2, -1).map((cell) => cell.trim());
+}
+
+/** Prints the counts and every document's result, when SPEC_REPORT is set. */
 function report(title: string, rows: { url: string; role: DocumentRole; result: DocumentReport; step?: string }[]): void {
   if (!process.env.SPEC_REPORT) return;
-  const byRole = new Map<string, { total: number; conforming: number }>();
   const causes = new Map<string, number>();
   const warnings = new Map<string, number>();
-  for (const { role, result } of rows) {
-    const entry = byRole.get(role) ?? { total: 0, conforming: 0 };
-    entry.total += 1;
-    entry.conforming += result.conforms ? 1 : 0;
-    byRole.set(role, entry);
+  for (const { result } of rows) {
     for (const key of new Set(result.violations.map(keyOf))) causes.set(key, (causes.get(key) ?? 0) + 1);
     for (const key of new Set(result.warnings.map(keyOf))) warnings.set(key, (warnings.get(key) ?? 0) + 1);
   }
-  const conforming = rows.filter((row) => row.result.conforms).length;
   console.info(
     [
-      `== ${title}: ${conforming} of ${rows.length} documents conform`,
-      ...[...byRole].map(([role, { total, conforming: ok }]) => `   ${role}: ${ok} of ${total}`),
+      `== ${title}: documents, conforming, catalog, resource description, tombstone, deletion log: ${tableRow(rows).join(" | ")}`,
       ...[...causes].map(([key, count]) => `   violation in ${count} documents: ${key}`),
       ...[...warnings].map(([key, count]) => `   warning in ${count} documents: ${key}`),
       ...rows.map(({ url, role, result, step }) =>
@@ -132,20 +179,18 @@ function report(title: string, rows: { url: string; role: DocumentRole; result: 
 describe("soft-delete specification (docs/spec/)", () => {
   describe("vocabulary, shapes, and text share one version", () => {
     const vocabulary = new N3Store(new N3Parser().parse(readFileSync(resolve(SPEC_DIR, "trash.ttl"), "utf8")));
-    const shapesText = readFileSync(resolve(SPEC_DIR, "shapes.ttl"), "utf8");
-    const shapesGraph = new N3Store(new N3Parser().parse(shapesText));
-    const specText = readFileSync(resolve(SPEC_DIR, "soft-delete.md"), "utf8");
-    const specVersion = /^\*\*Version:\*\* (\S+)/m.exec(specText)?.[1];
+    const shapesGraph = new N3Store(new N3Parser().parse(readFileSync(resolve(SPEC_DIR, "shapes.ttl"), "utf8")));
+    const specVersion = /^\*\*Version:\*\* (\S+)/m.exec(SPEC_TEXT)?.[1];
     const terms = ["kind", "originalParent", "originalCatalog", "originalInstance"];
+    const valuesOf = (graph: N3Store, subject: string, predicate: string) => graph.getObjects(subject, predicate, null).map((term) => term.value);
 
     it("states the same version in the specification, the vocabulary, and the shapes", () => {
       expect(specVersion).toMatch(/^\d+\.\d+\.\d+$/);
-      expect(vocabulary.getObjects("https://purl.org/solid-drive/trash", `${OWL}versionInfo`, null).map((term) => term.value)).toEqual([specVersion]);
-      expect(vocabulary.getObjects("https://purl.org/solid-drive/trash", `${OWL}versionIRI`, null).map((term) => term.value)).toEqual([
-        `https://purl.org/solid-drive/trash/${specVersion}`,
-      ]);
-      expect(shapesGraph.getObjects("https://purl.org/solid-drive/shapes", `${OWL}versionInfo`, null).map((term) => term.value)).toEqual([specVersion]);
-      expect(specText).toContain(`### ${specVersion}`);
+      for (const [graph, iri] of [[vocabulary, "https://purl.org/solid-drive/trash"], [shapesGraph, "https://purl.org/solid-drive/shapes"]] as const) {
+        expect(valuesOf(graph, iri, `${OWL}versionInfo`), iri).toEqual([specVersion]);
+        expect(valuesOf(graph, iri, `${OWL}versionIRI`), iri).toEqual([`${iri}/${specVersion}`]);
+      }
+      expect(SPEC_TEXT).toContain(`### ${specVersion}`);
     });
 
     it("defines each trash term with an English label and comment, and links its legacy IRI", () => {
@@ -155,8 +200,8 @@ describe("soft-delete specification (docs/spec/)", () => {
           vocabulary.getObjects(iri, predicate, null).filter((value) => value.termType === "Literal" && value.language === "en");
         expect(english(`${RDFS}label`), term).toHaveLength(1);
         expect(english(`${RDFS}comment`), term).toHaveLength(1);
-        expect(vocabulary.getObjects(iri, `${RDFS}isDefinedBy`, null).map((value) => value.value)).toEqual(["https://purl.org/solid-drive/trash"]);
-        expect(vocabulary.getObjects(iri, `${OWL}equivalentProperty`, null).map((value) => value.value)).toEqual([`${LEGACY_TRASH_NS}${term}`]);
+        expect(valuesOf(vocabulary, iri, `${RDFS}isDefinedBy`)).toEqual(["https://purl.org/solid-drive/trash"]);
+        expect(valuesOf(vocabulary, iri, `${OWL}equivalentProperty`)).toEqual([`${LEGACY_TRASH_NS}${term}`]);
       }
     });
 
@@ -189,10 +234,8 @@ describe("soft-delete specification (docs/spec/)", () => {
       report("Solid.Sync golden fixtures (Solid.Drive v2.1.0)", results);
     });
 
-    it("covers all eight Turtle documents of the fixtures", () => {
-      expect(results.map(({ role }) => role).sort()).toEqual([
-        "catalog", "catalog", "catalog", "deletion-log", "deletion-log", "resource-description", "tombstone", "tombstone",
-      ]);
+    it("gives the counts that section 10 reports", () => {
+      expect(tableRow(results)).toEqual(specTableRow("Solid.Sync golden fixtures (Solid.Drive v2.1.0)"));
     });
 
     it("finds every document conforming except the stub index.ttl that the fixture's harness seeded", () => {
@@ -211,15 +254,13 @@ describe("soft-delete specification (docs/spec/)", () => {
   });
 
   describe.each([
-    { server: "with N3 Patch (like the Community Solid Server)", n3Patch: true },
-    { server: "without N3 Patch (like the PHP Solid Server)", n3Patch: false },
-  ])("documents Solid.Drive writes on a Pod $server", ({ server, n3Patch }) => {
-    let documents: GeneratedDocument[] = [];
-    const results: { document: GeneratedDocument; role: DocumentRole; result: DocumentReport }[] = [];
+    { server: "with N3 Patch (like the Community Solid Server)", n3Patch: true, row: "Solid.Drive, Pod with N3 Patch" },
+    { server: "without N3 Patch (like the PHP Solid Server)", n3Patch: false, row: "Solid.Drive, Pod without N3 Patch" },
+  ])("documents Solid.Drive writes on a Pod $server", ({ server, n3Patch, row }) => {
+    const results: CheckedDocument[] = [];
 
     beforeAll(async () => {
-      documents = (await generateDocuments(n3Patch)).documents;
-      for (const document of documents) {
+      for (const document of (await scenario(n3Patch)).documents) {
         const role = roleOf(document.url);
         if (role) results.push({ document, role, result: await checkDocument(document.url, document.body, role) });
       }
@@ -227,7 +268,6 @@ describe("soft-delete specification (docs/spec/)", () => {
     }, 60_000);
 
     it("writes every kind of document the specification describes", () => {
-      expect(new Set(results.map(({ role }) => role))).toEqual(new Set(["catalog", "resource-description", "tombstone", "deletion-log"]));
       const paths = new Set(results.map(({ document }) => document.url.replace(ROOT, "")));
       for (const path of [
         "catalog.ttl", "catalog-tombstones.ttl", "trash/catalog.ttl", "trash/catalog-tombstones.ttl",
@@ -237,34 +277,29 @@ describe("soft-delete specification (docs/spec/)", () => {
       }
     });
 
-    it("shows only violations that section 11 lists as known gaps", () => {
-      const unknown = results.flatMap(({ document, result }) =>
-        result.violations.filter((finding) => !(keyOf(finding) in KNOWN_GAPS)).map((finding) => ({ url: document.url, step: document.step, ...finding })),
+    it("shows only the known gaps of section 11, each only where it can occur", () => {
+      const unexplained = results.flatMap((checked) =>
+        checked.result.violations
+          .filter((finding) => !KNOWN_GAPS.some(({ key, occursIn }) => key === keyOf(finding) && occursIn(checked, results)))
+          .map((finding) => ({ step: checked.document.step, url: checked.document.url, ...finding })),
       );
-      expect(unknown).toEqual([]);
+      expect(unexplained).toEqual([]);
     });
 
     it("still shows every known gap, so a fixed one is removed from KNOWN_GAPS and the specification", () => {
       const seen = new Set(results.flatMap(({ result }) => result.violations.map(keyOf)));
-      expect([...seen].sort()).toEqual(Object.keys(KNOWN_GAPS).sort());
+      expect([...seen].sort()).toEqual(KNOWN_GAPS.map(({ key }) => key).sort());
     });
 
-    it("writes tombstones, deletion logs, and the trash catalog that conform", () => {
-      for (const { document, role, result } of results) {
-        if (role === "tombstone" || role === "deletion-log" || document.url === TRASH_CATALOG) {
-          expect(result.violations, `${document.step}: ${document.url}`).toEqual([]);
-        }
-      }
+    it("gives the counts that section 10 reports", () => {
+      expect(tableRow(results)).toEqual(specTableRow(row));
     });
   });
 
   describe("examples", () => {
     it("writes the same graphs on Pods with and without N3 Patch", async () => {
       const graphs = async (n3Patch: boolean) =>
-        new Map((await generateDocuments(n3Patch)).documents.map((document) => [
-          `${document.step} ${document.url}`,
-          sortedTriples(new N3Parser({ baseIRI: document.url }).parse(document.body)).join("\n"),
-        ]));
+        new Map((await scenario(n3Patch)).documents.map((document) => [`${document.step} ${document.url}`, canonical(document.url, document.body)]));
       const [withPatch, withoutPatch] = [await graphs(true), await graphs(false)];
       expect([...withoutPatch.keys()].sort()).toEqual([...withPatch.keys()].sort());
       for (const [key, graph] of withoutPatch) expect(graph, key).toEqual(withPatch.get(key));
@@ -289,14 +324,13 @@ describe("soft-delete specification (docs/spec/)", () => {
     };
 
     it("keeps docs/spec/examples/generated/ equal to what Solid.Drive writes", async () => {
-      const { documents } = await generateDocuments(true);
+      const { documents } = await scenario(true);
       const directory = resolve(EXAMPLES, "generated");
       for (const { file, step, url } of generatedExamples) {
         const document = documents.filter((candidate) => candidate.url === url && candidate.step === step).at(-1);
         expect(document, `${step}: ${url}`).toBeDefined();
-        const quads = new N3Parser({ baseIRI: url }).parse(document!.body);
         if (process.env.SPEC_EXAMPLES_UPDATE) {
-          const turtle = toTurtle(quads, prefixes);
+          const turtle = toTurtle(new N3Parser({ baseIRI: url }).parse(document!.body), prefixes);
           const header = [
             `# Written by Solid.Drive's own code (step "${step}" of tests/integration/soft-delete-spec/generateDocuments.ts).`,
             "# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec",
@@ -308,7 +342,7 @@ describe("soft-delete specification (docs/spec/)", () => {
         }
         const committed = readExample("generated", file);
         expect(committed.url).toBe(url);
-        expect(sortedTriples(new N3Parser({ baseIRI: url }).parse(committed.body)), file).toEqual(sortedTriples(quads));
+        expect(canonical(url, committed.body), file).toEqual(canonical(url, document!.body));
       }
     }, 60_000);
 

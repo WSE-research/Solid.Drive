@@ -47,15 +47,19 @@ export const TRASH_IDS = {
 
 /**
  * The graph of a document as sorted N-Triples, so that a server that
- * re-serializes a document does not make it count as a new state.
+ * re-serializes a document does not make it count as a new state. Blank
+ * node labels change with every parse, which would make equal graphs look
+ * different, so a document with a blank node is refused: none of the
+ * documents of the specification has one.
+ *
+ * @throws Error when the document is not Turtle or holds a blank node.
  */
-function canonical(url: string, body: string): string {
-  try {
-    const quads = new N3Parser({ baseIRI: url }).parse(body);
-    return new N3Writer({ format: "N-Triples" }).quadsToString(quads).split("\n").sort().join("\n");
-  } catch {
-    return body;
+export function canonical(url: string, body: string): string {
+  const quads = new N3Parser({ baseIRI: url }).parse(body);
+  if (quads.some((q) => q.subject.termType === "BlankNode" || q.object.termType === "BlankNode")) {
+    throw new Error(`${url} holds a blank node, so its graph cannot be compared by its N-Triples`);
   }
+  return new N3Writer({ format: "N-Triples" }).quadsToString(quads).split("\n").filter(Boolean).sort().join("\n");
 }
 
 /** One state of one Turtle document, after the step that first produced it. */
@@ -148,6 +152,7 @@ export async function generateDocuments(n3Patch: boolean): Promise<GeneratedScen
   const seen = new Set<string>();
   const snapshot = (step: string) => {
     for (const { url, body } of pod.turtleDocuments()) {
+      if (url.endsWith(".acl")) continue;
       const key = `${url}\n${canonical(url, body)}`;
       if (seen.has(key)) continue;
       seen.add(key);
