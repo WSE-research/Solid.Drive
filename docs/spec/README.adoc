@@ -1,0 +1,32 @@
+= spec
+
+Versioned specifications of the documents that Solid.Drive shares with other clients on a Pod.
+
+== Contents
+
+`soft-delete.md`::
+The Solid.Drive Soft Delete and Catalog Data Model, version 0.9.0 (draft): the layout, the four kinds of documents (resource description, catalog, tombstone, deletion log), the lifecycle, the invariants every client keeps, and the migration of the trash terms to `https://purl.org/solid-drive/trash#`.
+
+`trash.ttl`::
+The trash vocabulary (OWL/RDFS, English and German labels): `trash:kind`, `trash:originalParent`, `trash:originalCatalog`, `trash:originalInstance`. Meant to be served at `https://purl.org/solid-drive/trash`. Edit directly; keep `owl:versionInfo` equal to the version of `soft-delete.md`.
+
+`shapes.ttl`::
+SHACL Core shapes for the four kinds of documents, in the namespace `https://purl.org/solid-drive/shapes#`. Edit directly; same version rule.
+
+`examples/`::
+Documents the specification is checked against. See link:examples/README.adoc[examples/README.adoc].
+
+== Checking
+
+`npx vitest run tests/integration/soft-delete-spec` checks the examples, the Solid.Sync golden fixtures, and the documents Solid.Drive's own code writes against the shapes, and keeps the three version numbers equal. It runs in CI as part of `npm test`. `SPEC_REPORT=1` prints the counts of section 10 of the specification, and `SPEC_EXAMPLES_UPDATE=1` rewrites `examples/generated/` after a deliberate change to what Solid.Drive writes.
+
+A change to `trash.ttl`, `shapes.ttl`, or the normative text is a change of the contract with other clients: give it a new version and an entry in the change log of `soft-delete.md`.
+
+== Navigation
+
+.Parent
+link:../[docs]
+
+.Related
+* link:../../public/vocab/solid-drive-catalog.ttl[public/vocab/solid-drive-catalog.ttl], the catalog vocabulary the specification reuses
+* link:../../tests/integration/soft-delete-spec/[tests/integration/soft-delete-spec], the checker and its test

@@ -1,0 +1,22 @@
+# Fails: schema:contentUrl points outside the file's container (a rule checked in code, section 10).
+# role: resource-description
+# document: https://pod.example/alice/notes.txt/index.ttl
+# expect: spec:contentUrlInContainer
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix trash: <https://purl.org/solid-drive/trash#> .
+@prefix w3idtrash: <https://w3id.org/trash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a schema:TextDigitalDocument ;
+  schema:name "notes.txt" ;
+  schema:encodingFormat "text/plain" ;
+  schema:contentSize "10" ;
+  schema:contentUrl <https://pod.example/alice/other/notes.txt> ;
+  schema:uploadDate "2026-11-01T12:04:00.000Z"^^xsd:dateTime ;
+  schema:dateModified "2026-10-30T08:15:00.000Z"^^xsd:dateTime ;
+  schema:publisher <https://pod.example/alice/profile/card#me> .

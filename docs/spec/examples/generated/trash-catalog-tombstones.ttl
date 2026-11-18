@@ -1,0 +1,10 @@
+# Written by Solid.Drive's own code (step "purge Bericht "final" für Zoë.pdf" of tests/integration/soft-delete-spec/generateDocuments.ts).
+# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec
+# role: deletion-log
+# document: https://pod.example/alice/trash/catalog-tombstones.ttl
+@prefix as: <https://www.w3.org/ns/activitystreams#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<urn:uuid:00000000-0000-4000-8000-000000000008> as:deleted "2026-11-01T12:11:00.000Z"^^xsd:dateTime.
+<urn:uuid:00000000-0000-4000-8000-000000000013> as:deleted "2026-11-01T12:12:00.000Z"^^xsd:dateTime.
+<urn:uuid:00000000-0000-4000-8000-000000000014> as:deleted "2026-11-01T12:13:00.000Z"^^xsd:dateTime.

@@ -1,0 +1,28 @@
+# Fails: the tag is not a UUID.
+# role: catalog
+# document: https://pod.example/alice/catalog.ttl
+# expect: sdsh:FileRow-tag PatternConstraintComponent
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix trash: <https://purl.org/solid-drive/trash#> .
+@prefix w3idtrash: <https://w3id.org/trash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a dcat:Catalog ;
+  dcat:dataset <https://pod.example/alice/notes.txt/index.ttl> .
+<https://pod.example/alice/notes.txt/index.ttl> a dcat:Dataset, sd:File ;
+  dcterms:conformsTo schema:TextDigitalDocument ;
+  dcterms:title "notes.txt" ;
+  dcterms:modified "2026-11-01T12:04:00.000Z"^^xsd:dateTime ;
+  dcterms:publisher <https://pod.example/alice/profile/card#me> ;
+  sd:hasParent <https://pod.example/alice/> ;
+  sd:tag "notes-1" ;
+  dcat:distribution <https://pod.example/alice/notes.txt/index.ttl#dist> .
+<https://pod.example/alice/notes.txt/index.ttl#dist> a dcat:Distribution ;
+  dcat:accessURL <https://pod.example/alice/notes.txt/notes.txt> ;
+  dcat:mediaType "text/plain" ;
+  dcat:byteSize 10 .

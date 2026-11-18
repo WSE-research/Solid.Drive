@@ -1,0 +1,77 @@
+# Written by Solid.Drive's own code (step "upload Projects/Drafts/draft.txt" of tests/integration/soft-delete-spec/generateDocuments.ts).
+# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec
+# role: catalog
+# document: https://pod.example/alice/catalog.ttl
+@prefix dcat: <http://www.w3.org/ns/dcat#>.
+@prefix dcterms: <http://purl.org/dc/terms/>.
+@prefix schema: <http://schema.org/>.
+@prefix sd: <https://purl.org/solid-drive/catalog#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<https://pod.example/alice/catalog.ttl> a dcat:Catalog;
+    dcat:dataset <https://pod.example/alice/>, <https://pod.example/alice/projects/>, <https://pod.example/alice/projects/drafts/>, <https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl>, <https://pod.example/alice/notes.txt/index.ttl>, <https://pod.example/alice/projects/photo.png/index.ttl>, <https://pod.example/alice/projects/drafts/draft.txt/index.ttl>.
+<https://pod.example/alice/> a dcat:Dataset, sd:Folder;
+    dcterms:conformsTo sd:Folder;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>.
+<https://pod.example/alice/projects/> a dcat:Dataset, sd:Folder;
+    dcterms:conformsTo sd:Folder;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    dcterms:title "Projects";
+    dcterms:modified "2026-11-01T12:01:00.000Z"^^xsd:dateTime;
+    sd:hasParent <https://pod.example/alice/>;
+    sd:tag "00000000-0000-4000-8000-000000000001".
+<https://pod.example/alice/projects/drafts/> a dcat:Dataset, sd:Folder;
+    dcterms:conformsTo sd:Folder;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    dcterms:title "Drafts";
+    dcterms:modified "2026-11-01T12:02:00.000Z"^^xsd:dateTime;
+    sd:hasParent <https://pod.example/alice/projects/>;
+    sd:tag "00000000-0000-4000-8000-000000000002".
+<https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:TextDigitalDocument;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    dcterms:title "Bericht \"final\" für Zoë.pdf";
+    dcterms:modified "2026-11-01T12:03:00.000Z"^^xsd:dateTime;
+    sd:hasParent <https://pod.example/alice/>;
+    sd:tag "00000000-0000-4000-8000-000000000003";
+    dcat:distribution <https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl#dist>.
+<https://pod.example/alice/notes.txt/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:TextDigitalDocument;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    dcterms:title "notes.txt";
+    dcterms:modified "2026-11-01T12:04:00.000Z"^^xsd:dateTime;
+    sd:hasParent <https://pod.example/alice/>;
+    sd:tag "00000000-0000-4000-8000-000000000004";
+    dcat:distribution <https://pod.example/alice/notes.txt/index.ttl#dist>.
+<https://pod.example/alice/projects/photo.png/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:ImageObject;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    dcterms:title "photo.png";
+    dcterms:modified "2026-11-01T12:05:00.000Z"^^xsd:dateTime;
+    sd:hasParent <https://pod.example/alice/projects/>;
+    sd:tag "00000000-0000-4000-8000-000000000005";
+    dcat:distribution <https://pod.example/alice/projects/photo.png/index.ttl#dist>.
+<https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/bericht-final-f-r-zo-.pdf/Bericht%20%22final%22%20f%C3%BCr%20Zo%C3%AB.pdf>;
+    dcat:mediaType "application/pdf";
+    dcat:byteSize 15.
+<https://pod.example/alice/notes.txt/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/notes.txt/notes.txt>;
+    dcat:mediaType "text/plain";
+    dcat:byteSize 10.
+<https://pod.example/alice/projects/photo.png/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/projects/photo.png/photo.png>;
+    dcat:mediaType "image/png";
+    dcat:byteSize 9.
+<https://pod.example/alice/projects/drafts/draft.txt/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:TextDigitalDocument;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    dcterms:title "draft.txt";
+    dcterms:modified "2026-11-01T12:06:00.000Z"^^xsd:dateTime;
+    sd:hasParent <https://pod.example/alice/projects/drafts/>;
+    sd:tag "00000000-0000-4000-8000-000000000006";
+    dcat:distribution <https://pod.example/alice/projects/drafts/draft.txt/index.ttl#dist>.
+<https://pod.example/alice/projects/drafts/draft.txt/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/projects/drafts/draft.txt/draft.txt>;
+    dcat:mediaType "text/plain";
+    dcat:byteSize 7.

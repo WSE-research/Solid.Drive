@@ -1,0 +1,2 @@
+  <urn:uuid:6f9619ff-8b86-4011-b42d-00c04fc964ff> <https://www.w3.org/ns/activitystreams#deleted> "2026-11-04T06:38:18.867Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+  <urn:uuid:7415cd76-ab1f-4451-8131-effa3212fd58> <https://www.w3.org/ns/activitystreams#deleted> "2026-11-04T06:38:18.867Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .

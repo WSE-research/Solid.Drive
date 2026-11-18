@@ -1,0 +1,26 @@
+# Fails: trash:kind uses the new namespace and the other three terms the legacy one (rule M2).
+# role: tombstone
+# document: https://pod.example/alice/trash/dddddddd-dddd-4ddd-8ddd-dddddddddddd/tombstone.ttl
+# expect: sdsh:TombstoneNamespaceShape OrConstraintComponent
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix trash: <https://purl.org/solid-drive/trash#> .
+@prefix w3idtrash: <https://w3id.org/trash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a as:Tombstone, prov:Entity ;
+  as:deleted "2026-11-01T12:00:00.000Z"^^xsd:dateTime ;
+  prov:invalidatedAtTime "2026-11-01T12:00:00.000Z"^^xsd:dateTime ;
+  as:formerType schema:TextDigitalDocument ;
+  dcterms:title "notes.txt" ;
+  dcterms:source <https://pod.example/alice/notes.txt/> ;
+  dcterms:valid "2026-12-01T12:00:00.000Z"^^xsd:dateTime ;
+  dcterms:hasPart <payload>, <index.ttl> ;
+  trash:kind "file" ;
+  w3idtrash:originalParent <https://pod.example/alice/> ;
+  w3idtrash:originalCatalog <https://pod.example/alice/catalog.ttl> ;
+  w3idtrash:originalInstance <https://pod.example/alice/notes.txt/index.ttl> .

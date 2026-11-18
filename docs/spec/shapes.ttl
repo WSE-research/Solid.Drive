@@ -1,0 +1,426 @@
+# SHACL shapes for the Solid.Drive soft-delete and catalog data model.
+# Edit directly (not generated). Normative description: docs/spec/soft-delete.md.
+#
+# The shapes use SHACL Core only, so any SHACL processor can run them.
+# A document conforms when validation reports no result of severity
+# sh:Violation; sh:Warning results mark SHOULD-level deviations.
+# Section "Checking a document" of the specification says which focus node
+# to add per document role (sh:targetNode), so that a document that lacks
+# its main statements does not pass for want of a target.
+
+@prefix : <https://purl.org/solid-drive/shapes#> .
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix trash: <https://purl.org/solid-drive/trash#> .
+@prefix w3idtrash: <https://w3id.org/trash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://purl.org/solid-drive/shapes>
+  a owl:Ontology ;
+  rdfs:label "Solid.Drive soft-delete and catalog shapes"@en ;
+  rdfs:comment "SHACL Core shapes for the documents of the Solid.Drive soft-delete and catalog data model: the resource description (index.ttl), the catalog and its rows, the tombstone of a trash entry, and the deletion log."@en ;
+  owl:versionInfo "0.9.0" ;
+  owl:versionIRI <https://purl.org/solid-drive/shapes/0.9.0> ;
+  dcterms:created "2026-11-18"^^xsd:date ;
+  dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+  rdfs:seeAlso <https://github.com/WSE-research/Solid.Drive/blob/main/docs/spec/soft-delete.md> .
+
+# ---------------------------------------------------------------------------
+# Resource description: <container>/index.ttl
+# ---------------------------------------------------------------------------
+
+:ResourceDescriptionShape
+  a sh:NodeShape ;
+  rdfs:comment "The metadata document of a file, index.ttl, in the file's own container. Its subject is the document itself."@en ;
+  sh:targetSubjectsOf schema:uploadDate ;
+  sh:nodeKind sh:IRI ;
+  sh:property :ResourceDescription-type, :ResourceDescription-typeKnown, :ResourceDescription-uploadDate,
+    :ResourceDescription-contentSize, :ResourceDescription-encodingFormat, :ResourceDescription-name,
+    :ResourceDescription-description, :ResourceDescription-dateModified, :ResourceDescription-contentUrl,
+    :ResourceDescription-publisher, :ResourceDescription-nameRecommended, :ResourceDescription-dateModifiedRecommended,
+    :ResourceDescription-contentUrlRecommended, :ResourceDescription-publisherRecommended .
+
+:ResourceDescription-type a sh:PropertyShape ;
+  sh:path rdf:type ; sh:minCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "A resource description states the file's class with rdf:type."@en .
+
+:ResourceDescription-typeKnown a sh:PropertyShape ;
+  sh:path rdf:type ;
+  sh:qualifiedValueShape [ sh:in ( schema:DigitalDocument schema:ImageObject schema:VideoObject schema:AudioObject schema:TextDigitalDocument schema:SpreadsheetDigitalDocument ) ] ;
+  sh:qualifiedMinCount 1 ;
+  sh:message "One rdf:type of a resource description is schema:DigitalDocument, ImageObject, VideoObject, AudioObject, TextDigitalDocument, or SpreadsheetDigitalDocument."@en .
+
+:ResourceDescription-uploadDate a sh:PropertyShape ;
+  sh:path schema:uploadDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:message "schema:uploadDate is one xsd:dateTime with a time zone."@en .
+
+:ResourceDescription-contentSize a sh:PropertyShape ;
+  sh:path schema:contentSize ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9]+$" ;
+  sh:message "schema:contentSize is one string of decimal digits: the size in bytes."@en .
+
+:ResourceDescription-encodingFormat a sh:PropertyShape ;
+  sh:path schema:encodingFormat ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+  sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+  sh:message "schema:encodingFormat is one media type such as application/pdf, application/octet-stream if unknown."@en .
+
+:ResourceDescription-name a sh:PropertyShape ;
+  sh:path schema:name ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ;
+  sh:message "schema:name is at most one non-empty string."@en .
+
+:ResourceDescription-description a sh:PropertyShape ;
+  sh:path schema:description ; sh:maxCount 1 ; sh:datatype xsd:string ;
+  sh:message "schema:description is at most one string."@en .
+
+:ResourceDescription-dateModified a sh:PropertyShape ;
+  sh:path schema:dateModified ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:message "schema:dateModified is at most one xsd:dateTime with a time zone."@en .
+
+:ResourceDescription-contentUrl a sh:PropertyShape ;
+  sh:path schema:contentUrl ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "schema:contentUrl is at most one IRI, the file's binary in the same container."@en .
+
+:ResourceDescription-publisher a sh:PropertyShape ;
+  sh:path schema:publisher ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "schema:publisher is at most one WebID."@en .
+
+:ResourceDescription-nameRecommended a sh:PropertyShape ;
+  sh:path schema:name ; sh:minCount 1 ; sh:severity sh:Warning ;
+  sh:message "A resource description SHOULD give the file's name with schema:name."@en .
+
+:ResourceDescription-dateModifiedRecommended a sh:PropertyShape ;
+  sh:path schema:dateModified ; sh:minCount 1 ; sh:severity sh:Warning ;
+  sh:message "A resource description SHOULD give the file's own modification time with schema:dateModified."@en .
+
+:ResourceDescription-contentUrlRecommended a sh:PropertyShape ;
+  sh:path schema:contentUrl ; sh:minCount 1 ; sh:severity sh:Warning ;
+  sh:message "A resource description SHOULD link the binary with schema:contentUrl, so a reader need not list the container."@en .
+
+:ResourceDescription-publisherRecommended a sh:PropertyShape ;
+  sh:path schema:publisher ; sh:minCount 1 ; sh:severity sh:Warning ;
+  sh:message "A resource description SHOULD name the uploader with schema:publisher."@en .
+
+# ---------------------------------------------------------------------------
+# Catalog: catalog.ttl, trash/catalog.ttl, trash/<id>/catalog-snapshot.ttl
+# ---------------------------------------------------------------------------
+
+:CatalogShape
+  a sh:NodeShape ;
+  rdfs:comment "A catalog document. Its subject is the document itself; each object of dcat:dataset is one row."@en ;
+  sh:targetClass dcat:Catalog ;
+  sh:nodeKind sh:IRI ;
+  sh:property :Catalog-type, :Catalog-dataset .
+
+:Catalog-type a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue dcat:Catalog ;
+  sh:message "A catalog is typed dcat:Catalog."@en .
+
+:Catalog-dataset a sh:PropertyShape ;
+  sh:path dcat:dataset ; sh:nodeKind sh:IRI ;
+  sh:message "Every row of a catalog is named by an IRI."@en .
+
+:CatalogRowShape
+  a sh:NodeShape ;
+  rdfs:comment "Every row listed by a catalog: a dcat:Dataset typed either sd:File or sd:Folder."@en ;
+  sh:targetObjectsOf dcat:dataset ;
+  sh:nodeKind sh:IRI ;
+  sh:property :CatalogRow-dataset ;
+  sh:xone ( [ sh:path rdf:type ; sh:hasValue sd:File ] [ sh:path rdf:type ; sh:hasValue sd:Folder ] ) ;
+  sh:message "A catalog row is typed either sd:File or sd:Folder, not both and not neither."@en .
+
+:CatalogRow-dataset a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue dcat:Dataset ;
+  sh:message "A catalog row is typed dcat:Dataset."@en .
+
+:FileRowShape
+  a sh:NodeShape ;
+  rdfs:comment "The row of a file. Its IRI is the file's index.ttl."@en ;
+  sh:targetClass sd:File ;
+  sh:nodeKind sh:IRI ;
+  sh:pattern "/index\\.ttl$" ;
+  sh:message "The IRI of a file row is the file's index.ttl."@en ;
+  sh:property :FileRow-dataset, :FileRow-conformsTo, :FileRow-title, :FileRow-description, :FileRow-modified,
+    :FileRow-publisher, :FileRow-hasParent, :FileRow-tag, :FileRow-distribution .
+
+:FileRow-dataset a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue dcat:Dataset ;
+  sh:message "A file row is typed dcat:Dataset."@en .
+
+:FileRow-conformsTo a sh:PropertyShape ;
+  sh:path dcterms:conformsTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "A file row names one class with dcterms:conformsTo, such as schema:ImageObject."@en .
+
+:FileRow-title a sh:PropertyShape ;
+  sh:path dcterms:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ;
+  sh:message "A file row has one non-empty dcterms:title."@en .
+
+:FileRow-description a sh:PropertyShape ;
+  sh:path dcterms:description ; sh:maxCount 1 ; sh:datatype xsd:string ;
+  sh:message "A file row has at most one dcterms:description."@en .
+
+:FileRow-modified a sh:PropertyShape ;
+  sh:path dcterms:modified ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:message "A file row has one dcterms:modified, an xsd:dateTime with a time zone."@en .
+
+:FileRow-publisher a sh:PropertyShape ;
+  sh:path dcterms:publisher ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "A file row names its publisher's WebID with one dcterms:publisher."@en .
+
+:FileRow-hasParent a sh:PropertyShape ;
+  sh:path sd:hasParent ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "/$" ;
+  sh:message "A file row has at most one sd:hasParent, a container."@en .
+
+:FileRow-tag a sh:PropertyShape ;
+  sh:path sd:tag ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+  sh:pattern "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" ; sh:flags "i" ;
+  sh:message "A file row has one sd:tag, a UUID."@en .
+
+:FileRow-distribution a sh:PropertyShape ;
+  sh:path dcat:distribution ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "A file row has one dcat:distribution, which DistributionShape describes."@en .
+
+:DistributionShape
+  a sh:NodeShape ;
+  rdfs:comment "The distribution of a file row: the binary, its media type, and its size."@en ;
+  sh:targetObjectsOf dcat:distribution ;
+  sh:nodeKind sh:IRI ;
+  sh:property :Distribution-type, :Distribution-accessURL, :Distribution-mediaType, :Distribution-byteSize .
+
+:Distribution-type a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue dcat:Distribution ;
+  sh:message "A distribution is typed dcat:Distribution."@en .
+
+:Distribution-accessURL a sh:PropertyShape ;
+  sh:path dcat:accessURL ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "A distribution has one dcat:accessURL, the binary."@en .
+
+:Distribution-mediaType a sh:PropertyShape ;
+  sh:path dcat:mediaType ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+  sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+  sh:message "A distribution has one dcat:mediaType, a media type string such as application/pdf, application/octet-stream if unknown."@en .
+
+:Distribution-byteSize a sh:PropertyShape ;
+  sh:path dcat:byteSize ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ;
+  sh:message "A distribution has one dcat:byteSize, a non-negative xsd:integer."@en .
+
+:FolderRowShape
+  a sh:NodeShape ;
+  rdfs:comment "The row of a folder. Its IRI is the folder's container."@en ;
+  sh:targetClass sd:Folder ;
+  sh:nodeKind sh:IRI ;
+  sh:property :FolderRow-dataset, :FolderRow-conformsTo, :FolderRow-title, :FolderRow-modified,
+    :FolderRow-publisher, :FolderRow-hasParent, :FolderRow-tag, :FolderRow-noDistribution .
+
+:FolderRow-dataset a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue dcat:Dataset ;
+  sh:message "A folder row is typed dcat:Dataset."@en .
+
+:FolderRow-conformsTo a sh:PropertyShape ;
+  sh:path dcterms:conformsTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue sd:Folder ;
+  sh:message "A folder row has dcterms:conformsTo sd:Folder."@en .
+
+:FolderRow-title a sh:PropertyShape ;
+  sh:path dcterms:title ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ;
+  sh:message "A folder row has at most one non-empty dcterms:title."@en .
+
+:FolderRow-modified a sh:PropertyShape ;
+  sh:path dcterms:modified ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:message "A folder row has at most one dcterms:modified, an xsd:dateTime with a time zone."@en .
+
+:FolderRow-publisher a sh:PropertyShape ;
+  sh:path dcterms:publisher ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "A folder row names its publisher's WebID with one dcterms:publisher."@en .
+
+:FolderRow-hasParent a sh:PropertyShape ;
+  sh:path sd:hasParent ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "/$" ;
+  sh:message "A folder row has at most one sd:hasParent, a container."@en .
+
+:FolderRow-tag a sh:PropertyShape ;
+  sh:path sd:tag ; sh:maxCount 1 ; sh:datatype xsd:string ;
+  sh:pattern "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" ; sh:flags "i" ;
+  sh:message "A folder row has at most one sd:tag, a UUID."@en .
+
+:FolderRow-noDistribution a sh:PropertyShape ;
+  sh:path dcat:distribution ; sh:maxCount 0 ;
+  sh:message "A folder row has no dcat:distribution: the row is the container itself."@en .
+
+:FolderRowKindShape
+  a sh:NodeShape ;
+  rdfs:comment "A folder row is either a tagged row or the row of the storage root."@en ;
+  sh:targetClass sd:Folder ;
+  sh:pattern "/$" ;
+  sh:or ( :TaggedFolderRowShape :StorageRootRowShape ) ;
+  sh:message "A folder row is a container IRI and has sd:tag, dcterms:title, and dcterms:modified, unless it is the row of the storage root, which has neither sd:hasParent nor sd:tag."@en .
+
+:TaggedFolderRowShape
+  a sh:NodeShape ;
+  sh:property [ sh:path sd:tag ; sh:minCount 1 ] , [ sh:path dcterms:title ; sh:minCount 1 ] , [ sh:path dcterms:modified ; sh:minCount 1 ] .
+
+:StorageRootRowShape
+  a sh:NodeShape ;
+  sh:property [ sh:path sd:hasParent ; sh:maxCount 0 ] , [ sh:path sd:tag ; sh:maxCount 0 ] .
+
+# ---------------------------------------------------------------------------
+# Tombstone: trash/<id>/tombstone.ttl
+# ---------------------------------------------------------------------------
+
+:TombstoneShape
+  a sh:NodeShape ;
+  rdfs:comment "The tombstone of a trash entry. Its subject is the document itself, trash/<id>/tombstone.ttl."@en ;
+  sh:targetClass as:Tombstone ;
+  sh:nodeKind sh:IRI ;
+  sh:pattern "/trash/[^/]+/tombstone\\.ttl$" ;
+  sh:message "A tombstone is the document trash/<id>/tombstone.ttl of its trash entry."@en ;
+  sh:property :Tombstone-isTombstone, :Tombstone-type, :Tombstone-deleted, :Tombstone-invalidatedAtTime, :Tombstone-formerType, :Tombstone-title,
+    :Tombstone-source, :Tombstone-valid, :Tombstone-hasPart, :Tombstone-kind, :Tombstone-originalParent,
+    :Tombstone-originalCatalog, :Tombstone-originalInstance .
+
+:Tombstone-isTombstone a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue as:Tombstone ;
+  sh:message "A tombstone is typed as:Tombstone."@en .
+
+:Tombstone-type a sh:PropertyShape ;
+  sh:path rdf:type ; sh:hasValue prov:Entity ;
+  sh:message "A tombstone is typed both as:Tombstone and prov:Entity."@en .
+
+:Tombstone-deleted a sh:PropertyShape ;
+  sh:path as:deleted ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:equals prov:invalidatedAtTime ;
+  sh:lessThanOrEquals dcterms:valid ;
+  sh:message "as:deleted is one xsd:dateTime with a time zone, equal to prov:invalidatedAtTime and not after dcterms:valid."@en .
+
+:Tombstone-invalidatedAtTime a sh:PropertyShape ;
+  sh:path prov:invalidatedAtTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:message "prov:invalidatedAtTime is one xsd:dateTime."@en .
+
+:Tombstone-formerType a sh:PropertyShape ;
+  sh:path as:formerType ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "as:formerType is one class IRI: the dcterms:conformsTo of the item's row."@en .
+
+:Tombstone-title a sh:PropertyShape ;
+  sh:path dcterms:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ;
+  sh:message "dcterms:title is one non-empty string: a file's name, or a folder's last path segment, decoded."@en .
+
+:Tombstone-source a sh:PropertyShape ;
+  sh:path dcterms:source ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "/$" ;
+  sh:message "dcterms:source is one container IRI: where the item lived before it was trashed."@en .
+
+:Tombstone-valid a sh:PropertyShape ;
+  sh:path dcterms:valid ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:message "dcterms:valid is one xsd:dateTime with a time zone: the end of the retention period."@en .
+
+:Tombstone-hasPart a sh:PropertyShape ;
+  sh:path dcterms:hasPart ; sh:minCount 2 ; sh:maxCount 3 ; sh:nodeKind sh:IRI ;
+  sh:pattern "/trash/[^/]+/(payload/?|index\\.ttl|catalog-snapshot\\.ttl|acl-snapshot\\.ttl)$" ;
+  sh:message "dcterms:hasPart links two or three parts of the entry: payload or payload/, index.ttl or catalog-snapshot.ttl, and acl-snapshot.ttl if there is one."@en .
+
+:Tombstone-kind a sh:PropertyShape ;
+  sh:path [ sh:alternativePath ( trash:kind w3idtrash:kind ) ] ;
+  sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:in ( "file" "folder" ) ;
+  sh:message "trash:kind is one of the strings \"file\" and \"folder\"."@en .
+
+:Tombstone-originalParent a sh:PropertyShape ;
+  sh:path [ sh:alternativePath ( trash:originalParent w3idtrash:originalParent ) ] ;
+  sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "/$" ;
+  sh:message "trash:originalParent is at most one container IRI."@en .
+
+:Tombstone-originalCatalog a sh:PropertyShape ;
+  sh:path [ sh:alternativePath ( trash:originalCatalog w3idtrash:originalCatalog ) ] ;
+  sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "trash:originalCatalog is one catalog IRI."@en .
+
+:Tombstone-originalInstance a sh:PropertyShape ;
+  sh:path [ sh:alternativePath ( trash:originalInstance w3idtrash:originalInstance ) ] ;
+  sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+  sh:message "trash:originalInstance is one IRI: the item's row in the original catalog."@en .
+
+:TombstoneNamespaceShape
+  a sh:NodeShape ;
+  rdfs:comment "During the migration from https://w3id.org/trash# a tombstone uses one namespace for its trash terms."@en ;
+  sh:targetClass as:Tombstone ;
+  sh:or ( :WithoutLegacyTrashTerms :WithoutPurlTrashTerms ) ;
+  sh:message "A tombstone writes its trash terms in one namespace, https://purl.org/solid-drive/trash# or the legacy https://w3id.org/trash#, not both."@en .
+
+:WithoutLegacyTrashTerms
+  a sh:NodeShape ;
+  sh:property [ sh:path w3idtrash:kind ; sh:maxCount 0 ] , [ sh:path w3idtrash:originalParent ; sh:maxCount 0 ] ,
+    [ sh:path w3idtrash:originalCatalog ; sh:maxCount 0 ] , [ sh:path w3idtrash:originalInstance ; sh:maxCount 0 ] .
+
+:WithoutPurlTrashTerms
+  a sh:NodeShape ;
+  sh:property [ sh:path trash:kind ; sh:maxCount 0 ] , [ sh:path trash:originalParent ; sh:maxCount 0 ] ,
+    [ sh:path trash:originalCatalog ; sh:maxCount 0 ] , [ sh:path trash:originalInstance ; sh:maxCount 0 ] .
+
+:TombstonePartsShape
+  a sh:NodeShape ;
+  rdfs:comment "The parts of a trash entry depend on its kind."@en ;
+  sh:targetClass as:Tombstone ;
+  sh:xone ( :FileTrashEntryShape :FolderTrashEntryShape ) ;
+  sh:message "A file entry (trash:kind \"file\") links payload and index.ttl and was not a folder; a folder entry (trash:kind \"folder\") links payload/ and catalog-snapshot.ttl, has as:formerType sd:Folder, and its trash:originalInstance equals its dcterms:source."@en .
+
+:FileTrashEntryShape
+  a sh:NodeShape ;
+  sh:property [
+    sh:path [ sh:alternativePath ( trash:kind w3idtrash:kind ) ] ; sh:hasValue "file"
+  ] , [
+    sh:path as:formerType ; sh:not [ sh:hasValue sd:Folder ]
+  ] , [
+    sh:path dcterms:hasPart ; sh:qualifiedValueShape [ sh:pattern "/payload$" ] ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1
+  ] , [
+    sh:path dcterms:hasPart ; sh:qualifiedValueShape [ sh:pattern "/index\\.ttl$" ] ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1
+  ] , [
+    sh:path dcterms:hasPart ; sh:qualifiedValueShape [ sh:pattern "/(payload/|catalog-snapshot\\.ttl)$" ] ; sh:qualifiedMaxCount 0
+  ] .
+
+:FolderTrashEntryShape
+  a sh:NodeShape ;
+  sh:property [
+    sh:path [ sh:alternativePath ( trash:kind w3idtrash:kind ) ] ; sh:hasValue "folder"
+  ] , [
+    sh:path as:formerType ; sh:hasValue sd:Folder
+  ] , [
+    sh:path [ sh:alternativePath ( trash:originalInstance w3idtrash:originalInstance ) ] ; sh:equals dcterms:source
+  ] , [
+    sh:path dcterms:hasPart ; sh:qualifiedValueShape [ sh:pattern "/payload/$" ] ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1
+  ] , [
+    sh:path dcterms:hasPart ; sh:qualifiedValueShape [ sh:pattern "/catalog-snapshot\\.ttl$" ] ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1
+  ] , [
+    sh:path dcterms:hasPart ; sh:qualifiedValueShape [ sh:pattern "/(payload|index\\.ttl)$" ] ; sh:qualifiedMaxCount 0
+  ] .
+
+# ---------------------------------------------------------------------------
+# Deletion log: catalog-tombstones.ttl next to each catalog
+# ---------------------------------------------------------------------------
+
+:DeletionRecordShape
+  a sh:NodeShape ;
+  rdfs:comment "Everything with as:deleted: a tombstone, or an entry of a deletion log."@en ;
+  sh:targetSubjectsOf as:deleted ;
+  sh:property :DeletionRecord-deleted ;
+  sh:or ( [ sh:class as:Tombstone ] :DeletionLogEntryShape ) ;
+  sh:message "Only a tombstone or a deletion-log entry has as:deleted, and a deletion-log entry is named urn:uuid:<tag>."@en .
+
+:DeletionRecord-deleted a sh:PropertyShape ;
+  sh:path as:deleted ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+  sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+  sh:message "A deleted thing has one as:deleted, an xsd:dateTime with a time zone."@en .
+
+:DeletionLogEntryShape
+  a sh:NodeShape ;
+  rdfs:comment "One entry of a deletion log: the removed row's tag as a URN, with the time of the removal."@en ;
+  sh:nodeKind sh:IRI ;
+  sh:pattern "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" ;
+  sh:flags "i" .
