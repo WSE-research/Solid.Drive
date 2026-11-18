@@ -1,0 +1,65 @@
+# Solid.Drive trash vocabulary. Edit directly (not generated).
+# Normative description: docs/spec/soft-delete.md, section "Vocabulary".
+# The terms describe where a trashed item sat in a Solid.Drive catalog,
+# which no standard vocabulary covers; everything else in a tombstone uses
+# Activity Streams 2.0, PROV-O, and DCMI terms.
+
+@prefix : <https://purl.org/solid-drive/trash#> .
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://purl.org/solid-drive/trash>
+  a owl:Ontology ;
+  rdfs:label "Solid.Drive trash vocabulary"@en, "Solid.Drive-Papierkorbvokabular"@de ;
+  rdfs:comment "Terms for a tombstone in the trash of a Solid Pod that no standard vocabulary provides: whether the trashed item was a file or a folder, and the catalog, catalog row, and parent folder it had before it was trashed, so that any client can restore it."@en, "Begriffe für einen Grabstein im Papierkorb eines Solid-Pods, die kein Standardvokabular bereitstellt: ob das gelöschte Element eine Datei oder ein Ordner war, sowie der Katalog, die Katalogzeile und der übergeordnete Ordner, die es vor dem Löschen hatte, damit jeder Client es wiederherstellen kann."@de ;
+  vann:preferredNamespacePrefix "trash" ;
+  vann:preferredNamespaceUri "https://purl.org/solid-drive/trash#" ;
+  owl:versionInfo "0.9.0" ;
+  owl:versionIRI <https://purl.org/solid-drive/trash/0.9.0> ;
+  dcterms:created "2026-11-18"^^xsd:date ;
+  dcterms:modified "2026-11-18"^^xsd:date ;
+  dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+  rdfs:seeAlso <https://github.com/WSE-research/Solid.Drive/blob/main/docs/spec/soft-delete.md>, <https://purl.org/solid-drive/catalog> .
+
+:kind
+  a rdf:Property, owl:DatatypeProperty, owl:FunctionalProperty ;
+  rdfs:domain as:Tombstone ;
+  rdfs:range xsd:string ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/trash> ;
+  rdfs:label "kind"@en, "Art"@de ;
+  rdfs:comment "Whether the trash entry holds a single file or a whole folder: the literal \"file\" or \"folder\". It decides which parts the entry has and how it is restored. A reader that finds no value treats the entry as a file, because tombstones written before folders could be trashed have none."@en, "Ob der Papierkorbeintrag eine einzelne Datei oder einen ganzen Ordner enthält: das Literal \"file\" oder \"folder\". Davon hängt ab, welche Teile der Eintrag hat und wie er wiederhergestellt wird. Ein Leser, der keinen Wert findet, behandelt den Eintrag als Datei, weil Grabsteine aus der Zeit, bevor Ordner gelöscht werden konnten, keinen haben."@de ;
+  owl:equivalentProperty <https://w3id.org/trash#kind> .
+
+:originalParent
+  a rdf:Property, owl:ObjectProperty, owl:FunctionalProperty ;
+  rdfs:domain as:Tombstone ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/trash> ;
+  rdfs:label "original parent"@en, "ursprünglicher übergeordneter Ordner"@de ;
+  rdfs:comment "The folder the item was shown in before it was trashed: the value of sd:hasParent of its catalog row, or, for a folder without a row, its parent container. A restore writes it back as sd:hasParent of the new row. Absent when the item had no parent."@en, "Der Ordner, in dem das Element vor dem Löschen angezeigt wurde: der Wert von sd:hasParent seiner Katalogzeile, oder, bei einem Ordner ohne Zeile, sein übergeordneter Container. Eine Wiederherstellung schreibt ihn als sd:hasParent der neuen Zeile zurück. Fehlt, wenn das Element keinen übergeordneten Ordner hatte."@de ;
+  rdfs:seeAlso sd:hasParent ;
+  owl:equivalentProperty <https://w3id.org/trash#originalParent> .
+
+:originalCatalog
+  a rdf:Property, owl:ObjectProperty, owl:FunctionalProperty ;
+  rdfs:domain as:Tombstone ;
+  rdfs:range dcat:Catalog ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/trash> ;
+  rdfs:label "original catalog"@en, "ursprünglicher Katalog"@de ;
+  rdfs:comment "The catalog that held the item's row before it was trashed. A restore writes the new row into this catalog, and the removal of the old row was recorded in the deletion log next to it."@en, "Der Katalog, der die Zeile des Elements vor dem Löschen enthielt. Eine Wiederherstellung schreibt die neue Zeile in diesen Katalog, und das Entfernen der alten Zeile wurde im Löschprotokoll daneben vermerkt."@de ;
+  owl:equivalentProperty <https://w3id.org/trash#originalCatalog> .
+
+:originalInstance
+  a rdf:Property, owl:ObjectProperty, owl:FunctionalProperty ;
+  rdfs:domain as:Tombstone ;
+  rdfs:isDefinedBy <https://purl.org/solid-drive/trash> ;
+  rdfs:label "original instance"@en, "ursprüngliche Instanz"@de ;
+  rdfs:comment "The IRI of the item's row in the original catalog (the object of dcat:dataset) before it was trashed: the index.ttl of a file, or the container of a folder. A restore to the original location uses it again; a restore under a new name does not."@en, "Die IRI der Zeile des Elements im ursprünglichen Katalog (das Objekt von dcat:dataset) vor dem Löschen: die index.ttl einer Datei oder der Container eines Ordners. Eine Wiederherstellung am ursprünglichen Ort verwendet sie wieder, eine Wiederherstellung unter neuem Namen nicht."@de ;
+  rdfs:seeAlso dcat:dataset ;
+  owl:equivalentProperty <https://w3id.org/trash#originalInstance> .

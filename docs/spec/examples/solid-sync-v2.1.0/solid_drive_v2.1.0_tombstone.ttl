@@ -1,0 +1,12 @@
+<https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/tombstone.ttl> a <https://www.w3.org/ns/activitystreams#Tombstone>, <http://www.w3.org/ns/prov#Entity>;
+    <https://www.w3.org/ns/activitystreams#deleted> "2026-11-04T06:38:18.867Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+    <http://www.w3.org/ns/prov#invalidatedAtTime> "2026-11-04T06:38:18.867Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+    <https://www.w3.org/ns/activitystreams#formerType> <http://schema.org/DigitalDocument>;
+    <http://purl.org/dc/terms/title> "Bericht \"final\" für Zoë.pdf";
+    <http://purl.org/dc/terms/source> <https://pod.example/alice/sync/my-report.pdf/>;
+    <http://purl.org/dc/terms/valid> "2026-12-04T06:38:18.867Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+    <http://purl.org/dc/terms/hasPart> <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/payload>, <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/index.ttl>;
+    <https://w3id.org/trash#kind> "file";
+    <https://w3id.org/trash#originalParent> <https://pod.example/alice/sync/>;
+    <https://w3id.org/trash#originalCatalog> <https://pod.example/alice/catalog.ttl>;
+    <https://w3id.org/trash#originalInstance> <https://pod.example/alice/sync/my-report.pdf/index.ttl>.

@@ -1,0 +1,15 @@
+# Fails: one tag has two deletion times.
+# role: deletion-log
+# document: https://pod.example/alice/catalog-tombstones.ttl
+# expect: sdsh:DeletionRecord-deleted MaxCountConstraintComponent
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix trash: <https://purl.org/solid-drive/trash#> .
+@prefix w3idtrash: <https://w3id.org/trash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:uuid:00000000-0000-4000-8000-000000000004> as:deleted "2026-11-01T12:07:00.000Z"^^xsd:dateTime, "2026-11-02T09:00:00.000Z"^^xsd:dateTime .

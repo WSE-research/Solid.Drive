@@ -32,6 +32,7 @@ export default mergeConfig(viteConfig, defineConfig({
         "src/types/**",
         "**/tboxTypes-file/tboxTypes.ts",
         "src/**/*-test/**",
+        "tests/**",
         "src/**/test-setup.ts",
         "src/.ldo/**",
         "**/*.d.ts",
