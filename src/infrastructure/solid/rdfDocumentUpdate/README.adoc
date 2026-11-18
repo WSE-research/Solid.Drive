@@ -2,11 +2,15 @@
 
 Read-modify-write of a whole RDF document (catalog, trash catalog, deletion log) that does not lose rows written or removed by other clients in the meantime.
 
-`updateRdfDocument` reads the document, runs the caller's mutation on an N3 store, and writes back only the difference when the server advertises N3 Patch (`Accept-Patch: text/n3`). The server applies a `solid:InsertDeletePatch` atomically, so an appended row cannot overwrite another client's row, and a removal cannot bring back a row someone else removed. A 409 (a statement to delete is already gone) re-reads and retries.
+`updateRdfDocument` reads the document, runs the caller's mutation on an N3 store, and writes back only the difference when the server advertises N3 Patch (`Accept-Patch: text/n3`). The server applies a `solid:InsertDeletePatch` atomically, so an appended row cannot overwrite another client's row, and a removal cannot bring back a row someone else removed. A 409 (a statement to delete is already gone) or 404 (the document is gone) re-reads and retries.
 
-Servers without N3 Patch (the PHP Solid Server, for example), a 405, 415, or 501 answer to the patch, and a damaged document that should be healed by a full rewrite take the fallback: a whole-document `PUT` with `If-Match: <ETag>`, or `If-None-Match: *` when the document does not exist yet. On `412` the document is read again, the mutation is applied again, and the write is retried, up to `DEFAULT_MAX_UPDATE_ATTEMPTS` attempts with a short random back-off; after that the write fails with an error instead of overwriting.
+An existing subject that only gains statements (for example an entry re-appended with a new tag) would otherwise be patched without any precondition on it. For each such subject the patch also deletes and re-inserts one of its unchanged statements, its `rdf:type` if it has one. If another client removed the subject, or the whole document, in the meantime, that delete fails with 409 or 404 and the update is retried against the current document, instead of leaving orphaned statements behind.
 
-Residual risk: an existing document served without a strong ETag gets an unconditional `PUT`, because `If-Match` uses strong comparison (RFC 9110) and there is nothing else to condition on.
+Servers without N3 Patch (the PHP Solid Server, for example), a 405, 415, 422, or 501 answer to the patch, a change that involves blank nodes (N3 Patch forbids them in inserts and deletes, Solid Protocol 5.3.1, and CSS answers 422), and a damaged document that should be healed by a full rewrite take the fallback: a whole-document `PUT` with `If-Match: <ETag>`, or `If-None-Match: *` when the document does not exist yet. On `412` the document is read again, the mutation is applied again, and the write is retried, up to `DEFAULT_MAX_UPDATE_ATTEMPTS` attempts with exponential back-off and full jitter (at most 100 ms before the second attempt, doubling up to 1 s per wait, about 4.5 s at most in all); after that the write fails with an error instead of overwriting.
+
+The mutation runs once per attempt, so it must not have side effects that are wrong to repeat. `removeFromCatalog` tombstones a removed tag only once per call for this reason.
+
+Residual risk: an existing document served without a strong ETag can only be conditioned on `If-Unmodified-Since` with its `Last-Modified`, which has one-second resolution, so a concurrent write within the same second goes undetected. A document with neither header gets an unconditional `PUT`, because `If-Match` uses strong comparison (RFC 9110) and there is nothing else to condition on.
 
 == Navigation
 

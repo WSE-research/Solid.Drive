@@ -501,6 +501,9 @@ export async function removeFromCatalog(
   const headResponse = await fetch(catalogUri, { method: "HEAD" });
   if (!headResponse.ok) return;
 
+  // The mutation runs again when a concurrent write forces a retry, so a
+  // tag is tombstoned only once per call, not once per attempt.
+  const tombstoned = new Set<string>();
   await withCatalogStore(catalogUri, fetch, async (store) => {
     const catalog = namedNode(catalogUri);
     const instance = namedNode(instanceUri);
@@ -511,8 +514,9 @@ export async function removeFromCatalog(
     store.removeQuads(store.getQuads(instance, null, null, null));
     store.removeQuads(store.getQuads(distribution, null, null, null));
 
-    if (removedTag) {
+    if (removedTag && !tombstoned.has(removedTag)) {
       await appendTombstones(catalogUri, [removedTag], fetch);
+      tombstoned.add(removedTag);
     }
   });
 }

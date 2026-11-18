@@ -170,8 +170,10 @@ export async function readTombstonedTags(catalogUri: string, fetch: FetchFn): Pr
  * Drops tombstones past their retention window.
  *
  * @remarks
- * Deletes exactly the expired triples, so a tombstone another device
- * appends while this sweep is running is never lost.
+ * Deletes exactly the expired triples through {@link updateRdfDocument},
+ * so a tombstone another device appends while this sweep is running is
+ * never lost, a tombstone another device purged first is not an error,
+ * and a server without N3 Patch gets a conditional read-modify-write.
  *
  * @param retentionDays - How long a tombstone is kept before it's
  * eligible for purge. Defaults to {@link CATALOG_TOMBSTONE_RETENTION_DAYS}.
@@ -185,19 +187,23 @@ export async function purgeExpiredTombstones(
   now: Date = new Date(),
 ): Promise<void> {
   const tombstones = await readTombstonedTags(catalogUri, fetch);
-  const expired = [...tombstones].filter(
-    ([, deletedAtIso]) => new Date(deletedAtIso).getTime() + retentionDays * MS_PER_DAY <= now.getTime(),
-  );
-  if (expired.length === 0) return;
+  const isExpired = (deletedAtIso: string) => new Date(deletedAtIso).getTime() + retentionDays * MS_PER_DAY <= now.getTime();
+  if (![...tombstones.values()].some(isExpired)) return;
 
-  const tombstoneLogUri = resolveTombstoneLogUri(catalogUri);
-  const triples = expired.map(([tag, deletedAtIso]) => tombstoneTriple(tag, deletedAtIso));
-  const response = await fetch(tombstoneLogUri, {
-    method: "PATCH",
-    headers: { "Content-Type": CONTENT_TYPES.N3 },
-    body: buildN3Patch("deletes", triples),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to purge tombstones at ${tombstoneLogUri}: ${response.status} ${response.statusText}`);
-  }
+  await updateRdfDocument(
+    resolveTombstoneLogUri(catalogUri),
+    fetch,
+    (store, { exists }) => {
+      if (!exists) return false;
+      const expired = store
+        .getQuads(null, AS_DELETED, null, null)
+        .filter((q) => q.subject.value.startsWith("urn:uuid:") && isExpired(q.object.value));
+      if (expired.length === 0) return false;
+      store.removeQuads(expired);
+    },
+    {
+      parse: (text, documentUri) => ({ quads: new N3Parser({ baseIRI: documentUri }).parse(text), damaged: false }),
+      serialize: (quads) => new N3Writer({ format: "N-Triples" }).quadsToString(quads),
+    },
+  );
 }

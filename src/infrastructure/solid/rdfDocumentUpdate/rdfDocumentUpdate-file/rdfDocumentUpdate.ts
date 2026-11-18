@@ -10,18 +10,27 @@
  * - When the server advertises N3 Patch (`Accept-Patch: text/n3`) and the
  *   document parsed cleanly, only that difference is sent, as a
  *   `solid:InsertDeletePatch`. The server applies it atomically, so rows
- *   written or removed by others in the meantime stay as they are. A 409
- *   (a statement to delete is already gone) re-reads and retries.
- * - Otherwise (no N3 Patch, such as the PHP Solid Server; a 405, 415, or
- *   501 answer to the patch; or a damaged document that the next write
- *   should heal), the whole document is PUT with `If-Match: <ETag>`, or
- *   with `If-None-Match: *` when it did not exist yet. On 412 the document
- *   is read again, the mutation is applied again, and the write is
- *   retried, up to a bounded number of attempts.
+ *   written or removed by others in the meantime stay as they are. For
+ *   every existing subject that only gains statements, one of its
+ *   unchanged statements is deleted and re-inserted as a guard, so if
+ *   another client removed that subject (or the whole document) the patch
+ *   fails instead of leaving orphaned statements. A 409 (a statement to
+ *   delete is gone) or 404 (the document is gone) re-reads and retries.
+ * - Otherwise (no N3 Patch, such as the PHP Solid Server; a 405, 415, 422,
+ *   or 501 answer to the patch; a change involving blank nodes, which N3
+ *   Patch forbids; or a damaged document that the next write should heal),
+ *   the whole document is PUT with `If-Match: <ETag>`, or with
+ *   `If-None-Match: *` when it did not exist yet. On 412 the document is
+ *   read again, the mutation is applied again, and the write is retried,
+ *   up to a bounded number of attempts with exponential back-off.
  *
- * Residual risk: a server that sends no strong ETag for an existing
- * document gets an unconditional PUT, as before, because `If-Match`
- * compares strongly (RFC 9110) and there is nothing else to condition on.
+ * Residual risk: an existing document without a strong ETag can only be
+ * conditioned on `If-Unmodified-Since`, which has one-second resolution,
+ * and one with neither gets an unconditional PUT, as before, because
+ * `If-Match` compares strongly (RFC 9110).
+ *
+ * The mutation may run once per attempt, so it must not have side
+ * effects that are wrong to repeat.
  */
 
 import { Store as N3Store, Writer as N3Writer } from "n3";
@@ -32,8 +41,13 @@ import { CONTENT_TYPES, RDF_NAMESPACES } from "@/config";
 /** Attempts before {@link updateRdfDocument} gives up on a document that keeps changing. */
 export const DEFAULT_MAX_UPDATE_ATTEMPTS = 8;
 
+/** Upper bound of one back-off delay between attempts. */
+const MAX_BACKOFF_MS = 1000;
+
 /** Answers to a PATCH that mean "this server can't apply this patch format". */
 const PATCH_UNSUPPORTED_STATUSES = new Set([405, 415, 501]);
+
+const RDF_TYPE = `${RDF_NAMESPACES.RDF}type`;
 
 /**
  * True when a PATCH response says the server doesn't support the patch
@@ -113,8 +127,40 @@ function difference(from: N3Store, without: N3Store): Quad[] {
     .filter((q) => without.countQuads(q.subject, q.predicate, q.object, q.graph) === 0);
 }
 
+/** N3 Patch forbids blank nodes in inserts and deletes (Solid Protocol, 5.3.1). */
+function hasBlankNode(q: Quad): boolean {
+  return q.subject.termType === "BlankNode" || q.object.termType === "BlankNode" || q.graph.termType === "BlankNode";
+}
+
+/**
+ * For every existing subject that gains statements but loses none, one
+ * of its unchanged statements (its `rdf:type` if it has one), to be
+ * deleted and re-inserted by the patch. If another client removed that
+ * subject or the whole document in the meantime, the delete fails with
+ * 409 or 404 and the update is retried, instead of the inserts landing
+ * as orphaned statements.
+ *
+ * @internal
+ */
+function guardStatements(before: N3Store, after: N3Store, inserts: Quad[], deletes: Quad[]): Quad[] {
+  const covered = new Set(deletes.map((q) => q.subject.value));
+  const guards: Quad[] = [];
+  for (const insert of inserts) {
+    const subject = insert.subject;
+    if (subject.termType !== "NamedNode" || covered.has(subject.value)) continue;
+    covered.add(subject.value);
+    const unchanged = before
+      .getQuads(subject, null, null, null)
+      .filter((q) => !hasBlankNode(q) && after.countQuads(q.subject, q.predicate, q.object, q.graph) > 0);
+    const guard = unchanged.find((q) => q.predicate.value === RDF_TYPE) ?? unchanged[0];
+    if (guard) guards.push(guard);
+  }
+  return guards;
+}
+
+/** Exponential back-off with full jitter: up to 100 ms before the second attempt, doubling to at most 1 s. */
 function backoff(attempt: number): Promise<void> {
-  const delayMs = Math.floor(Math.random() * 20 * attempt);
+  const delayMs = Math.floor(Math.random() * Math.min(MAX_BACKOFF_MS, 25 * 2 ** attempt));
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
@@ -131,30 +177,36 @@ async function attemptUpdate(
   const exists = getResponse.status !== 404;
   const parsed = exists ? options.parse(await getResponse.text(), documentUri) : { quads: [], damaged: false };
 
-  const before = new N3Store(parsed.quads);
+  // `before` is only needed to compute a patch.
+  const before = exists && !parsed.damaged && acceptsN3Patch(getResponse) ? new N3Store(parsed.quads) : null;
   const store = new N3Store(parsed.quads);
   if ((await mutate(store, { exists })) === false) return "done";
 
-  if (exists && !parsed.damaged && acceptsN3Patch(getResponse)) {
+  if (before) {
     const inserts = difference(store, before);
     const deletes = difference(before, store);
     if (inserts.length === 0 && deletes.length === 0) return "done";
-    const patchResponse = await fetch(documentUri, {
-      method: "PATCH",
-      headers: { "Content-Type": CONTENT_TYPES.N3 },
-      body: buildInsertDeletePatch(inserts, deletes),
-    });
-    if (patchResponse.ok) return "done";
-    if (patchResponse.status === 409) return "conflict";
-    if (!isPatchUnsupported(patchResponse.status)) {
-      throw new Error(`Failed to patch ${documentUri}: ${patchResponse.status} ${patchResponse.statusText}`);
+    if (![...inserts, ...deletes].some(hasBlankNode)) {
+      const guards = guardStatements(before, store, inserts, deletes);
+      const patchResponse = await fetch(documentUri, {
+        method: "PATCH",
+        headers: { "Content-Type": CONTENT_TYPES.N3 },
+        body: buildInsertDeletePatch([...inserts, ...guards], [...deletes, ...guards]),
+      });
+      if (patchResponse.ok) return "done";
+      if (patchResponse.status === 409 || patchResponse.status === 404) return "conflict";
+      if (!isPatchUnsupported(patchResponse.status) && patchResponse.status !== 422) {
+        throw new Error(`Failed to patch ${documentUri}: ${patchResponse.status} ${patchResponse.statusText}`);
+      }
     }
   }
 
   const headers: Record<string, string> = { "Content-Type": CONTENT_TYPES.TURTLE };
   const etag = header(getResponse, "ETag");
+  const lastModified = header(getResponse, "Last-Modified");
   if (!exists) headers["If-None-Match"] = "*";
   else if (isStrongEtag(etag)) headers["If-Match"] = etag;
+  else if (lastModified) headers["If-Unmodified-Since"] = lastModified;
   const putResponse = await fetch(documentUri, {
     method: "PUT",
     headers,

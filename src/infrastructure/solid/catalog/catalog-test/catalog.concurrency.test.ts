@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Parser as N3Parser, Store as N3Store, Writer as N3Writer } from 'n3';
 import type { Quad, Term } from 'n3';
-import { appendTombstones, readTombstonedTags } from '@/infrastructure/solid/catalogTombstones';
+import { appendTombstones, purgeExpiredTombstones, readTombstonedTags, resolveTombstoneLogUri } from '@/infrastructure/solid/catalogTombstones';
 import { parseCatalog } from '../catalog-file/catalog';
 import type { FetchFn } from '@/types';
 
@@ -15,7 +15,9 @@ type ServerKind = 'n3-patch' | 'put-only';
  * An in-memory Solid server with faithful concurrency semantics: every
  * write gets a new strong ETag, PUT honors If-Match and If-None-Match per
  * RFC 9110 (412 on mismatch), and, for 'n3-patch', N3 Patch is applied
- * atomically and answers 409 when a statement to delete is not present.
+ * atomically and answers 409 when a statement to delete is not present,
+ * 404 when the document is missing, and 422 when inserts or deletes
+ * contain blank nodes, as CSS does (Solid Protocol, 5.3.1).
  * A 'put-only' server answers 405 to PATCH, like a server without N3 Patch.
  *
  * `beforeResponding` runs before a response is returned, so a test can
@@ -33,6 +35,15 @@ class FakePod {
 
   text(url: string): string {
     return this.docs.get(url)?.text ?? '';
+  }
+
+  /** Another client writes or deletes a document directly. */
+  seed(url: string, text: string): void {
+    this.store(url, text);
+  }
+
+  remove(url: string): void {
+    this.docs.delete(url);
   }
 
   private store(url: string, text: string): void {
@@ -80,6 +91,9 @@ class FakePod {
     const docStore = new N3Store(new N3Parser({ baseIRI: url }).parse(current));
     const deletes = inFormula(formula('deletes'));
     const inserts = inFormula(formula('inserts'));
+    if ([...deletes, ...inserts].some((q) => q.subject.termType === 'BlankNode' || q.object.termType === 'BlankNode')) {
+      return new Response(null, { status: 422, statusText: 'Unprocessable Entity' });
+    }
     const present = (q: Quad) => docStore.countQuads(q.subject, q.predicate, q.object, null) > 0;
     if (!deletes.every(present)) return new Response(null, { status: 409, statusText: 'Conflict' });
     for (const q of deletes) docStore.removeQuads(docStore.getQuads(q.subject, q.predicate, q.object, null));
@@ -195,10 +209,98 @@ describe.each(['n3-patch', 'put-only'] as const)('two concurrent catalog writers
 
     expect([...(await readTombstonedTags(catalogUri, pod.fetch)).keys()].sort()).toEqual([firstTag, secondTag].sort());
   });
+
+  it('does not leave a half entry behind when the other writer removes the entry during a re-append', async () => {
+    const catalogUri = `${STORAGE}catalog.ttl`;
+    const pod = new FakePod(kind);
+    const [appender, remover] = [await loadClient(), await loadClient()];
+    await appendFile(appender, pod, catalogUri, 'kept');
+    await appendFile(appender, pod, catalogUri, 'doc');
+
+    // Re-appending an existing entry only adds statements (a new tag), so without a guard the
+    // patch would land after the removal and leave statements about the entry without its row.
+    interleaveAfterFirstRead(pod, catalogUri, () => remover.removeFromCatalog(catalogUri, instance('doc'), pod.fetch));
+    await appendFile(appender, pod, catalogUri, 'doc');
+
+    const listed = rows(pod, catalogUri).includes(instance('doc'));
+    expect(listed || !pod.text(catalogUri).includes(instance('doc'))).toBe(true);
+    expect(rows(pod, catalogUri)).toContain(instance('kept'));
+  });
+
+  it('creates the catalog again when the other writer deletes it during an append', async () => {
+    const catalogUri = `${STORAGE}catalog.ttl`;
+    const pod = new FakePod(kind);
+    const [appender] = [await loadClient()];
+    await appendFile(appender, pod, catalogUri, 'gone');
+
+    interleaveAfterFirstRead(pod, catalogUri, async () => pod.remove(catalogUri));
+    await appendFile(appender, pod, catalogUri, 'new');
+
+    expect(rows(pod, catalogUri)).toEqual([instance('new')]);
+    expect(pod.text(catalogUri)).toMatch(/dcat:Catalog\b|dcat#Catalog>/);
+  });
+
+  it('removes an entry that another tool wrote with blank nodes', async () => {
+    const catalogUri = `${STORAGE}catalog.ttl`;
+    const pod = new FakePod(kind);
+    const [client] = [await loadClient()];
+    await appendFile(client, pod, catalogUri, 'kept');
+    await appendFile(client, pod, catalogUri, 'third-party');
+    pod.seed(
+      catalogUri,
+      `${pod.text(catalogUri)}\n<${instance('third-party')}> <http://purl.org/dc/terms/spatial> _:place .\n_:place <http://www.w3.org/2000/01/rdf-schema#label> "Leipzig" .\n`,
+    );
+
+    await client.removeFromCatalog(catalogUri, instance('third-party'), pod.fetch);
+
+    expect(rows(pod, catalogUri)).toEqual([instance('kept')]);
+  });
+
+  it('purges expired tombstones, also when another device purges the same ones at once', async () => {
+    const catalogUri = `${STORAGE}catalog.ttl`;
+    const logUri = resolveTombstoneLogUri(catalogUri);
+    const pod = new FakePod(kind);
+    const [oldTag, freshTag] = [crypto.randomUUID(), crypto.randomUUID()];
+    await appendTombstones(catalogUri, [oldTag], pod.fetch, new Date('2026-01-01T00:00:00.000Z'));
+    await appendTombstones(catalogUri, [freshTag], pod.fetch, new Date('2026-03-01T00:00:00.000Z'));
+    const now = new Date('2026-03-05T00:00:00.000Z');
+
+    let logReads = 0;
+    let interleaved = false;
+    pod.beforeResponding = async (method, url) => {
+      // After this device's second read (the one its write is based on), the other device purges.
+      if (interleaved || method !== 'GET' || url !== logUri || ++logReads !== 2) return;
+      interleaved = true;
+      await purgeExpiredTombstones(catalogUri, pod.fetch, 30, now);
+    };
+    await purgeExpiredTombstones(catalogUri, pod.fetch, 30, now);
+
+    expect([...(await readTombstonedTags(catalogUri, pod.fetch)).keys()]).toEqual([freshTag]);
+  });
 });
 
 describe('catalog writes against a catalog that keeps changing', () => {
+  it('tombstones a removed entry once, even when its write is retried', async () => {
+    const catalogUri = `${STORAGE}catalog.ttl`;
+    const pod = new FakePod('put-only');
+    const [appender, remover] = [await loadClient(), await loadClient()];
+    await appendFile(appender, pod, catalogUri, 'kept');
+    await appendFile(appender, pod, catalogUri, 'removed');
+
+    let reads = 0;
+    pod.beforeResponding = async (method, url) => {
+      // A concurrent append after the remover's first read forces a 412 and a retry.
+      if (method === 'GET' && url === catalogUri && ++reads === 1) await appendFile(appender, pod, catalogUri, 'appended');
+    };
+    await remover.removeFromCatalog(catalogUri, instance('removed'), pod.fetch);
+
+    expect(rows(pod, catalogUri)).toEqual([instance('appended'), instance('kept')].sort());
+    const tombstoneLines = pod.text(resolveTombstoneLogUri(catalogUri)).split('\n').filter((line) => line.includes('activitystreams#deleted'));
+    expect(tombstoneLines).toHaveLength(1);
+  });
+
   it('gives up after a bounded number of attempts instead of overwriting', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
     const catalogUri = `${STORAGE}catalog.ttl`;
     const pod = new FakePod('put-only');
     const [writer, busy] = [await loadClient(), await loadClient()];
@@ -219,5 +321,6 @@ describe('catalog writes against a catalog that keeps changing', () => {
     pod.beforeResponding = async () => {};
     expect(rows(pod, catalogUri)).toHaveLength(otherWrites + 1);
     expect(rows(pod, catalogUri)).not.toContain(instance('blocked'));
+    vi.restoreAllMocks();
   });
 });
