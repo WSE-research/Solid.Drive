@@ -8,6 +8,7 @@ link:catalog/[catalog/]:: DCAT catalog CRUD: append, remove, parse, resolve URI,
 link:displayName/[displayName/]:: Resolve a display name from a Solid profile document
 link:profile/[profile/]:: Patch profile fields (`foaf:name`, `foaf:img`, `foaf:knows`) via N3 Solid Patch
 link:rdfUtils/[rdfUtils/]:: Serialize N3 quads to Turtle
+link:rdfDocumentUpdate/[rdfDocumentUpdate/]:: Update a whole RDF document (catalog, deletion log) with N3 Patch, or with a conditional PUT and retries, without losing concurrent writes
 link:resourceGuards/[resourceGuards/]:: Type guard functions for LDO resource shapes
 link:sharedCatalog/[sharedCatalog/]:: Per-contact shared catalog naming, URI helpers, and access checks
 

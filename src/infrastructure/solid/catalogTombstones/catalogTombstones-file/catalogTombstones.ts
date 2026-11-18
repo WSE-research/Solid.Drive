@@ -15,10 +15,11 @@
  * accept for their own delete markers.
  */
 
-import { Parser as N3Parser, Store as N3Store } from "n3";
+import { Parser as N3Parser, Store as N3Store, Writer as N3Writer } from "n3";
 import type { FetchFn } from "@/types";
 import { CATALOG_TOMBSTONE_LOG_FILENAME, CATALOG_TOMBSTONE_RETENTION_DAYS, CONTENT_TYPES, RDF_NAMESPACES } from "@/config";
 import { isValidEntryTag } from "@/infrastructure/solid/entryTag";
+import { DEFAULT_MAX_UPDATE_ATTEMPTS, isPatchUnsupported, updateRdfDocument } from "@/infrastructure/solid/rdfDocumentUpdate";
 
 const AS_DELETED = `${RDF_NAMESPACES.ACTIVITY_STREAMS}deleted`;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -54,10 +55,14 @@ export function resolveTombstoneLogUri(catalogUri: string): string {
  * Records removed entry tags in a catalog's tombstone log.
  *
  * @remarks
- * Does nothing for an empty `tags` list. Creates the log with a plain PUT
- * the first time anything is tombstoned, since PATCH can't create a
- * resource that doesn't exist yet; every later call appends through
- * PATCH instead.
+ * Does nothing for an empty `tags` list. Appends through an N3 Patch,
+ * which the server applies atomically. Creates the log with a PUT the
+ * first time anything is tombstoned, since PATCH can't create a resource
+ * that doesn't exist yet on every server; that PUT carries
+ * `If-None-Match: *`, so a log another client created in the meantime is
+ * never overwritten, and the append is retried as a PATCH instead. A
+ * server without N3 Patch (405, 415, or 501) gets the conditional
+ * read-modify-write of {@link updateRdfDocument}.
  *
  * @public
  */
@@ -76,24 +81,54 @@ export async function appendTombstones(
   const deletedAtIso = now.toISOString();
   const triples = tags.map((tag) => tombstoneTriple(tag, deletedAtIso));
 
-  const patchResponse = await fetch(tombstoneLogUri, {
-    method: "PATCH",
-    headers: { "Content-Type": CONTENT_TYPES.N3 },
-    body: buildN3Patch("inserts", triples),
-  });
-  if (patchResponse.ok) return;
-  if (patchResponse.status !== 404) {
-    throw new Error(`Failed to append tombstones at ${tombstoneLogUri}: ${patchResponse.status} ${patchResponse.statusText}`);
-  }
+  for (let attempt = 1; attempt <= DEFAULT_MAX_UPDATE_ATTEMPTS; attempt++) {
+    const patchResponse = await fetch(tombstoneLogUri, {
+      method: "PATCH",
+      headers: { "Content-Type": CONTENT_TYPES.N3 },
+      body: buildN3Patch("inserts", triples),
+    });
+    if (patchResponse.ok) return;
+    if (isPatchUnsupported(patchResponse.status)) {
+      await appendTombstonesWithoutPatch(tombstoneLogUri, triples, fetch);
+      return;
+    }
+    if (patchResponse.status !== 404) {
+      throw new Error(`Failed to append tombstones at ${tombstoneLogUri}: ${patchResponse.status} ${patchResponse.statusText}`);
+    }
 
-  const putResponse = await fetch(tombstoneLogUri, {
-    method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES.TURTLE },
-    body: triples.join("\n"),
-  });
-  if (!putResponse.ok) {
-    throw new Error(`Failed to create tombstone log at ${tombstoneLogUri}: ${putResponse.status} ${putResponse.statusText}`);
+    const putResponse = await fetch(tombstoneLogUri, {
+      method: "PUT",
+      headers: { "Content-Type": CONTENT_TYPES.TURTLE, "If-None-Match": "*" },
+      body: triples.join("\n"),
+    });
+    if (putResponse.ok) return;
+    if (putResponse.status !== 412) {
+      throw new Error(`Failed to create tombstone log at ${tombstoneLogUri}: ${putResponse.status} ${putResponse.statusText}`);
+    }
+    // Another client created the log in the meantime: append to it instead.
   }
+  throw new Error(`Failed to append tombstones at ${tombstoneLogUri}: it kept changing during ${DEFAULT_MAX_UPDATE_ATTEMPTS} attempts`);
+}
+
+/**
+ * Appends tombstone triples on a server without N3 Patch, by a
+ * read-modify-write conditioned on the log's ETag.
+ *
+ * @internal
+ */
+async function appendTombstonesWithoutPatch(tombstoneLogUri: string, triples: string[], fetch: FetchFn): Promise<void> {
+  const additions = new N3Parser({ baseIRI: tombstoneLogUri }).parse(triples.join("\n"));
+  await updateRdfDocument(
+    tombstoneLogUri,
+    fetch,
+    (store) => {
+      store.addQuads(additions);
+    },
+    {
+      parse: (text, documentUri) => ({ quads: new N3Parser({ baseIRI: documentUri }).parse(text), damaged: false }),
+      serialize: (quads) => new N3Writer({ format: "N-Triples" }).quadsToString(quads),
+    },
+  );
 }
 
 /**
@@ -135,8 +170,10 @@ export async function readTombstonedTags(catalogUri: string, fetch: FetchFn): Pr
  * Drops tombstones past their retention window.
  *
  * @remarks
- * Deletes exactly the expired triples, so a tombstone another device
- * appends while this sweep is running is never lost.
+ * Deletes exactly the expired triples through {@link updateRdfDocument},
+ * so a tombstone another device appends while this sweep is running is
+ * never lost, a tombstone another device purged first is not an error,
+ * and a server without N3 Patch gets a conditional read-modify-write.
  *
  * @param retentionDays - How long a tombstone is kept before it's
  * eligible for purge. Defaults to {@link CATALOG_TOMBSTONE_RETENTION_DAYS}.
@@ -150,19 +187,23 @@ export async function purgeExpiredTombstones(
   now: Date = new Date(),
 ): Promise<void> {
   const tombstones = await readTombstonedTags(catalogUri, fetch);
-  const expired = [...tombstones].filter(
-    ([, deletedAtIso]) => new Date(deletedAtIso).getTime() + retentionDays * MS_PER_DAY <= now.getTime(),
-  );
-  if (expired.length === 0) return;
+  const isExpired = (deletedAtIso: string) => new Date(deletedAtIso).getTime() + retentionDays * MS_PER_DAY <= now.getTime();
+  if (![...tombstones.values()].some(isExpired)) return;
 
-  const tombstoneLogUri = resolveTombstoneLogUri(catalogUri);
-  const triples = expired.map(([tag, deletedAtIso]) => tombstoneTriple(tag, deletedAtIso));
-  const response = await fetch(tombstoneLogUri, {
-    method: "PATCH",
-    headers: { "Content-Type": CONTENT_TYPES.N3 },
-    body: buildN3Patch("deletes", triples),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to purge tombstones at ${tombstoneLogUri}: ${response.status} ${response.statusText}`);
-  }
+  await updateRdfDocument(
+    resolveTombstoneLogUri(catalogUri),
+    fetch,
+    (store, { exists }) => {
+      if (!exists) return false;
+      const expired = store
+        .getQuads(null, AS_DELETED, null, null)
+        .filter((q) => q.subject.value.startsWith("urn:uuid:") && isExpired(q.object.value));
+      if (expired.length === 0) return false;
+      store.removeQuads(expired);
+    },
+    {
+      parse: (text, documentUri) => ({ quads: new N3Parser({ baseIRI: documentUri }).parse(text), damaged: false }),
+      serialize: (quads) => new N3Writer({ format: "N-Triples" }).quadsToString(quads),
+    },
+  );
 }

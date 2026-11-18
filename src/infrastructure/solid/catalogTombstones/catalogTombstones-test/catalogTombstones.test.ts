@@ -22,15 +22,15 @@ function mockFetch(responses: Record<string, { status: number; body?: string }>)
     calls.push({ url: String(url), method, body: typeof init?.body === "string" ? init.body : undefined, contentType: headers?.["Content-Type"] });
 
     if (method === "PUT") {
-      return { ok: true, status: 201, statusText: "Created" } as Response;
+      return new Response(null, { status: 201, statusText: "Created" });
     }
     const response = responses[String(url)] ?? { status: 404 };
-    return {
-      ok: response.status < 400,
+    return new Response(response.body ?? "", {
       status: response.status,
       statusText: response.status < 400 ? "OK" : "Error",
-      text: async () => response.body ?? "",
-    } as Response;
+      // A server with N3 Patch, like CSS: reads advertise it and carry a strong ETag.
+      headers: method === "GET" && response.status < 400 ? { "Accept-Patch": "text/n3", ETag: '"v1"' } : {},
+    });
   });
   return { fetch, calls };
 }
@@ -166,8 +166,8 @@ describe("purgeExpiredTombstones", () => {
   it("throws when the server rejects the purge patch", async () => {
     const fetch = vi.fn(async (_url: RequestInfo, init?: RequestInit) => {
       const method = init?.method ?? "GET";
-      if (method === "PATCH") return { ok: false, status: 500, statusText: "Error" } as Response;
-      return { ok: true, status: 200, statusText: "OK", text: async () => oldTombstone } as Response;
+      if (method === "PATCH") return new Response(null, { status: 500, statusText: "Error" });
+      return new Response(oldTombstone, { status: 200, statusText: "OK", headers: { "Accept-Patch": "text/n3", ETag: '"v1"' } });
     });
     await expect(purgeExpiredTombstones(catalogUri, fetch, 30, new Date("2026-03-05T00:00:00.000Z"))).rejects.toThrow(tombstoneLogUri);
   });
