@@ -426,7 +426,7 @@ Both clients write the four trash terms with the IRIs `https://w3id.org/trash#ki
 - **M1.** Readers MUST accept both namespaces with the same meaning (R1). The vocabulary states this with `owl:equivalentProperty`, and the shapes accept either with `sh:alternativePath`.
 - **M2.** A tombstone MUST use one namespace for all four terms, never both and never a mix (`sdsh:TombstoneNamespaceShape`).
 - **M3.** Writers MUST keep writing `https://w3id.org/trash#` until released versions of both Solid.Drive and Solid.Sync read both namespaces. Until then a tombstone in the new namespace would be unreadable for the other client, so it could not be restored there.
-- **M4.** After that point, writers SHOULD switch to `https://purl.org/solid-drive/trash#`. The follow-up issues track both steps in each client.
+- **M4.** After that point, writers SHOULD switch to `https://purl.org/solid-drive/trash#`. Both steps are tracked for Solid.Drive in [#191](https://github.com/WSE-research/Solid.Drive/issues/191) and for Solid.Sync in its issue #32.
 - **M5.** Existing tombstones are not rewritten (I11). They disappear with their entries, so readers MUST accept the legacy namespace for as long as entries written before the switch can exist; this version sets no end, and a later major version may.
 
 ## 10. Checking a document
