@@ -22,7 +22,7 @@
   dcterms:created "2026-08-23"^^xsd:date ;
   dcterms:modified "2026-09-26"^^xsd:date ;
   dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-  rdfs:seeAlso <https://github.com/WSE-research/Solid-Hello-World-Frontend-React> .
+  rdfs:seeAlso <https://github.com/WSE-research/Solid.Drive> .
 
 :StorageObject
   a rdfs:Class, owl:Class ;

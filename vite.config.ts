@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
-const BASE_PATH = '/solid-hello-world-frontend-react/'
+const BASE_PATH = '/solid.drive/'
 
 // start_url and scope are derived from BASE_PATH so the installed app
 // launches at the same location the reverse proxy serves and the service
@@ -28,7 +28,7 @@ const pwaManifest = {
 // browser is currently at. When that pathname is the basename without a
 // trailing slash (which happens after some OIDC redirect bounces and on
 // other normalisation paths), the resulting URL is
-// `/solid-hello-world-frontend-react?folder=...` and Vite's dev server
+// `/solid.drive?folder=...` and Vite's dev server
 // 404s it because `base` requires the trailing slash. This plugin
 // redirects the slash-less form back to the slash form so a manual
 // refresh works.

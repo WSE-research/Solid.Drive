@@ -11,7 +11,7 @@ import { ProfileSidebar } from '@/features/profile/components/ProfileSidebar';
 import { FileExplorer } from '@/features/file-explorer/components/FileExplorer';
 
 /**
- * Renders the classic Solid Hello World layout: profile sidebar plus file explorer.
+ * Renders the classic Solid.Drive layout: profile sidebar plus file explorer.
  *
  * @public
  */

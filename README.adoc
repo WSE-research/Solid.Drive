@@ -138,7 +138,7 @@ toc::[]
 [source,bash]
 ----
 git clone {github-repository}.git
-cd Solid-Hello-World-Frontend-React
+cd Solid.Drive
 npm install
 ----
 
@@ -186,15 +186,15 @@ Run the published image:
 
 [source,bash]
 ----
-docker run -p 40211:80 wseresearch/solid-hello-world-frontend-react
+docker run -p 40211:80 wseresearch/solid.drive
 ----
 
 Or build and run locally:
 
 [source,bash]
 ----
-docker build -t wseresearch/solid-hello-world-frontend-react:local .
-docker run -p 40211:80 wseresearch/solid-hello-world-frontend-react:local
+docker build -t wseresearch/solid.drive:local .
+docker run -p 40211:80 wseresearch/solid.drive:local
 ----
 
 The app listens on port 80 inside the container; open http://localhost:5173/ in your browser.
