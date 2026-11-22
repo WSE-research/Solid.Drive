@@ -2,7 +2,7 @@
   "services": [
     {
       "mode": "dockerfile",
-      "port": "40211:80",
+      "port": "40210:80",
       "image": "wseresearch/solid.drive",
       "tag": "latest"
     },
