@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditableDescription } from '../EditableDescription-file/EditableDescription';
 
@@ -96,6 +96,31 @@ describe('EditableDescription', () => {
     const input = screen.getByRole('textbox');
     await user.type(input, 'x{Enter}');
     await waitFor(() => expect(mockCommitData).toHaveBeenCalledOnce());
+  });
+
+  it('saves only once when Enter is followed by a blur', async () => {
+    const user = userEvent.setup();
+    let resolveCommit!: (value: { isError: boolean }) => void;
+    mockCommitData.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCommit = resolve;
+      }),
+    );
+    const onSaved = vi.fn();
+    render(
+      <EditableDescription
+        metadataUri="https://pod/app/doc/index.ttl"
+        initial=""
+        onSaved={onSaved}
+      />,
+    );
+    const input = screen.getByRole('textbox');
+    await user.type(input, 'x{Enter}');
+    fireEvent.blur(input);
+    resolveCommit({ isError: false });
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(mockCommitData).toHaveBeenCalledOnce();
+    expect(onSaved).toHaveBeenCalledOnce();
   });
 
   it('shows the saving indicator while the commit is in flight', async () => {

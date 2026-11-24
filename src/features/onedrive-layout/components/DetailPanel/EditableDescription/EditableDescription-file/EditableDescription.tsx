@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ChangeEvent, FunctionComponent, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLdo } from '@ldo/solid-react';
@@ -56,8 +56,13 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
     'Could not save description',
   );
 
+  // Blocks a second save while one is still running. A ref updates at
+  // once; state would only update on the next render.
+  const isCommitInFlight = useRef(false);
+
   const persist = useCallback(async () => {
-    if (value === initialValue) return;
+    if (value === initialValue || isCommitInFlight.current) return;
+    isCommitInFlight.current = true;
     setIsSaving(true);
     try {
       const indexResource = getResource(metadataUri);
@@ -84,6 +89,7 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
       }
       onSaved?.();
     } finally {
+      isCommitInFlight.current = false;
       setIsSaving(false);
     }
   }, [
@@ -101,10 +107,12 @@ export const EditableDescription: FunctionComponent<EditableDescriptionProps> = 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) =>
     setValue(event.target.value);
   const handleBlur = () => void persist();
+  // Enter leaves the field, and the blur handler saves. That way one
+  // edit is saved once, not once for Enter and again for the blur.
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      void persist();
+      event.currentTarget.blur();
     }
   };
 
