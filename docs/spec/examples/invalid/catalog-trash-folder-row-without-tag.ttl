@@ -1,0 +1,19 @@
+# Fails: a folder row of the trash catalog without tag, title, or modification time; it cannot pass as the storage-root row.
+# role: catalog
+# document: https://pod.example/alice/trash/catalog.ttl
+# expect: sdsh:FolderRowKindShape OrConstraintComponent
+@prefix as: <https://www.w3.org/ns/activitystreams#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix schema: <http://schema.org/> .
+@prefix sd: <https://purl.org/solid-drive/catalog#> .
+@prefix trash: <https://purl.org/solid-drive/trash#> .
+@prefix w3idtrash: <https://w3id.org/trash#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a dcat:Catalog ;
+  dcat:dataset <https://pod.example/alice/trash/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/> .
+<https://pod.example/alice/trash/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/> a dcat:Dataset, sd:Folder ;
+  dcterms:conformsTo sd:Folder ;
+  dcterms:publisher <https://pod.example/alice/profile/card#me> .

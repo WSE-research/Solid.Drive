@@ -1,0 +1,12 @@
+# Written by Solid.Drive's own code (step "upload Bericht "final" für Zoë.pdf" of tests/integration/soft-delete-spec/generateDocuments.ts).
+# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec
+# role: resource-description
+# document: https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl
+@prefix schema: <http://schema.org/>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl> schema:name "Bericht \"final\" für Zoë.pdf";
+    schema:encodingFormat "application/pdf";
+    schema:contentSize "15";
+    schema:uploadDate "2026-11-01T12:03:00.000Z"^^xsd:dateTime;
+    schema:publisher <https://pod.example/alice/profile/card#me>.

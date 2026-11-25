@@ -1,0 +1,40 @@
+# Written by Solid.Drive's own code (step "soft-delete Bericht "final" für Zoë.pdf" of tests/integration/soft-delete-spec/generateDocuments.ts).
+# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec
+# role: catalog
+# document: https://pod.example/alice/trash/catalog.ttl
+@prefix dcat: <http://www.w3.org/ns/dcat#>.
+@prefix dcterms: <http://purl.org/dc/terms/>.
+@prefix schema: <http://schema.org/>.
+@prefix sd: <https://purl.org/solid-drive/catalog#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<https://pod.example/alice/trash/catalog.ttl> a dcat:Catalog;
+    dcat:dataset <https://pod.example/alice/trash/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/index.ttl>, <https://pod.example/alice/trash/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/>, <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/index.ttl>.
+<https://pod.example/alice/trash/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:TextDigitalDocument;
+    dcterms:title "notes.txt";
+    dcterms:modified "2026-11-01T12:04:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:tag "00000000-0000-4000-8000-000000000008";
+    dcat:distribution <https://pod.example/alice/trash/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/index.ttl#dist>.
+<https://pod.example/alice/trash/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/> a dcat:Dataset, sd:Folder;
+    dcterms:conformsTo sd:Folder;
+    dcterms:title "Projects";
+    dcterms:modified "2026-11-01T12:01:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:tag "00000000-0000-4000-8000-000000000013".
+<https://pod.example/alice/trash/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/trash/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/payload>;
+    dcat:mediaType "text/plain";
+    dcat:byteSize 10.
+<https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:TextDigitalDocument;
+    dcterms:title "Bericht \"final\" für Zoë.pdf";
+    dcterms:modified "2026-11-01T12:03:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:tag "00000000-0000-4000-8000-000000000014";
+    dcat:distribution <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/index.ttl#dist>.
+<https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/payload>;
+    dcat:mediaType "application/pdf";
+    dcat:byteSize 15.

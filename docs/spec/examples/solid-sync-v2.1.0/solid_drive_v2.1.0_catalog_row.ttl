@@ -1,0 +1,18 @@
+@prefix dcat: <http://www.w3.org/ns/dcat#>.
+@prefix dcterms: <http://purl.org/dc/terms/>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<https://pod.example/alice/catalog.ttl> a dcat:Catalog;
+    dcat:dataset <https://pod.example/alice/sync/my-report.pdf/index.ttl>.
+<https://pod.example/alice/sync/my-report.pdf/index.ttl> a dcat:Dataset, <https://purl.org/solid-drive/catalog#File>;
+    dcterms:conformsTo <http://schema.org/DigitalDocument>;
+    dcterms:title "Bericht \"final\" für Zoë.pdf";
+    dcterms:modified "2026-11-01T12:00:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    <https://purl.org/solid-drive/catalog#hasParent> <https://pod.example/alice/sync/>;
+    <https://purl.org/solid-drive/catalog#tag> "6f9619ff-8b86-4011-b42d-00c04fc964ff";
+    dcat:distribution <https://pod.example/alice/sync/my-report.pdf/index.ttl#dist>.
+<https://pod.example/alice/sync/my-report.pdf/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/sync/my-report.pdf/Bericht%20%22final%22%20f%C3%BCr%20Zo%C3%AB.pdf>;
+    dcat:mediaType "application/pdf";
+    dcat:byteSize 1234.

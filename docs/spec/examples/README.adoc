@@ -1,0 +1,22 @@
+= examples
+
+Documents that the soft-delete specification (`../soft-delete.md`) is checked against. Each Turtle file starts with comment lines that name its role (`# role:`) and the URL it has on the example Pod (`# document:`), which is also its base IRI.
+
+== Contents
+
+`generated/`::
+Documents written by Solid.Drive's own code at this commit, from the scenario in `tests/integration/soft-delete-spec/generateDocuments.ts`, pretty-printed with prefixes. Do not edit them: the test fails when they differ from what the code writes, and `SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec` rewrites them. They are what Solid.Drive writes, not what the specification asks for: `index.ttl` does not conform (known gap KG4), and the tombstones still use the legacy namespace `https://w3id.org/trash#`.
+
+`valid/`::
+Hand-written documents that conform without any warning: a complete `index.ttl`, and a tombstone in the namespace `https://purl.org/solid-drive/trash#`.
+
+`invalid/`::
+Hand-written documents that must fail. Each names its expected findings in `# expect:` lines, as the shape and the SHACL constraint component (or `spec:<rule>` for a rule checked in code), and the test requires exactly those findings.
+
+`solid-sync-v2.1.0/`::
+The golden fixtures that Solid.Sync pins, copied unchanged from `test/fixtures/` of the Solid.Sync repository at commit `fb4a118`. Solid.Drive v2.1.0's own serializers wrote them, with synthetic data on `https://pod.example/alice/`; `solid_drive_v2.1.0_soft_delete.json` holds a whole Pod state after a soft delete, with each resource base64-encoded. Replace them when Solid.Sync regenerates its fixtures for a new Solid.Drive release.
+
+== Navigation
+
+.Parent
+link:../[spec]

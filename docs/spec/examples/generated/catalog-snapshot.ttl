@@ -1,0 +1,50 @@
+# Written by Solid.Drive's own code (step "soft-delete folder Projects" of tests/integration/soft-delete-spec/generateDocuments.ts).
+# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec
+# role: catalog
+# document: https://pod.example/alice/trash/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/catalog-snapshot.ttl
+@prefix dcat: <http://www.w3.org/ns/dcat#>.
+@prefix dcterms: <http://purl.org/dc/terms/>.
+@prefix schema: <http://schema.org/>.
+@prefix sd: <https://purl.org/solid-drive/catalog#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<https://pod.example/alice/trash/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/catalog-snapshot.ttl> a dcat:Catalog;
+    dcat:dataset <https://pod.example/alice/projects/>, <https://pod.example/alice/projects/drafts/>, <https://pod.example/alice/projects/photo.png/index.ttl>, <https://pod.example/alice/projects/drafts/draft.txt/index.ttl>.
+<https://pod.example/alice/projects/> a dcat:Dataset, sd:Folder;
+    dcterms:conformsTo sd:Folder;
+    dcterms:title "Projects";
+    dcterms:modified "2026-11-01T12:01:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:hasParent <https://pod.example/alice/>;
+    sd:tag "00000000-0000-4000-8000-000000000009".
+<https://pod.example/alice/projects/drafts/> a dcat:Dataset, sd:Folder;
+    dcterms:conformsTo sd:Folder;
+    dcterms:title "Drafts";
+    dcterms:modified "2026-11-01T12:02:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:hasParent <https://pod.example/alice/projects/>;
+    sd:tag "00000000-0000-4000-8000-000000000010".
+<https://pod.example/alice/projects/photo.png/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:ImageObject;
+    dcterms:title "photo.png";
+    dcterms:modified "2026-11-01T12:05:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:hasParent <https://pod.example/alice/projects/>;
+    sd:tag "00000000-0000-4000-8000-000000000011";
+    dcat:distribution <https://pod.example/alice/projects/photo.png/index.ttl#dist>.
+<https://pod.example/alice/projects/photo.png/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/projects/photo.png/photo.png>;
+    dcat:mediaType "image/png";
+    dcat:byteSize 9.
+<https://pod.example/alice/projects/drafts/draft.txt/index.ttl> a dcat:Dataset, sd:File;
+    dcterms:conformsTo schema:TextDigitalDocument;
+    dcterms:title "draft.txt";
+    dcterms:modified "2026-11-01T12:06:00.000Z"^^xsd:dateTime;
+    dcterms:publisher <https://pod.example/alice/profile/card#me>;
+    sd:hasParent <https://pod.example/alice/projects/drafts/>;
+    sd:tag "00000000-0000-4000-8000-000000000012";
+    dcat:distribution <https://pod.example/alice/projects/drafts/draft.txt/index.ttl#dist>.
+<https://pod.example/alice/projects/drafts/draft.txt/index.ttl#dist> a dcat:Distribution;
+    dcat:accessURL <https://pod.example/alice/projects/drafts/draft.txt/draft.txt>;
+    dcat:mediaType "text/plain";
+    dcat:byteSize 7.

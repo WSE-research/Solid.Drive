@@ -1,0 +1,23 @@
+# Written by Solid.Drive's own code (step "soft-delete Bericht "final" für Zoë.pdf" of tests/integration/soft-delete-spec/generateDocuments.ts).
+# Do not edit: regenerate with SPEC_EXAMPLES_UPDATE=1 npx vitest run tests/integration/soft-delete-spec
+# role: tombstone
+# document: https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/tombstone.ttl
+@prefix as: <https://www.w3.org/ns/activitystreams#>.
+@prefix dcterms: <http://purl.org/dc/terms/>.
+@prefix prov: <http://www.w3.org/ns/prov#>.
+@prefix schema: <http://schema.org/>.
+@prefix w3idtrash: <https://w3id.org/trash#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+<https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/tombstone.ttl> a as:Tombstone, prov:Entity;
+    as:deleted "2026-11-01T12:10:00.000Z"^^xsd:dateTime;
+    prov:invalidatedAtTime "2026-11-01T12:10:00.000Z"^^xsd:dateTime;
+    as:formerType schema:TextDigitalDocument;
+    dcterms:title "Bericht \"final\" für Zoë.pdf";
+    dcterms:source <https://pod.example/alice/bericht-final-f-r-zo-.pdf/>;
+    dcterms:valid "2026-12-01T12:10:00.000Z"^^xsd:dateTime;
+    dcterms:hasPart <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/payload>, <https://pod.example/alice/trash/cccccccc-cccc-4ccc-8ccc-cccccccccccc/index.ttl>;
+    w3idtrash:kind "file";
+    w3idtrash:originalParent <https://pod.example/alice/>;
+    w3idtrash:originalCatalog <https://pod.example/alice/catalog.ttl>;
+    w3idtrash:originalInstance <https://pod.example/alice/bericht-final-f-r-zo-.pdf/index.ttl>.
